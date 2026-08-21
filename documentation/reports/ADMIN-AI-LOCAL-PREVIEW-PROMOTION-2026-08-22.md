@@ -78,14 +78,15 @@ database name, PID, worker ID и workspace ID остаются server-side.
 - `npm run format:check` — pass;
 - `npm run lint` — pass, 0 errors; repository-wide legacy warnings остаются;
 - `npm run typecheck` — pass;
-- `npm run test:int` — 14 test files и 39 tests passed; отдельная regression
-  проверяет cleanup standalone process после того, как Next меняет process
-  title с `server.js` на `next-server`;
+- `npm run test:int` — 15 test files и 41 tests passed; отдельные regression
+  проверки покрывают cleanup standalone process после смены process title и
+  материализацию real-directory `node_modules` с bounded cleanup;
 - `npm run test:e2e` — 3 Chromium tests passed; drawer fixture прошёл полный
   queue → implementation acceptance → preview ready → reviewer/check evidence
   → preview acceptance сценарий, включая сохранение state после navigation и
   reload;
-- `npm run build` — pass, standalone Next.js build создан;
+- `npm run build` — pass в основном checkout и в detached worktree от exact
+  commit; standalone Next.js build создан;
 - `npm run payload:migrate:status` — все 6 миграций применены;
 - migration `down` и последующий `up` прошли на одноразовом clone, не затронув
   execution schema; owner constraint восстановлен;
@@ -99,12 +100,45 @@ database name, PID, worker ID и workspace ID остаются server-side.
 - реальный независимый Codex App Server reviewer в ephemeral read-only turn
   вернул строго распарсенный `approved`, 0 findings и 64-символьный evidence
   hash; временный worktree и subprocess закрыты;
-- `node scripts/security/check-secrets.mjs` — проверено 1133 versionable
+- `node scripts/security/check-secrets.mjs` — проверено 1136 versionable
   файлов, утечек не найдено.
 - desktop/mobile screenshots обновлены и визуально проверены:
   `evidence/admin-ai-chat-desktop.png` и
   `evidence/admin-ai-chat-mobile.png`; drawer не выходит за mobile viewport,
   preview URL/evidence/acceptance читаются в обеих компоновках.
+
+## Реальный queue-to-preview проход
+
+После tracked baseline `11e7edd0f5a436f5375972798742618b405b21c0`
+выполнен настоящий approval-gated Change Request. Первый запуск выявил, что
+Next.js 16/Turbopack запрещает внешний symlink `node_modules` из isolated
+worktree. Fix `28387da3ffe57909516b210f053dbebf5309d96f` вынес dependency
+materialization в отдельного owner-а: trusted check phase получает реальную
+локальную директорию с copy-on-write попыткой и fallback-копированием, после
+проверок она удаляется.
+
+Повторный проход от base commit `28387da3ffe57909516b210f053dbebf5309d96f`
+подтвердил:
+
+- implementation agent изменил ровно `src/components/Header/index.tsx` и
+  добавил только согласованный TSDoc без runtime-изменений;
+- exact diff hash:
+  `9fa73b36fc1cadeacc523a843a7f2caa4c057a3b55e2a1e4f07e2bd204ea3b3f`;
+- 5 execution checks и 7 preview checks завершились со статусом `passed`;
+- independent reviewer вернул `approved`; reviewer evidence hash:
+  `b4fd08dda0f12811ee498b6582703a8601926cd65cc69b59315ab53a042c39da`;
+- ephemeral service commit:
+  `0979b9c4adab470ca6ac1fbacf20d9f01a3326cd`;
+- local preview artifact hash:
+  `3148a6c53a293df2696f5b179d10f40bdd94b6b3b10be5f2cb41ab5c587814b6`;
+- state machine дошла до `preview_ready`, затем до отдельного
+  `preview_accepted`;
+- после принудительного test TTL worker остановил runtime и удалил DB clone,
+  preview worktree и branch; тестовые user/change/deployment records,
+  execution worktree/branch и detached app runtime также удалены;
+- итоговая сверка показала 0 preview listener-ов, 0
+  `realize_ai_preview_%` databases, 0 временных admin records и отсутствие
+  `ai/change-*`/`ai/preview-*` branches.
 
 ## Осознанные ограничения
 
@@ -116,11 +150,9 @@ database name, PID, worker ID и workspace ID остаются server-side.
   release approval;
 - sanitizer покрывает известную текущую schema, но при добавлении новых PII
   полей требует отдельного обновления и security review;
-- полный queue-to-preview прогон на текущем Change Request возможен только
-  после появления tracked base commit, содержащего сам pipeline. Текущая
-  работа оставлена незакоммиченной и не была скрыто committed/pushed.
+- local materialization временно занимает место размером до установленного
+  dependency tree; production-контур должен заменить её OCI layer/cache и
+  отдельным quota-aware cleanup controller.
 
-Следующий production-oriented шаг: зафиксировать проверенный baseline отдельным
-commit, провести реальный accepted Change Request через весь локальный queue,
-а затем выбрать OCI preview orchestrator и добавить release approval без
-переиспользования local Codex identity.
+Следующий production-oriented шаг: выбрать OCI preview orchestrator и добавить
+release approval без переиспользования local Codex identity.
