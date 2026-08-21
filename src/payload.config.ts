@@ -1,4 +1,10 @@
-import { postgresAdapter } from '@payloadcms/db-postgres'
+/**
+ * @file src/payload.config.ts
+ * @version 2026-08-17
+ * @description Owns the active Payload schema, PostgreSQL adapter and migration policy.
+ */
+
+import { postgresAdapter } from "@payloadcms/db-postgres";
 
 import {
   BoldFeature,
@@ -10,28 +16,32 @@ import {
   UnderlineFeature,
   UnorderedListFeature,
   lexicalEditor,
-} from '@payloadcms/richtext-lexical'
-import path from 'path'
-import { buildConfig } from 'payload'
-import { fileURLToPath } from 'url'
-import sharp from 'sharp'
+} from "@payloadcms/richtext-lexical";
+import path from "path";
+import { buildConfig } from "payload";
+import { fileURLToPath } from "url";
+import sharp from "sharp";
 
-import { Categories } from '@/collections/Categories'
-import { Media } from '@/collections/Media'
-import { Pages } from '@/collections/Pages'
-import { Users } from '@/collections/Users'
-import { Footer } from '@/globals/Footer'
-import { Header } from '@/globals/Header'
-import { plugins } from './plugins'
+import { Categories } from "@/collections/Categories";
+import { Media } from "@/collections/Media";
+import { Pages } from "@/collections/Pages";
+import { Users } from "@/collections/Users";
+import { Footer } from "@/globals/Footer";
+import { Header } from "@/globals/Header";
+import { plugins } from "./plugins";
 
-const filename = fileURLToPath(import.meta.url)
-const dirname = path.dirname(filename)
+const filename = fileURLToPath(import.meta.url);
+const dirname = path.dirname(filename);
 const serverURL =
   process.env.PAYLOAD_PUBLIC_SITE_URL ||
   process.env.PAYLOAD_PUBLIC_SERVER_URL ||
   process.env.NEXT_PUBLIC_SERVER_URL ||
   process.env.NEXT_PUBLIC_SITE_URL ||
-  'http://localhost:3000'
+  "http://localhost:3000";
+// Versioned databases stay migration-only; schema push is opt-in for disposable local databases.
+const shouldPushDevelopmentSchema =
+  process.env.NODE_ENV !== "production" &&
+  process.env.PAYLOAD_DB_PUSH === "true";
 
 export default buildConfig({
   admin: {
@@ -39,9 +49,12 @@ export default buildConfig({
   },
   collections: [Users, Pages, Categories, Media],
   db: postgresAdapter({
+    migrationDir: path.resolve(dirname, "migrations"),
     pool: {
-      connectionString: process.env.DATABASE_URI || process.env.DATABASE_URL || '',
+      connectionString:
+        process.env.DATABASE_URI || process.env.DATABASE_URL || "",
     },
+    push: shouldPushDevelopmentSchema,
   }),
   editor: lexicalEditor({
     features: () => {
@@ -52,40 +65,40 @@ export default buildConfig({
         OrderedListFeature(),
         UnorderedListFeature(),
         LinkFeature({
-          enabledCollections: ['pages'],
+          enabledCollections: ["pages"],
           fields: ({ defaultFields }) => {
             const defaultFieldsWithoutUrl = defaultFields.filter((field) => {
-              if ('name' in field && field.name === 'url') return false
-              return true
-            })
+              if ("name" in field && field.name === "url") return false;
+              return true;
+            });
 
             return [
               ...defaultFieldsWithoutUrl,
               {
-                name: 'url',
-                type: 'text',
+                name: "url",
+                type: "text",
                 admin: {
-                  condition: ({ linkType }) => linkType !== 'internal',
+                  condition: ({ linkType }) => linkType !== "internal",
                 },
-                label: ({ t }) => t('fields:enterURL'),
+                label: ({ t }) => t("fields:enterURL"),
                 required: true,
               },
-            ]
+            ];
           },
         }),
         IndentFeature(),
         EXPERIMENTAL_TableFeature(),
-      ]
+      ];
     },
   }),
   //email: nodemailerAdapter(),
   endpoints: [],
   globals: [Header, Footer],
   plugins,
-  secret: process.env.PAYLOAD_SECRET || '',
+  secret: process.env.PAYLOAD_SECRET || "",
   typescript: {
-    outputFile: path.resolve(dirname, 'payload-types.ts'),
+    outputFile: path.resolve(dirname, "payload-types.ts"),
   },
   serverURL,
   sharp,
-})
+});

@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -25,15 +21,9 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@payload-config": [
-        "./src/payload.config.ts"
-      ],
-      "@/*": [
-        "src/*"
-      ],
-      "@/payload-types": [
-        "./src/payload-types.ts"
-      ]
+      "@payload-config": ["./src/payload.config.ts"],
+      "@/*": ["src/*"],
+      "@/payload-types": ["./src/payload-types.ts"]
     }
   },
   "include": [
@@ -43,7 +33,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules", "src/RealizeCore/**", "src/app/_realize/**"]
 }

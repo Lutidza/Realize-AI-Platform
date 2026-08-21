@@ -1,0 +1,93 @@
+/**
+ * @file services/ai-control-plane/src/runStore.ts
+ * @version 2026-08-17
+ * @description Stores local-development runs and ordered resumable events in process memory.
+ */
+
+import { randomUUID } from "node:crypto";
+
+import type { AIStreamEvent, AIStreamEventType } from "@realize/ai-contracts";
+
+/** Internal mutable run state owned by the loopback development service. */
+export type ControlPlaneRun = {
+  cancelRequested: boolean;
+  events: AIStreamEvent[];
+  id: string;
+  model?: string;
+  prompt: string;
+  status: "cancelled" | "completed" | "failed" | "queued" | "running";
+  threadID?: string;
+};
+
+type Subscriber = (event: AIStreamEvent) => void;
+
+/** In-memory run registry with ordered replay and subscriber notification. */
+export class RunStore {
+  private readonly runs = new Map<string, ControlPlaneRun>();
+  private readonly subscribers = new Map<string, Set<Subscriber>>();
+
+  append(
+    runID: string,
+    type: AIStreamEventType,
+    payload: Record<string, unknown>,
+    visibility: AIStreamEvent["visibility"] = "user-visible",
+  ): AIStreamEvent {
+    const run = this.require(runID);
+    const sequence = run.events.length + 1;
+    const event: AIStreamEvent = {
+      createdAt: new Date().toISOString(),
+      id: `${runID}-${sequence}-${randomUUID()}`,
+      payload,
+      runID,
+      sequence,
+      type,
+      visibility,
+    };
+    run.events.push(event);
+    for (const subscriber of this.subscribers.get(runID) || [])
+      subscriber(event);
+    return event;
+  }
+
+  create(
+    input: Omit<ControlPlaneRun, "cancelRequested" | "events" | "status">,
+  ): ControlPlaneRun {
+    if (this.runs.has(input.id)) return this.require(input.id);
+    const run: ControlPlaneRun = {
+      ...input,
+      cancelRequested: false,
+      events: [],
+      status: "queued",
+    };
+    this.runs.set(run.id, run);
+    return run;
+  }
+
+  get(runID: string): ControlPlaneRun | undefined {
+    return this.runs.get(runID);
+  }
+
+  getEvents(runID: string, afterSequence: number): AIStreamEvent[] {
+    return this.require(runID).events.filter(
+      (event) => event.sequence > afterSequence,
+    );
+  }
+
+  require(runID: string): ControlPlaneRun {
+    const run = this.runs.get(runID);
+    if (!run) throw new Error("Run not found.");
+    return run;
+  }
+
+  subscribe(runID: string, subscriber: Subscriber): () => void {
+    this.require(runID);
+    const subscribers = this.subscribers.get(runID) || new Set<Subscriber>();
+    subscribers.add(subscriber);
+    this.subscribers.set(runID, subscribers);
+
+    return () => {
+      subscribers.delete(subscriber);
+      if (subscribers.size === 0) this.subscribers.delete(runID);
+    };
+  }
+}

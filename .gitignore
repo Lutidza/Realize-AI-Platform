@@ -3,6 +3,12 @@
 /.next
 /.postgres
 /.playwright-mcp
+/.release
+/.runtime
+/artifacts
+/coverage
+/playwright-report
+/test-results
 
 /node_modules
 npm-debug.log*

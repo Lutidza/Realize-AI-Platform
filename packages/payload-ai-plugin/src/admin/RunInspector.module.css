@@ -1,0 +1,55 @@
+.inspector {
+  background: var(--theme-elevation-50);
+  border-left: 1px solid var(--theme-elevation-150);
+  padding: 0.9rem;
+}
+
+.inspector h2,
+.guardrails strong {
+  align-items: center;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.4rem;
+  margin: 0 0 0.8rem;
+}
+
+.inspector dl {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.inspector dl div {
+  border-bottom: 1px solid var(--theme-elevation-150);
+  padding-bottom: 0.45rem;
+}
+
+.inspector dt {
+  color: var(--theme-elevation-500);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.inspector dd {
+  font-size: 0.76rem;
+  margin: 0.18rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.guardrails {
+  margin-top: 1.2rem;
+}
+
+.guardrails ul {
+  color: var(--theme-elevation-600);
+  font-size: 0.7rem;
+  line-height: 1.55;
+  padding-left: 1rem;
+}
+
+@media (max-width: 1120px) {
+  .inspector {
+    display: none;
+  }
+}

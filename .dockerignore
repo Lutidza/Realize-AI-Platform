@@ -1,0 +1,17 @@
+.ai
+.codex
+.git
+.github
+.idea
+.next
+.playwright-mcp
+.postgres
+documentation
+node_modules
+playwright-report
+test-results
+*.log
+/audit-*
+.env
+.env.*
+!.env.example

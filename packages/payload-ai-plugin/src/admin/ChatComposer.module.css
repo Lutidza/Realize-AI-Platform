@@ -1,0 +1,84 @@
+.composerWrap {
+  background: linear-gradient(transparent, var(--theme-bg) 16%);
+  padding: 0.65rem clamp(0.7rem, 3vw, 1.25rem) 0.75rem;
+}
+
+.composer {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 15px;
+  box-shadow: 0 8px 24px
+    color-mix(in srgb, var(--theme-elevation-1000) 7%, transparent);
+  padding: 0.68rem 0.72rem 0.55rem;
+}
+
+.composer:focus-within {
+  border-color: var(--theme-elevation-450);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--theme-elevation-500) 12%, transparent);
+}
+
+.composer textarea {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  max-height: 180px;
+  min-height: 48px;
+  outline: 0;
+  resize: vertical;
+  width: 100%;
+}
+
+.composer textarea::placeholder {
+  color: var(--theme-elevation-450);
+}
+
+.composerFooter {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.composerFooter > span {
+  color: var(--theme-elevation-450);
+  font-size: 0.62rem;
+  margin-right: auto;
+}
+
+.sendButton,
+.cancelButton {
+  align-items: center;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  width: 32px;
+}
+
+.sendButton {
+  background: var(--theme-elevation-900);
+  color: var(--theme-elevation-0);
+}
+
+.cancelButton {
+  background: var(--theme-error-100);
+  color: var(--theme-error-700);
+}
+
+.sendButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.guardrail {
+  color: var(--theme-elevation-450);
+  font-size: 0.6rem;
+  margin: 0.42rem 0 0;
+  text-align: center;
+}

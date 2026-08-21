@@ -1,7 +1,21 @@
-import { withPayload } from '@payloadcms/next/withPayload'
+/**
+ * @file next.config.ts
+ * @version 2026-08-17
+ * @description Configures the Payload-aware standalone Next.js production build.
+ */
 
-import type { NextConfig } from 'next'
+import { withPayload } from "@payloadcms/next/withPayload";
 
-const nextConfig: NextConfig = {}
+import type { NextConfig } from "next";
 
-export default withPayload(nextConfig)
+const nextConfig: NextConfig = {
+  output: "standalone",
+  transpilePackages: [
+    "@realize/ai-contracts",
+    "@realize/change-engine",
+    "@realize/codex-adapter",
+    "@realize/payload-ai-control",
+  ],
+};
+
+export default withPayload(nextConfig);

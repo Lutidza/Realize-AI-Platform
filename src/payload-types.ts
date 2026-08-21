@@ -86,6 +86,15 @@ export interface Config {
     carts: Cart;
     orders: Order;
     transactions: Transaction;
+    'realize-ai-conversations': RealizeAiConversation;
+    'realize-ai-messages': RealizeAiMessage;
+    'realize-ai-change-requests': RealizeAiChangeRequest;
+    'realize-ai-approvals': RealizeAiApproval;
+    'realize-ai-execution-jobs': RealizeAiExecutionJob;
+    'realize-ai-deployments': RealizeAiDeployment;
+    'realize-ai-check-results': RealizeAiCheckResult;
+    'realize-ai-runs': RealizeAiRun;
+    'realize-ai-run-events': RealizeAiRunEvent;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -119,6 +128,15 @@ export interface Config {
     carts: CartsSelect<false> | CartsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
+    'realize-ai-conversations': RealizeAiConversationsSelect<false> | RealizeAiConversationsSelect<true>;
+    'realize-ai-messages': RealizeAiMessagesSelect<false> | RealizeAiMessagesSelect<true>;
+    'realize-ai-change-requests': RealizeAiChangeRequestsSelect<false> | RealizeAiChangeRequestsSelect<true>;
+    'realize-ai-approvals': RealizeAiApprovalsSelect<false> | RealizeAiApprovalsSelect<true>;
+    'realize-ai-execution-jobs': RealizeAiExecutionJobsSelect<false> | RealizeAiExecutionJobsSelect<true>;
+    'realize-ai-deployments': RealizeAiDeploymentsSelect<false> | RealizeAiDeploymentsSelect<true>;
+    'realize-ai-check-results': RealizeAiCheckResultsSelect<false> | RealizeAiCheckResultsSelect<true>;
+    'realize-ai-runs': RealizeAiRunsSelect<false> | RealizeAiRunsSelect<true>;
+    'realize-ai-run-events': RealizeAiRunEventsSelect<false> | RealizeAiRunEventsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -1013,6 +1031,379 @@ export interface FormSubmission {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-conversations".
+ */
+export interface RealizeAiConversation {
+  id: number;
+  title: string;
+  idempotencyKey: string;
+  status: 'active' | 'archived';
+  createdBy: number | User;
+  lastMessageAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-messages".
+ */
+export interface RealizeAiMessage {
+  id: number;
+  conversation: number | RealizeAiConversation;
+  role: 'user' | 'assistant' | 'system';
+  kind: 'user_message' | 'assistant_message' | 'usage_notice' | 'system_error';
+  content: string;
+  runID?: string | null;
+  sequence: number;
+  usageSummary?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  idempotencyKey: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-change-requests".
+ */
+export interface RealizeAiChangeRequest {
+  id: number;
+  title: string;
+  type:
+    | 'QUERY'
+    | 'CONTENT_CHANGE'
+    | 'CATALOG_CHANGE'
+    | 'CONFIG_CHANGE'
+    | 'THEME_CHANGE'
+    | 'CODE_CHANGE'
+    | 'SCHEMA_CHANGE'
+    | 'MIXED_CHANGE'
+    | 'DEPLOYMENT_ONLY'
+    | 'ROLLBACK'
+    | 'AGENCY_ENGINEERING_REQUEST';
+  state:
+    | 'awaiting_plan_approval'
+    | 'plan_approved'
+    | 'execution_queued'
+    | 'workspace_preparing'
+    | 'executing'
+    | 'validating'
+    | 'validation_failed'
+    | 'changes_ready'
+    | 'changes_accepted'
+    | 'preview_queued'
+    | 'preview_preparing'
+    | 'preview_validating'
+    | 'preview_reviewing'
+    | 'preview_committing'
+    | 'preview_starting'
+    | 'preview_ready'
+    | 'preview_accepted'
+    | 'preview_failed'
+    | 'blocked';
+  version: number;
+  riskLevel: 'R0' | 'R1' | 'R2' | 'R3' | 'R4';
+  requestedBy: number | User;
+  conversation: number | RealizeAiConversation;
+  sourceMessage: number | RealizeAiMessage;
+  originalRequest: string;
+  normalizedIntent: string;
+  plan: string;
+  planHash: string;
+  affectedPaths:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  checks:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  scopeHash: string;
+  blockedReason?: string | null;
+  expiresAt: string;
+  sourceMessageKey: string;
+  idempotencyKey: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-approvals".
+ */
+export interface RealizeAiApproval {
+  id: number;
+  changeRequest: number | RealizeAiChangeRequest;
+  type: 'PLAN_APPROVAL' | 'IMPLEMENTATION_ACCEPTANCE' | 'PREVIEW_ACCEPTANCE';
+  decision: 'approved' | 'rejected';
+  actor: number | User;
+  roleSnapshot:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  boundHash: string;
+  diffHash?: string | null;
+  artifactHash?: string | null;
+  targetEnvironment?: string | null;
+  comment?: string | null;
+  expiresAt: string;
+  decisionKey: string;
+  idempotencyKey: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-execution-jobs".
+ */
+export interface RealizeAiExecutionJob {
+  id: number;
+  changeRequest: number | RealizeAiChangeRequest;
+  requestedBy: number | User;
+  status:
+    'queued' | 'preparing_workspace' | 'running' | 'validating' | 'completed' | 'failed' | 'blocked' | 'cancelled';
+  stage: 'queued' | 'workspace_preparation' | 'implementation' | 'validation' | 'complete';
+  attempt: number;
+  executionKey: string;
+  idempotencyKey: string;
+  baseCommit: string;
+  branch: string;
+  workspaceID: string;
+  approvedVersion: number;
+  boundPlanHash: string;
+  boundScopeHash: string;
+  allowedPaths:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  checks:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  capabilityNonce: string;
+  capabilityIssuedAt: string;
+  capabilityExpiresAt: string;
+  capabilityTokenHash: string;
+  workerID?: string | null;
+  changedPaths?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  diff?: string | null;
+  diffHash?: string | null;
+  diffStat?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  diffTruncated: boolean;
+  evidenceHash?: string | null;
+  workerSummary?: string | null;
+  errorSummary?: string | null;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  artifactsExpireAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-deployments".
+ */
+export interface RealizeAiDeployment {
+  id: number;
+  changeRequest: number | RealizeAiChangeRequest;
+  executionJob: number | RealizeAiExecutionJob;
+  initiatedBy: number | User;
+  environment: 'local-preview';
+  status:
+    | 'queued'
+    | 'preparing_workspace'
+    | 'running_checks'
+    | 'reviewing'
+    | 'committing'
+    | 'starting_preview'
+    | 'ready'
+    | 'accepted'
+    | 'rejected'
+    | 'failed'
+    | 'blocked'
+    | 'cancelled'
+    | 'expired';
+  runtimeState: 'pending' | 'active' | 'stopped';
+  stage:
+    | 'queued'
+    | 'workspace_preparation'
+    | 'validation'
+    | 'independent_review'
+    | 'commit'
+    | 'preview_startup'
+    | 'complete';
+  attempt: number;
+  deploymentKey: string;
+  idempotencyKey: string;
+  baseCommit: string;
+  sourceDiffHash: string;
+  sourceEvidenceHash: string;
+  boundImplementationHash: string;
+  branch: string;
+  workspaceID: string;
+  requiredChecks:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  workerID?: string | null;
+  artifactKind: 'local-git-preview';
+  commitSHA?: string | null;
+  treeHash?: string | null;
+  artifactHash?: string | null;
+  evidenceHash?: string | null;
+  reviewStatus?: ('approved' | 'changes_requested') | null;
+  reviewSummary?: string | null;
+  reviewFindings?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  reviewEvidenceHash?: string | null;
+  reviewModel?: string | null;
+  reviewCompletedAt?: string | null;
+  previewURL?: string | null;
+  healthSummary?: string | null;
+  errorSummary?: string | null;
+  databaseName?: string | null;
+  processID?: number | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  expiresAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-check-results".
+ */
+export interface RealizeAiCheckResult {
+  id: number;
+  executionJob?: (number | null) | RealizeAiExecutionJob;
+  deployment?: (number | null) | RealizeAiDeployment;
+  stage: 'execution' | 'preview_validation' | 'preview_smoke';
+  sequence: number;
+  command: string;
+  status: 'passed' | 'failed';
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  outputSummary?: string | null;
+  evidenceHash: string;
+  resultKey: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-runs".
+ */
+export interface RealizeAiRun {
+  id: number;
+  conversation: number | RealizeAiConversation;
+  provider: string;
+  model?: string | null;
+  threadID?: string | null;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  sandboxProfile: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+  usage?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  errorSummary?: string | null;
+  eventCursor: number;
+  idempotencyKey: string;
+  requestedBy: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-run-events".
+ */
+export interface RealizeAiRunEvent {
+  id: number;
+  run: number | RealizeAiRun;
+  sequence: number;
+  eventID: string;
+  type: string;
+  visibility: 'user-visible' | 'internal-summary' | 'redacted';
+  payload:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  occurredAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -1090,6 +1481,42 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'transactions';
         value: number | Transaction;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-conversations';
+        value: number | RealizeAiConversation;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-messages';
+        value: number | RealizeAiMessage;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-change-requests';
+        value: number | RealizeAiChangeRequest;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-approvals';
+        value: number | RealizeAiApproval;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-execution-jobs';
+        value: number | RealizeAiExecutionJob;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-deployments';
+        value: number | RealizeAiDeployment;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-check-results';
+        value: number | RealizeAiCheckResult;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-runs';
+        value: number | RealizeAiRun;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-run-events';
+        value: number | RealizeAiRunEvent;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1707,6 +2134,223 @@ export interface TransactionsSelect<T extends boolean = true> {
   cart?: T;
   amount?: T;
   currency?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-conversations_select".
+ */
+export interface RealizeAiConversationsSelect<T extends boolean = true> {
+  title?: T;
+  idempotencyKey?: T;
+  status?: T;
+  createdBy?: T;
+  lastMessageAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-messages_select".
+ */
+export interface RealizeAiMessagesSelect<T extends boolean = true> {
+  conversation?: T;
+  role?: T;
+  kind?: T;
+  content?: T;
+  runID?: T;
+  sequence?: T;
+  usageSummary?: T;
+  idempotencyKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-change-requests_select".
+ */
+export interface RealizeAiChangeRequestsSelect<T extends boolean = true> {
+  title?: T;
+  type?: T;
+  state?: T;
+  version?: T;
+  riskLevel?: T;
+  requestedBy?: T;
+  conversation?: T;
+  sourceMessage?: T;
+  originalRequest?: T;
+  normalizedIntent?: T;
+  plan?: T;
+  planHash?: T;
+  affectedPaths?: T;
+  checks?: T;
+  scopeHash?: T;
+  blockedReason?: T;
+  expiresAt?: T;
+  sourceMessageKey?: T;
+  idempotencyKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-approvals_select".
+ */
+export interface RealizeAiApprovalsSelect<T extends boolean = true> {
+  changeRequest?: T;
+  type?: T;
+  decision?: T;
+  actor?: T;
+  roleSnapshot?: T;
+  boundHash?: T;
+  diffHash?: T;
+  artifactHash?: T;
+  targetEnvironment?: T;
+  comment?: T;
+  expiresAt?: T;
+  decisionKey?: T;
+  idempotencyKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-execution-jobs_select".
+ */
+export interface RealizeAiExecutionJobsSelect<T extends boolean = true> {
+  changeRequest?: T;
+  requestedBy?: T;
+  status?: T;
+  stage?: T;
+  attempt?: T;
+  executionKey?: T;
+  idempotencyKey?: T;
+  baseCommit?: T;
+  branch?: T;
+  workspaceID?: T;
+  approvedVersion?: T;
+  boundPlanHash?: T;
+  boundScopeHash?: T;
+  allowedPaths?: T;
+  checks?: T;
+  capabilityNonce?: T;
+  capabilityIssuedAt?: T;
+  capabilityExpiresAt?: T;
+  capabilityTokenHash?: T;
+  workerID?: T;
+  changedPaths?: T;
+  diff?: T;
+  diffHash?: T;
+  diffStat?: T;
+  diffTruncated?: T;
+  evidenceHash?: T;
+  workerSummary?: T;
+  errorSummary?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  artifactsExpireAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-deployments_select".
+ */
+export interface RealizeAiDeploymentsSelect<T extends boolean = true> {
+  changeRequest?: T;
+  executionJob?: T;
+  initiatedBy?: T;
+  environment?: T;
+  status?: T;
+  runtimeState?: T;
+  stage?: T;
+  attempt?: T;
+  deploymentKey?: T;
+  idempotencyKey?: T;
+  baseCommit?: T;
+  sourceDiffHash?: T;
+  sourceEvidenceHash?: T;
+  boundImplementationHash?: T;
+  branch?: T;
+  workspaceID?: T;
+  requiredChecks?: T;
+  workerID?: T;
+  artifactKind?: T;
+  commitSHA?: T;
+  treeHash?: T;
+  artifactHash?: T;
+  evidenceHash?: T;
+  reviewStatus?: T;
+  reviewSummary?: T;
+  reviewFindings?: T;
+  reviewEvidenceHash?: T;
+  reviewModel?: T;
+  reviewCompletedAt?: T;
+  previewURL?: T;
+  healthSummary?: T;
+  errorSummary?: T;
+  databaseName?: T;
+  processID?: T;
+  startedAt?: T;
+  completedAt?: T;
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-check-results_select".
+ */
+export interface RealizeAiCheckResultsSelect<T extends boolean = true> {
+  executionJob?: T;
+  deployment?: T;
+  stage?: T;
+  sequence?: T;
+  command?: T;
+  status?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  durationMs?: T;
+  outputSummary?: T;
+  evidenceHash?: T;
+  resultKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-runs_select".
+ */
+export interface RealizeAiRunsSelect<T extends boolean = true> {
+  conversation?: T;
+  provider?: T;
+  model?: T;
+  threadID?: T;
+  status?: T;
+  sandboxProfile?: T;
+  startedAt?: T;
+  finishedAt?: T;
+  usage?: T;
+  errorSummary?: T;
+  eventCursor?: T;
+  idempotencyKey?: T;
+  requestedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-run-events_select".
+ */
+export interface RealizeAiRunEventsSelect<T extends boolean = true> {
+  run?: T;
+  sequence?: T;
+  eventID?: T;
+  type?: T;
+  visibility?: T;
+  payload?: T;
+  occurredAt?: T;
   updatedAt?: T;
   createdAt?: T;
 }

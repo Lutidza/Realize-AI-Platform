@@ -1,3 +1,9 @@
+/**
+ * @file src/providers/index.tsx
+ * @version 2026-08-17
+ * @description Composes storefront providers and gates optional payment clients.
+ */
+
 import { AuthProvider } from '@/providers/Auth'
 import { EcommerceProvider } from '@payloadcms/plugin-ecommerce/client/react'
 import { stripeAdapterClient } from '@payloadcms/plugin-ecommerce/payments/stripe'
@@ -10,6 +16,8 @@ import { SonnerProvider } from '@/providers/Sonner'
 export const Providers: React.FC<{
   children: React.ReactNode
 }> = ({ children }) => {
+  const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -34,11 +42,11 @@ export const Providers: React.FC<{
                 },
               },
             }}
-            paymentMethods={[
-              stripeAdapterClient({
-                publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
-              }),
-            ]}
+            paymentMethods={
+              stripePublishableKey
+                ? [stripeAdapterClient({ publishableKey: stripePublishableKey })]
+                : []
+            }
           >
             {children}
           </EcommerceProvider>

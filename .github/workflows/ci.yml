@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  cancel-in-progress: true
+  group: ci-${{ github.ref }}
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      DATABASE_URI: postgres://realize:realize@127.0.0.1:5432/realize_ci
+      DATABASE_URL: postgres://realize:realize@127.0.0.1:5432/realize_ci
+      NEXT_PUBLIC_SERVER_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      PAYLOAD_PUBLIC_SERVER_URL: http://127.0.0.1:3000
+      PAYLOAD_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
+      REALIZE_AI_ENABLED: "false"
+    services:
+      postgres:
+        image: postgres:15.18-bookworm@sha256:e8db9bd3e9e1751eb639fb17be53cc6d1b62a322adf75b99e791767a7a16ce69
+        env:
+          POSTGRES_DB: realize_ci
+          POSTGRES_PASSWORD: realize
+          POSTGRES_USER: realize
+        options: >-
+          --health-cmd "pg_isready -U realize -d realize_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+        ports:
+          - 5432:5432
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          cache: npm
+          node-version: 24.18.0
+
+      - name: Pin npm
+        run: npm install --global npm@11.15.0
+
+      - name: Verify runtime
+        run: npm run verify:runtime
+
+      - name: Install exact dependencies
+        run: npm ci
+
+      - name: Repository secret scan
+        run: node scripts/security/check-secrets.mjs
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Apply and verify migrations
+        run: |
+          npm run payload:migrate
+          npm run payload:migrate:status
+
+      - name: Static and integration checks
+        run: npm run ci
+
+      - name: Verify generated Payload artifacts
+        run: |
+          npm run payload:generate-types
+          npm run payload:generate-importmap
+          git diff --exit-code -- src/payload-types.ts 'src/app/(payload)/admin/importMap.js'
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser smoke tests
+        run: npm run test:e2e

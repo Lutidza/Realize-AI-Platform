@@ -1,3 +1,9 @@
+/**
+ * @file src/app/(app)/layout.tsx
+ * @version 2026-08-17
+ * @description Owns the storefront shell and defers CMS rendering for database-free image builds.
+ */
+
 import type { ReactNode } from 'react'
 
 import { AdminBar } from '@/components/AdminBar'
@@ -8,6 +14,7 @@ import { Providers } from '@/providers'
 import { InitTheme } from '@/providers/Theme/InitTheme'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
+import { connection } from 'next/server'
 import React from 'react'
 import './globals.css'
 
@@ -39,6 +46,9 @@ const twitterSite = TWITTER_SITE ? ensureStartsWith(TWITTER_SITE, 'https://') : 
 } */
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
+  // OCI builds must not require access to an environment database.
+  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === 'true') await connection()
+
   return (
     <html
       className={[GeistSans.variable, GeistMono.variable].filter(Boolean).join(' ')}

@@ -1,3 +1,9 @@
+/**
+ * @file src/app/(app)/[slug]/page.tsx
+ * @version 2026-08-17
+ * @description Renders CMS pages and gates database-backed build-time generation.
+ */
+
 import type { Metadata } from 'next'
 
 import { RenderBlocks } from '@/blocks/RenderBlocks'
@@ -12,6 +18,8 @@ import type { Page } from '@/payload-types'
 import { notFound } from 'next/navigation'
 
 export async function generateStaticParams() {
+  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === 'true') return []
+
   const payload = await getPayload({ config: configPromise })
   const pages = await payload.find({
     collection: 'pages',
@@ -63,6 +71,8 @@ export default async function Page({ params }: Args) {
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
+  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === 'true') return {}
+
   const { slug = 'home' } = await params
 
   const page = await queryPageBySlug({

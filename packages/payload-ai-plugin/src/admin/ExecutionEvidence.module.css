@@ -1,0 +1,298 @@
+.evidence {
+  background: var(--theme-elevation-0);
+  border-top: 1px solid var(--theme-elevation-150);
+}
+
+.header {
+  align-items: center;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.72rem;
+}
+
+.icon {
+  align-items: center;
+  background: var(--theme-elevation-100);
+  border-radius: 8px;
+  display: inline-flex;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.header > div {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.header strong {
+  font-size: 0.72rem;
+}
+
+.header span,
+.status {
+  color: var(--theme-elevation-550);
+  font-size: 0.61rem;
+}
+
+.status {
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 999px;
+  padding: 0.22rem 0.4rem;
+}
+
+.spin {
+  animation: execution-spin 0.9s linear infinite;
+}
+
+.gitMeta {
+  align-items: center;
+  background: var(--theme-elevation-50);
+  border-top: 1px solid var(--theme-elevation-150);
+  display: grid;
+  font-size: 0.63rem;
+  gap: 0.4rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.5rem 0.72rem;
+}
+
+.gitMeta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gitMeta code {
+  color: var(--theme-elevation-550);
+}
+
+.summary {
+  border-top: 1px solid var(--theme-elevation-150);
+  font-size: 0.68rem;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0.65rem 0.72rem;
+  white-space: pre-wrap;
+}
+
+.details {
+  border-top: 1px solid var(--theme-elevation-150);
+}
+
+.details summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.67rem;
+  font-weight: 650;
+  justify-content: space-between;
+  list-style: none;
+  padding: 0.6rem 0.72rem;
+}
+
+.details summary span {
+  align-items: center;
+  display: flex;
+  gap: 0.35rem;
+}
+
+.details summary::-webkit-details-marker {
+  display: none;
+}
+
+.details[open] summary > svg {
+  transform: rotate(180deg);
+}
+
+.detailsBody {
+  border-top: 1px solid var(--theme-elevation-150);
+  display: grid;
+  gap: 0.85rem;
+  max-height: 430px;
+  overflow: auto;
+  padding: 0.72rem;
+}
+
+.detailsBody h4 {
+  font-size: 0.65rem;
+  margin: 0 0 0.4rem;
+  text-transform: uppercase;
+}
+
+.hashes {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+}
+
+.hashes div {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+}
+
+.hashes dt,
+.hashes dd {
+  font-family: monospace;
+  font-size: 0.61rem;
+  margin: 0;
+}
+
+.files,
+.checks {
+  display: grid;
+  gap: 0.28rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.files li {
+  align-items: center;
+  display: flex;
+  font-size: 0.64rem;
+  gap: 0.5rem;
+  justify-content: space-between;
+}
+
+.files code {
+  overflow-wrap: anywhere;
+}
+
+.files span {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.3rem;
+}
+
+.files b {
+  color: var(--theme-success-600);
+}
+
+.files i {
+  color: var(--theme-error-600);
+  font-style: normal;
+}
+
+.checks li {
+  align-items: flex-start;
+  display: grid;
+  gap: 0.4rem;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.checks div {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.checks code,
+.checks span {
+  font-size: 0.62rem;
+  overflow-wrap: anywhere;
+}
+
+.checks span {
+  color: var(--theme-elevation-550);
+}
+
+.checks pre,
+.diff {
+  background: var(--theme-elevation-100);
+  border-radius: 8px;
+  font-size: 0.6rem;
+  line-height: 1.45;
+  margin: 0.25rem 0 0;
+  overflow: auto;
+  padding: 0.55rem;
+  white-space: pre;
+}
+
+.acceptance {
+  align-items: center;
+  background: var(--theme-success-100);
+  color: var(--theme-success-700);
+  display: flex;
+  font-size: 0.65rem;
+  gap: 0.35rem;
+  padding: 0.6rem 0.72rem;
+}
+
+.rejected {
+  background: var(--theme-error-100);
+  color: var(--theme-error-700);
+}
+
+.actions,
+.rejectForm > div {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.actions {
+  border-top: 1px solid var(--theme-elevation-150);
+  padding: 0.65rem 0.72rem;
+}
+
+.actions button,
+.rejectForm button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 650;
+  gap: 0.3rem;
+  min-height: 32px;
+  padding: 0.35rem 0.65rem;
+}
+
+.actions button:last-child,
+.rejectForm button:last-child {
+  background: var(--theme-elevation-900);
+  color: var(--theme-elevation-0);
+}
+
+.actions button:disabled,
+.rejectForm button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.rejectForm {
+  border-top: 1px solid var(--theme-elevation-150);
+  padding: 0.7rem;
+}
+
+.rejectForm label {
+  display: grid;
+  font-size: 0.65rem;
+  gap: 0.35rem;
+}
+
+.rejectForm textarea {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: 8px;
+  color: inherit;
+  font: inherit;
+  padding: 0.5rem;
+  resize: vertical;
+}
+
+.rejectForm > div {
+  margin-top: 0.5rem;
+}
+
+@keyframes execution-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
