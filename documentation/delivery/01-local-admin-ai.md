@@ -156,6 +156,10 @@ http://localhost:3000/admin/ai
   endpoint возвращает управление без запуска Codex в HTTP-процессе;
 - worker создаёт отдельную ветку и worktree от зафиксированного `HEAD`, поэтому
   незакоммиченные изменения основного checkout в job не попадают;
+- для trusted check phase worker материализует установленный `node_modules` как
+  реальную локальную директорию worktree и удаляет её после проверок; внешний
+  symlink не используется, потому что Next.js 16/Turbopack отклоняет build,
+  выходящий за filesystem root проекта;
 - protected owner layers (`.ai`, `.codex`, platform packages/services,
   migrations, Payload config/access и delivery/security scripts) блокируются;
 - после Codex worker повторно сверяет фактические changed paths, запрещает

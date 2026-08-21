@@ -1,13 +1,11 @@
 /**
  * @file services/ai-execution-worker/src/checkRunner.ts
- * @version 2026-08-21
+ * @version 2026-08-22
  * @description Runs only server-owned verification commands after scope validation.
  */
 
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { lstat, rm, symlink } from "node:fs/promises";
-import { join } from "node:path";
 
 import { EXECUTION_CHECK_COMMANDS } from "@realize/change-engine";
 
@@ -144,40 +142,4 @@ export const runExecutionCheck = async (input: {
     startedAt: started.toISOString(),
     status,
   };
-};
-
-/** Makes existing dependencies readable only for trusted post-agent checks. */
-export const withWorkspaceDependencies = async <T>(
-  repositoryRoot: string,
-  workspace: string,
-  operation: () => Promise<T>,
-): Promise<T> => {
-  await attachWorkspaceDependencies(repositoryRoot, workspace);
-  try {
-    return await operation();
-  } finally {
-    await detachWorkspaceDependencies(workspace);
-  }
-};
-
-/** Attaches trusted installed dependencies without copying them into a worktree. */
-export const attachWorkspaceDependencies = async (
-  repositoryRoot: string,
-  workspace: string,
-): Promise<void> => {
-  const source = join(repositoryRoot, "node_modules");
-  const target = join(workspace, "node_modules");
-  const stats = await lstat(source);
-  if (!stats.isDirectory()) {
-    throw new Error("Repository node_modules is unavailable for checks.");
-  }
-  await rm(target, { force: true, recursive: true });
-  await symlink(source, target, "dir");
-};
-
-/** Removes the temporary dependency link before diff or worktree cleanup. */
-export const detachWorkspaceDependencies = async (
-  workspace: string,
-): Promise<void> => {
-  await rm(join(workspace, "node_modules"), { force: true, recursive: true });
 };

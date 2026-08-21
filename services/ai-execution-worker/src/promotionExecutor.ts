@@ -7,7 +7,7 @@
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
-import { runExecutionCheck, withWorkspaceDependencies } from "./checkRunner";
+import { runExecutionCheck } from "./checkRunner";
 import type { ExecutionWorkerConfig } from "./config";
 import {
   IndependentReviewError,
@@ -32,6 +32,7 @@ import type {
 } from "./previewTypes";
 import type { WorkerCheckResult } from "./types";
 import { WorktreePolicyError } from "./worktree";
+import { withWorkspaceDependencies } from "./workspaceDependencies";
 
 class PromotionValidationError extends Error {
   constructor(message: string) {

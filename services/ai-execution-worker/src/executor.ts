@@ -16,10 +16,11 @@ import {
   OpenAICodexAdapter,
 } from "@realize/codex-adapter";
 
-import { runExecutionCheck, withWorkspaceDependencies } from "./checkRunner";
+import { runExecutionCheck } from "./checkRunner";
 import type { ExecutionWorkerConfig } from "./config";
 import { ExecutionJobRepository } from "./jobRepository";
 import type { ClaimedExecutionJob, WorkerCheckResult } from "./types";
+import { withWorkspaceDependencies } from "./workspaceDependencies";
 import {
   captureWorktreeDiff,
   createExecutionWorktree,
