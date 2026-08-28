@@ -1,0 +1,189 @@
+.page {
+  --ink: #201128;
+  --muted: #6e5d78;
+  --plum: #58306f;
+  --plum-deep: #321546;
+  --berry: #8f4fd0;
+  --berry-dark: #7838b4;
+  --pink: #ff91d0;
+  --yogurt: #fbf4ff;
+  --cream: #fff7df;
+  --mint: #e1f6e7;
+  --line: rgba(50, 21, 70, 0.18);
+  --shadow: 0 18px 46px rgba(50, 21, 70, 0.13);
+
+  min-height: 100vh;
+  overflow-x: clip;
+  padding-bottom: 81px;
+  background: #fff9ff;
+  color: var(--ink);
+  font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+
+.page a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.announcement {
+  display: flex;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  background: #ffb3cb;
+  color: var(--plum-deep);
+  font-size: 0.82rem;
+  font-weight: 950;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1296px;
+  margin: 0 auto;
+  padding: 1.05rem 1rem 1.4rem;
+}
+
+.brand,
+.headerActions {
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(50, 21, 70, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+}
+
+.brand {
+  min-height: 44px;
+  padding: 0.45rem 1.15rem 0.55rem;
+  color: #fff;
+  font-size: 1.35rem;
+  font-weight: 950;
+  font-style: italic;
+  line-height: 1;
+}
+
+.headerActions {
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.24rem 0.3rem;
+}
+
+.shopNow,
+.iconButton {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.shopNow {
+  padding: 0.55rem 1.12rem;
+  background: var(--pink);
+  color: #000;
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.iconButton {
+  width: 36px;
+  background: transparent;
+  color: #fff;
+}
+
+.menu {
+  position: relative;
+}
+
+.menu summary {
+  list-style: none;
+}
+
+.menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.menuPanel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.7rem);
+  right: 0;
+  display: grid;
+  width: 190px;
+  overflow: hidden;
+  padding: 0.45rem;
+  border: 1px solid rgba(50, 21, 70, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 249, 255, 0.96);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+}
+
+.menuPanel a {
+  padding: 0.72rem 0.8rem;
+  border-radius: 10px;
+  color: var(--plum-deep);
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+@media (hover: hover) {
+  .shopNow:hover {
+    background: #ff76c4;
+  }
+
+  .iconButton:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .menuPanel a:hover {
+    background: var(--yogurt);
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding-bottom: 81px;
+  }
+
+  .announcement {
+    min-height: 22px;
+    font-size: 0.72rem;
+  }
+
+  .header {
+    padding: 0.62rem 1.25rem 0.55rem;
+  }
+
+  .brand {
+    min-height: 43px;
+    font-size: 1.2rem;
+  }
+
+  .headerActions {
+    gap: 0.3rem;
+  }
+
+  .shopNow {
+    min-height: 38px;
+    padding: 0.55rem 1rem;
+    font-size: 0.86rem;
+  }
+
+  .iconButton {
+    width: 34px;
+    min-height: 34px;
+  }
+}

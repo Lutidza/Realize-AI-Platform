@@ -1,0 +1,289 @@
+.autoshipBlock {
+  padding-top: 1.35rem;
+}
+
+.autoshipBlock h2 {
+  margin: 0 0 0.9rem;
+  color: #000;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.purchaseOptions {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.purchaseOption,
+.purchaseOptionActive {
+  overflow: hidden;
+  border: 1px solid #000;
+  border-radius: 8px;
+  background: #fff;
+  color: #000;
+  cursor: pointer;
+}
+
+.purchaseOptionActive {
+  border-color: var(--berry);
+  background: #f0dfff;
+}
+
+.purchaseOption:has(input:focus-visible),
+.purchaseOptionActive:has(input:focus-visible) {
+  outline: 3px solid var(--pink);
+  outline-offset: 2px;
+}
+
+.srOnly {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.purchaseRibbon,
+.purchaseRibbonDeal {
+  display: flex;
+  min-height: 33px;
+  align-items: center;
+  justify-content: center;
+  background: var(--berry);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 950;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.purchaseRibbonDeal {
+  background: linear-gradient(90deg, #d5a51a, #fff67a);
+  color: #000;
+}
+
+.purchaseOptionBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.6rem;
+  padding: 0.9rem 0.95rem 0.55rem;
+}
+
+.purchaseHeading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 0.55rem;
+}
+
+.radioMark {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin-top: 0.2rem;
+  border: 1px solid #000;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.purchaseOptionActive .radioMark::after {
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--berry);
+  content: "";
+}
+
+.purchaseHeading strong,
+.purchaseHeading em,
+.purchasePrice strong,
+.purchasePrice em {
+  display: block;
+}
+
+.purchaseHeading strong {
+  font-size: 1.14rem;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.purchaseHeading em,
+.purchasePrice em {
+  font-style: normal;
+  font-weight: 850;
+}
+
+.purchaseHeading em {
+  margin-top: 0.18rem;
+  font-size: 0.83rem;
+}
+
+.purchasePrice {
+  min-width: 6.8rem;
+  text-align: right;
+}
+
+.purchasePrice strong {
+  font-size: 1.1rem;
+  font-weight: 950;
+}
+
+.purchasePrice del {
+  color: #8b7e91;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.purchasePrice em {
+  font-size: 0.7rem;
+}
+
+.purchasePrice > * {
+  white-space: nowrap;
+}
+
+.purchasePerks {
+  display: grid;
+  gap: 0.42rem;
+  padding: 0 0.95rem 1rem 2.55rem;
+  margin: 0;
+  list-style: none;
+}
+
+.purchasePerks li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.84rem;
+  font-weight: 850;
+}
+
+.purchasePerks svg {
+  flex: 0 0 auto;
+  color: var(--berry);
+}
+
+.checkoutButton {
+  display: flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.15rem;
+  border-radius: 999px;
+  background: var(--berry);
+  color: #fff;
+  font-size: 1.02rem;
+  font-weight: 950;
+}
+
+.autoDiscount {
+  margin: 0.75rem 0 0;
+  color: var(--berry);
+  font-size: 0.86rem;
+  font-weight: 950;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.deliveryLine {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+  margin-top: 0.9rem;
+  color: var(--plum-deep);
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.deliveryLine span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.guaranteeNote {
+  margin-top: 0.75rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 8px;
+  background: #efe0ff;
+  font-size: 0.82rem;
+  font-weight: 850;
+  text-align: center;
+}
+
+.trustGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.9rem;
+}
+
+.trustCard {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--plum-deep);
+  text-align: center;
+  box-shadow: inset 0 0 0 1px rgba(50, 21, 70, 0.14);
+}
+
+.trustCard span {
+  max-width: 10ch;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+@media (hover: hover) {
+  .checkoutButton:hover {
+    background: var(--berry-dark);
+  }
+}
+
+@media (max-width: 700px) {
+  .purchaseOptionBody {
+    grid-template-columns: minmax(0, 1fr) 6.8rem;
+    gap: 0.45rem;
+    padding: 0.78rem 0.72rem 0.5rem;
+  }
+
+  .purchaseHeading {
+    gap: 0.42rem;
+  }
+
+  .purchaseHeading strong {
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+
+  .purchasePrice strong {
+    font-size: 0.94rem;
+  }
+
+  .purchasePerks {
+    padding: 0 0.75rem 0.85rem 2.25rem;
+  }
+
+  .deliveryLine {
+    justify-content: flex-start;
+  }
+
+  .trustCard {
+    min-height: 74px;
+  }
+
+  .trustCard span {
+    font-size: 0.68rem;
+  }
+}

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/previewHandlers.ts
- * @owner packages/payload-ai-plugin
- * @purpose Queues accepted diffs for local preview and records preview decisions.
+ * @version 2026-08-22
+ * @description Ставит accepted diffs в local preview и фиксирует preview decisions.
  */
 
 import { randomUUID } from "node:crypto";
@@ -28,6 +28,8 @@ import { ExecutionRepository } from "./executionRepository";
 import { EndpointError, success } from "./http";
 import { relationID, toPreviewDeploymentDTO } from "./mappers";
 import { idempotencyKeyFor, readBody, withHandler } from "./request";
+import { ReleaseRepository } from "./releaseRepository";
+import { SourcePromotionRepository } from "./sourcePromotionRepository";
 
 const stringArray = (value: unknown): string[] =>
   Array.isArray(value)
@@ -91,15 +93,17 @@ const project = async (input: {
     input.req.payload,
     input.req,
   );
-  const [change, approval, acceptance, previewAcceptance] = await Promise.all([
-    changeRepository.getOwnedChange(input.changeRequestID, input.userID),
-    changeRepository.getApproval(input.changeRequestID),
-    changeRepository.getApproval(
-      input.changeRequestID,
-      "IMPLEMENTATION_ACCEPTANCE",
-    ),
-    changeRepository.getApproval(input.changeRequestID, "PREVIEW_ACCEPTANCE"),
-  ]);
+  const [change, approval, acceptance, previewAcceptance, releaseApproval] =
+    await Promise.all([
+      changeRepository.getOwnedChange(input.changeRequestID, input.userID),
+      changeRepository.getApproval(input.changeRequestID),
+      changeRepository.getApproval(
+        input.changeRequestID,
+        "IMPLEMENTATION_ACCEPTANCE",
+      ),
+      changeRepository.getApproval(input.changeRequestID, "PREVIEW_ACCEPTANCE"),
+      changeRepository.getApproval(input.changeRequestID, "RELEASE_APPROVAL"),
+    ]);
   return await projectChangeRequest({
     acceptance,
     approval,
@@ -108,6 +112,12 @@ const project = async (input: {
     executionRepository,
     options: input.options,
     previewAcceptance,
+    releaseApproval,
+    releaseRepository: new ReleaseRepository(input.req.payload, input.req),
+    sourcePromotionRepository: new SourcePromotionRepository(
+      input.req.payload,
+      input.req,
+    ),
   });
 };
 
@@ -398,6 +408,11 @@ export const createPreviewHandlers = (
         deploymentRepository,
         executionRepository,
         options,
+        releaseRepository: new ReleaseRepository(req.payload, req),
+        sourcePromotionRepository: new SourcePromotionRepository(
+          req.payload,
+          req,
+        ),
       }),
       correlationID,
       202,

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/executionHandlers.ts
- * @version 2026-08-21
- * @description Enqueues approved code jobs and records post-check human acceptance.
+ * @version 2026-08-22
+ * @description Ставит approved code jobs в очередь и фиксирует human acceptance.
  */
 
 import { randomUUID } from "node:crypto";
@@ -31,6 +31,8 @@ import { resolveExecutionBaseCommit } from "./gitRepository";
 import { EndpointError, success } from "./http";
 import { relationID } from "./mappers";
 import { idempotencyKeyFor, readBody, withHandler } from "./request";
+import { ReleaseRepository } from "./releaseRepository";
+import { SourcePromotionRepository } from "./sourcePromotionRepository";
 
 const stringArray = (value: unknown): string[] =>
   Array.isArray(value)
@@ -133,6 +135,11 @@ const acceptanceHandler = (
           deploymentRepository,
           executionRepository,
           options,
+          releaseRepository: new ReleaseRepository(req.payload, req),
+          sourcePromotionRepository: new SourcePromotionRepository(
+            req.payload,
+            req,
+          ),
         }),
         correlationID,
       );
@@ -218,6 +225,11 @@ const acceptanceHandler = (
         deploymentRepository,
         executionRepository,
         options,
+        releaseRepository: new ReleaseRepository(req.payload, req),
+        sourcePromotionRepository: new SourcePromotionRepository(
+          req.payload,
+          req,
+        ),
       }),
       correlationID,
     );
@@ -263,6 +275,11 @@ export const createExecutionHandlers = (
           deploymentRepository,
           executionRepository,
           options,
+          releaseRepository: new ReleaseRepository(req.payload, req),
+          sourcePromotionRepository: new SourcePromotionRepository(
+            req.payload,
+            req,
+          ),
         }),
         correlationID,
       );
@@ -377,6 +394,11 @@ export const createExecutionHandlers = (
         deploymentRepository,
         executionRepository,
         options,
+        releaseRepository: new ReleaseRepository(req.payload, req),
+        sourcePromotionRepository: new SourcePromotionRepository(
+          req.payload,
+          req,
+        ),
       }),
       correlationID,
       202,

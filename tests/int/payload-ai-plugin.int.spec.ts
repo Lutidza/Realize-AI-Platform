@@ -1,16 +1,25 @@
 /**
  * @file tests/int/payload-ai-plugin.int.spec.ts
- * @version 2026-08-21
- * @description Verifies that the AI plugin transformer composes with Payload configuration.
+ * @version 2026-08-28
+ * @description Проверяет AI, source/release delivery и integrations Payload transformer.
  */
 
-import type { Config } from "payload";
+import type { Config, PayloadRequest } from "payload";
 import { describe, expect, it } from "vitest";
 
 import { realizeAIPlugin } from "@realize/payload-ai-control";
+import {
+  requireDataManager,
+  requireIntegrationManager,
+  requireReleaseApprover,
+} from "../../packages/payload-ai-plugin/src/endpoints/access";
+import { sanitizeOptions } from "../../packages/payload-ai-plugin/src/options";
 
 const options = {
   access: {
+    canApproveRelease: () => true,
+    canManageData: () => true,
+    canManageIntegrations: () => true,
     canUseChat: () => true,
     canViewRuns: () => true,
   },
@@ -37,6 +46,7 @@ const baseConfig = (): Config =>
       },
     },
     collections: [{ fields: [], slug: "existing" }],
+    custom: { existing: "preserved" },
     endpoints: [
       {
         handler: async () => Response.json({ ok: true }),
@@ -60,8 +70,15 @@ describe("realizeAIPlugin", () => {
       "realize-ai-messages",
       "realize-ai-change-requests",
       "realize-ai-approvals",
+      "realize-ai-data-operations",
+      "realize-ai-data-operation-approvals",
+      "realize-ai-data-operation-events",
       "realize-ai-execution-jobs",
       "realize-ai-deployments",
+      "realize-ai-release-candidates",
+      "realize-ai-source-promotions",
+      "realize-ai-integrations",
+      "realize-ai-integration-events",
       "realize-ai-check-results",
       "realize-ai-runs",
       "realize-ai-run-events",
@@ -76,8 +93,14 @@ describe("realizeAIPlugin", () => {
     );
     expect(views?.existing?.path).toBe("/existing");
     expect(views?.realizeAI?.path).toBe("/ai");
+    expect(views?.realizeIntegrations?.path).toBe("/integrations");
+    expect(transformed.custom?.existing).toBe("preserved");
+    expect(transformed.custom?.realizeAIControl).toMatchObject({
+      canManageIntegrations: options.access.canManageIntegrations,
+      integrationEncryptionKeyEnv: "REALIZE_INTEGRATIONS_ENCRYPTION_KEY",
+    });
     expect(transformed.endpoints?.[0]?.path).toBe("/existing");
-    expect(transformed.endpoints).toHaveLength(21);
+    expect(transformed.endpoints).toHaveLength(38);
     const conversations = transformed.collections?.find(
       (collection) => collection.slug === "realize-ai-conversations",
     );
@@ -91,6 +114,16 @@ describe("realizeAIPlugin", () => {
       ]),
     );
     expect(await conversations?.access?.read?.({} as never)).toBe(false);
+    const integrations = transformed.collections?.find(
+      (collection) => collection.slug === "realize-ai-integrations",
+    );
+    expect(await integrations?.access?.read?.({} as never)).toBe(false);
+    expect(integrations?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "provider", type: "text" }),
+        expect.objectContaining({ name: "credentialEnvelope" }),
+      ]),
+    );
     const changeRequests = transformed.collections?.find(
       (collection) => collection.slug === "realize-ai-change-requests",
     );
@@ -101,11 +134,88 @@ describe("realizeAIPlugin", () => {
         expect.objectContaining({ name: "sourceMessageKey", unique: true }),
       ]),
     );
+    const dataOperations = transformed.collections?.find(
+      (collection) => collection.slug === "realize-ai-data-operations",
+    );
+    expect(dataOperations?.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "operationHash", required: true }),
+        expect.objectContaining({ name: "rollbackHash", required: true }),
+        expect.objectContaining({ name: "beforeSnapshot", type: "json" }),
+        expect.objectContaining({ name: "sourceMessageKey", unique: true }),
+      ]),
+    );
+    expect(
+      transformed.collections?.find(
+        (collection) => collection.slug === "realize-ai-data-operation-events",
+      )?.fields,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "deliveryStatus" }),
+        expect.objectContaining({ name: "idempotencyKey", unique: true }),
+      ]),
+    );
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/conversations/:id/data-operations",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/data-operations/:id/apply",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/data-operations/:id/rollback",
+      ),
+    ).toBe(true);
     expect(
       transformed.endpoints?.some(
         (endpoint) =>
           endpoint.method === "post" &&
           endpoint.path === "/realize-ai/changes/:id/approve-plan",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/changes/:id/publish-pull-request",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "get" &&
+          endpoint.path === "/realize-ai/source-promotions/:id",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "put" &&
+          endpoint.path === "/realize-ai/integrations/github",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/changes/:id/prepare-release",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/changes/:id/approve-release",
       ),
     ).toBe(true);
     expect(
@@ -146,7 +256,7 @@ describe("realizeAIPlugin", () => {
       conflict: { Component: "./conflict", path: "/ai" },
     };
     expect(() => realizeAIPlugin(options)(routeCollision)).toThrow(
-      "Realize AI admin route collision",
+      "Realize Admin route collision",
     );
 
     const endpointCollision = baseConfig();
@@ -160,6 +270,12 @@ describe("realizeAIPlugin", () => {
     expect(() => realizeAIPlugin(options)(endpointCollision)).toThrow(
       "Realize AI endpoint collision",
     );
+
+    const customCollision = baseConfig();
+    customCollision.custom = { realizeAIControl: {} };
+    expect(() => realizeAIPlugin(options)(customCollision)).toThrow(
+      "Realize AI config.custom collision",
+    );
   });
 
   it("rejects non-loopback local control planes", () => {
@@ -172,5 +288,57 @@ describe("realizeAIPlugin", () => {
         },
       }),
     ).toThrow("Local-development control plane must use a loopback URL.");
+  });
+
+  it("does not let ordinary chat access bypass the release-approver gate", async () => {
+    const req = { user: { id: 42 } } as unknown as PayloadRequest;
+    const denied = sanitizeOptions({
+      ...options,
+      access: {
+        ...options.access,
+        canApproveRelease: () => false,
+      },
+    });
+    await expect(requireReleaseApprover(req, denied)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+
+    await expect(
+      requireReleaseApprover(req, sanitizeOptions(options)),
+    ).resolves.toBe(req.user);
+  });
+
+  it("keeps integration-secret management behind a separate permission", async () => {
+    const req = { user: { id: 42 } } as unknown as PayloadRequest;
+    const denied = sanitizeOptions({
+      ...options,
+      access: {
+        ...options.access,
+        canManageIntegrations: () => false,
+      },
+    });
+    await expect(requireIntegrationManager(req, denied)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+  });
+
+  it("keeps Payload data writes behind a separate permission", async () => {
+    const req = { user: { id: 42 } } as unknown as PayloadRequest;
+    const denied = sanitizeOptions({
+      ...options,
+      access: {
+        ...options.access,
+        canManageData: () => false,
+      },
+    });
+    await expect(requireDataManager(req, denied)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      status: 403,
+    });
+    await expect(
+      requireDataManager(req, sanitizeOptions(options)),
+    ).resolves.toBe(req.user);
   });
 });

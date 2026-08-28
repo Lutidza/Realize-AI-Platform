@@ -1,12 +1,12 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RealizeAIWorkspace.tsx
- * @version 2026-08-21
- * @description Composes the shared modern chat surface for page and drawer layouts.
+ * @version 2026-08-28
+ * @description Composes one focused agent workspace for page and drawer layouts.
  */
 
 "use client";
 
-import { History, Plus, X } from "lucide-react";
+import { History, Plus, Sparkles, TriangleAlert, X } from "lucide-react";
 import { useState } from "react";
 
 import { ChatPanel } from "./ChatPanel";
@@ -16,17 +16,33 @@ import styles from "./RealizeAIWorkspace.module.css";
 import { RunInspector } from "./RunInspector";
 
 type RealizeAIWorkspaceProps = {
+  onClose?: () => void;
   variant: "drawer" | "page";
 };
 
 /** Renders a single controller through responsive page or drawer chrome. */
-export const RealizeAIWorkspace = ({ variant }: RealizeAIWorkspaceProps) => {
+export const RealizeAIWorkspace = ({
+  onClose,
+  variant,
+}: RealizeAIWorkspaceProps) => {
   const controller = useRealizeAIController();
   const [historyOpen, setHistoryOpen] = useState(false);
   const activeTitle =
     controller.detail?.conversation.title ||
     (controller.isCreatingConversation ? "Создаём диалог…" : "Новый диалог");
   const runtimeState = controller.runtime?.state || "unavailable";
+  const runtimeLabel = controller.ready
+    ? "Агент онлайн"
+    : runtimeState === "disabled"
+      ? "Агент отключён"
+      : "Нет соединения";
+  const runtimeNotice =
+    runtimeState === "disabled"
+      ? "Агент отключён в локальной конфигурации."
+      : runtimeState === "unavailable"
+        ? "Агент включён, но control plane пока недоступен."
+        : undefined;
+  const showInspector = variant === "page" && Boolean(controller.currentRun);
   const disabled =
     controller.isCreatingConversation ||
     controller.isSubmitting ||
@@ -50,11 +66,11 @@ export const RealizeAIWorkspace = ({ variant }: RealizeAIWorkspaceProps) => {
       {variant === "page" ? (
         <header className={styles.pageHeader}>
           <div>
-            <p className={styles.eyebrow}>AI & Delivery</p>
-            <h1>Ассистент проекта</h1>
+            <p className={styles.eyebrow}>Realize Agent</p>
+            <h1>Управляйте проектом через диалог</h1>
             <p className={styles.intro}>
-              Анализирует репозиторий, оформляет планы и запускает утверждённый
-              code scope в изолированном worktree. Apply и deploy отделены.
+              Опишите задачу обычными словами. Агент изучит проект, покажет
+              точный план и выполнит изменение только после подтверждения.
             </p>
           </div>
           <span
@@ -81,24 +97,45 @@ export const RealizeAIWorkspace = ({ variant }: RealizeAIWorkspaceProps) => {
               >
                 {historyOpen ? <X size={18} /> : <History size={18} />}
               </button>
-            ) : null}
+            ) : (
+              <span className={styles.brandMark} aria-hidden="true">
+                <Sparkles size={18} strokeWidth={1.9} />
+              </span>
+            )}
             <div className={styles.conversationTitle}>
               <strong>{activeTitle}</strong>
-              <span>Контекст сохраняется между страницами админки</span>
+              <span>
+                {variant === "drawer"
+                  ? "Project copilot · approval-gated"
+                  : "Контекст сохраняется между страницами админки"}
+              </span>
             </div>
           </div>
           <div className={styles.toolbarActions}>
-            <span className={styles.readOnlyBadge}>Approval-gated</span>
+            <span className={styles.agentBadge} data-state={runtimeState}>
+              <i aria-hidden="true" />
+              {runtimeLabel}
+            </span>
             {variant === "drawer" ? (
-              <button
-                aria-label="Новый диалог"
-                className={styles.iconButton}
-                disabled={disabled}
-                onClick={() => void startConversation()}
-                type="button"
-              >
-                <Plus size={18} />
-              </button>
+              <>
+                <button
+                  aria-label="Новый диалог"
+                  className={styles.iconButton}
+                  disabled={disabled}
+                  onClick={() => void startConversation()}
+                  type="button"
+                >
+                  <Plus size={18} />
+                </button>
+                <button
+                  aria-label="Закрыть AI-ассистента"
+                  className={styles.iconButton}
+                  onClick={onClose}
+                  type="button"
+                >
+                  <X size={19} />
+                </button>
+              </>
             ) : null}
           </div>
         </header>
@@ -111,13 +148,20 @@ export const RealizeAIWorkspace = ({ variant }: RealizeAIWorkspaceProps) => {
             </button>
           </div>
         ) : null}
-        {controller.runtime?.reason ? (
-          <div className={styles.notice}>{controller.runtime.reason}</div>
+        {runtimeNotice ? (
+          <div className={styles.notice} role="status">
+            <TriangleAlert size={16} />
+            <span>{runtimeNotice}</span>
+          </div>
         ) : null}
 
         <div
           className={
-            variant === "page" ? styles.pageLayout : styles.drawerLayout
+            variant === "page"
+              ? `${styles.pageLayout} ${
+                  showInspector ? styles.pageLayoutWithInspector : ""
+                }`
+              : styles.drawerLayout
           }
         >
           {variant === "page" || historyOpen ? (
@@ -135,7 +179,7 @@ export const RealizeAIWorkspace = ({ variant }: RealizeAIWorkspaceProps) => {
           {variant === "drawer" && historyOpen ? null : (
             <ChatPanel controller={controller} />
           )}
-          {variant === "page" ? (
+          {showInspector ? (
             <RunInspector
               run={controller.currentRun}
               runtime={controller.runtime}

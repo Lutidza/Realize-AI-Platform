@@ -27,14 +27,21 @@
   ephemeral read-only review, получает изолированный service commit, затем
   запускается как standalone Next build на loopback с sanitized PostgreSQL
   clone, Chromium smoke, TTL cleanup и отдельным preview acceptance.
-- Apply в основной checkout, push, OCI image/digest, удалённый preview hostname
-  и production deploy намеренно не реализованы; preview acceptance их не
-  запускает автоматически.
+- Apply в основной checkout не выполняется. После preview acceptance отдельный
+  opt-in source promotion может опубликовать exact service commit в
+  `ai/changes/**` и создать open draft Pull Request. Независимый release adapter
+  может опубликовать тот же commit в scoped candidate ref, собрать подписанный
+  GHCR digest и развернуть TTL-bound VPS preview; merge и production deploy
+  автоматически не запускаются.
+- `/admin/integrations` предоставляет provider-neutral каталог подключений.
+  GitHub repository/token сохраняются через redacted DTO API; token шифруется
+  отдельным installation key и передаётся только worker-owned source/release
+  consumers.
 - Локальный control plane предназначен только для loopback development. Он
   хранит активные runs в памяти и не является production central service.
-- Фактическая выкладка не выполнялась: в локальной среде нет Docker daemon, а
-  GitHub environments, GHCR/VPS credentials и production domain находятся вне
-  репозитория.
+- Фактическая удалённая выкладка не выполнялась: в локальной среде нет Docker
+  daemon, а GitHub environments, GHCR/VPS credentials и preview/production
+  domains находятся вне репозитория.
 
 ## Основные entrypoints
 

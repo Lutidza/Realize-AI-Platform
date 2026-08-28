@@ -1,12 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/index.ts
- * @version 2026-08-21
- * @description Implements the Payload transformer for chat and governed code jobs.
+ * @version 2026-08-27
+ * @description Implements the Payload transformer for chat, delivery and integrations.
  */
 
 import type { Plugin } from "payload";
 
-import { AI_COLLECTION_SLUGS } from "./constants";
+import {
+  AI_COLLECTION_SLUGS,
+  REALIZE_AI_SERVER_RUNTIME_KEY,
+} from "./constants";
 import { createAICollections } from "./collections";
 import { createAIEndpoints } from "./endpoints";
 import { sanitizeOptions } from "./options";
@@ -31,21 +34,29 @@ export const realizeAIPlugin = (
       throw new Error(
         `Realize AI collection slug collision: ${collision.slug}`,
       );
+    if (incomingConfig.custom?.[REALIZE_AI_SERVER_RUNTIME_KEY] !== undefined) {
+      throw new Error(
+        `Realize AI config.custom collision: ${REALIZE_AI_SERVER_RUNTIME_KEY}`,
+      );
+    }
 
     const components = incomingConfig.admin?.components || {};
     const views = components.views || {};
-    if (
-      Object.values(views).some(
-        (view) =>
-          view &&
-          typeof view === "object" &&
-          "path" in view &&
-          view.path === options.admin.route,
-      )
-    ) {
-      throw new Error(
-        `Realize AI admin route collision: ${options.admin.route}`,
-      );
+    for (const route of [
+      options.admin.route,
+      options.admin.integrationsRoute,
+    ]) {
+      if (
+        Object.values(views).some(
+          (view) =>
+            view &&
+            typeof view === "object" &&
+            "path" in view &&
+            view.path === route,
+        )
+      ) {
+        throw new Error(`Realize Admin route collision: ${route}`);
+      }
     }
 
     const endpoints = createAIEndpoints(options);
@@ -77,7 +88,11 @@ export const realizeAIPlugin = (
           beforeNavLinks: [
             ...(components.beforeNavLinks || []),
             {
-              clientProps: { route: options.admin.route },
+              clientProps: {
+                group: options.admin.group,
+                integrationsRoute: options.admin.integrationsRoute,
+                route: options.admin.route,
+              },
               path: "@realize/payload-ai-control/client#RealizeAINavLink",
             },
           ],
@@ -88,10 +103,23 @@ export const realizeAIPlugin = (
               exact: true,
               path: options.admin.route,
             },
+            realizeIntegrations: {
+              Component:
+                "@realize/payload-ai-control/integrations-rsc#IntegrationsView",
+              exact: true,
+              path: options.admin.integrationsRoute,
+            },
           },
         },
       },
       collections: [...existingCollections, ...createAICollections(options)],
+      custom: {
+        ...(incomingConfig.custom || {}),
+        [REALIZE_AI_SERVER_RUNTIME_KEY]: {
+          canManageIntegrations: options.access.canManageIntegrations,
+          integrationEncryptionKeyEnv: options.integrations.encryptionKeyEnv,
+        },
+      },
       endpoints: [...(incomingConfig.endpoints || []), ...endpoints],
     };
   };

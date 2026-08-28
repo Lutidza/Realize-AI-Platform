@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/api.ts
- * @version 2026-08-21
- * @description Defines public browser and site DTOs for chat and approval-gated changes.
+ * @version 2026-08-28
+ * @description Задаёт public API envelopes для чата, изменений, source promotion и integrations.
  */
 
 import type {
@@ -9,6 +9,9 @@ import type {
   ImplementationAcceptanceDTO,
 } from "./execution";
 import type { ChangePreviewDTO } from "./preview";
+import type { ChangeReleaseDTO } from "./release";
+import type { ChangeSourcePromotionDTO } from "./sourcePromotion";
+import type { DataOperationDTO } from "./dataOperations";
 
 /** Stable machine-readable errors returned by the site API. */
 export type APIErrorCode =
@@ -16,6 +19,7 @@ export type APIErrorCode =
   | "AI_RUNTIME_UNAVAILABLE"
   | "CONFLICT"
   | "FORBIDDEN"
+  | "INTEGRATION_UNAVAILABLE"
   | "INTERNAL_ERROR"
   | "INVALID_REQUEST"
   | "NOT_FOUND"
@@ -70,7 +74,7 @@ export type ChangeRequestType =
 /** Risk tier attached to a plan before any approval is accepted. */
 export type ChangeRiskLevel = "R0" | "R1" | "R2" | "R3" | "R4";
 
-/** Governed plan, execution and acceptance states exposed to the browser. */
+/** Управляемые plan, execution, preview и release states для browser API. */
 export type ChangeRequestState =
   | "awaiting_plan_approval"
   | "blocked"
@@ -88,6 +92,10 @@ export type ChangeRequestState =
   | "preview_reviewing"
   | "preview_starting"
   | "preview_validating"
+  | "release_approved"
+  | "release_failed"
+  | "release_preparing"
+  | "awaiting_release_approval"
   | "validating"
   | "validation_failed"
   | "workspace_preparing";
@@ -103,7 +111,7 @@ export type PlanApprovalDTO = {
   id: string;
 };
 
-/** Browser-safe projection of a durable approval-gated Change Request. */
+/** Browser-safe проекция durable approval-gated Change Request. */
 export type ChangeRequestDTO = {
   acceptance?: ImplementationAcceptanceDTO;
   affectedPaths: string[];
@@ -120,8 +128,10 @@ export type ChangeRequestDTO = {
   plan: string;
   planHash: string;
   preview: ChangePreviewDTO;
+  release: ChangeReleaseDTO;
   riskLevel: ChangeRiskLevel;
   scopeHash: string;
+  sourcePromotion: ChangeSourcePromotionDTO;
   sourceMessageID: string;
   state: ChangeRequestState;
   title: string;
@@ -153,6 +163,7 @@ export type MessageDTO = {
   content: string;
   conversationID: string;
   createdAt: string;
+  dataOperationIntentAvailable: boolean;
   id: string;
   kind: MessageKind;
   role: MessageRole;
@@ -182,6 +193,7 @@ export type RunDTO = {
 export type ConversationDetailDTO = {
   changeRequests: ChangeRequestDTO[];
   conversation: ConversationDTO;
+  dataOperations: DataOperationDTO[];
   messages: MessageDTO[];
   runs: RunDTO[];
 };

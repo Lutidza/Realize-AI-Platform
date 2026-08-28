@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/access.ts
- * @version 2026-08-17
- * @description Enforces authentication, authorization and local rate limiting for plugin endpoints.
+ * @version 2026-08-27
+ * @description Проверяет authentication, scoped authorization и rate limiting endpoints.
  */
 
 import type { PayloadRequest } from "payload";
@@ -27,6 +27,72 @@ export const requireChatUser = async (
     throw new EndpointError(
       "FORBIDDEN",
       "AI chat access is not permitted.",
+      403,
+    );
+  }
+  return req.user;
+};
+
+/** Requires the dedicated installation-owned permission for integration secrets. */
+export const requireIntegrationManager = async (
+  req: PayloadRequest,
+  options: SanitizedRealizeAIPluginOptions,
+): Promise<NonNullable<PayloadRequest["user"]>> => {
+  if (!req.user) {
+    throw new EndpointError(
+      "UNAUTHENTICATED",
+      "Authentication is required.",
+      401,
+    );
+  }
+  if (!(await options.access.canManageIntegrations({ req }))) {
+    throw new EndpointError(
+      "FORBIDDEN",
+      "Integration management is not permitted.",
+      403,
+    );
+  }
+  return req.user;
+};
+
+/** Requires an installation-owned capability before any Payload data decision. */
+export const requireDataManager = async (
+  req: PayloadRequest,
+  options: SanitizedRealizeAIPluginOptions,
+): Promise<NonNullable<PayloadRequest["user"]>> => {
+  if (!req.user) {
+    throw new EndpointError(
+      "UNAUTHENTICATED",
+      "Authentication is required.",
+      401,
+    );
+  }
+  if (!(await options.access.canManageData({ req }))) {
+    throw new EndpointError(
+      "FORBIDDEN",
+      "Payload data management is not permitted.",
+      403,
+    );
+  }
+  return req.user;
+};
+
+/** Требует отдельное installation-owned право на release approval. */
+export const requireReleaseApprover = async (
+  req: PayloadRequest,
+  options: SanitizedRealizeAIPluginOptions,
+): Promise<NonNullable<PayloadRequest["user"]>> => {
+  if (!req.user) {
+    throw new EndpointError(
+      "UNAUTHENTICATED",
+      "Authentication is required.",
+      401,
+    );
+  }
+  if (!(await options.access.canApproveRelease({ req }))) {
+    throw new EndpointError(
+      "FORBIDDEN",
+      "Release approval is not permitted.",
       403,
     );
   }

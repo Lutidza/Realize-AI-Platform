@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RealizeAINavLink.tsx
- * @version 2026-08-17
- * @description Adds the gated AI and Delivery entry to Payload navigation.
+ * @version 2026-08-27
+ * @description Adds gated AI assistant and integrations entries to Payload navigation.
  */
 
 "use client";
@@ -11,11 +11,17 @@ import { usePathname } from "next/navigation.js";
 import { formatAdminURL } from "payload/shared";
 
 type Props = {
+  group: string;
+  integrationsRoute: `/${string}`;
   route: `/${string}`;
 };
 
 /** Adds the plugin route only for an authenticated Payload admin. */
-export const RealizeAINavLink = ({ route }: Props) => {
+export const RealizeAINavLink = ({
+  group,
+  integrationsRoute,
+  route,
+}: Props) => {
   const { user } = useAuth();
   const { config } = useConfig();
   const pathname = usePathname();
@@ -26,30 +32,44 @@ export const RealizeAINavLink = ({ route }: Props) => {
 
   if (!roles.includes("admin")) return null;
 
-  const href = formatAdminURL({ adminRoute: config.routes.admin, path: route });
-  const label = (
-    <>
-      {pathname === href ? <div className="nav__link-indicator" /> : null}
-      <span className="nav__link-label">AI-ассистент</span>
-    </>
-  );
+  const links = [
+    { id: "nav-realize-ai", label: "AI-ассистент", route },
+    {
+      id: "nav-realize-integrations",
+      label: "Интеграции",
+      route: integrationsRoute,
+    },
+  ];
 
   return (
-    <NavGroup isOpen label="AI & Delivery">
-      {pathname === href ? (
-        <div className="nav__link" id="nav-realize-ai">
-          {label}
-        </div>
-      ) : (
-        <Link
-          className="nav__link"
-          href={href}
-          id="nav-realize-ai"
-          prefetch={false}
-        >
-          {label}
-        </Link>
-      )}
+    <NavGroup isOpen label={group}>
+      {links.map((item) => {
+        const href = formatAdminURL({
+          adminRoute: config.routes.admin,
+          path: item.route,
+        });
+        const label = (
+          <>
+            {pathname === href ? <div className="nav__link-indicator" /> : null}
+            <span className="nav__link-label">{item.label}</span>
+          </>
+        );
+        return pathname === href ? (
+          <div className="nav__link" id={item.id} key={item.id}>
+            {label}
+          </div>
+        ) : (
+          <Link
+            className="nav__link"
+            href={href}
+            id={item.id}
+            key={item.id}
+            prefetch={false}
+          >
+            {label}
+          </Link>
+        );
+      })}
     </NavGroup>
   );
 };

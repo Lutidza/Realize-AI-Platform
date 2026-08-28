@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useRealizeAIChat.ts
- * @version 2026-08-21
- * @description Owns chat bootstrap, durable state and governed change actions.
+ * @version 2026-08-28
+ * @description Управляет bootstrap чата, durable state и governed change actions.
  */
 
 "use client";
@@ -20,8 +20,10 @@ import { chatErrorMessage } from "./chatState";
 import { requestRealizeAI } from "./realizeAIAPI";
 import { isActiveRun } from "./runStreamTypes";
 import { useChangeRequests } from "./useChangeRequests";
+import { useDataOperations } from "./useDataOperations";
 import { useExecutionPolling } from "./useExecutionPolling";
 import { useRunStream } from "./useRunStream";
+import { useSourcePromotion } from "./useSourcePromotion";
 
 /** Builds one controller that survives navigation inside Payload Admin. */
 export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
@@ -30,6 +32,7 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string>();
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
+  const [isPlanActionPending, setIsPlanActionPending] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [runtime, setRuntime] = useState<RuntimeStatusDTO>();
   const [currentRun, setCurrentRun] = useState<RunDTO>();
@@ -97,6 +100,8 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     });
     return () => {
       isMounted = false;
+      // Strict Mode remount и повторное открытие surface должны запустить bootstrap заново.
+      bootstrappedRef.current = false;
     };
   }, [enabled, openConversation]);
 
@@ -225,21 +230,51 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     decideChangeRequest,
     decideImplementation,
     decidePreview,
+    decideRelease,
     deployPreview,
     executeChangeRequest,
+    prepareRelease,
+  } = useChangeRequests({
+    detailRef,
     isPlanActionPending,
-  } = useChangeRequests({ detailRef, setDetail, setError });
+    setDetail,
+    setError,
+    setIsPlanActionPending,
+  });
+  const {
+    applyDataOperation,
+    approveDataRollback,
+    createDataOperation,
+    decideDataOperation,
+    rollbackDataOperation,
+  } = useDataOperations({
+    detailRef,
+    setDetail,
+    setError,
+    setPending: setIsPlanActionPending,
+  });
+  const publishPullRequest = useSourcePromotion({
+    detailRef,
+    setDetail,
+    setError,
+    setPending: setIsPlanActionPending,
+  });
   useExecutionPolling({ detail, detailRef, setDetail, setError });
 
   return {
+    applyDataOperation,
+    approveDataRollback,
     cancel,
     clearError: () => setError(undefined),
     conversations,
     createChangeRequest,
+    createDataOperation,
     currentRun,
     decideChangeRequest,
+    decideDataOperation,
     decideImplementation,
     decidePreview,
+    decideRelease,
     detail,
     draft,
     error,
@@ -248,6 +283,9 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     isSubmitting,
     executeChangeRequest,
     deployPreview,
+    prepareRelease,
+    publishPullRequest,
+    rollbackDataOperation,
     openConversation,
     ready: runtime?.state === "ready",
     runtime,

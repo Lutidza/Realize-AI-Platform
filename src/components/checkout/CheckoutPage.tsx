@@ -1,3 +1,9 @@
+/**
+ * @file src/components/checkout/CheckoutPage.tsx
+ * @version 2026-08-17
+ * @description Renders checkout while failing closed when Stripe is not configured.
+ */
+
 'use client'
 
 import { Media } from '@/components/Media'
@@ -26,8 +32,8 @@ import { FormItem } from '@/components/forms/FormItem'
 import { toast } from 'sonner'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 
-const apiKey = `${process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}`
-const stripe = loadStripe(apiKey)
+const apiKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+const stripe = apiKey ? loadStripe(apiKey) : null
 type ProductGalleryItem = NonNullable<Product['gallery']>[number]
 type VariantOptionItem = Variant['options'][number]
 
@@ -58,25 +64,13 @@ export const CheckoutPage: React.FC = () => {
 
   // On initial load wait for addresses to be loaded and check to see if we can prefill a default one
   useEffect(() => {
-    if (!shippingAddress) {
-      if (addresses && addresses.length > 0) {
-        const defaultAddress = addresses[0]
-        if (defaultAddress) {
-          setBillingAddress(defaultAddress)
-        }
-      }
+    const defaultAddress = addresses?.[0]
+    if (!billingAddress && defaultAddress) {
+      // Async address data is the external source synchronized into this form state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setBillingAddress(defaultAddress)
     }
-  }, [addresses])
-
-  useEffect(() => {
-    return () => {
-      setShippingAddress(undefined)
-      setBillingAddress(undefined)
-      setBillingAddressSameAsShipping(true)
-      setEmail('')
-      setEmailEditable(true)
-    }
-  }, [])
+  }, [addresses, billingAddress])
 
   const initiatePaymentIntent = useCallback(
     async (paymentID: string) => {
@@ -104,7 +98,7 @@ export const CheckoutPage: React.FC = () => {
         toast.error(errorMessage)
       }
     },
-    [billingAddress, billingAddressSameAsShipping, shippingAddress],
+    [billingAddress, billingAddressSameAsShipping, email, initiatePayment, shippingAddress],
   )
 
   if (!stripe) return null
@@ -301,7 +295,7 @@ export const CheckoutPage: React.FC = () => {
         )}
 
         <Suspense fallback={<React.Fragment />}>
-          {/* @ts-ignore */}
+          {/* @ts-expect-error -- Payload payment data is narrowed by the clientSecret guard. */}
           {paymentData && paymentData?.['clientSecret'] && (
             <div className="pb-16">
               <h2 className="font-medium text-3xl">Payment</h2>
@@ -360,7 +354,7 @@ export const CheckoutPage: React.FC = () => {
             if (typeof item.product === 'object' && item.product) {
               const {
                 product,
-                product: { id, meta, title, gallery },
+                product: { meta, title, gallery },
                 quantity,
                 variant,
               } = item

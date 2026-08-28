@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/mappers.ts
- * @version 2026-08-21
- * @description Maps internal Payload records to explicit public DTOs.
+ * @version 2026-08-28
+ * @description Преобразует внутренние Payload records в явные публичные DTO.
  */
 
 import type {
@@ -28,8 +28,19 @@ import type {
   PreviewDeploymentDTO,
   PreviewDeploymentStage,
   PreviewDeploymentStatus,
+  ReleaseApprovalDTO,
+  ReleaseCandidateDTO,
+  ReleaseCandidateStage,
+  ReleaseCandidateStatus,
+  ReleaseMigrationDTO,
   UsageSummary,
 } from "@realize/ai-contracts";
+import {
+  hasDataOperationIntent,
+  stripDataOperationProtocol,
+} from "@realize/change-engine";
+
+import { toSourcePromotionDTO } from "./sourcePromotionMapper";
 
 type Document = Record<string, unknown> & {
   createdAt?: string;
@@ -64,6 +75,37 @@ const usage = (value: unknown): UsageSummary | undefined => {
 const stringArray = (value: unknown): string[] =>
   Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
+    : [];
+
+const stringRecord = (value: unknown): Record<string, string> => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
+};
+
+const releaseMigrations = (value: unknown): ReleaseMigrationDTO[] =>
+  Array.isArray(value)
+    ? value.flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const migration = item as Record<string, unknown>;
+        if (
+          migration.direction !== "up" ||
+          typeof migration.id !== "string" ||
+          typeof migration.checksum !== "string"
+        ) {
+          return [];
+        }
+        return [
+          {
+            checksum: migration.checksum,
+            direction: "up" as const,
+            id: migration.id,
+          },
+        ];
+      })
     : [];
 
 /** Maps an append-only approval without exposing the raw Payload user. */
@@ -104,6 +146,22 @@ export const toPreviewAcceptanceDTO = (
   environment: "local-preview",
   expiresAt: iso(doc.expiresAt),
   id: String(doc.id),
+});
+
+/** Отделяет release approval от raw Payload actor и внутренних связей. */
+export const toReleaseApprovalDTO = (doc: Document): ReleaseApprovalDTO => ({
+  actorRole: stringArray(doc.roleSnapshot)[0] || "authorized-user",
+  boundHash: typeof doc.boundHash === "string" ? doc.boundHash : "",
+  comment: typeof doc.comment === "string" ? doc.comment : undefined,
+  createdAt: iso(doc.createdAt),
+  decision: doc.decision === "rejected" ? "rejected" : "approved",
+  environment: "production",
+  expiresAt: iso(doc.expiresAt),
+  id: String(doc.id),
+  imageDigest: typeof doc.imageDigest === "string" ? doc.imageDigest : "",
+  manifestHash: typeof doc.manifestHash === "string" ? doc.manifestHash : "",
+  migrationSetHash:
+    typeof doc.migrationSetHash === "string" ? doc.migrationSetHash : "",
 });
 
 /** Maps one append-only verification result to a bounded DTO. */
@@ -246,7 +304,53 @@ export const toPreviewDeploymentDTO = (
   updatedAt: iso(doc.updatedAt),
 });
 
-/** Maps a Change Request to an explicit non-executable browser contract. */
+/** Проецирует проверенное OCI evidence без worker/provider identifiers. */
+export const toReleaseCandidateDTO = (doc: Document): ReleaseCandidateDTO => ({
+  artifactKind: "oci-image",
+  configVersion:
+    typeof doc.configVersion === "string" ? doc.configVersion : undefined,
+  createdAt: iso(doc.createdAt),
+  environment: "oci-preview",
+  errorSummary:
+    typeof doc.errorSummary === "string" ? doc.errorSummary : undefined,
+  evidenceHash:
+    typeof doc.evidenceHash === "string" ? doc.evidenceHash : undefined,
+  expiresAt: iso(doc.expiresAt),
+  gitCommit: typeof doc.gitCommit === "string" ? doc.gitCommit : "",
+  healthSummary:
+    typeof doc.healthSummary === "string" ? doc.healthSummary : undefined,
+  id: String(doc.id),
+  imageDigest:
+    typeof doc.imageDigest === "string" ? doc.imageDigest : undefined,
+  imageRef: typeof doc.imageRef === "string" ? doc.imageRef : undefined,
+  manifestHash:
+    typeof doc.manifestHash === "string" ? doc.manifestHash : undefined,
+  migrationSetHash:
+    typeof doc.migrationSetHash === "string" ? doc.migrationSetHash : undefined,
+  migrations: releaseMigrations(doc.migrations),
+  pluginVersions: stringRecord(doc.pluginVersions),
+  previewStatus:
+    doc.previewStatus === "healthy" || doc.previewStatus === "unhealthy"
+      ? doc.previewStatus
+      : "pending",
+  previewURL: typeof doc.previewURL === "string" ? doc.previewURL : undefined,
+  provenanceRef:
+    typeof doc.provenanceRef === "string" ? doc.provenanceRef : undefined,
+  sbomDigest: typeof doc.sbomDigest === "string" ? doc.sbomDigest : undefined,
+  signatureRef:
+    typeof doc.signatureRef === "string" ? doc.signatureRef : undefined,
+  signatureVerified: doc.signatureVerified === true,
+  sourcePreviewArtifactHash:
+    typeof doc.sourcePreviewArtifactHash === "string"
+      ? doc.sourcePreviewArtifactHash
+      : "",
+  stage: doc.stage as ReleaseCandidateStage,
+  status: doc.status as ReleaseCandidateStatus,
+  targetEnvironment: "production",
+  updatedAt: iso(doc.updatedAt),
+});
+
+/** Преобразует Change Request в явный non-executable browser contract. */
 export const toChangeRequestDTO = (
   doc: Document,
   approval?: Document,
@@ -261,6 +365,13 @@ export const toChangeRequestDTO = (
     previewAcceptance?: Document;
     previewEnabled?: boolean;
     previewReason?: string;
+    releaseApproval?: Document;
+    releaseCandidate?: Document;
+    releaseEnabled?: boolean;
+    releaseReason?: string;
+    sourcePromotion?: Document;
+    sourcePromotionEnabled?: boolean;
+    sourcePromotionReason?: string;
   } = {},
 ): ChangeRequestDTO => ({
   acceptance: projection.acceptance
@@ -304,8 +415,25 @@ export const toChangeRequestDTO = (
     enabled: projection.previewEnabled === true,
     reason: projection.previewReason,
   },
+  release: {
+    approval: projection.releaseApproval
+      ? toReleaseApprovalDTO(projection.releaseApproval)
+      : undefined,
+    candidate: projection.releaseCandidate
+      ? toReleaseCandidateDTO(projection.releaseCandidate)
+      : undefined,
+    enabled: projection.releaseEnabled === true,
+    reason: projection.releaseReason,
+  },
   riskLevel: doc.riskLevel as ChangeRiskLevel,
   scopeHash: typeof doc.scopeHash === "string" ? doc.scopeHash : "",
+  sourcePromotion: {
+    enabled: projection.sourcePromotionEnabled === true,
+    promotion: projection.sourcePromotion
+      ? toSourcePromotionDTO(projection.sourcePromotion)
+      : undefined,
+    reason: projection.sourcePromotionReason,
+  },
   sourceMessageID: relationID(doc.sourceMessage),
   state: doc.state as ChangeRequestState,
   title: typeof doc.title === "string" ? doc.title : "Change Request",
@@ -323,17 +451,25 @@ export const toConversationDTO = (doc: Document): ConversationDTO => ({
   updatedAt: iso(doc.updatedAt),
 });
 
-export const toMessageDTO = (doc: Document): MessageDTO => ({
-  content: typeof doc.content === "string" ? doc.content : "",
-  conversationID: relationID(doc.conversation),
-  createdAt: iso(doc.createdAt),
-  id: String(doc.id),
-  kind: doc.kind as MessageKind,
-  role: doc.role as MessageRole,
-  runID: typeof doc.runID === "string" ? doc.runID : undefined,
-  sequence: Number(doc.sequence || 0),
-  usage: usage(doc.usageSummary),
-});
+export const toMessageDTO = (doc: Document): MessageDTO => {
+  const rawContent = typeof doc.content === "string" ? doc.content : "";
+  const dataOperationIntentAvailable =
+    doc.role === "assistant" && hasDataOperationIntent(rawContent);
+  return {
+    content: dataOperationIntentAvailable
+      ? stripDataOperationProtocol(rawContent)
+      : rawContent,
+    conversationID: relationID(doc.conversation),
+    createdAt: iso(doc.createdAt),
+    dataOperationIntentAvailable,
+    id: String(doc.id),
+    kind: doc.kind as MessageKind,
+    role: doc.role as MessageRole,
+    runID: typeof doc.runID === "string" ? doc.runID : undefined,
+    sequence: Number(doc.sequence || 0),
+    usage: usage(doc.usageSummary),
+  };
+};
 
 export const toRunDTO = (doc: Document): RunDTO => ({
   conversationID: relationID(doc.conversation),

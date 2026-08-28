@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 0.85rem;
+  padding: 14px;
 }
 
 .sidebar {
@@ -20,17 +20,17 @@
   align-items: center;
   background: var(--theme-elevation-900);
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--theme-elevation-0);
   cursor: pointer;
   display: flex;
   font: inherit;
-  font-size: 0.82rem;
-  font-weight: 600;
-  gap: 0.45rem;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 8px;
   justify-content: center;
-  min-height: 38px;
-  padding: 0.55rem 0.75rem;
+  min-height: 42px;
+  padding: 8px 12px;
 }
 
 .newConversation:disabled {
@@ -42,12 +42,12 @@
   align-items: center;
   background: var(--theme-input-bg);
   border: 1px solid var(--theme-elevation-200);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--theme-elevation-500);
   display: flex;
-  gap: 0.45rem;
-  margin: 0.75rem 0;
-  padding: 0 0.65rem;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0 11px;
 }
 
 .searchLabel input {
@@ -55,8 +55,8 @@
   border: 0;
   color: inherit;
   font: inherit;
-  font-size: 0.8rem;
-  min-height: 36px;
+  font-size: 13px;
+  min-height: 42px;
   min-width: 0;
   outline: 0;
   width: 100%;
@@ -75,7 +75,7 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 4px;
   min-height: 0;
   overflow: auto;
 }
@@ -85,14 +85,15 @@
   align-items: flex-start;
   background: transparent;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   color: inherit;
   cursor: pointer;
   display: grid;
   font: inherit;
-  gap: 0.55rem;
+  gap: 9px;
   grid-template-columns: 16px minmax(0, 1fr);
-  padding: 0.65rem;
+  min-height: 54px;
+  padding: 10px;
   text-align: left;
 }
 
@@ -109,7 +110,7 @@
 
 .conversation strong,
 .conversationActive strong {
-  font-size: 0.8rem;
+  font-size: 13px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -119,7 +120,8 @@
 .conversationActive small,
 .noConversations {
   color: var(--theme-elevation-500);
-  font-size: 0.67rem;
+  font-size: 11px;
+  line-height: 1.45;
 }
 
 .noConversations {

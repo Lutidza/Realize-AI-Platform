@@ -1,0 +1,299 @@
+.socialProof {
+  color: var(--plum-deep);
+  background: var(--mint);
+}
+
+.reviewsSection {
+  padding: 4.5rem 2rem;
+}
+
+.reviewsInner {
+  width: min(100%, 1296px);
+  margin-inline: auto;
+}
+
+.communityHeader {
+  text-align: center;
+}
+
+.stars {
+  display: inline-flex;
+  color: var(--berry);
+}
+
+.rating {
+  display: inline;
+  margin-left: 0.5rem;
+  font-weight: 850;
+}
+
+.communityHeader h2 {
+  margin: 0.75rem 0 0;
+  font-size: 2.75rem;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+.topicTabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0;
+  margin: 1.75rem 0 0;
+  list-style: none;
+}
+
+.topicButton {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.5rem;
+  border: 1.5px solid rgba(50, 21, 70, 0.55);
+  border-radius: 999px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.activeTopic {
+  color: #ffffff;
+  background: var(--plum-deep);
+}
+
+.reviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.reviewCard {
+  display: flex;
+  min-height: 210px;
+  flex-direction: column;
+  margin: 0;
+  text-align: center;
+}
+
+.reviewCard h3 {
+  margin: 0.8rem 0 0;
+  font-size: 1.13rem;
+}
+
+.reviewCard blockquote {
+  margin: 0.75rem 0 1rem;
+  line-height: 1.4;
+}
+
+.reviewCard figcaption {
+  display: grid;
+  margin-top: auto;
+}
+
+.reviewCard figcaption span {
+  opacity: 0.72;
+  font-size: 0.74rem;
+}
+
+.ugcSection {
+  overflow: hidden;
+  padding: 0 3.75rem 3.75rem;
+}
+
+.ugcGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1.25rem;
+  width: min(100%, 1320px);
+  margin-inline: auto;
+}
+
+.visualCard {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 248 / 449.5;
+  margin: 0;
+  border-radius: 20px;
+  background: var(--yogurt);
+  box-shadow: 0 12px 28px rgba(50, 21, 70, 0.12);
+}
+
+.visualImage,
+.imagePlaceholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.visualImage {
+  background: center / cover;
+}
+
+.visualShade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 46%, rgba(32, 17, 40, 0.78));
+}
+
+.visualBadge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--plum-deep);
+  background: rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+}
+
+.visualCard figcaption {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  left: 1rem;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.mobileCarouselControls {
+  display: none;
+}
+
+.disclosure {
+  max-width: 950px;
+  margin: 0 auto;
+  color: rgba(50, 21, 70, 0.76);
+  text-align: center;
+}
+
+.disclosure p,
+.disclosure small {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.srOnly {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+}
+
+@media (max-width: 900px) {
+  .topicTabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .reviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .reviewCard {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 600px) {
+  .reviewsSection {
+    padding: 1.25rem 1.25rem 2rem;
+  }
+
+  .communityHeader h2 {
+    margin-top: 1.1rem;
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+
+  .topicTabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-top: 1.5rem;
+  }
+
+  .topicButton {
+    min-height: 38px;
+    padding-inline: 0.45rem;
+    font-size: 0.77rem;
+  }
+
+  .reviewGrid {
+    gap: 2rem;
+    margin-top: 2.5rem;
+  }
+
+  .ugcSection {
+    padding: 2rem 0;
+  }
+
+  .ugcGrid,
+  .mobileCarouselControls {
+    width: 255px;
+  }
+
+  .ugcGrid {
+    display: block;
+  }
+
+  .visualCard {
+    display: none;
+    height: 453px;
+    aspect-ratio: auto;
+  }
+
+  .visualCard.activeVisual {
+    display: block;
+  }
+
+  .mobileCarouselControls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 0.75rem auto 0;
+  }
+
+  .arrowControl {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid rgba(50, 21, 70, 0.42);
+    border-radius: 50%;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.45);
+    cursor: pointer;
+  }
+
+  .carouselDots {
+    display: flex;
+    gap: 0.38rem;
+  }
+
+  .dotControl {
+    width: 12px;
+    height: 12px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(50, 21, 70, 0.28);
+    cursor: pointer;
+  }
+
+  .activeDot {
+    background: var(--berry);
+  }
+
+  .disclosure {
+    margin-top: 2rem;
+    padding-inline: 4rem;
+  }
+
+  .disclosure small {
+    display: none;
+  }
+}

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeHandlers.ts
- * @version 2026-08-21
- * @description Implements Change Request creation and immutable plan decisions.
+ * @version 2026-08-22
+ * @description Реализует создание Change Request и immutable plan decisions.
  */
 
 import {
@@ -25,6 +25,8 @@ import { DeploymentRepository } from "./deploymentRepository";
 import { ExecutionRepository } from "./executionRepository";
 import { EndpointError, success } from "./http";
 import { redactText } from "./redaction";
+import { ReleaseRepository } from "./releaseRepository";
+import { SourcePromotionRepository } from "./sourcePromotionRepository";
 import { idempotencyKeyFor, readBody, withHandler } from "./request";
 
 const rolesOf = (user: unknown): string[] => {
@@ -96,6 +98,11 @@ const decisionHandler = (
           deploymentRepository,
           executionRepository,
           options,
+          releaseRepository: new ReleaseRepository(req.payload, req),
+          sourcePromotionRepository: new SourcePromotionRepository(
+            req.payload,
+            req,
+          ),
         }),
         correlationID,
       );
@@ -172,6 +179,11 @@ const decisionHandler = (
         deploymentRepository,
         executionRepository,
         options,
+        releaseRepository: new ReleaseRepository(req.payload, req),
+        sourcePromotionRepository: new SourcePromotionRepository(
+          req.payload,
+          req,
+        ),
       }),
       correlationID,
     );
@@ -221,6 +233,10 @@ export const createChangeHandlers = (
         String(existing.id),
         "PREVIEW_ACCEPTANCE",
       );
+      const releaseApproval = await repository.getApproval(
+        String(existing.id),
+        "RELEASE_APPROVAL",
+      );
       return success(
         await projectChangeRequest({
           acceptance,
@@ -230,6 +246,12 @@ export const createChangeHandlers = (
           executionRepository,
           options,
           previewAcceptance,
+          releaseApproval,
+          releaseRepository: new ReleaseRepository(req.payload, req),
+          sourcePromotionRepository: new SourcePromotionRepository(
+            req.payload,
+            req,
+          ),
         }),
         correlationID,
       );
@@ -277,6 +299,11 @@ export const createChangeHandlers = (
         deploymentRepository,
         executionRepository,
         options,
+        releaseRepository: new ReleaseRepository(req.payload, req),
+        sourcePromotionRepository: new SourcePromotionRepository(
+          req.payload,
+          req,
+        ),
       }),
       correlationID,
       201,
@@ -299,6 +326,10 @@ export const createChangeHandlers = (
       id,
       "PREVIEW_ACCEPTANCE",
     );
+    const releaseApproval = await repository.getApproval(
+      id,
+      "RELEASE_APPROVAL",
+    );
     return success(
       await projectChangeRequest({
         acceptance,
@@ -308,6 +339,12 @@ export const createChangeHandlers = (
         executionRepository,
         options,
         previewAcceptance,
+        releaseApproval,
+        releaseRepository: new ReleaseRepository(req.payload, req),
+        sourcePromotionRepository: new SourcePromotionRepository(
+          req.payload,
+          req,
+        ),
       }),
       correlationID,
     );

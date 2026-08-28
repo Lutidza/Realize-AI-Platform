@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeRepository.ts
- * @version 2026-08-21
- * @description Persists owned Change Requests and append-only approval decisions.
+ * @version 2026-08-22
+ * @description Сохраняет Change Requests и append-only approval decisions.
  */
 
 import type { Payload, PayloadRequest } from "payload";
@@ -23,7 +23,7 @@ type UntypedLocalAPI = {
   update: (args: Record<string, unknown>) => Promise<AIDocument>;
 };
 
-/** Narrow repository for the approval-gated Change Request aggregate. */
+/** Узкий repository для approval-gated Change Request aggregate. */
 export class ChangeRepository {
   private readonly api: UntypedLocalAPI;
   private readonly defaultIDType: "number" | "text";
@@ -85,9 +85,17 @@ export class ChangeRepository {
     expiresAt: string;
     idempotencyKey: string;
     roles: string[];
-    type?: "IMPLEMENTATION_ACCEPTANCE" | "PLAN_APPROVAL" | "PREVIEW_ACCEPTANCE";
+    type?:
+      | "IMPLEMENTATION_ACCEPTANCE"
+      | "PLAN_APPROVAL"
+      | "PREVIEW_ACCEPTANCE"
+      | "RELEASE_APPROVAL";
     artifactHash?: string;
     diffHash?: string;
+    imageDigest?: string;
+    manifestHash?: string;
+    migrationSetHash?: string;
+    releaseCandidateID?: string;
     targetEnvironment?: string;
   }): Promise<AIDocument> {
     return await this.create(APPROVALS_SLUG, {
@@ -99,8 +107,14 @@ export class ChangeRepository {
       decision: input.decision,
       decisionKey: input.decisionKey,
       diffHash: input.diffHash,
+      imageDigest: input.imageDigest,
       expiresAt: input.expiresAt,
       idempotencyKey: input.idempotencyKey,
+      manifestHash: input.manifestHash,
+      migrationSetHash: input.migrationSetHash,
+      releaseCandidate: input.releaseCandidateID
+        ? this.documentID(input.releaseCandidateID)
+        : undefined,
       roleSnapshot: input.roles,
       targetEnvironment: input.targetEnvironment,
       type: input.type || "PLAN_APPROVAL",
@@ -135,7 +149,8 @@ export class ChangeRepository {
     type:
       | "IMPLEMENTATION_ACCEPTANCE"
       | "PLAN_APPROVAL"
-      | "PREVIEW_ACCEPTANCE" = "PLAN_APPROVAL",
+      | "PREVIEW_ACCEPTANCE"
+      | "RELEASE_APPROVAL" = "PLAN_APPROVAL",
   ): Promise<AIDocument | undefined> {
     const result = await this.find(
       APPROVALS_SLUG,
@@ -224,6 +239,7 @@ export class ChangeRepository {
       approval?: AIDocument;
       change: AIDocument;
       previewAcceptance?: AIDocument;
+      releaseApproval?: AIDocument;
     }>
   > {
     await this.requireOwnedConversation(conversationID, userID);
@@ -243,6 +259,10 @@ export class ChangeRepository {
         previewAcceptance: await this.getApproval(
           String(change.id),
           "PREVIEW_ACCEPTANCE",
+        ),
+        releaseApproval: await this.getApproval(
+          String(change.id),
+          "RELEASE_APPROVAL",
         ),
       })),
     );

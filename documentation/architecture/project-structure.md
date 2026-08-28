@@ -20,35 +20,55 @@ ADR-0001 фиксирует этот contour как active. `src/RealizeCore/**`
 `src/app/(reference)/**` является reference surface, а не owner production
 storefront.
 
-## Realize AI chat, execution и local-preview promotion
+## Realize AI chat, Data Lane, execution, preview, source promotion и release gate
 
 - `packages/ai-contracts/**` — DTO, API envelope, SSE events и adapter contract.
-- `packages/change-engine/**` — plan derivation, plan/implementation/preview
-  acceptance bindings, protected paths, check registries и short-lived
-  execution capability.
+- `packages/change-engine/**` — plan derivation,
+  plan/implementation/preview/release bindings, protected paths, check
+  registries и short-lived execution capability.
 - `packages/codex-adapter/**` — server-side Codex App Server adapter для
   read-only chat, изолированного `workspace-write` turn и отдельного ephemeral
   read-only reviewer.
-- `packages/payload-ai-plugin/**` — Payload plugin, девять hidden collections,
+- `packages/payload-ai-plugin/**` — Payload plugin, hidden runtime collections,
   authenticated endpoints, SSE bridge, глобальный Admin provider/drawer и
-  полноэкранный UI.
+  полноэкранный UI, включая отдельные `DataOperation`, `SourcePromotion` и
+  `ReleaseCandidate` aggregates, а также provider-neutral integration registry
+  с redacted audit.
 - `services/ai-control-plane/**` — loopback development control plane и bounded
   Context Pack.
 - `services/ai-execution-worker/**` — отдельный PostgreSQL queue consumer,
   Git worktree orchestration, scope/diff gates, allowlisted checks, exact-diff
-  promotion, reviewer, sanitized DB clone и loopback standalone preview.
+  promotion, reviewer, sanitized DB clone, loopback standalone preview,
+  exact-commit GitHub branch/draft PR publication и provider-neutral OCI
+  release JSON-port.
+- `scripts/release/github-*.mjs` и
+  `.github/workflows/prepare-release-candidate.yml` — GitHub/GHCR adapter,
+  exact candidate ref, signed immutable image и evidence handoff.
+- `compose.release-preview.yaml`, `scripts/deploy/remote-release-preview.sh` и
+  cleanup workflow — TTL-bound sanitized HTTPS preview на scoped VPS Compose.
 - `/admin/ai` — custom Payload root view только для admin role; тот же chat
   controller доступен в drawer на остальных страницах `/admin/**`;
   `REALIZE_AI_ENABLED` включает запуски, а при `false` UI показывает
   явный disabled state.
+- `/admin/integrations` — custom Payload root view для масштабируемого каталога
+  подключений; GitHub является первым adapter-ом, а credentials остаются
+  write-only и доступны только server-side vault/runtime consumer.
 
 Browser не вызывает Codex напрямую. Chat-поток: Payload Admin → authenticated
 Payload endpoint → server-only control-plane client → Codex adapter.
+Data-поток: versioned assistant intent → Payload-owned selector resolution и
+dry-run → hash-bound approval → transactional Local API write с access/hooks и
+optimistic lock → audit/outbox → отдельное rollback approval → exact
+before-snapshot restore.
 Code-поток: exact plan approval → durable execution job → отдельный worker →
 изолированный worktree → diff/check evidence → отдельное implementation
 acceptance → exact replay → repeated checks → independent review → isolated
-commit → local preview → preview acceptance. MCP, основной checkout,
-production credentials, Git remote и deployment tools worker-у не выдаются.
+commit → local preview → preview acceptance → независимые draft PR и OCI
+candidate lanes → release approval.
+MCP, основной checkout и production deployment authority worker-у не выдаются;
+source promotion не получает merge authority, а release executable получает
+только явно allowlisted environment. Source/candidate refs и `release-preview`
+environment не дают production deployment authority.
 
 ## Delivery и эксплуатация
 

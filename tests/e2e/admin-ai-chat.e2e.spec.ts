@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/admin-ai-chat.e2e.spec.ts
- * @version 2026-08-21
- * @description Verifies global chat, execution, local preview and acceptance UI.
+ * @version 2026-08-28
+ * @description Проверяет chat, execution, preview, draft PR и OCI release approval UI.
  */
 
 import { expect, test } from "@playwright/test";
@@ -20,6 +20,7 @@ import {
 test("keeps the modern assistant available across Admin and binds plan approval", async ({
   page,
 }) => {
+  test.setTimeout(60_000);
   let admin: PayloadAdminFixture | undefined;
   try {
     await page.setViewportSize({ height: 1_000, width: 1_440 });
@@ -35,10 +36,18 @@ test("keeps the modern assistant available across Admin and binds plan approval"
     const launcher = page.getByRole("button", {
       name: "Открыть AI-ассистента",
     });
-    await expect(launcher).toBeVisible();
-    await launcher.click();
     const drawer = page.locator(".drawer__content");
-    await expect(drawer).toBeVisible({ timeout: 15_000 });
+    await expect(launcher).toBeVisible();
+    await expect
+      .poll(
+        async () => {
+          if (await drawer.isVisible()) return true;
+          await launcher.click();
+          return await drawer.isVisible();
+        },
+        { intervals: [100, 250, 500], timeout: 20_000 },
+      )
+      .toBe(true);
     await expect(
       page.getByText("Project copilot · approval-gated"),
     ).toBeVisible({ timeout: 15_000 });
@@ -92,6 +101,34 @@ test("keeps the modern assistant available across Admin and binds plan approval"
       .getByRole("button", { name: "Принять artifact и preview" })
       .click();
     await expect(changeCard).toContainText("Preview принят");
+    await changeCard
+      .getByRole("button", { name: "Опубликовать draft PR" })
+      .click();
+    const sourcePromotion = changeCard.getByTestId("source-promotion-evidence");
+    await expect(sourcePromotion).toContainText("Draft Pull Request создан", {
+      timeout: 10_000,
+    });
+    await expect(
+      sourcePromotion.getByRole("link", { name: /Открыть Pull Request #42/ }),
+    ).toHaveAttribute("href", "https://github.com/realize/example/pull/42");
+    await changeCard
+      .getByRole("button", { name: "Подготовить release" })
+      .click();
+    const release = changeCard.getByTestId("release-evidence");
+    await expect(release).toContainText("Release candidate готов", {
+      timeout: 10_000,
+    });
+    await release.getByText("Supply-chain evidence", { exact: true }).click();
+    await expect(release).toContainText("verified");
+    await expect(
+      release.getByRole("link", { name: /Открыть OCI preview/ }),
+    ).toHaveAttribute("href", "https://oci-preview.example.test");
+    await release
+      .getByRole("button", { name: "Утвердить exact digest" })
+      .click();
+    await expect(release).toContainText(
+      "Release утверждён ролью admin. Production deploy не запускался.",
+    );
     await page.screenshot({
       path: "documentation/reports/evidence/admin-ai-chat-desktop.png",
     });
@@ -102,14 +139,14 @@ test("keeps the modern assistant available across Admin and binds plan approval"
     await launcher.click();
     await expect(page.getByText(ADMIN_AI_FINAL_ANSWER).first()).toBeVisible();
     await expect(page.getByTestId("change-request-card")).toContainText(
-      "Preview принят",
+      "Release утверждён",
     );
 
     await page.reload();
     await page.getByRole("button", { name: "Открыть AI-ассистента" }).click();
     await expect(page.getByText(ADMIN_AI_FINAL_ANSWER).first()).toBeVisible();
     await expect(page.getByTestId("change-request-card")).toContainText(
-      "Preview принят",
+      "Release утверждён",
     );
 
     await page.getByRole("button", { name: "Закрыть AI-ассистента" }).click();

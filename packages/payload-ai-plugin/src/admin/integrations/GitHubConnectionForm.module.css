@@ -1,0 +1,173 @@
+.formGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.25rem;
+}
+
+.field,
+.toggleField {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.field > span,
+.toggleField strong {
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+
+.field small,
+.toggleField small {
+  color: var(--theme-elevation-500);
+  font-size: 0.69rem;
+  line-height: 1.4;
+}
+
+.field input {
+  background: var(--theme-input-bg);
+  border: 1px solid var(--theme-elevation-200);
+  border-radius: 10px;
+  color: var(--theme-text);
+  font: inherit;
+  min-height: 44px;
+  outline: 0;
+  padding: 0.65rem 0.75rem;
+  width: 100%;
+}
+
+.field input:focus {
+  border-color: var(--theme-elevation-500);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--theme-elevation-500) 12%, transparent);
+}
+
+.field input:disabled,
+.toggleField input:disabled,
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.secretInputWrap {
+  align-items: center;
+  display: flex;
+  position: relative;
+}
+
+.secretInputWrap input {
+  padding-right: 2.5rem;
+}
+
+.secretInputWrap svg {
+  color: var(--theme-success-600);
+  position: absolute;
+  right: 0.75rem;
+}
+
+.toggleField {
+  align-items: center;
+  background: var(--theme-elevation-50);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  min-height: 76px;
+  padding: 0.8rem;
+}
+
+.toggleField > span {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.toggleField input {
+  accent-color: var(--theme-elevation-900);
+  height: 20px;
+  width: 20px;
+}
+
+.formActions {
+  align-items: center;
+  border-top: 1px solid var(--theme-elevation-150);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+}
+
+.primaryActions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.primaryButton,
+.secondaryButton,
+.disconnectButton {
+  align-items: center;
+  border: 1px solid;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 650;
+  gap: 0.45rem;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0.55rem 0.9rem;
+}
+
+.primaryButton {
+  background: var(--theme-elevation-900);
+  border-color: var(--theme-elevation-900);
+  color: var(--theme-elevation-0);
+}
+
+.secondaryButton {
+  background: var(--theme-bg);
+  border-color: var(--theme-elevation-200);
+  color: var(--theme-text);
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: var(--theme-elevation-100);
+}
+
+.disconnectButton {
+  background: transparent;
+  border-color: transparent;
+  color: var(--theme-error-600);
+}
+
+.disconnectButton:hover:not(:disabled) {
+  background: var(--theme-error-100);
+}
+
+.spinner {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .formActions {
+    align-items: stretch;
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .primaryActions,
+  .primaryActions button,
+  .disconnectButton {
+    width: 100%;
+  }
+}

@@ -36,6 +36,19 @@ REALIZE_AI_EXECUTION_SIGNING_SECRET=<отдельное случайное зн�
 REALIZE_AI_EXECUTION_WORKSPACE_ROOT=/absolute/path/outside/repository
 ```
 
+Для write-only credentials раздела `/admin/integrations` site runtime и
+execution worker должны получить один installation-owned master key. Для
+локального запуска его можно хранить в ignored `.env.local`; worker читает
+сначала этот файл, затем `.env`, не перезаписывая уже переданное process env:
+
+```dotenv
+REALIZE_INTEGRATIONS_ENCRYPTION_KEY=<результат openssl rand -base64 32>
+```
+
+Payload secret не используется как fallback. После сохранения GitHub token
+прочитать через Admin/API нельзя: можно только проверить подключение, заменить
+credential или отключить интеграцию.
+
 Promotion принятого diff в локальный preview включается третьим независимым
 feature flag:
 
@@ -52,6 +65,20 @@ REALIZE_AI_PREVIEW_TTL_SECONDS=21600
 `REALIZE_AI_REVIEW_MODEL` и timeout независимого reviewer-а можно задать
 отдельно. Reviewer использует server-side Codex identity и всегда получает
 read-only sandbox.
+
+Публикация принятого preview commit в GitHub включается отдельным feature flag.
+Git executable и timeout остаются operator-owned configuration:
+
+```dotenv
+REALIZE_AI_SOURCE_PROMOTION_ENABLED=true
+REALIZE_AI_GITHUB_GIT_COMMAND=/usr/bin/git
+REALIZE_AI_SOURCE_PROMOTION_TIMEOUT_MS=120000
+```
+
+Перед запуском нужно сохранить, включить и успешно проверить GitHub connection
+в `/admin/integrations`. Repository-scoped token должен иметь
+`contents:write` и `pull_requests:write`; права GitHub Actions для этого lane не
+нужны.
 
 `REALIZE_AI_WORKSPACE_ROOT` указывает на Git repository root, а
 `REALIZE_AI_EXECUTION_WORKSPACE_ROOT` — на владельца временных execution
@@ -107,12 +134,13 @@ credentials для недоверенных админов. Production треб�
 npm run ai:execution-worker
 ```
 
-Этот процесс нужен при включённом code execution или local preview. Он poll-ит
-durable PostgreSQL queues, атомарно claim-ит одну задачу и никогда не запускается
-внутри Next/Payload HTTP request. Перед выдачей `workspace-write` он проверяет
-HMAC capability, exact plan/scope/version/base commit и expiration. Promotion
-не выдаёт write-capability новому агенту: worker воспроизводит уже принятый
-diff, а отдельный reviewer работает read-only.
+Этот процесс нужен при включённом code execution, local preview, source
+promotion или release. Он poll-ит durable PostgreSQL queues, атомарно claim-ит
+одну задачу и никогда не запускается внутри Next/Payload HTTP request. Перед
+выдачей `workspace-write` он проверяет HMAC capability, exact
+plan/scope/version/base commit и expiration. Promotion не выдаёт
+write-capability новому агенту: worker воспроизводит уже принятый diff, а
+отдельный reviewer работает read-only.
 
 В третьем терминале:
 
@@ -128,14 +156,24 @@ npm run dev
 http://localhost:3000/admin/ai
 ```
 
+Каталог внешних подключений доступен отдельно:
+
+```text
+http://localhost:3000/admin/integrations
+```
+
+GitHub adapter принимает canonical HTTPS repository URL. Кнопка «Проверить»
+делает server-side GitHub REST request; browser не вызывает GitHub напрямую.
+
 ## 5. Ожидаемое поведение
 
 - чат виден только Payload-пользователю с ролью `admin` и сохраняет выбранный
   диалог при переходах между страницами Admin;
 - один provider обслуживает drawer и полноэкранный `/admin/ai`, поэтому второй
   параллельный chat state не создаётся;
-- сообщения, события, Change Requests, approvals, execution jobs, deployments
-  и check results сохраняются в девяти скрытых Payload collections;
+- сообщения, события, Change Requests, Data Operations, hash-bound decisions,
+  transactional outbox, execution jobs, deployments, integration settings/audit
+  и check results сохраняются в скрытых Payload collections;
 - browser получает только DTO/envelope, не raw Payload documents;
 - automatic SSE reconnect использует `Last-Event-ID`, а полная
   перезагрузка UI восстанавливает active run через persisted replay;
@@ -150,6 +188,17 @@ http://localhost:3000/admin/ai
 - завершённый ответ с точными project paths можно оформить как отдельный
   Change Request; карточка показывает risk level, scope, проверки, hashes и
   expiration;
+- ответ с поддерживаемым catalog intent можно оформить как отдельную Data
+  Operation; в текущем slice разрешено только добавить одну существующую
+  категорию одному существующему товару;
+- dry-run строится Payload-ом из актуальных документов и показывает категории
+  до/после; browser и модель не передают готовый patch или raw document;
+- apply доступен только после подтверждения exact operation hash и версии,
+  выполняется через Payload Local API с access, hooks, транзакцией и
+  optimistic lock; approval и результат сохраняются в audit/outbox;
+- rollback является отдельным compensating действием: admin подтверждает exact
+  rollback hash, после чего Payload восстанавливает before-snapshot, если
+  applied version товара не устарела;
 - admin может отдельно утвердить или отклонить конкретную версию плана;
   approval криптографически привязан к plan/scope/version/actor/expiration;
 - после approval доступный code/theme scope можно поставить в durable очередь;
@@ -178,8 +227,11 @@ http://localhost:3000/admin/ai
   принятие или отклонение preview является отдельным hash-bound решением;
 - rejection и TTL очищают process, DB clone, worktree и server-owned branch,
   пока execution worker запущен;
-- preview acceptance не применяет commit в основной checkout, не выполняет
+- preview acceptance сама не применяет commit в основной checkout, не выполняет
   push и не запускает production deploy;
+- отдельное действие «Опубликовать draft PR» ставит source promotion в durable
+  queue; worker публикует exact commit только в `ai/changes/**`, проверяет
+  remote ref и создаёт open draft Pull Request без merge authority;
 - недоступный control plane отображается как явная ошибка, а не успешная
   заглушка.
 
@@ -195,3 +247,21 @@ http://localhost:3000/admin/ai
 container/VM, отдельную service identity, lease recovery, external artifact
 storage, OCI image/digest, сетевую preview-изоляцию и production-grade cleanup
 controller.
+
+## 6. Ручная проверка Data Lane
+
+1. Открой `/admin/ai` под пользователем с ролью `admin`.
+2. Попроси добавить существующую категорию существующему товару, указав
+   однозначный `id`, `slug` или `title` обоих документов.
+3. Нажми «Шаг 1 · Подготовить изменение данных» и сверь блоки «До» и «После».
+4. Нажми «Шаг 2 · Подтвердить vN», а затем отдельно
+   «Шаг 3 · Применить». Сообщение «подтверждаю» в чате не заменяет
+   hash-bound подтверждение exact версии в карточке.
+5. Убедись, что карточка перешла в «Применено», а категория появилась у товара.
+6. Для проверки восстановления отдельно подтверди и выполни откат; карточка
+   должна перейти в «Откат выполнен», а набор категорий — совпасть с исходным.
+
+Не используй этот lane для production-данных до появления production tenant
+isolation и operational policy. Неоднозначные selectors, уже назначенная
+категория, stale document version и отсутствие Payload access завершаются
+fail-closed без записи.

@@ -1,20 +1,23 @@
 .page {
-  padding: calc(var(--base) * 1.5);
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 64px);
+  padding: clamp(20px, 2.5vw, 32px);
 }
 
 .drawerSurface {
   background: var(--theme-bg);
   display: flex;
-  height: calc(100dvh - 68px);
+  height: 100dvh;
   min-height: 0;
 }
 
 .pageHeader {
   align-items: flex-start;
   display: flex;
-  gap: var(--base);
+  gap: 24px;
   justify-content: space-between;
-  margin-bottom: calc(var(--base) * 1.25);
+  margin-bottom: 24px;
 }
 
 .pageHeader h1,
@@ -23,36 +26,39 @@
 }
 
 .pageHeader h1 {
-  font-size: clamp(1.8rem, 3vw, 2.5rem);
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  font-size: clamp(30px, 3vw, 42px);
+  font-weight: 650;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
 }
 
 .eyebrow {
   color: var(--theme-elevation-500);
-  font-size: 0.72rem;
+  font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.12em;
-  margin-bottom: 0.45rem !important;
+  margin-bottom: 8px !important;
   text-transform: uppercase;
 }
 
 .intro {
   color: var(--theme-elevation-600);
-  margin-top: 0.65rem !important;
-  max-width: 46rem;
+  font-size: 15px;
+  line-height: 1.55;
+  margin-top: 10px !important;
+  max-width: 50rem;
 }
 
 .status,
-.readOnlyBadge {
+.agentBadge {
   align-items: center;
   border: 1px solid var(--theme-elevation-200);
   border-radius: 999px;
   display: inline-flex;
-  font-size: 0.72rem;
+  font-size: 12px;
   font-weight: 600;
-  min-height: 28px;
-  padding: 0.25rem 0.65rem;
+  min-height: 30px;
+  padding: 5px 10px;
   white-space: nowrap;
 }
 
@@ -70,9 +76,9 @@
 .surface {
   background: var(--theme-bg);
   border: 1px solid var(--theme-elevation-150);
-  border-radius: 18px;
-  box-shadow: 0 18px 50px
-    color-mix(in srgb, var(--theme-elevation-1000) 8%, transparent);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px
+    color-mix(in srgb, var(--theme-elevation-1000) 9%, transparent);
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -92,18 +98,30 @@
   border-bottom: 1px solid var(--theme-elevation-150);
   display: flex;
   flex: 0 0 auto;
-  gap: 1rem;
+  gap: 16px;
   justify-content: space-between;
-  min-height: 62px;
-  padding: 0.7rem 0.85rem;
+  min-height: 68px;
+  padding: 10px 14px;
 }
 
 .toolbarIdentity,
 .toolbarActions {
   align-items: center;
   display: flex;
-  gap: 0.65rem;
+  gap: 8px;
   min-width: 0;
+}
+
+.brandMark {
+  align-items: center;
+  background: var(--theme-elevation-900);
+  border-radius: 12px;
+  color: var(--theme-elevation-0);
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 40px;
+  justify-content: center;
+  width: 40px;
 }
 
 .conversationTitle {
@@ -112,6 +130,8 @@
 }
 
 .conversationTitle strong {
+  font-size: 14px;
+  letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -119,7 +139,7 @@
 
 .conversationTitle span {
   color: var(--theme-elevation-500);
-  font-size: 0.69rem;
+  font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -129,14 +149,17 @@
   align-items: center;
   background: transparent;
   border: 1px solid var(--theme-elevation-200);
-  border-radius: 9px;
+  border-radius: 11px;
   color: inherit;
   cursor: pointer;
   display: inline-flex;
-  height: 36px;
+  height: 40px;
   justify-content: center;
   padding: 0;
-  width: 36px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease;
+  width: 40px;
 }
 
 .iconButton:hover {
@@ -148,9 +171,23 @@
   opacity: 0.45;
 }
 
-.readOnlyBadge {
+.agentBadge {
   background: var(--theme-elevation-50);
   color: var(--theme-elevation-650);
+  gap: 6px;
+}
+
+.agentBadge i {
+  background: var(--theme-warning-500);
+  border-radius: 999px;
+  height: 7px;
+  width: 7px;
+}
+
+.agentBadge[data-state="ready"] i {
+  background: var(--theme-success-500);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--theme-success-500) 14%, transparent);
 }
 
 .error,
@@ -158,9 +195,11 @@
   align-items: center;
   display: flex;
   flex: 0 0 auto;
-  font-size: 0.82rem;
-  justify-content: space-between;
-  padding: 0.6rem 0.85rem;
+  font-size: 13px;
+  gap: 8px;
+  justify-content: flex-start;
+  line-height: 1.45;
+  padding: 10px 14px;
 }
 
 .error {
@@ -175,6 +214,7 @@
   cursor: pointer;
   font: inherit;
   font-weight: 650;
+  margin-left: auto;
 }
 
 .notice {
@@ -185,11 +225,15 @@
 .pageLayout {
   display: grid;
   flex: 1;
-  grid-template-columns: minmax(210px, 248px) minmax(360px, 1fr) minmax(
-      210px,
-      244px
+  grid-template-columns: minmax(230px, 264px) minmax(0, 1fr);
+  min-height: 640px;
+}
+
+.pageLayoutWithInspector {
+  grid-template-columns: minmax(220px, 250px) minmax(0, 1fr) minmax(
+      240px,
+      280px
     );
-  min-height: 68vh;
 }
 
 .drawerLayout {
@@ -199,22 +243,54 @@
 }
 
 @media (max-width: 1120px) {
-  .pageLayout {
+  .pageLayout,
+  .pageLayoutWithInspector {
     grid-template-columns: 220px minmax(0, 1fr);
   }
 }
 
 @media (max-width: 760px) {
   .page {
-    padding: var(--base);
+    padding: 16px;
   }
 
   .pageHeader {
     display: grid;
   }
 
-  .pageLayout {
+  .pageLayout,
+  .pageLayoutWithInspector {
     display: flex;
     flex-direction: column;
+    min-height: 0;
+  }
+
+  .agentBadge {
+    max-width: 34px;
+    overflow: hidden;
+    padding-inline: 12px;
+  }
+
+  .agentBadge i {
+    flex: 0 0 auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .toolbar {
+    min-height: 64px;
+    padding: 8px 10px;
+  }
+
+  .conversationTitle span {
+    display: none;
+  }
+
+  .toolbarActions {
+    gap: 6px;
+  }
+
+  .agentBadge {
+    display: none;
   }
 }

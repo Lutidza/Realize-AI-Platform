@@ -11,7 +11,11 @@
 7. [ADR-0007 — MCP Phase 0/1 policy](ADR-0007-mcp-phase-0-policy.md)
 8. [ADR-0008 — Commercial licensing direction](ADR-0008-commercial-licensing-direction.md)
 9. [ADR-0009 — Delivery platform](ADR-0009-delivery-platform.md)
+10. [ADR-0010 — OCI release control-plane boundary](ADR-0010-oci-release-control-plane.md)
+11. [ADR-0011 — GitHub/GHCR/VPS release preview adapter](ADR-0011-github-ghcr-vps-release-preview.md)
+12. [ADR-0012 — Admin integration registry and write-only credentials](ADR-0012-admin-integration-registry.md)
+13. [ADR-0013 — GitHub Pull Request source promotion](ADR-0013-github-pull-request-source-promotion.md)
 
-ADR-0001, 0005, 0006, 0007 и 0009 имеют статус `accepted`; ADR-0002, 0003,
-0004 и 0008 — `accepted-as-target`. Изменение решения требует нового ADR или
-явного supersede, а не правки истории без следа.
+ADR-0001, 0005, 0006, 0007, 0009, 0010, 0011, 0012 и 0013 имеют статус `accepted`;
+ADR-0002, 0003, 0004 и 0008 — `accepted-as-target`. Изменение решения требует
+нового ADR или явного supersede, а не правки истории без следа.

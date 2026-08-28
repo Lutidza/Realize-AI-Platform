@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/admin-ai-change-api.e2e.spec.ts
- * @version 2026-08-21
- * @description Verifies real Payload persistence and approval boundaries without an agent run.
+ * @version 2026-08-22
+ * @description Проверяет real Payload persistence и exact release approval без agent run.
  */
 
 import type { APIResponse, ChangeRequestDTO } from "@realize/ai-contracts";
@@ -13,6 +13,7 @@ import {
   type PayloadAdminFixture,
   withPayloadTestDatabase,
 } from "./support/payloadAdmin";
+import { seedVerifiedRelease } from "./support/verifiedRelease";
 
 type SeededPlan = {
   conversationID: number;
@@ -71,14 +72,28 @@ const cleanupPlan = async (conversationID: number): Promise<void> =>
       [conversationID],
     );
     await database.query(
-      `DELETE FROM "realize_ai_execution_jobs"
+      `DELETE FROM "realize_ai_approvals"
        WHERE "change_request_id" IN (
          SELECT "id" FROM "realize_ai_change_requests" WHERE "conversation_id" = $1
        )`,
       [conversationID],
     );
     await database.query(
-      `DELETE FROM "realize_ai_approvals"
+      `DELETE FROM "realize_ai_release_candidates"
+       WHERE "change_request_id" IN (
+         SELECT "id" FROM "realize_ai_change_requests" WHERE "conversation_id" = $1
+       )`,
+      [conversationID],
+    );
+    await database.query(
+      `DELETE FROM "realize_ai_deployments"
+       WHERE "change_request_id" IN (
+         SELECT "id" FROM "realize_ai_change_requests" WHERE "conversation_id" = $1
+       )`,
+      [conversationID],
+    );
+    await database.query(
+      `DELETE FROM "realize_ai_execution_jobs"
        WHERE "change_request_id" IN (
          SELECT "id" FROM "realize_ai_change_requests" WHERE "conversation_id" = $1
        )`,
@@ -209,6 +224,81 @@ test("creates, approves and safely gates one durable code plan", async ({
     } else {
       expect(executeResponse.status()).toBe(409);
     }
+
+    const release = await seedVerifiedRelease({
+      changeRequestID: created.id,
+      userID: admin.id,
+    });
+    const releaseApprovalKey = `release-approval:${crypto.randomUUID()}`;
+    const releaseApprovalResponse = await page.request.post(
+      `/api/realize-ai/changes/${created.id}/approve-release`,
+      {
+        data: {
+          expectedImageDigest: release.imageDigest,
+          expectedManifestHash: release.manifestHash,
+          expectedMigrationSetHash: release.migrationSetHash,
+          expectedVersion: 18,
+        },
+        headers: {
+          Authorization: authorization,
+          "Idempotency-Key": releaseApprovalKey,
+        },
+      },
+    );
+    const releaseApprovalBody = await releaseApprovalResponse.text();
+    expect(releaseApprovalResponse.status(), releaseApprovalBody).toBe(200);
+    const releaseApprovalEnvelope = JSON.parse(
+      releaseApprovalBody,
+    ) as APIResponse<ChangeRequestDTO>;
+    expect(releaseApprovalEnvelope.ok).toBe(true);
+    if (!releaseApprovalEnvelope.ok) return;
+    expect(releaseApprovalEnvelope.data).toMatchObject({
+      release: {
+        approval: {
+          decision: "approved",
+          imageDigest: release.imageDigest,
+          manifestHash: release.manifestHash,
+          migrationSetHash: release.migrationSetHash,
+        },
+        candidate: { status: "approved" },
+      },
+      state: "release_approved",
+      version: 19,
+    });
+
+    const replayedReleaseApproval = await page.request.post(
+      `/api/realize-ai/changes/${created.id}/approve-release`,
+      {
+        data: {
+          expectedImageDigest: release.imageDigest,
+          expectedManifestHash: release.manifestHash,
+          expectedMigrationSetHash: release.migrationSetHash,
+          expectedVersion: 18,
+        },
+        headers: {
+          Authorization: authorization,
+          "Idempotency-Key": releaseApprovalKey,
+        },
+      },
+    );
+    expect(replayedReleaseApproval.status()).toBe(200);
+
+    const tamperedReplay = await page.request.post(
+      `/api/realize-ai/changes/${created.id}/approve-release`,
+      {
+        data: {
+          expectedImageDigest: `sha256:${"9".repeat(64)}`,
+          expectedManifestHash: release.manifestHash,
+          expectedMigrationSetHash: release.migrationSetHash,
+          expectedVersion: 18,
+        },
+        headers: {
+          Authorization: authorization,
+          "Idempotency-Key": releaseApprovalKey,
+        },
+      },
+    );
+    expect(tamperedReplay.status()).toBe(409);
   } finally {
     if (seeded) await cleanupPlan(seeded.conversationID);
     if (admin) await removePayloadAdmin(admin);

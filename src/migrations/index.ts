@@ -4,6 +4,10 @@ import * as migration_20260817_135658_conversation_idempotency from './20260817_
 import * as migration_20260818_170919_approval_only_change_requests from './20260818_170919_approval_only_change_requests';
 import * as migration_20260821_194623_isolated_execution_worker from './20260821_194623_isolated_execution_worker';
 import * as migration_20260821_205949_local_preview_promotion from './20260821_205949_local_preview_promotion';
+import * as migration_20260822_092506_release_candidate_approval from './20260822_092506_release_candidate_approval';
+import * as migration_20260827_070003_admin_integration_registry from './20260827_070003_admin_integration_registry';
+import * as migration_20260828_022809_github_pull_request_source_promotion from './20260828_022809_github_pull_request_source_promotion';
+import * as migration_20260828_044410_data_operation_lane from './20260828_044410_data_operation_lane';
 
 export const migrations = [
   {
@@ -35,5 +39,25 @@ export const migrations = [
     up: migration_20260821_205949_local_preview_promotion.up,
     down: migration_20260821_205949_local_preview_promotion.down,
     name: '20260821_205949_local_preview_promotion',
+  },
+  {
+    up: migration_20260822_092506_release_candidate_approval.up,
+    down: migration_20260822_092506_release_candidate_approval.down,
+    name: '20260822_092506_release_candidate_approval',
+  },
+  {
+    up: migration_20260827_070003_admin_integration_registry.up,
+    down: migration_20260827_070003_admin_integration_registry.down,
+    name: '20260827_070003_admin_integration_registry',
+  },
+  {
+    up: migration_20260828_022809_github_pull_request_source_promotion.up,
+    down: migration_20260828_022809_github_pull_request_source_promotion.down,
+    name: '20260828_022809_github_pull_request_source_promotion',
+  },
+  {
+    up: migration_20260828_044410_data_operation_lane.up,
+    down: migration_20260828_044410_data_operation_lane.down,
+    name: '20260828_044410_data_operation_lane'
   },
 ];

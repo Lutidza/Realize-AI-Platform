@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeProjection.ts
- * @version 2026-08-21
- * @description Builds the explicit Change Request DTO with execution and preview evidence.
+ * @version 2026-08-28
+ * @description Собирает Change Request DTO с execution, preview, source и release evidence.
  */
 
 import type { ChangeRequestDTO } from "@realize/ai-contracts";
@@ -12,6 +12,8 @@ import { DeploymentRepository } from "./deploymentRepository";
 import type { AIDocument } from "./repository";
 import { ExecutionRepository } from "./executionRepository";
 import { toChangeRequestDTO } from "./mappers";
+import { ReleaseRepository } from "./releaseRepository";
+import { SourcePromotionRepository } from "./sourcePromotionRepository";
 
 const jobReason = (job: AIDocument, acceptance?: AIDocument): string => {
   if (acceptance?.decision === "approved") {
@@ -80,7 +82,64 @@ const deploymentReason = (
   }
 };
 
-/** Joins persistence records into the browser-safe aggregate projection. */
+const releaseReason = (
+  candidate: AIDocument,
+  releaseApproval?: AIDocument,
+): string => {
+  if (releaseApproval?.decision === "approved") {
+    return "Exact OCI digest утверждён; production deploy остаётся отдельной внешней операцией.";
+  }
+  if (releaseApproval?.decision === "rejected") {
+    return "Release candidate отклонён; production не изменён.";
+  }
+  switch (candidate.status) {
+    case "queued":
+      return "OCI-кандидат ожидает server-owned release orchestrator.";
+    case "preparing":
+      return "Проверяются source preview, commit и approval binding.";
+    case "building":
+      return "Orchestrator собирает OCI image из exact commit.";
+    case "scanning":
+      return "Проверяются SBOM, scan, provenance и signature.";
+    case "deploying_preview":
+      return "OCI image разворачивается в отдельном preview environment.";
+    case "verifying_preview":
+      return "Проверяются health и evidence OCI preview.";
+    case "ready":
+      return "Подписанный OCI-кандидат готов для отдельного release approval.";
+    case "approved":
+      return "Release approval сохранён; production не изменён.";
+    case "rejected":
+      return "Release candidate отклонён; production не изменён.";
+    case "expired":
+      return "Срок OCI-кандидата истёк; требуется новая подготовка.";
+    case "blocked":
+      return "Release заблокирован policy gate.";
+    default:
+      return "Подготовка release завершилась ошибкой; production не изменён.";
+  }
+};
+
+const sourcePromotionReason = (promotion: AIDocument): string => {
+  switch (promotion.status) {
+    case "queued":
+      return "Публикация ожидает отдельный source-control worker.";
+    case "validating":
+      return "Worker повторно проверяет preview binding и GitHub destination.";
+    case "publishing_ref":
+      return "Exact service commit публикуется в изолированную GitHub-ветку.";
+    case "creating_pull_request":
+      return "Worker создаёт или находит идемпотентный draft Pull Request.";
+    case "ready":
+      return "Draft Pull Request создан; main и текущий checkout не изменены.";
+    case "blocked":
+      return "Source promotion заблокирована policy или integration gate.";
+    default:
+      return "Публикация Pull Request завершилась ошибкой; Git history main не изменена.";
+  }
+};
+
+/** Объединяет persistence records в browser-safe aggregate projection. */
 export const projectChangeRequest = async (input: {
   acceptance?: AIDocument;
   approval?: AIDocument;
@@ -89,6 +148,9 @@ export const projectChangeRequest = async (input: {
   executionRepository: ExecutionRepository;
   options: SanitizedRealizeAIPluginOptions;
   previewAcceptance?: AIDocument;
+  releaseApproval?: AIDocument;
+  releaseRepository: ReleaseRepository;
+  sourcePromotionRepository: SourcePromotionRepository;
 }): Promise<ChangeRequestDTO> => {
   const job = await input.executionRepository.getLatestJob(
     String(input.change.id),
@@ -96,6 +158,13 @@ export const projectChangeRequest = async (input: {
   const deployment = await input.deploymentRepository.getLatestDeployment(
     String(input.change.id),
   );
+  const releaseCandidate = await input.releaseRepository.getLatestCandidate(
+    String(input.change.id),
+  );
+  const sourcePromotion =
+    await input.sourcePromotionRepository.getLatestPromotion(
+      String(input.change.id),
+    );
   const checkResults = job
     ? await input.executionRepository.listCheckResults(String(job.id))
     : [];
@@ -157,6 +226,49 @@ export const projectChangeRequest = async (input: {
       "Implementation artifact истёк; требуется новое выполнение.";
   }
 
+  let candidateReason: string | undefined;
+  if (releaseCandidate) {
+    candidateReason = releaseReason(releaseCandidate, input.releaseApproval);
+  } else if (!input.options.release.enabled) {
+    candidateReason = "OCI release worker отключён конфигурацией.";
+  } else if (input.previewAcceptance?.decision !== "approved") {
+    candidateReason = "Сначала примите exact local preview artifact.";
+  } else if (
+    !deployment ||
+    deployment.status !== "accepted" ||
+    !deployment.artifactHash ||
+    !deployment.commitSHA ||
+    !deployment.evidenceHash
+  ) {
+    candidateReason = "Принятое preview evidence неполно или изменилось.";
+  } else if (input.change.state !== "preview_accepted") {
+    candidateReason =
+      "Change Request не находится в состоянии preview_accepted.";
+  } else if (Date.parse(String(deployment.expiresAt || "")) <= Date.now()) {
+    candidateReason = "Срок исходного preview artifact истёк.";
+  }
+
+  let promotionReason: string | undefined;
+  if (sourcePromotion) {
+    promotionReason = sourcePromotionReason(sourcePromotion);
+  } else if (!input.options.sourcePromotion.enabled) {
+    promotionReason =
+      "GitHub Pull Request publication отключена конфигурацией.";
+  } else if (input.previewAcceptance?.decision !== "approved") {
+    promotionReason = "Сначала примите exact local preview artifact.";
+  } else if (
+    !deployment ||
+    deployment.status !== "accepted" ||
+    !deployment.artifactHash ||
+    !deployment.commitSHA ||
+    !deployment.evidenceHash ||
+    !deployment.reviewEvidenceHash
+  ) {
+    promotionReason = "Принятое preview evidence неполно или изменилось.";
+  } else if (Date.parse(String(deployment.expiresAt || "")) <= Date.now()) {
+    promotionReason = "Срок исходного preview artifact истёк.";
+  }
+
   return toChangeRequestDTO(input.change, input.approval, {
     acceptance: input.acceptance,
     checkResults,
@@ -168,5 +280,26 @@ export const projectChangeRequest = async (input: {
     previewAcceptance: input.previewAcceptance,
     previewEnabled: !deployment && !previewReason,
     previewReason,
+    releaseApproval: input.releaseApproval,
+    releaseCandidate,
+    releaseEnabled: !releaseCandidate && !candidateReason,
+    releaseReason: candidateReason,
+    sourcePromotion,
+    sourcePromotionEnabled:
+      (!sourcePromotion && !promotionReason) ||
+      Boolean(
+        sourcePromotion &&
+        (sourcePromotion.status === "failed" ||
+          sourcePromotion.status === "blocked") &&
+        input.options.sourcePromotion.enabled &&
+        input.previewAcceptance?.decision === "approved" &&
+        deployment?.status === "accepted" &&
+        deployment.artifactHash &&
+        deployment.commitSHA &&
+        deployment.evidenceHash &&
+        deployment.reviewEvidenceHash &&
+        Date.parse(String(deployment.expiresAt || "")) > Date.now(),
+      ),
+    sourcePromotionReason: promotionReason,
   });
 };

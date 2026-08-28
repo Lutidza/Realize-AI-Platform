@@ -1,12 +1,13 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 2026-08-21
- * @description Defines plan derivation plus approval-gated execution policy.
+ * @version 2026-08-28
+ * @description Экспортирует политики plan, execution, preview, source promotion и release approval.
  */
 
 import { createHash } from "node:crypto";
 
 import type { ChangeRequestType, ChangeRiskLevel } from "@realize/ai-contracts";
+import { buildDataOperationProtocolInstructions } from "./dataOperationProtocol";
 
 /** Raised when an assistant answer is not concrete enough to approve safely. */
 export class ChangePlanError extends Error {
@@ -177,9 +178,14 @@ export const buildReadOnlyDeveloperInstructions = (): string => {
     "A change plan must name exact repository paths, risks, and verification commands so an admin can review it.",
     "Cite relevant repository paths in the final answer and state uncertainty honestly.",
     "Do not reveal secrets, environment values, hidden reasoning, or raw customer data.",
+    buildDataOperationProtocolInstructions(),
   ].join("\n");
 };
 
+export * from "./dataOperationPolicy";
+export * from "./dataOperationProtocol";
 export * from "./executionCapability";
 export * from "./executionPolicy";
 export * from "./previewPolicy";
+export * from "./releasePolicy";
+export * from "./sourcePromotionPolicy";

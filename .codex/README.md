@@ -58,7 +58,7 @@ Project-specific MCP servers текущего проекта описаны в `
 
 Payload MCP требует runtime env `PAYLOAD_MCP_API_KEY`. Ключ создаётся в Payload
 Admin MCP collection и не хранится в `.codex`, `.ai` или documentation.
-На текущем Next.js `16.2.10` `recommerce-next-devtools` может использовать
+На текущем Next.js `16.3.1` `recommerce-next-devtools` может использовать
 Next.js MCP runtime diagnostics через `/_next/mcp`, когда dev server запущен.
 
 Codex CLI читает активный runtime config из `CODEX_HOME`, поэтому эти записи

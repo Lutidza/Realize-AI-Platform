@@ -1,26 +1,40 @@
 /**
  * @file services/ai-execution-worker/src/worker.ts
- * @version 2026-08-21
- * @description Runs durable local code execution and accepted-diff preview promotion.
+ * @version 2026-08-28
+ * @description Обрабатывает execution, preview, source/release durable queues и integrations.
  */
 
-import "dotenv/config";
-
 import { Pool } from "pg";
+import { config as loadEnvironment } from "dotenv";
 
 import { readExecutionWorkerConfig } from "./config";
 import { executeClaimedJob } from "./executor";
+import { IntegrationWorkerRepository } from "./integrationRepository";
 import { ExecutionJobRepository } from "./jobRepository";
 import {
   cleanupPreviewRuntimes,
   executeClaimedPromotion,
 } from "./promotionExecutor";
 import { PromotionRepository } from "./promotionRepository";
+import { executeClaimedRelease } from "./releaseExecutor";
+import { ReleaseWorkerRepository } from "./releaseRepository";
+import { executeClaimedSourcePromotion } from "./sourcePromotionExecutor";
+import { SourcePromotionWorkerRepository } from "./sourcePromotionRepository";
+
+// Match Next local precedence without overriding operator-injected process env.
+loadEnvironment({ path: ".env.local", quiet: true });
+loadEnvironment({ quiet: true });
 
 const config = readExecutionWorkerConfig();
 const pool = new Pool({ connectionString: config.databaseURL, max: 2 });
 const repository = new ExecutionJobRepository(pool);
 const promotionRepository = new PromotionRepository(pool);
+const releaseRepository = new ReleaseWorkerRepository(pool);
+const sourcePromotionRepository = new SourcePromotionWorkerRepository(pool);
+const integrationRepository = new IntegrationWorkerRepository(
+  pool,
+  config.integrationEncryptionKey,
+);
 let stopping = false;
 let lastCleanupAt = 0;
 
@@ -30,7 +44,7 @@ const wait = async (milliseconds: number): Promise<void> => {
 
 const run = async (): Promise<void> => {
   console.log(
-    `[ai-execution-worker] started worker=${config.workerID}; workspace=${config.workspaceRoot}; preview=${config.previewEnabled}`,
+    `[ai-execution-worker] started worker=${config.workerID}; workspace=${config.workspaceRoot}; preview=${config.previewEnabled}; sourcePromotion=${config.sourcePromotionEnabled}; release=${config.releaseEnabled}`,
   );
   while (!stopping) {
     if (config.previewEnabled && Date.now() - lastCleanupAt >= 30_000) {
@@ -56,6 +70,36 @@ const run = async (): Promise<void> => {
         config,
         job: promotion,
         repository: promotionRepository,
+      });
+      continue;
+    }
+    const sourcePromotion = config.sourcePromotionEnabled
+      ? await sourcePromotionRepository.claimNext(config.workerID)
+      : undefined;
+    if (sourcePromotion) {
+      console.log(
+        `[ai-execution-worker] claimed source-promotion=${sourcePromotion.promotionKey}; change=${sourcePromotion.changeRequestID}`,
+      );
+      await executeClaimedSourcePromotion({
+        config,
+        integrations: integrationRepository,
+        job: sourcePromotion,
+        repository: sourcePromotionRepository,
+      });
+      continue;
+    }
+    const release = config.releaseEnabled
+      ? await releaseRepository.claimNext(config.workerID)
+      : undefined;
+    if (release) {
+      console.log(
+        `[ai-execution-worker] claimed release=${release.candidateKey}; change=${release.changeRequestID}`,
+      );
+      await executeClaimedRelease({
+        config,
+        integrations: integrationRepository,
+        job: release,
+        repository: releaseRepository,
       });
       continue;
     }

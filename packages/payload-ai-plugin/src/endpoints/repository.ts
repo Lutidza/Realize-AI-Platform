@@ -395,7 +395,7 @@ export class AIRepository {
     return result.docs[0];
   }
 
-  private async requireOwnedConversation(
+  async requireOwnedConversation(
     id: string,
     userID: number | string,
   ): Promise<AIDocument> {

@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/support/adminAIChatScenario.ts
- * @version 2026-08-21
- * @description Provides deterministic chat, execution evidence and acceptance fixtures.
+ * @version 2026-08-28
+ * @description Предоставляет deterministic chat, execution, preview, source и release fixtures.
  */
 
 import type {
@@ -12,10 +12,16 @@ import type {
   ExecutionJobDTO,
   MessageDTO,
   PreviewDeploymentDTO,
+  ReleaseCandidateDTO,
   RunDTO,
   RunStatus,
 } from "@realize/ai-contracts";
 import type { Page, Route } from "@playwright/test";
+
+import {
+  sourcePromotionFor,
+  type SourcePromotionFixtureState,
+} from "./sourcePromotionFixture";
 
 const createdAt = "2026-08-18T12:00:00.000Z";
 const conversationID = "e2e-conversation";
@@ -38,6 +44,7 @@ const userMessage: MessageDTO = {
   content: ADMIN_AI_USER_MESSAGE,
   conversationID,
   createdAt,
+  dataOperationIntentAvailable: false,
   id: "e2e-user-message",
   kind: "user_message",
   role: "user",
@@ -49,6 +56,7 @@ const assistantMessage: MessageDTO = {
   content: ADMIN_AI_FINAL_ANSWER,
   conversationID,
   createdAt,
+  dataOperationIntentAvailable: false,
   id: "e2e-assistant-message",
   kind: "assistant_message",
   role: "assistant",
@@ -58,6 +66,7 @@ const assistantMessage: MessageDTO = {
 
 type ExecutionFixtureState = "accepted" | "completed" | "none" | "queued";
 type PreviewFixtureState = "accepted" | "none" | "queued" | "ready";
+type ReleaseFixtureState = "approved" | "none" | "queued" | "ready";
 
 const executionJobFor = (
   state: Exclude<ExecutionFixtureState, "none">,
@@ -160,10 +169,49 @@ const previewDeploymentFor = (
   };
 };
 
+const releaseCandidateFor = (
+  state: Exclude<ReleaseFixtureState, "none">,
+): ReleaseCandidateDTO => {
+  const ready = state === "approved" || state === "ready";
+  const imageDigest = `sha256:${"a".repeat(64)}`;
+  return {
+    artifactKind: "oci-image",
+    configVersion: ready ? "payload-config-v1" : undefined,
+    createdAt,
+    environment: "oci-preview",
+    evidenceHash: ready ? "b".repeat(64) : undefined,
+    expiresAt: "2099-08-22T12:00:00.000Z",
+    gitCommit: "3".repeat(40),
+    healthSummary: ready ? "Readiness и smoke checks пройдены." : undefined,
+    id: "e2e-release-candidate",
+    imageDigest: ready ? imageDigest : undefined,
+    imageRef: ready ? `ghcr.io/realize/e-commerce@${imageDigest}` : undefined,
+    manifestHash: ready ? "c".repeat(64) : undefined,
+    migrationSetHash: ready
+      ? "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      : undefined,
+    migrations: [],
+    pluginVersions: ready ? { payload: "3.88.0" } : {},
+    previewStatus: ready ? "healthy" : "pending",
+    previewURL: ready ? "https://oci-preview.example.test" : undefined,
+    provenanceRef: ready ? "oci://provenance/e2e" : undefined,
+    sbomDigest: ready ? `sha256:${"e".repeat(64)}` : undefined,
+    signatureRef: ready ? "oci://signature/e2e" : undefined,
+    signatureVerified: ready,
+    sourcePreviewArtifactHash: "1".repeat(64),
+    stage: ready ? "complete" : "queued",
+    status: state === "approved" ? "approved" : ready ? "ready" : "queued",
+    targetEnvironment: "production",
+    updatedAt: createdAt,
+  };
+};
+
 const changeFor = (
   approved: boolean,
   executionState: ExecutionFixtureState,
   previewState: PreviewFixtureState = "none",
+  releaseState: ReleaseFixtureState = "none",
+  sourcePromotionState: SourcePromotionFixtureState = "none",
 ): ChangeRequestDTO => ({
   ...(executionState === "accepted"
     ? {
@@ -246,44 +294,111 @@ const changeFor = (
               ? undefined
               : "Сначала примите точный diff и его evidence.",
   },
+  release: {
+    ...(releaseState === "approved"
+      ? {
+          approval: {
+            actorRole: "admin",
+            boundHash: "f".repeat(64),
+            createdAt,
+            decision: "approved" as const,
+            environment: "production" as const,
+            expiresAt: "2099-08-22T12:00:00.000Z",
+            id: "e2e-release-approval",
+            imageDigest: `sha256:${"a".repeat(64)}`,
+            manifestHash: "c".repeat(64),
+            migrationSetHash:
+              "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          },
+        }
+      : {}),
+    ...(releaseState !== "none"
+      ? { candidate: releaseCandidateFor(releaseState) }
+      : {}),
+    enabled: previewState === "accepted" && releaseState === "none",
+    reason:
+      releaseState === "queued"
+        ? "OCI candidate ожидает отдельный release worker."
+        : releaseState === "ready"
+          ? "Signed OCI candidate готов для отдельного approval."
+          : releaseState === "approved"
+            ? "Exact digest утверждён; production deploy не запускался."
+            : previewState === "accepted"
+              ? undefined
+              : "Сначала примите exact local preview artifact.",
+  },
   riskLevel: "R3",
   scopeHash: "c".repeat(64),
+  sourcePromotion: {
+    ...(sourcePromotionState !== "none"
+      ? { promotion: sourcePromotionFor(sourcePromotionState, createdAt) }
+      : {}),
+    enabled: previewState === "accepted" && sourcePromotionState === "none",
+    reason:
+      sourcePromotionState === "queued"
+        ? "Публикация ожидает отдельный source-control worker."
+        : sourcePromotionState === "ready"
+          ? "Draft Pull Request создан; main не изменён."
+          : previewState === "accepted"
+            ? undefined
+            : "Сначала примите exact local preview artifact.",
+  },
   sourceMessageID: assistantMessage.id,
   state:
-    previewState === "accepted"
-      ? "preview_accepted"
-      : previewState === "ready"
-        ? "preview_ready"
-        : previewState === "queued"
-          ? "preview_queued"
-          : executionState === "accepted"
-            ? "changes_accepted"
-            : executionState === "completed"
-              ? "changes_ready"
-              : executionState === "queued"
-                ? "execution_queued"
-                : approved
-                  ? "plan_approved"
-                  : "awaiting_plan_approval",
+    releaseState === "approved"
+      ? "release_approved"
+      : releaseState === "ready"
+        ? "awaiting_release_approval"
+        : releaseState === "queued"
+          ? "release_preparing"
+          : previewState === "accepted"
+            ? "preview_accepted"
+            : previewState === "ready"
+              ? "preview_ready"
+              : previewState === "queued"
+                ? "preview_queued"
+                : executionState === "accepted"
+                  ? "changes_accepted"
+                  : executionState === "completed"
+                    ? "changes_ready"
+                    : executionState === "queued"
+                      ? "execution_queued"
+                      : approved
+                        ? "plan_approved"
+                        : "awaiting_plan_approval",
   title: "Глобальный drawer ассистента",
   type: "CODE_CHANGE",
   updatedAt: createdAt,
   version:
-    previewState === "accepted"
-      ? 16
-      : previewState === "ready"
-        ? 15
-        : previewState === "queued"
-          ? 9
-          : executionState === "accepted"
-            ? 8
-            : executionState === "completed"
-              ? 7
-              : executionState === "queued"
-                ? 3
-                : approved
-                  ? 2
-                  : 1,
+    releaseState === "approved"
+      ? sourcePromotionState === "none"
+        ? 19
+        : 20
+      : releaseState === "ready"
+        ? sourcePromotionState === "none"
+          ? 18
+          : 19
+        : releaseState === "queued"
+          ? sourcePromotionState === "none"
+            ? 17
+            : 18
+          : sourcePromotionState !== "none"
+            ? 17
+            : previewState === "accepted"
+              ? 16
+              : previewState === "ready"
+                ? 15
+                : previewState === "queued"
+                  ? 9
+                  : executionState === "accepted"
+                    ? 8
+                    : executionState === "completed"
+                      ? 7
+                      : executionState === "queued"
+                        ? 3
+                        : approved
+                          ? 2
+                          : 1,
 });
 
 const runFor = (status: RunStatus): RunDTO => ({
@@ -343,6 +458,10 @@ export const installAdminAIChatScenario = async (page: Page): Promise<void> => {
   let executionPolls = 0;
   let previewState: PreviewFixtureState = "none";
   let previewPolls = 0;
+  let releaseState: ReleaseFixtureState = "none";
+  let releasePolls = 0;
+  let sourcePromotionState: SourcePromotionFixtureState = "none";
+  let sourcePromotionPolls = 0;
   let questionSent = false;
   let runPolls = 0;
 
@@ -367,11 +486,28 @@ export const installAdminAIChatScenario = async (page: Page): Promise<void> => {
         previewPolls += 1;
         if (previewPolls >= 2) previewState = "ready";
       }
+      if (releaseState === "queued") {
+        releasePolls += 1;
+        if (releasePolls >= 2) releaseState = "ready";
+      }
+      if (sourcePromotionState === "queued") {
+        sourcePromotionPolls += 1;
+        if (sourcePromotionPolls >= 2) sourcePromotionState = "ready";
+      }
       const detail: ConversationDetailDTO = {
         changeRequests: changeCreated
-          ? [changeFor(planApproved, executionState, previewState)]
+          ? [
+              changeFor(
+                planApproved,
+                executionState,
+                previewState,
+                releaseState,
+                sourcePromotionState,
+              ),
+            ]
           : [],
         conversation,
+        dataOperations: [],
         messages: questionSent
           ? [userMessage, ...(completed ? [assistantMessage] : [])]
           : [],
@@ -404,6 +540,23 @@ export const installAdminAIChatScenario = async (page: Page): Promise<void> => {
       executionState = "accepted";
       await fulfillJSON(route, changeFor(true, executionState, previewState));
     } else if (
+      path.endsWith("/changes/e2e-change-request/publish-pull-request") &&
+      request.method() === "POST"
+    ) {
+      sourcePromotionState = "queued";
+      sourcePromotionPolls = 0;
+      await fulfillJSON(
+        route,
+        changeFor(
+          true,
+          executionState,
+          previewState,
+          releaseState,
+          sourcePromotionState,
+        ),
+        202,
+      );
+    } else if (
       path.endsWith("/changes/e2e-change-request/deploy-preview") &&
       request.method() === "POST"
     ) {
@@ -420,6 +573,38 @@ export const installAdminAIChatScenario = async (page: Page): Promise<void> => {
     ) {
       previewState = "accepted";
       await fulfillJSON(route, changeFor(true, executionState, previewState));
+    } else if (
+      path.endsWith("/changes/e2e-change-request/prepare-release") &&
+      request.method() === "POST"
+    ) {
+      releaseState = "queued";
+      releasePolls = 0;
+      await fulfillJSON(
+        route,
+        changeFor(
+          true,
+          executionState,
+          previewState,
+          releaseState,
+          sourcePromotionState,
+        ),
+        202,
+      );
+    } else if (
+      path.endsWith("/changes/e2e-change-request/approve-release") &&
+      request.method() === "POST"
+    ) {
+      releaseState = "approved";
+      await fulfillJSON(
+        route,
+        changeFor(
+          true,
+          executionState,
+          previewState,
+          releaseState,
+          sourcePromotionState,
+        ),
+      );
     } else if (
       path.endsWith(`/conversations/${conversationID}/messages`) &&
       request.method() === "POST"

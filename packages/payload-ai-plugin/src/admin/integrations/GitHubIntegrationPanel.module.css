@@ -1,0 +1,184 @@
+.detailPanel {
+  background: var(--theme-bg);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 20px;
+  box-shadow: 0 20px 55px
+    color-mix(in srgb, var(--theme-elevation-1000) 7%, transparent);
+  overflow: hidden;
+  padding: 1.25rem;
+}
+
+.integrationHeader {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.integrationIdentity {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.9rem;
+}
+
+.integrationLogo {
+  align-items: center;
+  background: linear-gradient(
+    145deg,
+    var(--theme-elevation-50),
+    var(--theme-elevation-100)
+  );
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 14px;
+  display: inline-flex;
+  flex: 0 0 54px;
+  height: 54px;
+  justify-content: center;
+}
+
+.integrationHeader h2,
+.integrationHeader p {
+  margin: 0;
+}
+
+.integrationHeader h2 {
+  font-size: 1.3rem;
+  letter-spacing: -0.025em;
+}
+
+.integrationHeader p:last-child {
+  color: var(--theme-elevation-600);
+  line-height: 1.5;
+  margin-top: 0.4rem;
+}
+
+.sectionEyebrow {
+  color: var(--theme-elevation-500);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.45rem !important;
+  text-transform: uppercase;
+}
+
+.statusBadge {
+  align-items: center;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 650;
+  min-height: 30px;
+  padding: 0.25rem 0.7rem;
+  white-space: nowrap;
+}
+
+.statusBadgeConnected {
+  background: var(--theme-success-100);
+  border-color: var(--theme-success-200);
+  color: var(--theme-success-700);
+}
+
+.statusBadgeIdle {
+  background: var(--theme-elevation-50);
+  color: var(--theme-elevation-600);
+}
+
+.securityNote,
+.vaultWarning,
+.resultNotice {
+  align-items: flex-start;
+  border: 1px solid;
+  border-radius: 12px;
+  display: flex;
+  gap: 0.7rem;
+}
+
+.securityNote,
+.vaultWarning {
+  margin-top: 1.2rem;
+  padding: 0.85rem;
+}
+
+.securityNote {
+  background: var(--theme-success-50);
+  border-color: var(--theme-success-150);
+  color: var(--theme-success-700);
+}
+
+.vaultWarning {
+  background: var(--theme-warning-100);
+  border-color: var(--theme-warning-200);
+  color: var(--theme-warning-700);
+}
+
+.securityNote > div,
+.vaultWarning > div,
+.resultNotice {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.securityNote span,
+.vaultWarning span,
+.resultNotice span {
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.connectionEvidence {
+  background: var(--theme-elevation-50);
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: 12px;
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1rem;
+  overflow: hidden;
+}
+
+.connectionEvidence > div {
+  background: var(--theme-bg);
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem;
+}
+
+.connectionEvidence span {
+  color: var(--theme-elevation-500);
+  font-size: 0.68rem;
+}
+
+.connectionEvidence strong {
+  font-size: 0.76rem;
+  overflow-wrap: anywhere;
+}
+
+.resultNotice {
+  margin-top: 1rem;
+  padding: 0.8rem;
+}
+
+.resultNoticePassed {
+  background: var(--theme-success-50);
+  border-color: var(--theme-success-150);
+  color: var(--theme-success-700);
+}
+
+.resultNoticeFailed {
+  background: var(--theme-error-100);
+  border-color: var(--theme-error-200);
+  color: var(--theme-error-700);
+}
+
+@media (max-width: 900px) {
+  .integrationHeader {
+    display: grid;
+  }
+}
+
+@media (max-width: 640px) {
+  .connectionEvidence {
+    grid-template-columns: 1fr;
+  }
+}

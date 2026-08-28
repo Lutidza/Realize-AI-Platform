@@ -66,6 +66,8 @@ ignored/cleaned.
 
 - `documentation/project-context.md`;
 - `documentation/architecture/project-structure.md`;
+- `documentation/delivery/INDEX.md`;
+- `documentation/reports/AI-LAYER-FOREIGN-ARTIFACT-AUDIT.md`;
 - `README.md`.
 
 `.ai/STRUCTURE.md` описывает только структуру рабочего AI-layer.

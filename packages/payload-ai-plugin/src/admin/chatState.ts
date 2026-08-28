@@ -7,6 +7,7 @@
 import type {
   ChangeRequestDTO,
   ConversationDetailDTO,
+  DataOperationDTO,
 } from "@realize/ai-contracts";
 
 /** Converts unknown failures to a stable user-facing fallback. */
@@ -22,5 +23,17 @@ export const upsertChange = (
   changeRequests: [
     ...current.changeRequests.filter((item) => item.id !== change.id),
     change,
+  ],
+});
+
+/** Replaces one DataOperation projection without mutating conversation state. */
+export const upsertDataOperation = (
+  current: ConversationDetailDTO,
+  operation: DataOperationDTO,
+): ConversationDetailDTO => ({
+  ...current,
+  dataOperations: [
+    ...current.dataOperations.filter((item) => item.id !== operation.id),
+    operation,
   ],
 });

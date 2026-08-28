@@ -1,20 +1,32 @@
 /**
  * @file tests/int/change-engine.int.spec.ts
- * @version 2026-08-21
- * @description Verifies plan, scope policy and cryptographic execution bindings.
+ * @version 2026-08-22
+ * @description Проверяет plan policy и cryptographic execution/release bindings.
  */
 
 import {
   ChangePlanError,
   assessExecutionScope,
+  assessReleaseCandidate,
+  buildDataOperationProtocolInstructions,
   createExecutionCapability,
+  createCategoryAssignmentOperationHash,
+  createCategoryAssignmentRollbackHash,
+  createDataOperationApprovalBinding,
   createImplementationAcceptanceBinding,
   createPlanApprovalBinding,
   createPreviewAcceptanceBinding,
+  createMigrationSetHash,
+  createReleaseApprovalBinding,
+  createReleaseCandidateKey,
+  createReleaseEvidenceHash,
   deriveChangePlan,
+  hasDataOperationIntent,
   issueExecutionCapability,
   PREVIEW_REQUIRED_CHECKS,
   READ_ONLY_CAPABILITIES,
+  parseDataOperationIntentFromAssistant,
+  stripDataOperationProtocol,
   verifyExecutionCapability,
 } from "@realize/change-engine";
 import { describe, expect, it } from "vitest";
@@ -72,6 +84,99 @@ describe("approval-only Change Engine", () => {
     expect(first).not.toBe(changed);
     expect(READ_ONLY_CAPABILITIES.approvePlan).toBe(true);
     expect(READ_ONLY_CAPABILITIES.changeCode).toBe(false);
+  });
+});
+
+describe("typed Payload Data Lane policy", () => {
+  it("hands textual confirmation back to the hash-bound Payload controls", () => {
+    const instructions = buildDataOperationProtocolInstructions();
+
+    expect(instructions).toContain(
+      "The read-only restriction applies to you, not to the governed Payload Data Lane executor",
+    );
+    expect(instructions).toContain(
+      'A chat message such as "подтверждаю", "приступай", or "применяй" is not a hash-bound approval',
+    );
+    expect(instructions).toContain(
+      'click "Шаг 1 · Подготовить изменение данных"',
+    );
+    expect(instructions).toContain('click "Шаг 2 · Подтвердить vN"');
+    expect(instructions).toContain('click "Шаг 3 · Применить"');
+  });
+
+  it("parses one narrow assistant proposal and hides its machine block", () => {
+    const response = [
+      "Добавлю существующую категорию к одному товару после dry-run.",
+      "```realize-data-operation",
+      JSON.stringify({
+        category: { slug: "accessories" },
+        kind: "catalog.assignCategory.v1",
+        product: { slug: "classic-watch" },
+        version: "1.0",
+      }),
+      "```",
+    ].join("\n");
+
+    expect(parseDataOperationIntentFromAssistant(response)).toEqual({
+      category: { slug: "accessories" },
+      kind: "catalog.assignCategory.v1",
+      product: { slug: "classic-watch" },
+      version: "1.0",
+    });
+    expect(hasDataOperationIntent(response)).toBe(true);
+    expect(stripDataOperationProtocol(response)).toBe(
+      "Добавлю существующую категорию к одному товару после dry-run.",
+    );
+    expect(() =>
+      parseDataOperationIntentFromAssistant(`${response}\n${response}`),
+    ).toThrow("несколько Data Operation blocks");
+  });
+
+  it("binds operation, rollback and approval to every stale-sensitive field", () => {
+    const dryRun = {
+      afterCategoryIDs: ["10", "11"],
+      beforeCategoryIDs: ["10"],
+      categoryID: "11",
+      expectedTargetUpdatedAt: "2026-08-28T00:00:00.000Z",
+      productID: "7",
+    };
+    const operationHash = createCategoryAssignmentOperationHash(dryRun);
+    const changedVersion = createCategoryAssignmentOperationHash({
+      ...dryRun,
+      expectedTargetUpdatedAt: "2026-08-28T00:00:01.000Z",
+    });
+    expect(operationHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(operationHash).not.toBe(changedVersion);
+
+    const rollbackHash = createCategoryAssignmentRollbackHash({
+      afterCategoryIDs: dryRun.afterCategoryIDs,
+      beforeCategoryIDs: dryRun.beforeCategoryIDs,
+      operationHash,
+      productID: dryRun.productID,
+    });
+    expect(rollbackHash).toMatch(/^[a-f0-9]{64}$/);
+    const approval = createDataOperationApprovalBinding({
+      actorID: "1",
+      actorRoles: ["admin"],
+      approvalType: "WRITE_CONFIRMATION",
+      dataOperationID: "4",
+      decision: "approved",
+      expiresAt: "2026-08-29T00:00:00.000Z",
+      targetHash: operationHash,
+      version: 1,
+    });
+    expect(approval).not.toBe(
+      createDataOperationApprovalBinding({
+        actorID: "1",
+        actorRoles: ["admin"],
+        approvalType: "WRITE_CONFIRMATION",
+        dataOperationID: "4",
+        decision: "approved",
+        expiresAt: "2026-08-29T00:00:00.000Z",
+        targetHash: changedVersion,
+        version: 1,
+      }),
+    );
   });
 });
 
@@ -203,5 +308,144 @@ describe("isolated execution policy", () => {
     });
     expect(previewAccepted).not.toBe(otherArtifact);
     expect(PREVIEW_REQUIRED_CHECKS).toContain("npm run build");
+  });
+
+  it("rejects unsigned OCI evidence and binds release approval to exact digest", () => {
+    const migrations = [
+      {
+        checksum: "7".repeat(64),
+        direction: "up" as const,
+        id: "20260822_release_candidate",
+      },
+    ];
+    const migrationSetHash = createMigrationSetHash(migrations);
+    const evidence = {
+      configVersion: "payload-config-v1",
+      evidenceHash: "8".repeat(64),
+      gitCommit: "9".repeat(40),
+      imageDigest: `sha256:${"a".repeat(64)}`,
+      imageRef: `ghcr.io/realize/app@sha256:${"a".repeat(64)}`,
+      manifestHash: "b".repeat(64),
+      migrationSetHash,
+      migrations,
+      pluginVersions: { payload: "3.88.0" },
+      previewStatus: "healthy",
+      previewURL: "https://preview.example.test",
+      provenanceRef: "oci://provenance/ref",
+      sbomDigest: `sha256:${"c".repeat(64)}`,
+      signatureRef: "oci://signature/ref",
+      signatureVerified: true,
+    };
+
+    expect(assessReleaseCandidate(evidence)).toEqual({ allowed: true });
+    expect(
+      assessReleaseCandidate({ ...evidence, signatureVerified: false }),
+    ).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        reason: expect.stringContaining("signature"),
+      }),
+    );
+    expect(
+      assessReleaseCandidate({
+        ...evidence,
+        imageRef: `not-an-oci-name@${evidence.imageDigest}`,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        reason: expect.stringContaining("reference"),
+      }),
+    );
+    expect(assessReleaseCandidate({ ...evidence, pluginVersions: {} })).toEqual(
+      expect.objectContaining({
+        allowed: false,
+        reason: expect.stringContaining("plugin versions"),
+      }),
+    );
+
+    const accepted = createReleaseApprovalBinding({
+      actorID: "7",
+      actorRoles: ["admin"],
+      changeRequestID: "42",
+      decision: "approved",
+      environment: "production",
+      evidenceHash: evidence.evidenceHash,
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      gitCommit: evidence.gitCommit,
+      imageDigest: evidence.imageDigest,
+      manifestHash: evidence.manifestHash,
+      migrationSetHash,
+      sbomDigest: evidence.sbomDigest,
+      signatureRef: evidence.signatureRef,
+      version: 18,
+    });
+    const rebuilt = createReleaseApprovalBinding({
+      actorID: "7",
+      actorRoles: ["admin"],
+      changeRequestID: "42",
+      decision: "approved",
+      environment: "production",
+      evidenceHash: evidence.evidenceHash,
+      expiresAt: "2099-01-01T00:00:00.000Z",
+      gitCommit: evidence.gitCommit,
+      imageDigest: `sha256:${"d".repeat(64)}`,
+      manifestHash: evidence.manifestHash,
+      migrationSetHash,
+      sbomDigest: evidence.sbomDigest,
+      signatureRef: evidence.signatureRef,
+      version: 18,
+    });
+    expect(accepted).not.toBe(rebuilt);
+  });
+
+  it("derives one idempotent candidate key from exact preview evidence", () => {
+    const input = {
+      changeRequestID: "12",
+      sourceAcceptanceHash: "a".repeat(64),
+      sourcePreviewArtifactHash: "b".repeat(64),
+      sourcePreviewEvidenceHash: "c".repeat(64),
+    };
+
+    expect(createReleaseCandidateKey(input)).toBe(
+      createReleaseCandidateKey(input),
+    );
+    expect(
+      createReleaseCandidateKey({
+        ...input,
+        sourcePreviewEvidenceHash: "d".repeat(64),
+      }),
+    ).not.toBe(createReleaseCandidateKey(input));
+  });
+
+  it("canonicalizes plugin order in the release evidence hash", () => {
+    const evidence = {
+      candidateKey: "candidate-key",
+      configVersion: "payload-config-v1",
+      gitCommit: "a".repeat(40),
+      healthSummary: "Readiness passed.",
+      imageDigest: `sha256:${"b".repeat(64)}`,
+      imageRef: `ghcr.io/realize/app@sha256:${"b".repeat(64)}`,
+      manifestHash: "c".repeat(64),
+      migrationSetHash: createMigrationSetHash([]),
+      migrations: [],
+      pluginVersions: { payload: "3.88.0", seo: "3.88.0" },
+      previewStatus: "healthy" as const,
+      previewURL: "https://preview.example.test",
+      provenanceRef: "oci://provenance/ref",
+      sbomDigest: `sha256:${"d".repeat(64)}`,
+      signatureRef: "oci://signature/ref",
+      signatureVerified: true as const,
+      sourceAcceptanceHash: "e".repeat(64),
+      sourcePreviewArtifactHash: "f".repeat(64),
+      sourcePreviewEvidenceHash: "1".repeat(64),
+    };
+
+    expect(createReleaseEvidenceHash(evidence)).toBe(
+      createReleaseEvidenceHash({
+        ...evidence,
+        pluginVersions: { seo: "3.88.0", payload: "3.88.0" },
+      }),
+    );
   });
 });

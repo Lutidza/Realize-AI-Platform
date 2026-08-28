@@ -1,16 +1,20 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/approvals.ts
- * @version 2026-08-21
- * @description Defines append-only plan, implementation and preview decisions.
+ * @version 2026-08-22
+ * @description Задаёт append-only plan, implementation, preview и release decisions.
  */
 
 import type { CollectionConfig, CollectionSlug } from "payload";
 
-import { APPROVALS_SLUG, CHANGE_REQUESTS_SLUG } from "../constants";
+import {
+  APPROVALS_SLUG,
+  CHANGE_REQUESTS_SLUG,
+  RELEASE_CANDIDATES_SLUG,
+} from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createCollectionAccess } from "./access";
 
-/** Builds the hidden append-only approval audit collection. */
+/** Создаёт скрытую append-only collection аудита approvals. */
 export const createApprovalsCollection = (
   options: SanitizedRealizeAIPluginOptions,
 ): CollectionConfig => {
@@ -40,6 +44,7 @@ export const createApprovalsCollection = (
           "PLAN_APPROVAL",
           "IMPLEMENTATION_ACCEPTANCE",
           "PREVIEW_ACCEPTANCE",
+          "RELEASE_APPROVAL",
         ],
         required: true,
         type: "select",
@@ -61,6 +66,15 @@ export const createApprovalsCollection = (
       { index: true, name: "boundHash", required: true, type: "text" },
       { index: true, name: "diffHash", type: "text" },
       { index: true, name: "artifactHash", type: "text" },
+      {
+        index: true,
+        name: "releaseCandidate",
+        relationTo: RELEASE_CANDIDATES_SLUG as CollectionSlug,
+        type: "relationship",
+      },
+      { index: true, name: "imageDigest", type: "text" },
+      { index: true, name: "manifestHash", type: "text" },
+      { index: true, name: "migrationSetHash", type: "text" },
       { name: "targetEnvironment", type: "text" },
       { name: "comment", type: "textarea" },
       { name: "expiresAt", required: true, type: "date" },

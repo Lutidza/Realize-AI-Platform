@@ -1,0 +1,160 @@
+.section {
+  overflow: hidden;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--yogurt) 0,
+    var(--yogurt) 40px,
+    var(--cream) 40px,
+    var(--cream) 80px
+  );
+  color: var(--ink);
+}
+
+.trim {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
+  height: 40px;
+}
+
+.trimBottom {
+  margin-top: -40px;
+  transform: scaleY(-1);
+}
+
+.inner {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-width: 1440px;
+  min-height: 464px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+  padding: 0 72px;
+}
+
+.copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: 532px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.copy h2 {
+  margin: 0;
+  color: var(--plum-deep);
+  font-size: 56px;
+  font-weight: 950;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.copy p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.6;
+}
+
+.section .copy a {
+  display: inline-flex;
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 0 32px;
+  border-radius: 999px;
+  background: var(--berry-dark);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.6;
+  transition:
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.section .copy a:hover {
+  background: var(--berry);
+  box-shadow: 0 10px 24px rgba(50, 21, 70, 0.18);
+  transform: translateY(-1px);
+}
+
+.section .copy a:focus-visible {
+  outline: 2px solid var(--plum-deep);
+  outline-offset: 3px;
+}
+
+.visual {
+  position: absolute;
+  top: 0;
+  right: 72px;
+  bottom: 0;
+  width: 48%;
+  margin: 0;
+  overflow: visible;
+}
+
+.visual img {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: block;
+  width: auto;
+  max-width: none;
+  height: 100%;
+}
+
+@media (max-width: 700px) {
+  .inner {
+    min-height: 617px;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 32px;
+    padding: 48px 16px 0;
+  }
+
+  .copy {
+    max-width: 358px;
+    flex: 0 0 auto;
+    align-items: center;
+    text-align: center;
+  }
+
+  .copy h2 {
+    font-size: 42px;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .copy p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .visual {
+    position: relative;
+    inset: auto;
+    width: calc(100% + 32px);
+    height: 312px;
+    flex: 0 0 312px;
+    overflow: hidden;
+  }
+
+  .visual img {
+    right: auto;
+    bottom: -16px;
+    left: 50%;
+    height: 100%;
+    transform: translateX(-50%);
+  }
+}

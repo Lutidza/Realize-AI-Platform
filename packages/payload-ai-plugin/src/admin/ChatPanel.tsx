@@ -1,16 +1,27 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/ChatPanel.tsx
- * @version 2026-08-21
- * @description Renders the Vercel-inspired conversation viewport, messages and prompt input.
+ * @version 2026-08-28
+ * @description Отображает focused agent conversation, prompt input и approval-gated actions.
  */
 
 "use client";
 
-import { ArrowUp, Bot, FileCheck2, RotateCw, Square } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowUpRight,
+  Bot,
+  Database,
+  FileCheck2,
+  RotateCw,
+  ShieldCheck,
+  Sparkles,
+  Square,
+} from "lucide-react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { useEffect, useMemo, useRef } from "react";
 
 import { ChangeRequestCard } from "./ChangeRequestCard";
+import { DataOperationCard } from "./DataOperationCard";
 import composerStyles from "./ChatComposer.module.css";
 import type { RealizeAIController } from "./RealizeAIContext";
 import { formatRunElapsed, runPhaseLabel } from "./runPresentation";
@@ -21,9 +32,9 @@ type ChatPanelProps = {
 };
 
 const suggestions = [
-  "Объясни архитектуру проекта и главные owner-слои",
-  "Проверь, где реализован каталог и какие у него контракты",
-  "Подготовь план изменения с точными путями, рисками и проверками",
+  "Покажи, как устроен проект",
+  "Найди owner каталога и его контракты",
+  "Подготовь безопасный план изменения",
 ];
 
 /** Renders messages and delegates every mutation to the provider controller. */
@@ -39,6 +50,16 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
         ]),
       ),
     [controller.detail?.changeRequests],
+  );
+  const dataOperationsByMessage = useMemo(
+    () =>
+      new Map(
+        (controller.detail?.dataOperations || []).map((operation) => [
+          operation.sourceMessageID,
+          operation,
+        ]),
+      ),
+    [controller.detail?.dataOperations],
   );
   const isRunPending = Boolean(controller.currentRun);
   const isBusy =
@@ -77,6 +98,7 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
         {messages.length ? (
           messages.map((message) => {
             const change = changesByMessage.get(message.id);
+            const dataOperation = dataOperationsByMessage.get(message.id);
             const isUser = message.role === "user";
             return (
               <div
@@ -95,7 +117,7 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
                     }
                   >
                     <div className={styles.messageMeta}>
-                      <strong>{isUser ? "Вы" : "Realize AI"}</strong>
+                      <strong>{isUser ? "Вы" : "Realize Agent"}</strong>
                       <time dateTime={message.createdAt}>
                         {new Date(message.createdAt).toLocaleTimeString(
                           "ru-RU",
@@ -110,7 +132,26 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
                       {message.content}
                     </div>
                   </article>
-                  {!isUser && !change ? (
+                  {!isUser &&
+                  message.dataOperationIntentAvailable &&
+                  !dataOperation ? (
+                    <button
+                      className={styles.planAction}
+                      disabled={Boolean(controller.isPlanActionPending)}
+                      onClick={() =>
+                        void controller.createDataOperation(message.id)
+                      }
+                      type="button"
+                    >
+                      <Database size={15} />
+                      {controller.isPlanActionPending === message.id
+                        ? "Строим dry-run…"
+                        : "Шаг 1 · Подготовить изменение данных"}
+                    </button>
+                  ) : null}
+                  {!isUser &&
+                  !message.dataOperationIntentAvailable &&
+                  !change ? (
                     <button
                       className={styles.planAction}
                       disabled={Boolean(controller.isPlanActionPending)}
@@ -137,11 +178,20 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
                       onAcceptPreview={() =>
                         void controller.decidePreview(change, "approve")
                       }
+                      onApproveRelease={() =>
+                        void controller.decideRelease(change, "approve")
+                      }
                       onDeployPreview={() =>
                         void controller.deployPreview(change)
                       }
                       onExecute={() =>
                         void controller.executeChangeRequest(change)
+                      }
+                      onPrepareRelease={() =>
+                        void controller.prepareRelease(change)
+                      }
+                      onPublishPullRequest={() =>
+                        void controller.publishPullRequest(change)
                       }
                       onReject={(comment) =>
                         void controller.decideChangeRequest(
@@ -160,7 +210,40 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
                       onRejectPreview={(comment) =>
                         void controller.decidePreview(change, "reject", comment)
                       }
+                      onRejectRelease={(comment) =>
+                        void controller.decideRelease(change, "reject", comment)
+                      }
                       pending={controller.isPlanActionPending === change.id}
+                    />
+                  ) : null}
+                  {dataOperation ? (
+                    <DataOperationCard
+                      onApply={() =>
+                        void controller.applyDataOperation(dataOperation)
+                      }
+                      onApprove={() =>
+                        void controller.decideDataOperation(
+                          dataOperation,
+                          "approve",
+                        )
+                      }
+                      onApproveRollback={() =>
+                        void controller.approveDataRollback(dataOperation)
+                      }
+                      onReject={(comment) =>
+                        void controller.decideDataOperation(
+                          dataOperation,
+                          "reject",
+                          comment,
+                        )
+                      }
+                      onRollback={() =>
+                        void controller.rollbackDataOperation(dataOperation)
+                      }
+                      operation={dataOperation}
+                      pending={
+                        controller.isPlanActionPending === dataOperation.id
+                      }
                     />
                   ) : null}
                 </div>
@@ -170,16 +253,17 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
         ) : (
           <div className={styles.empty}>
             <span className={styles.emptyIcon} aria-hidden="true">
-              <Bot size={24} strokeWidth={1.6} />
+              <Sparkles size={25} strokeWidth={1.7} />
             </span>
+            <span className={styles.emptyEyebrow}>Агент проекта</span>
             <h2>
               {controller.selectedConversationID && !controller.detail
                 ? "Загружаем диалог…"
-                : "Чем помочь с проектом?"}
+                : "Что будем менять?"}
             </h2>
             <p>
-              Я читаю только разрешённый контекст репозитория и могу оформить
-              конкретный план на утверждение.
+              Опишите задачу обычными словами. Я изучу код и сначала покажу
+              точный план — ничего не изменится без вашего подтверждения.
             </p>
             <div className={styles.suggestions}>
               {suggestions.map((suggestion) => (
@@ -189,7 +273,8 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
                   onClick={() => controller.setDraft(suggestion)}
                   type="button"
                 >
-                  {suggestion}
+                  <span>{suggestion}</span>
+                  <ArrowUpRight size={15} aria-hidden="true" />
                 </button>
               ))}
             </div>
@@ -247,7 +332,7 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
             maxLength={8_000}
             onChange={(event) => controller.setDraft(event.target.value)}
             onKeyDown={submitOnEnter}
-            placeholder="Спросите о коде или попросите подготовить план…"
+            placeholder="Опишите, что нужно проверить или изменить…"
             rows={2}
             value={controller.draft}
           />
@@ -275,8 +360,8 @@ export const ChatPanel = ({ controller }: ChatPanelProps) => {
           </div>
         </form>
         <p className={composerStyles.guardrail}>
-          Кодовый план и local preview запускаются только через отдельные
-          approval gates. Production deploy из чата недоступен.
+          <ShieldCheck size={13} aria-hidden="true" />
+          Агент выполняет изменения только после вашего подтверждения.
         </p>
       </div>
     </section>

@@ -1,0 +1,122 @@
+.section {
+  padding: 5rem 1.25rem;
+  background: #fff;
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 2.5rem;
+  align-items: center;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.inner figure {
+  overflow: hidden;
+  aspect-ratio: 1;
+  margin: 0;
+  border: 2px solid var(--plum-deep);
+  border-radius: 24px;
+  background: var(--mint);
+}
+
+.inner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.copy {
+  padding: 2rem 0;
+}
+
+.copy h2 {
+  max-width: 15ch;
+  margin: 0;
+  color: var(--plum-deep);
+  font-size: clamp(2.7rem, 4vw, 3.5rem);
+  font-weight: 950;
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.copy p {
+  max-width: 38rem;
+  margin: 1.8rem 0 1.4rem;
+  color: var(--ink);
+  font-size: 1.04rem;
+  font-weight: 660;
+  line-height: 1.55;
+}
+
+.copy strong,
+.copy > span {
+  display: block;
+}
+
+.copy strong {
+  color: var(--plum-deep);
+  font-size: 1.1rem;
+  font-weight: 950;
+}
+
+.copy > span {
+  margin-top: 0.25rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.copy a {
+  display: inline-flex;
+  min-width: 160px;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.5rem;
+  border: 2px solid var(--plum-deep);
+  border-radius: 999px;
+  background: var(--berry);
+  color: #fff;
+  font-weight: 950;
+  box-shadow: 4px 4px 0 var(--plum-deep);
+}
+
+.copy small {
+  display: block;
+  max-width: 40rem;
+  margin-top: 1.35rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .section {
+    padding: 3.5rem 1.25rem;
+  }
+
+  .inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .copy {
+    padding: 0;
+  }
+
+  .copy h2 {
+    max-width: none;
+    font-size: 2.35rem;
+  }
+
+  .copy p {
+    font-size: 1rem;
+  }
+
+  .copy a {
+    width: 100%;
+  }
+}

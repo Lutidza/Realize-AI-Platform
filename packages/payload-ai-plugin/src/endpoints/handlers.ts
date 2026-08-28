@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/handlers.ts
- * @version 2026-08-21
- * @description Implements Phase 1 conversation, run, cancellation and runtime-status handlers.
+ * @version 2026-08-22
+ * @description Реализует conversation, run, cancellation и runtime-status handlers.
  */
 
 import { randomUUID } from "node:crypto";
@@ -21,6 +21,8 @@ import { getControlPlaneClient } from "../runtime/getControlPlaneClient";
 import { consumeRateLimit, requireChatUser } from "./access";
 import { ChangeRepository } from "./changeRepository";
 import { projectChangeRequest } from "./changeProjection";
+import { projectDataOperation } from "./dataOperationProjection";
+import { DataOperationRepository } from "./dataOperationRepository";
 import { DeploymentRepository } from "./deploymentRepository";
 import { ExecutionRepository } from "./executionRepository";
 import { persistAndApplyEvent } from "./eventPersistence";
@@ -29,6 +31,8 @@ import { toConversationDTO, toMessageDTO, toRunDTO } from "./mappers";
 import { redactText } from "./redaction";
 import { AIRepository } from "./repository";
 import { idempotencyKeyFor, readBody, withHandler } from "./request";
+import { ReleaseRepository } from "./releaseRepository";
+import { SourcePromotionRepository } from "./sourcePromotionRepository";
 
 export const createConversationHandlers = (
   options: SanitizedRealizeAIPluginOptions,
@@ -86,27 +90,51 @@ export const createConversationHandlers = (
   detail: withHandler(async (req, correlationID) => {
     const user = await requireChatUser(req, options);
     const id = parseIdentifier(req.routeParams?.id, "conversation id");
-    const [detail, changes] = await Promise.all([
+    const [detail, changes, dataOperations] = await Promise.all([
       new AIRepository(req.payload, req).getConversationDetail(id, user.id),
       new ChangeRepository(req.payload, req).listOwnedChanges(id, user.id),
+      new DataOperationRepository(req.payload, req).listOwnedOperations(
+        id,
+        user.id,
+      ),
     ]);
     const executionRepository = new ExecutionRepository(req.payload, req);
     const deploymentRepository = new DeploymentRepository(req.payload, req);
+    const releaseRepository = new ReleaseRepository(req.payload, req);
+    const sourcePromotionRepository = new SourcePromotionRepository(
+      req.payload,
+      req,
+    );
     const dto: ConversationDetailDTO = {
       changeRequests: await Promise.all(
-        changes.map(({ acceptance, approval, change, previewAcceptance }) =>
-          projectChangeRequest({
+        changes.map(
+          ({
             acceptance,
             approval,
             change,
-            deploymentRepository,
-            executionRepository,
-            options,
             previewAcceptance,
-          }),
+            releaseApproval,
+          }) =>
+            projectChangeRequest({
+              acceptance,
+              approval,
+              change,
+              deploymentRepository,
+              executionRepository,
+              options,
+              previewAcceptance,
+              releaseApproval,
+              releaseRepository,
+              sourcePromotionRepository,
+            }),
         ),
       ),
       conversation: toConversationDTO(detail.conversation),
+      dataOperations: await Promise.all(
+        dataOperations.map(({ operation }) =>
+          projectDataOperation({ operation, payload: req.payload, req }),
+        ),
+      ),
       messages: detail.messages.map(toMessageDTO),
       runs: detail.runs.map(toRunDTO),
     };

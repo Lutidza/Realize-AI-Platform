@@ -1,7 +1,7 @@
 /**
  * @file src/plugins/index.ts
- * @version 2026-08-21
- * @description Composes the active Payload plugins, including the gated Realize AI slice.
+ * @version 2026-08-28
+ * @description Компонует Payload plugins и AI source/release/integration gates.
  */
 
 import { formBuilderPlugin } from "@payloadcms/plugin-form-builder";
@@ -34,6 +34,12 @@ const stripeWebhookSecret = process.env.STRIPE_WEBHOOKS_SIGNING_SECRET;
 
 const realizeAI = realizeAIPlugin({
   access: {
+    canApproveRelease: ({ req }) =>
+      Boolean(req.user && checkRole(["admin"], req.user)),
+    canManageData: ({ req }) =>
+      Boolean(req.user && checkRole(["admin"], req.user)),
+    canManageIntegrations: ({ req }) =>
+      Boolean(req.user && checkRole(["admin"], req.user)),
     canUseChat: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
     canViewRuns: ({ req }) =>
@@ -41,6 +47,7 @@ const realizeAI = realizeAIPlugin({
   },
   admin: {
     group: "AI & Delivery",
+    integrationsRoute: "/integrations",
     route: "/ai",
   },
   enabled: process.env.REALIZE_AI_ENABLED === "true",
@@ -49,9 +56,19 @@ const realizeAI = realizeAIPlugin({
     repositoryRoot: process.env.REALIZE_AI_WORKSPACE_ROOT || process.cwd(),
     signingSecretEnv: "REALIZE_AI_EXECUTION_SIGNING_SECRET",
   },
+  integrations: {
+    encryptionKeyEnv: "REALIZE_INTEGRATIONS_ENCRYPTION_KEY",
+  },
   preview: {
     enabled: process.env.REALIZE_AI_PREVIEW_ENABLED === "true",
     ttlSeconds: Number(process.env.REALIZE_AI_PREVIEW_TTL_SECONDS || 21_600),
+  },
+  release: {
+    enabled: process.env.REALIZE_AI_RELEASE_ENABLED === "true",
+    ttlSeconds: Number(process.env.REALIZE_AI_RELEASE_TTL_SECONDS || 86_400),
+  },
+  sourcePromotion: {
+    enabled: process.env.REALIZE_AI_SOURCE_PROMOTION_ENABLED === "true",
   },
   runtime: {
     controlPlaneTokenEnv: "REALIZE_AI_CONTROL_PLANE_TOKEN",

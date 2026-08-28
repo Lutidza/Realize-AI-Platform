@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/admin/RealizeAINavLink.tsx",
+    "./integrations-rsc": "./src/admin/integrations/IntegrationsView.tsx",
     "./provider": "./src/admin/RealizeAIProvider.tsx",
+    "./server/integration-vault": "./src/integrations/credentialVault.ts",
     "./rsc": "./src/admin/RealizeAIView.tsx"
   },
   "dependencies": {

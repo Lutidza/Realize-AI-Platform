@@ -1,15 +1,16 @@
 /**
  * @file services/ai-execution-worker/src/config.ts
- * @version 2026-08-21
- * @description Validates local execution, review and preview runtime configuration.
+ * @version 2026-08-28
+ * @description Проверяет execution, source/release и integration runtime configuration.
  */
 
 import { hostname, tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 
-/** Fully validated process configuration for one local worker instance. */
+/** Полностью проверенная process configuration одного worker instance. */
 export type ExecutionWorkerConfig = {
   databaseURL: string;
+  integrationEncryptionKey?: string;
   model?: string;
   pollIntervalMs: number;
   previewEnabled: boolean;
@@ -19,10 +20,18 @@ export type ExecutionWorkerConfig = {
   previewRoot: string;
   previewStartupTimeoutMs: number;
   promotionWorkspaceRoot: string;
+  releaseEnabled: boolean;
+  releaseOrchestratorArgs: string[];
+  releaseOrchestratorCommand?: string;
+  releaseOrchestratorEnvironment: NodeJS.ProcessEnv;
+  releaseTimeoutMs: number;
   repositoryRoot: string;
   reviewModel?: string;
   reviewTimeoutMs: number;
   signingSecret: string;
+  sourcePromotionEnabled: boolean;
+  sourcePromotionGitCommand?: string;
+  sourcePromotionTimeoutMs: number;
   turnTimeoutMs: number;
   workerID: string;
   workspaceRoot: string;
@@ -41,7 +50,43 @@ const integer = (
   return parsed;
 };
 
-/** Reads environment variables and fails before connecting to persistence. */
+const stringArray = (value: string | undefined, name: string): string[] => {
+  if (!value) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    throw new Error(`${name} must be a JSON string array.`);
+  }
+  if (
+    !Array.isArray(parsed) ||
+    parsed.length > 32 ||
+    parsed.some((item) => typeof item !== "string" || item.length > 1_000)
+  ) {
+    throw new Error(
+      `${name} must be a JSON string array with at most 32 items.`,
+    );
+  }
+  return parsed;
+};
+
+const orchestratorEnvironment = (names: string[]): NodeJS.ProcessEnv => {
+  const environment: NodeJS.ProcessEnv = {
+    NODE_ENV: process.env.NODE_ENV || "production",
+  };
+  for (const name of names) {
+    if (!/^[A-Z_][A-Z0-9_]*$/.test(name)) {
+      throw new Error(
+        "REALIZE_AI_RELEASE_ORCHESTRATOR_ENV_JSON contains an invalid environment variable name.",
+      );
+    }
+    const value = process.env[name];
+    if (value !== undefined) environment[name] = value;
+  }
+  return environment;
+};
+
+/** Читает environment и падает до подключения к persistence. */
 export const readExecutionWorkerConfig = (): ExecutionWorkerConfig => {
   if (process.env.REALIZE_AI_EXECUTION_ENABLED !== "true") {
     throw new Error("REALIZE_AI_EXECUTION_ENABLED must be true.");
@@ -73,9 +118,38 @@ export const readExecutionWorkerConfig = (): ExecutionWorkerConfig => {
     previewPortMin,
     "REALIZE_AI_PREVIEW_PORT_MAX",
   );
+  const releaseEnabled = process.env.REALIZE_AI_RELEASE_ENABLED === "true";
+  const sourcePromotionEnabled =
+    process.env.REALIZE_AI_SOURCE_PROMOTION_ENABLED === "true";
+  const sourcePromotionGitCommand =
+    process.env.REALIZE_AI_GITHUB_GIT_COMMAND || undefined;
+  if (
+    sourcePromotionEnabled &&
+    (!sourcePromotionGitCommand || !isAbsolute(sourcePromotionGitCommand))
+  ) {
+    throw new Error(
+      "REALIZE_AI_GITHUB_GIT_COMMAND must be an absolute executable path when source promotion is enabled.",
+    );
+  }
+  const releaseOrchestratorCommand =
+    process.env.REALIZE_AI_RELEASE_ORCHESTRATOR_COMMAND || undefined;
+  if (
+    releaseEnabled &&
+    (!releaseOrchestratorCommand || !isAbsolute(releaseOrchestratorCommand))
+  ) {
+    throw new Error(
+      "REALIZE_AI_RELEASE_ORCHESTRATOR_COMMAND must be an absolute executable path when release is enabled.",
+    );
+  }
+  const releaseOrchestratorEnvNames = stringArray(
+    process.env.REALIZE_AI_RELEASE_ORCHESTRATOR_ENV_JSON,
+    "REALIZE_AI_RELEASE_ORCHESTRATOR_ENV_JSON",
+  );
 
   return {
     databaseURL,
+    integrationEncryptionKey:
+      process.env.REALIZE_INTEGRATIONS_ENCRYPTION_KEY || undefined,
     model:
       process.env.REALIZE_AI_EXECUTION_MODEL || process.env.REALIZE_AI_MODEL,
     pollIntervalMs: integer(
@@ -101,10 +175,33 @@ export const readExecutionWorkerConfig = (): ExecutionWorkerConfig => {
       process.env.REALIZE_AI_PROMOTION_WORKSPACE_ROOT ||
         `${tmpdir()}/realize-ai-promotion-workspaces`,
     ),
+    releaseEnabled,
+    releaseOrchestratorArgs: stringArray(
+      process.env.REALIZE_AI_RELEASE_ORCHESTRATOR_ARGS_JSON,
+      "REALIZE_AI_RELEASE_ORCHESTRATOR_ARGS_JSON",
+    ),
+    releaseOrchestratorCommand,
+    releaseOrchestratorEnvironment: orchestratorEnvironment(
+      releaseOrchestratorEnvNames,
+    ),
+    releaseTimeoutMs: integer(
+      process.env.REALIZE_AI_RELEASE_TIMEOUT_MS,
+      30 * 60 * 1_000,
+      60_000,
+      "REALIZE_AI_RELEASE_TIMEOUT_MS",
+    ),
     repositoryRoot: resolve(
       process.env.REALIZE_AI_WORKSPACE_ROOT || process.cwd(),
     ),
     signingSecret,
+    sourcePromotionEnabled,
+    sourcePromotionGitCommand,
+    sourcePromotionTimeoutMs: integer(
+      process.env.REALIZE_AI_SOURCE_PROMOTION_TIMEOUT_MS,
+      120_000,
+      10_000,
+      "REALIZE_AI_SOURCE_PROMOTION_TIMEOUT_MS",
+    ),
     reviewModel:
       process.env.REALIZE_AI_REVIEW_MODEL ||
       process.env.REALIZE_AI_EXECUTION_MODEL ||

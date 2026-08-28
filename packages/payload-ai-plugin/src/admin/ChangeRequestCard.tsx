@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/ChangeRequestCard.tsx
- * @version 2026-08-21
- * @description Renders plan, implementation and local-preview approval gates.
+ * @version 2026-08-28
+ * @description Отображает plan, implementation, preview, source promotion и release gates.
  */
 
 "use client";
@@ -16,26 +16,70 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 import styles from "./ChangeRequestCard.module.css";
 import { ExecutionEvidence } from "./ExecutionEvidence";
 import { PreviewEvidence } from "./PreviewEvidence";
+import { ReleaseEvidence } from "./ReleaseEvidence";
+import { SourcePromotionSection } from "./SourcePromotionSection";
 
 type ChangeRequestCardProps = {
   change: ChangeRequestDTO;
   onApprove: () => void;
   onAcceptImplementation: () => void;
   onAcceptPreview: () => void;
+  onApproveRelease: () => void;
   onDeployPreview: () => void;
   onExecute: () => void;
+  onPrepareRelease: () => void;
+  onPublishPullRequest: () => void;
   onReject: (comment: string) => void;
   onRejectImplementation: (comment: string) => void;
   onRejectPreview: (comment: string) => void;
+  onRejectRelease: (comment: string) => void;
   pending: boolean;
 };
 
+type CompletedStageProps = {
+  approved: boolean;
+  children: ReactNode;
+  description: string;
+  title: string;
+};
+
+/** Keeps terminal evidence auditable without turning the conversation into a log view. */
+const CompletedStage = ({
+  approved,
+  children,
+  description,
+  title,
+}: CompletedStageProps) => (
+  <details
+    className={styles.completedStage}
+    data-decision={approved ? "approved" : "rejected"}
+  >
+    <summary>
+      {approved ? <Check size={16} /> : <X size={16} />}
+      <span>
+        <strong>{title}</strong>
+        <small>{description}</small>
+      </span>
+      <ChevronDown className={styles.completedStageChevron} size={16} />
+    </summary>
+    {children}
+  </details>
+);
+
 const stateLabel = (change: ChangeRequestDTO): string => {
+  if (change.release.approval?.decision === "approved")
+    return "Release утверждён";
+  if (change.release.approval?.decision === "rejected")
+    return "Release отклонён";
+  if (change.state === "awaiting_release_approval")
+    return "Нужно утвердить release";
+  if (change.state === "release_preparing") return "Готовим OCI release";
+  if (change.state === "release_failed") return "Release не подготовлен";
   if (change.preview.acceptance?.decision === "approved")
     return "Preview принят";
   if (change.preview.acceptance?.decision === "rejected")
@@ -61,17 +105,21 @@ const stateLabel = (change: ChangeRequestDTO): string => {
   return "Ожидает решения";
 };
 
-/** Separates plan approval from ordinary conversational confirmation. */
+/** Отделяет plan/release approvals от обычного подтверждения в разговоре. */
 export const ChangeRequestCard = ({
   change,
   onApprove,
   onAcceptImplementation,
   onAcceptPreview,
+  onApproveRelease,
   onDeployPreview,
   onExecute,
+  onPrepareRelease,
+  onPublishPullRequest,
   onReject,
   onRejectImplementation,
   onRejectPreview,
+  onRejectRelease,
   pending,
 }: ChangeRequestCardProps) => {
   const [rejecting, setRejecting] = useState(false);
@@ -115,7 +163,10 @@ export const ChangeRequestCard = ({
         </div>
       </div>
 
-      <details className={styles.details}>
+      <details
+        className={styles.details}
+        key={change.approval?.id || "awaiting-plan-decision"}
+      >
         <summary>
           <span>Проверить scope и план</span>
           <ChevronDown size={16} />
@@ -179,30 +230,137 @@ export const ChangeRequestCard = ({
             <X size={16} />
           )}
           <span>
-            {stateLabel(change)} ролью {change.approval.actorRole}.
+            {change.approval.decision === "approved"
+              ? "План утверждён"
+              : "План отклонён"}{" "}
+            ролью {change.approval.actorRole}.
             {!change.execution.job ? " Выполнение ещё не запускалось." : ""}
           </span>
         </div>
       ) : null}
 
       {change.execution.job ? (
-        <ExecutionEvidence
-          acceptance={change.acceptance}
-          job={change.execution.job}
-          onAccept={onAcceptImplementation}
-          onReject={onRejectImplementation}
-          pending={pending}
-        />
+        change.acceptance ? (
+          <CompletedStage
+            approved={change.acceptance.decision === "approved"}
+            description={
+              change.acceptance.decision === "approved"
+                ? "Diff и проверки сохранены"
+                : "Evidence доступно для аудита"
+            }
+            title={
+              change.acceptance.decision === "approved"
+                ? "Изменение принято"
+                : "Изменение отклонено"
+            }
+          >
+            <ExecutionEvidence
+              acceptance={change.acceptance}
+              job={change.execution.job}
+              onAccept={onAcceptImplementation}
+              onReject={onRejectImplementation}
+              pending={pending}
+            />
+          </CompletedStage>
+        ) : (
+          <ExecutionEvidence
+            acceptance={change.acceptance}
+            job={change.execution.job}
+            onAccept={onAcceptImplementation}
+            onReject={onRejectImplementation}
+            pending={pending}
+          />
+        )
       ) : null}
 
       {change.preview.deployment ? (
-        <PreviewEvidence
-          acceptance={change.preview.acceptance}
-          deployment={change.preview.deployment}
-          onAccept={onAcceptPreview}
-          onReject={onRejectPreview}
-          pending={pending}
-        />
+        change.preview.acceptance ? (
+          <CompletedStage
+            approved={change.preview.acceptance.decision === "approved"}
+            description={
+              change.preview.acceptance.decision === "approved"
+                ? "Artifact и review сохранены"
+                : "Evidence доступно для аудита"
+            }
+            title={
+              change.preview.acceptance.decision === "approved"
+                ? "Preview принят"
+                : "Preview отклонён"
+            }
+          >
+            <PreviewEvidence
+              acceptance={change.preview.acceptance}
+              deployment={change.preview.deployment}
+              onAccept={onAcceptPreview}
+              onReject={onRejectPreview}
+              pending={pending}
+            />
+          </CompletedStage>
+        ) : (
+          <PreviewEvidence
+            acceptance={change.preview.acceptance}
+            deployment={change.preview.deployment}
+            onAccept={onAcceptPreview}
+            onReject={onRejectPreview}
+            pending={pending}
+          />
+        )
+      ) : null}
+
+      {change.release.candidate ? (
+        change.release.approval ? (
+          <CompletedStage
+            approved={change.release.approval.decision === "approved"}
+            description={
+              change.release.approval.decision === "approved"
+                ? "Production deploy не запускался"
+                : "Candidate сохранён для аудита"
+            }
+            title={
+              change.release.approval.decision === "approved"
+                ? "Release утверждён"
+                : "Release отклонён"
+            }
+          >
+            <ReleaseEvidence
+              approval={change.release.approval}
+              candidate={change.release.candidate}
+              onApprove={onApproveRelease}
+              onReject={onRejectRelease}
+              pending={pending}
+            />
+          </CompletedStage>
+        ) : (
+          <ReleaseEvidence
+            approval={change.release.approval}
+            candidate={change.release.candidate}
+            onApprove={onApproveRelease}
+            onReject={onRejectRelease}
+            pending={pending}
+          />
+        )
+      ) : null}
+
+      <SourcePromotionSection
+        onPublish={onPublishPullRequest}
+        pending={pending}
+        sourcePromotion={change.sourcePromotion}
+      />
+
+      {change.release.enabled ? (
+        <div className={styles.executeAction}>
+          <div>
+            <strong>Подписанный OCI release candidate</strong>
+            <span>
+              Server-owned orchestrator соберёт exact commit, проверит SBOM и
+              signature, затем развернёт отдельный OCI preview.
+            </span>
+          </div>
+          <button disabled={pending} onClick={onPrepareRelease} type="button">
+            <Play size={15} fill="currentColor" />
+            {pending ? "Ставим в очередь…" : "Подготовить release"}
+          </button>
+        </div>
       ) : null}
 
       {change.preview.enabled ? (
@@ -288,16 +446,28 @@ export const ChangeRequestCard = ({
         )
       ) : null}
 
-      {change.execution.reason ? (
+      {change.execution.reason && !change.acceptance ? (
         <footer className={styles.executionNotice}>
           <LockKeyhole size={14} />
           {change.execution.reason}
         </footer>
       ) : null}
-      {change.preview.reason ? (
+      {change.preview.reason && !change.preview.acceptance ? (
         <footer className={styles.executionNotice}>
           <LockKeyhole size={14} />
           {change.preview.reason}
+        </footer>
+      ) : null}
+      {change.release.reason && !change.release.approval ? (
+        <footer className={styles.executionNotice}>
+          <LockKeyhole size={14} />
+          {change.release.reason}
+        </footer>
+      ) : null}
+      {change.sourcePromotion.reason && !change.sourcePromotion.promotion ? (
+        <footer className={styles.executionNotice}>
+          <LockKeyhole size={14} />
+          {change.sourcePromotion.reason}
         </footer>
       ) : null}
     </section>

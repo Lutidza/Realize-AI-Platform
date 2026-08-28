@@ -2,8 +2,8 @@
 
 /**
  * @file tests/int/migration-adoption.int.spec.ts
- * @version 2026-08-21
- * @description Verifies semantic schema comparison and fail-closed history adoption planning.
+ * @version 2026-08-28
+ * @description Проверяет semantic schema comparison и fail-closed migration adoption.
  */
 
 import { describe, expect, it } from "vitest";
@@ -25,6 +25,10 @@ const expectedMigrations = [
   "20260818_170919_approval_only_change_requests",
   "20260821_194623_isolated_execution_worker",
   "20260821_205949_local_preview_promotion",
+  "20260822_092506_release_candidate_approval",
+  "20260827_070003_admin_integration_registry",
+  "20260828_022809_github_pull_request_source_promotion",
+  "20260828_044410_data_operation_lane",
 ];
 
 describe("migration adoption evidence", () => {

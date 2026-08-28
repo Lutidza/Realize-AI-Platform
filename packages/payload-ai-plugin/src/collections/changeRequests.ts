@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/changeRequests.ts
- * @version 2026-08-21
- * @description Defines immutable plan snapshots and their governed execution state.
+ * @version 2026-08-22
+ * @description Задаёт immutable plan snapshots и управляемый lifecycle до release approval.
  */
 
 import type { CollectionConfig, CollectionSlug } from "payload";
@@ -28,7 +28,7 @@ const changeTypes = [
   "AGENCY_ENGINEERING_REQUEST",
 ];
 
-/** Builds the hidden Change Request collection owned by the plugin. */
+/** Создаёт скрытую Change Request collection во владении plugin. */
 export const createChangeRequestsCollection = (
   options: SanitizedRealizeAIPluginOptions,
 ): CollectionConfig => {
@@ -78,6 +78,10 @@ export const createChangeRequestsCollection = (
           "preview_ready",
           "preview_accepted",
           "preview_failed",
+          "release_preparing",
+          "awaiting_release_approval",
+          "release_approved",
+          "release_failed",
           "blocked",
         ],
         required: true,

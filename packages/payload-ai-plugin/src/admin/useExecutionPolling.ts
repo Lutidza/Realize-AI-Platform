@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useExecutionPolling.ts
- * @version 2026-08-21
- * @description Refreshes durable execution and preview evidence while a worker job is active.
+ * @version 2026-08-28
+ * @description Обновляет durable execution, preview, source promotion и release evidence.
  */
 
 "use client";
@@ -29,7 +29,23 @@ const activePreviewStatuses = new Set([
   "starting_preview",
 ]);
 
-/** Polls only while the selected conversation owns a non-terminal code job. */
+const activeReleaseStatuses = new Set([
+  "building",
+  "deploying_preview",
+  "preparing",
+  "queued",
+  "scanning",
+  "verifying_preview",
+]);
+
+const activeSourcePromotionStatuses = new Set([
+  "creating_pull_request",
+  "publishing_ref",
+  "queued",
+  "validating",
+]);
+
+/** Polling включён только пока conversation содержит non-terminal worker job. */
 export const useExecutionPolling = (input: {
   detail?: ConversationDetailDTO;
   detailRef: { current: ConversationDetailDTO | undefined };
@@ -41,9 +57,15 @@ export const useExecutionPolling = (input: {
   const hasActiveWorker = detail?.changeRequests.some((change) => {
     const status = change.execution.job?.status;
     const previewStatus = change.preview.deployment?.status;
+    const releaseStatus = change.release.candidate?.status;
+    const sourcePromotionStatus = change.sourcePromotion.promotion?.status;
     return (
       (status ? activeStatuses.has(status) : false) ||
-      (previewStatus ? activePreviewStatuses.has(previewStatus) : false)
+      (previewStatus ? activePreviewStatuses.has(previewStatus) : false) ||
+      (releaseStatus ? activeReleaseStatuses.has(releaseStatus) : false) ||
+      (sourcePromotionStatus
+        ? activeSourcePromotionStatuses.has(sourcePromotionStatus)
+        : false)
     );
   });
 

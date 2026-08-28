@@ -1,0 +1,203 @@
+.productShell {
+  display: grid;
+  grid-template-columns: minmax(0, 760px) 470px;
+  gap: 3.25rem;
+  align-items: start;
+  max-width: 1296px;
+  margin: 0 auto;
+  padding: 0 1rem 5rem;
+}
+
+.galleryColumn {
+  position: sticky;
+  top: 1.35rem;
+  min-width: 0;
+}
+
+.galleryLayout {
+  display: grid;
+  grid-template-columns: 83px minmax(0, 1fr);
+  gap: 1.35rem;
+  align-items: start;
+}
+
+.thumbnailRail {
+  display: grid;
+  gap: 0.62rem;
+}
+
+.thumbnailRail button,
+.nutritionButton {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.thumbnailRail button {
+  display: block;
+  overflow: hidden;
+  width: 83px;
+  height: 83px;
+  padding: 0;
+  border: 1px solid rgba(50, 21, 70, 0.22);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.thumbnailRail .thumbnailActive {
+  border-color: var(--plum-deep);
+  box-shadow: 0 0 0 2px var(--plum-deep);
+}
+
+.thumbnailRail img,
+.heroMedia img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.heroMedia {
+  overflow: hidden;
+  aspect-ratio: 1;
+  margin: 0;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background: var(--mint);
+}
+
+.nutritionButton {
+  display: flex;
+  width: calc(100% - 104px);
+  min-height: 51px;
+  align-items: center;
+  justify-content: center;
+  margin: 1.5rem 0 0 104px;
+  border: 1px solid #000;
+  border-radius: 999px;
+  background: #fff;
+  color: #000;
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.labCard {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  width: calc(100% - 104px);
+  min-height: 70px;
+  margin: 1.5rem 0 0 104px;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(50, 21, 70, 0.16);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.labMark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: #efe0ff;
+  color: var(--berry);
+  font-size: 1.7rem;
+  font-weight: 950;
+}
+
+.labCard span:not(.labMark) {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.labCard em {
+  padding: 0.12rem 0.4rem;
+  border-radius: 4px;
+  background: #e7d2ff;
+  color: var(--plum-deep);
+  font-style: normal;
+  font-weight: 850;
+}
+
+.labCard strong {
+  color: var(--plum-deep);
+  font-size: 0.88rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+@media (hover: hover) {
+  .nutritionButton:hover {
+    border-color: var(--plum-deep);
+    background: var(--yogurt);
+  }
+}
+
+@media (max-width: 980px) {
+  .productShell {
+    display: flex;
+    flex-direction: column;
+    gap: 1.4rem;
+    padding: 0 1.25rem 3.5rem;
+  }
+
+  .galleryColumn {
+    position: static;
+    width: 100%;
+  }
+
+  .galleryLayout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .heroMedia {
+    order: 1;
+    width: 100%;
+  }
+
+  .thumbnailRail {
+    order: 2;
+    display: flex;
+    overflow-x: auto;
+    gap: 0.6rem;
+    padding-bottom: 0.1rem;
+    scrollbar-width: none;
+  }
+
+  .thumbnailRail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .thumbnailRail button {
+    width: 50px;
+    height: 50px;
+    flex: 0 0 50px;
+  }
+
+  .nutritionButton,
+  .labCard {
+    width: 100%;
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .labCard {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .labCard strong {
+    grid-column: 2;
+    white-space: normal;
+  }
+}

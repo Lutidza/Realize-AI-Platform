@@ -1,0 +1,133 @@
+.section {
+  padding: 3.5rem 1.25rem;
+  background: #fff;
+}
+
+.section h2 {
+  margin: 0 0 2.2rem;
+  color: var(--plum-deep);
+  font-size: clamp(3rem, 4vw, 3.5rem);
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+.grid article {
+  min-width: 0;
+}
+
+.media {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 18px;
+}
+
+.berry .media {
+  background: linear-gradient(180deg, #ff628d, #fff1a6);
+}
+
+.pink .media {
+  background: linear-gradient(180deg, #ff90b2, #ffe9a4);
+}
+
+.cream .media {
+  background: linear-gradient(180deg, #fff0a3, #ff7f9f);
+}
+
+.media img {
+  display: block;
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+}
+
+.media span {
+  position: absolute;
+  z-index: 1;
+  top: 0.65rem;
+  left: 0.65rem;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: var(--plum-deep);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.grid h3 {
+  margin: 0.85rem 0 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.grid p {
+  margin: 0.3rem 0 0;
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.grid del {
+  margin-left: 0.25rem;
+  color: var(--muted);
+}
+
+.grid a {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.8rem;
+  border-radius: 999px;
+  background: var(--berry);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 950;
+}
+
+@media (max-width: 650px) {
+  .section {
+    padding: 2rem 1rem;
+  }
+
+  .section h2 {
+    margin-bottom: 2rem;
+    font-size: 2.55rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 0.5rem;
+  }
+
+  .media {
+    border-radius: 15px;
+  }
+
+  .media img {
+    width: 82%;
+    height: 82%;
+  }
+
+  .grid h3 {
+    font-size: 0.95rem;
+  }
+
+  .grid p {
+    font-size: 0.78rem;
+  }
+}

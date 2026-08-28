@@ -2,6 +2,11 @@ name: CI
 
 on:
   workflow_call:
+    inputs:
+      checkout_ref:
+        description: Exact commit SHA to verify when called by a trusted workflow
+        required: false
+        type: string
   pull_request:
   push:
     branches:
@@ -9,7 +14,7 @@ on:
 
 concurrency:
   cancel-in-progress: true
-  group: ci-${{ github.ref }}
+  group: ci-${{ inputs.checkout_ref || github.ref }}
 
 permissions:
   contents: read
@@ -27,6 +32,7 @@ jobs:
       PAYLOAD_PUBLIC_SITE_URL: http://127.0.0.1:3000
       PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
       REALIZE_AI_ENABLED: "false"
+      REALIZE_INTEGRATIONS_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
     services:
       postgres:
         image: postgres:15.18-bookworm@sha256:e8db9bd3e9e1751eb639fb17be53cc6d1b62a322adf75b99e791767a7a16ce69
@@ -44,6 +50,9 @@ jobs:
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.checkout_ref || github.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
