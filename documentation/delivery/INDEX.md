@@ -1,67 +1,42 @@
 # Delivery и Realize AI: рабочий индекс
 
-Этот раздел описывает фактически реализованный delivery baseline, глобальный
-чат в Payload Admin, approval-gated execution и local-preview promotion. Каноническая
-продуктовая спецификация остаётся в
-`documentation/specifications/realize-ai-commerce/v1.0/**`.
+- **Статус:** current implementation
+- **Дата сверки:** 28 августа 2026 года
 
-## Последовательность
+Этот раздел описывает фактически реализованный baseline и не подменяет target
+specification.
 
-1. [Локальный запуск и чат в Payload Admin](01-local-admin-ai.md)
-2. [CI, release и выкладка](02-ci-release-deploy.md)
+## Runbooks
+
+1. [Локальный Admin AI](01-local-admin-ai.md)
+2. [CI, release и deployment](02-ci-release-deploy.md)
 3. [Миграции и rollback](03-migrations-and-rollback.md)
 
-## Фактический статус
+## Подтверждённые возможности
 
-- Phase 0 delivery baseline реализован в коде: exact runtime, migrations,
-  health/readiness, Dockerfile, Compose и GitHub Actions.
-- Read-only часть Phase 1 реализована: Payload plugin, глобальный Admin drawer,
-  `/admin/ai`, typed API, SSE с возобновлением, cancel и Codex App Server
-  adapter.
-- Реализован approval-gated code foundation: durable Change Request, exact
-  plan approval, `POST /changes/:id/execute`, PostgreSQL job queue, отдельный
-  local worker, Git worktree, protected-path/check allowlists, bounded
-  diff/evidence и второе implementation acceptance.
-- Реализован локальный Phase 3 vertical slice: принятый exact diff повторно
-  применяется в чистом worktree, проходит server-owned checks и отдельный
-  ephemeral read-only review, получает изолированный service commit, затем
-  запускается как standalone Next build на loopback с sanitized PostgreSQL
-  clone, Chromium smoke, TTL cleanup и отдельным preview acceptance.
-- Apply в основной checkout не выполняется. После preview acceptance отдельный
-  opt-in source promotion может опубликовать exact service commit в
-  `ai/changes/**` и создать open draft Pull Request. Независимый release adapter
-  может опубликовать тот же commit в scoped candidate ref, собрать подписанный
-  GHCR digest и развернуть TTL-bound VPS preview; merge и production deploy
-  автоматически не запускаются.
-- `/admin/integrations` предоставляет provider-neutral каталог подключений.
-  GitHub repository/token сохраняются через redacted DTO API; token шифруется
-  отдельным installation key и передаётся только worker-owned source/release
-  consumers.
-- Локальный control plane предназначен только для loopback development. Он
-  хранит активные runs в памяти и не является production central service.
-- Фактическая удалённая выкладка не выполнялась: в локальной среде нет Docker
-  daemon, а GitHub environments, GHCR/VPS credentials и preview/production
-  domains находятся вне репозитория.
+- exact Node/npm, PostgreSQL migrations, health, Docker/Compose, CI и GHCR;
+- Payload drawer и `/admin/ai`, authenticated API/SSE и read-only Codex chat;
+- Change Requests с exact plan approval;
+- первый Data Lane `catalog.assignCategory.v1` с apply и compensating rollback;
+- durable isolated code execution, scope gates, checks и implementation
+  acceptance;
+- clean promotion, independent review, sanitized local preview и preview
+  acceptance;
+- независимые draft Pull Request и OCI Release Candidate lanes;
+- `/admin/integrations` с GitHub adapter и write-only encrypted token;
+- десять versioned Payload migrations.
 
-## Основные entrypoints
+## Неподтверждённые или отсутствующие границы
 
-- `Dockerfile`, `compose.yaml`, `.env.example`;
-- `.github/workflows/ci.yml`, `release.yml`, `rollback.yml`;
-- `scripts/deploy/remote-deploy.sh`, `remote-rollback.sh`;
-- `scripts/migrations/adopt-schema-push.mjs`;
-- `packages/payload-ai-plugin/**`, `services/ai-control-plane/**`,
-  `services/ai-execution-worker/**`;
-- `src/app/(app)/api/health/**`, `src/migrations/**`;
-- `documentation/reports/EPIC-000-IMPLEMENTATION-REPORT.md`.
+- local worker является trusted development boundary, не production sandbox;
+- Payload MCP `/api/mcp` отсутствует;
+- installation AI settings/config releases отсутствуют;
+- внешний GHCR/VPS preview требует operator configuration и не имеет local
+  runtime evidence;
+- `RELEASE_APPROVAL` не связан с production deployment;
+- production authorization controller, database restore automation и
+  commercial enforcement отсутствуют;
+- локальный environment не подтверждает Docker daemon или внешние credentials.
 
-Текущий UI/API/security evidence описан в
-[отчёте Admin AI drawer и plan approval](../reports/ADMIN-AI-DRAWER-APPROVAL-2026-08-18.md).
-
-Execution boundary и актуальные ограничения зафиксированы в
-[отчёте isolated execution foundation](../reports/ADMIN-AI-ISOLATED-EXECUTION-2026-08-21.md).
-
-Accepted-diff promotion и runtime evidence зафиксированы в
-[отчёте local preview promotion](../reports/ADMIN-AI-LOCAL-PREVIEW-PROMOTION-2026-08-22.md).
-
-Применённый и runtime-проверенный результат adoption текущей local schema-push БД зафиксирован в
-[отчёте migration adoption](../reports/MIGRATION-ADOPTION-2026-08-17.md).
+Исторические результаты находятся в `documentation/reports/**`. Они сохраняют
+состояние на свою дату; current truth проверяется по коду и этим runbooks.

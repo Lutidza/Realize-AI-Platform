@@ -1,5 +1,11 @@
 # Локальный запуск и чат в Payload Admin
 
+- **Статус:** current implementation runbook
+- **Дата сверки:** 28 августа 2026 года
+
+Этот runbook описывает существующий e-commerce baseline. Универсальный
+capability registry и `/admin/ai/settings` ещё не реализованы.
+
 ## 1. Требования
 
 - Node.js `24.18.x`;

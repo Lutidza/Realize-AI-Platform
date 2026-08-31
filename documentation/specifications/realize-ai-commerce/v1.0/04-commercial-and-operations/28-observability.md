@@ -1,90 +1,32 @@
 # 28. Observability
 
-## 28.1. Correlation identifiers
+- **Статус:** target specification
 
-Каждое событие содержит:
+## 28.1. Correlation
 
-- installationID;
-- conversationID;
-- changeRequestID;
-- runID;
-- jobID;
-- workerID;
-- codexThreadID;
-- deploymentID;
-- releaseID;
-- traceID.
+Installation request, run, Change Request, execution job, preview, release и
+deployment связываются correlation IDs. Логи, metrics, traces и audit events
+используют одинаковые стабильные identifiers без секретов и полного content.
 
-## 28.2. Metrics
+## 28.2. Сигналы
 
-### Product
+Обязательны:
 
-- active installations;
-- conversations;
-- change requests by type;
-- approval conversion;
-- preview acceptance;
-- production deploys;
-- rollback rate.
+- latency/error/rate для API и SSE;
+- queue depth, claim age, retries и stuck jobs;
+- tool/check/model usage и cost;
+- approval wait time и stale conflicts;
+- preview/build/deploy duration и health;
+- policy denials, injection attempts и redaction events;
+- license/usage degraded states;
+- backup/restore и rollback results.
 
-### AI
+## 28.3. Audit и telemetry
 
-- runs;
-- success/failure/cancel;
-- input/output/cached tokens;
-- provider cost;
-- cost per task type;
-- context pack size;
-- tool call failure;
-- budget stops.
+Audit отвечает «кто, что, на основании какого exact artifact сделал».
+Operational telemetry отвечает «работает ли система». Audit append-only и
+имеет отдельную retention/доступ; observability backend не должен становиться
+скрытым хранилищем prompts, PII или credentials.
 
-### Delivery
-
-- time to plan;
-- time to preview;
-- build duration;
-- test pass rate;
-- migration failure;
-- deploy duration;
-- health failure;
-- rollback duration.
-
-### Infrastructure
-
-- queue depth;
-- worker saturation;
-- CPU/RAM/disk;
-- DB connections;
-- error rate;
-- SSE disconnects;
-- license renewal failure.
-
-## 28.3. Logs
-
-Structured JSON logs.
-
-Запрещено логировать:
-
-- OpenAI keys;
-- capability tokens;
-- cookies;
-- passwords;
-- full prompts с secrets;
-- raw order/customer records;
-- payment data.
-
-## 28.4. Alerts
-
-- repeated license validation failure;
-- cross-installation token mismatch;
-- protected path attempt;
-- secret scanner finding;
-- unusual AI spend;
-- deployment failure;
-- rollback;
-- preview leak/public exposure;
-- queue stuck;
-- worker egress violation.
-
----
-
+Alerts маршрутизируются владельцу installation или operator-у по severity и
+SLO, а не только пишутся в лог.

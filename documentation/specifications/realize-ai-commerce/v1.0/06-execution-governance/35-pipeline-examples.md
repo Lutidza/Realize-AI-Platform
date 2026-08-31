@@ -1,84 +1,38 @@
-# 35. Примеры прохождения pipeline
+# 35. Pipeline examples
 
-## 35.1. «Перенеси товары из одной категории в другую»
+- **Статус:** target examples, не закрытый каталог capabilities
 
-```text
-User message
--> classify CATALOG_CHANGE / R2
--> read matching products
--> build typed operation plan
--> dry-run
--> show 83 affected products
--> user approves operation hash
--> transaction
--> verify 83 products
--> update search/index hooks
--> show result
--> close
-```
+## Контент
 
-Ни build, ни code deploy не нужны.
+«Обнови первый экран корпоративного сайта». Content capability разрешает
+страницу/поля, строит before/after preview, применяет R1/R2 mutation и сохраняет
+rollback snapshot.
 
-## 35.2. «Сделай карточки товаров компактнее»
+## Данные e-commerce
 
-```text
-User message
--> classify THEME_CHANGE
--> inspect Module Registry + Theme Contract
--> propose token/config change
--> preview draft/config
--> approve
--> apply config
--> verify responsive UI
--> close
-```
+«Подними цены выбранной категории на 10%». Profile adapter разрешает selectors,
+показывает exact товары и итоговые цены, применяет batch limits и transaction,
+после approval сохраняет compensating snapshot.
 
-Если tokens недостаточно:
+## Schema
 
-```text
--> escalate CODE_CHANGE / R3
--> scope plan
--> worktree
--> implementation
--> tests
--> preview image
--> acceptance
--> signed release
--> production deploy
-```
+«Добавь тип контента “Кейсы”». Mixed Change создаёт schema/code migration,
+admin/public UI, backfill strategy, tests и preview. Удаление старой schema
+откладывается до совместимого следующего release.
 
-## 35.3. «Добавь новый фильтр по материалу»
+## Дизайн и страница
 
-Возможные ветки:
+«Создай посадочную страницу услуги». Declarative UI Lane использует
+зарегистрированные blocks/tokens; недостающий компонент передаётся Code Lane.
+Пользователь принимает rendered preview, а не только diff.
 
-- если attribute/filter infrastructure уже поддерживает материал — config/data lane;
-- если нужен новый schema field/index — mixed R3;
-- если запрос затрагивает общий search core — Agency Engineering Request.
+## Plugin
 
-## 35.4. «Посмотри в базе, почему товар не виден»
+«Подключи формы к CRM». Code/integration lanes создают project plugin и
+write-only integration settings. Credential вводит Admin и модель его не видит.
 
-```text
-QUERY / R0
--> read product with safe select
--> inspect status/category/stock/access/index projection
--> explain diagnosis
--> optionally offer Change Request
-```
+## Production
 
-Диагностический запрос сам ничего не исправляет.
-
-## 35.5. «Опубликуй всё сразу»
-
-Запрос недостаточно безопасен.
-
-Система должна:
-
-- определить точный scope;
-- показать count;
-- исключить protected content;
-- создать bulk plan;
-- потребовать approval;
-- не выполнять неопределённую команду напрямую.
-
----
-
+«Опубликуй одобренное изменение». Команда выбирает exact accepted preview,
+готовит Release Candidate, получает release approval и отдельный production
+authorization. Нельзя публиковать “последнюю версию” по mutable reference.

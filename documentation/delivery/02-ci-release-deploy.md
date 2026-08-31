@@ -1,5 +1,12 @@
 # CI, release и выкладка
 
+- **Статус:** current implementation runbook
+- **Дата сверки:** 28 августа 2026 года
+
+`RELEASE_APPROVAL` текущего AI lane не связан с production job. Ни один шаг
+ниже не следует трактовать как реализованный approval-bound production
+controller.
+
 ## 1. CI
 
 `.github/workflows/ci.yml` запускается для pull request, push в `main` и как

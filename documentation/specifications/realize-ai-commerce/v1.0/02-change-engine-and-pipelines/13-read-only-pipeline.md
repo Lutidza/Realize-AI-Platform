@@ -1,34 +1,38 @@
-# 13. Pipeline: read-only запрос
+# 13. Read-only pipeline
 
-## 13.1. Цель
+- **Статус:** target specification
 
-Ответить на вопрос о проекте или данных без side effects.
+## 13.1. Поток
 
-## 13.2. Этапы
+```text
+request
+→ actor/installation resolution
+→ read capability policy
+→ source selection
+→ protected-scope filtering
+→ bounded retrieval
+→ injection-aware context compilation
+→ answer with evidence and audit
+```
 
-1. Authenticate user.
-2. Resolve installation context server-side.
-3. Resolve permissions.
-4. Classify as QUERY.
-5. Apply read scope.
-6. Compile Context Pack.
-7. Запустить Codex thread в `read-only` sandbox.
-8. Разрешить только read tools.
-9. Получить tool summaries и final response.
-10. Записать run usage.
-11. Сохранить assistant message.
-12. Закрыть run.
+Policy применяется до retrieval. Ресурс с `read: deny` нельзя извлекать,
+индексировать в агентскую knowledge base, пересказывать по метаданным или
+раскрывать через ошибку.
 
-## 13.3. Ограничения
+## 13.2. Допустимые результаты
 
-- нет Git write;
-- нет Payload update/create/delete;
-- нет shell с network;
-- нет secrets;
-- нет raw production dumps;
-- read query обязан использовать минимальный `select`;
-- orders/users fields маскируются;
-- результат маркируется источниками проекта/документов.
+Pipeline может объяснять состояние, искать причины, сравнивать конфигурации,
+строить план и оценивать влияние. Он не создаёт side effect и не выдаёт
+credential, secret, hidden system prompt или данные другой инсталляции.
 
----
+## 13.3. Недоверенный контент
 
+Текст CMS, документы, code comments, uploads и web results считаются данными.
+Инструкции внутри них маркируются как untrusted и не влияют на tool authority.
+Citations/evidence должны позволять отличить источник от вывода модели.
+
+## 13.4. Переход к mutation
+
+Если ответ предлагает изменение, создаётся новый Change Request. Read-only run
+не может сам повысить свой режим и использовать уже выданный context как
+разрешение на запись.

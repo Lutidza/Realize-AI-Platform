@@ -1,18 +1,33 @@
-# MCP tooling для Realize-E-Commerce
+# MCP tooling
 
-## Активные MCP серверы (`.codex/config.toml`)
+- **Статус:** current Codex adapter context
+- **Source of truth:** `.codex/config.toml`
 
-На текущем контуре AI-монтаж использует:
+## Project-specific servers
 
-- `recommerce-playwright` — browser/runtime evidence.
-- `recommerce-tailwind` — помощь по Tailwind-утилитам и UI паттернам.
-- `recommerce-next-devtools` — интеграция с Next.js diagnostics/runtime bridge.
-- `recommerce-payload` — локальный Payload MCP bridge через admin API.
+Текущий project contract содержит:
 
-## Политика использования
+- `recommerce-playwright` — browser/runtime evidence;
+- `recommerce-tailwind` — Tailwind UI assistance;
+- `recommerce-next-devtools` — Next.js docs и development diagnostics.
 
-- Все MCP server entries управляются только через workflow
-  `.ai/workflows/ai-operations/mcp-tooling/WORKFLOW.md`.
-- `.codex/config.toml` остаётся источником для Codex runtime,
-  `.ai/rules/external-tools/RULE-MCP-TOOLING-CONTOUR.md` — источником policy.
-- Секреты (`PAYLOAD_MCP_API_KEY`) не хранятся в репозитории.
+Доступность каждого server-а проверяется в текущей Codex session. Запись в
+project config не является доказательством запущенного runtime.
+
+## Payload MCP
+
+Payload MCP server и endpoint `/api/mcp` в текущем приложении отсутствуют.
+Поэтому `recommerce-payload` удалён из project config. Внутренний
+`/api/realize-ai` и typed Payload executors не являются MCP.
+
+Новый Payload MCP можно добавить только после реализации endpoint,
+authentication, least-privilege tool registry, protected-scope policy,
+version/source evidence и runtime tests. Secret не хранится в Git,
+`documentation/**`, `.ai/**` или `.codex/**`.
+
+## Policy
+
+Активные правила выбора MCP, availability и fallback находятся в
+`.ai/rules/external-tools/**` и MCP workflow. Session-provided/plugin tools не
+становятся постоянным project contract автоматически. Execution worker не
+получает MCP как скрытый обход Change Engine.

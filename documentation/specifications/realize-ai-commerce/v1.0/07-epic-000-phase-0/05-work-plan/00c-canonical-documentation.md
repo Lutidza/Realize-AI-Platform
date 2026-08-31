@@ -1,5 +1,9 @@
 # Этап 0C. Каноническая документация
 
+> **Статус: historical evidence.** Этот файл фиксирует выполненный EPIC-000
+> и не является активной инструкцией. Актуальный roadmap находится в разделе
+> `05-implementation-roadmap`, а порядок работ — в главе 32.
+
 Создай или восстанови:
 
 - `README.md`;
@@ -38,4 +42,3 @@
 - статус experimental contour;
 - ссылки на documentation index и ADR;
 - security/secrets note.
-

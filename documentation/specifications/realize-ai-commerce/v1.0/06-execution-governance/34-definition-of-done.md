@@ -1,66 +1,42 @@
-# 34. Definition of Done всей первой версии
+# 34. Definition of Done
 
-Первая промышленная версия считается готовой, когда выполнены все условия.
+- **Статус:** target acceptance contract
 
-## Product
+Capability считается готовой только при выполнении применимых пунктов.
 
-- отдельный single-tenant site на клиента;
-- рабочая CMS/ecommerce;
-- AI chat в Payload;
-- history и audit;
-- data и code changes;
-- preview;
-- production deploy;
-- rollback.
+## Contract
 
-## AI
+- versioned DTO/schema/capability и владелец определены;
+- target/current distinction отражена в docs;
+- access, protected scopes, risk, limits и approvals покрыты;
+- idempotency, conflicts, retry и cancellation определены.
 
-- Codex выполняется в isolated central worker;
-- context строится из реального `.ai` layer;
-- модель не выбирает installation context;
-- budgets и usage работают;
-- no secret leakage;
-- no hidden production mutation.
+## Execution
+
+- реальный side effect проходит только server executor;
+- exact plan/config/input hashes проверяются до mutation;
+- audit/events/usage сохраняются;
+- failure не маскируется как success;
+- rollback или explicit manual recovery проверены.
+
+## Evidence
+
+- data capability протестирована с реальной PostgreSQL;
+- schema change — empty/upgrade/restore proof;
+- code capability — clean worktree, diff gates и checks;
+- UI — browser evidence;
+- release — immutable signed digest и health;
+- production — approval-bound rollout и rollback drill.
 
 ## Security
 
-- typed tools;
-- access control;
-- approvals hash-bound;
-- protected paths/collections;
-- signed artifacts;
-- no permanent OpenAI key at client;
-- cross-client isolation tests passed.
+- injection/escalation/hidden-data/cross-installation tests пройдены;
+- secrets не появились в prompt, DTO, logs, diff или artifacts;
+- локальный AI-layer не расширяет system policy;
+- license не выдаёт security authority.
 
-## Delivery
+## Product completion
 
-- Git-based;
-- CI green;
-- migrations;
-- preview;
-- immutable image;
-- exact digest deploy;
-- health verification;
-- rollback tested.
-
-## Commercial
-
-- activation;
-- signed lease;
-- subscription;
-- entitlements;
-- usage ledger;
-- grace;
-- storefront survival under license outage.
-
-## Operations
-
-- backups;
-- restore drill;
-- metrics/logs/alerts;
-- operator console;
-- incident runbooks;
-- pilot clients completed.
-
----
-
+Функция доступна из согласованного интерфейса, объясняет blocked state и
+работает end-to-end. Текстовый mock, disabled button, dry-run-only или
+неприменяемое предложение не соответствуют DoD.

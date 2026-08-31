@@ -1,5 +1,8 @@
 # Миграции и rollback
 
+- **Статус:** current implementation runbook
+- **Дата сверки:** 28 августа 2026 года
+
 ## 1. Канонический порядок миграций
 
 В `src/migrations/**` находятся:
@@ -13,7 +16,15 @@
 5. `20260821_194623_isolated_execution_worker` — execution queue, check
    evidence и implementation acceptance;
 6. `20260821_205949_local_preview_promotion` — deployments, promotion stages,
-   preview checks и preview acceptance.
+   preview checks и preview acceptance;
+7. `20260822_092506_release_candidate_approval` — Release Candidate,
+   immutable evidence и release decisions;
+8. `20260827_070003_admin_integration_registry` — provider-neutral
+   integrations, encrypted credentials и audit;
+9. `20260828_022809_github_pull_request_source_promotion` — durable source
+   promotion и draft Pull Request evidence;
+10. `20260828_044410_data_operation_lane` — approval-gated catalog Data Lane,
+    operation events и rollback decisions.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -22,7 +33,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-На пустой PostgreSQL все шесть миграций должны применяться по порядку.
+На пустой PostgreSQL все десять миграций должны применяться по порядку.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 

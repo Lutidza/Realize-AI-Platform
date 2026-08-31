@@ -1,5 +1,9 @@
 # Этап 0G. Payload migrations
 
+> **Статус: historical evidence.** Этот файл фиксирует выполненный EPIC-000
+> и не является активной инструкцией. Актуальный roadmap находится в разделе
+> `05-implementation-roadmap`, а порядок работ — в главе 32.
+
 Добавь production-safe migration baseline:
 
 - `src/migrations/**`;
@@ -15,4 +19,3 @@
 Не запускай destructive migration над неизвестной/реальной базой.
 
 Проверь, какие параметры Postgres adapter нужны для отключения небезопасного schema push в production, и зафиксируй это явно.
-

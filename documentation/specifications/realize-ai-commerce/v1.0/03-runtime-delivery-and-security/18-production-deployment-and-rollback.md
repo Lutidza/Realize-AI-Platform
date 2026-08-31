@@ -1,87 +1,44 @@
 # 18. Production deployment и rollback
 
-## 18.1. Рекомендуемый rollout
+- **Статус:** target specification
+- **Current gap:** production authorization controller ещё не реализован полностью
 
-Для Docker-based single-tenant установки:
+## 18.1. Production transition
 
-- blue/green slots;
-- reverse proxy переключает traffic;
-- предыдущий image остаётся доступен до завершения verification window.
+Deployment принимает только approved Release Candidate с exact OCI digest,
+signature, SBOM, migration-set hash, preview evidence и непросроченным
+`PRODUCTION_AUTHORIZATION`.
 
-## 18.2. Deployment manifest
+Controller:
 
-```ts
-interface ReleaseManifest {
-  releaseID: string
-  installationID: string
-  changeRequestID: string
-  gitCommit: string
-  imageDigest: string
-  sbomDigest: string
-  signatureRef: string
-  migrations: Array<{
-    id: string
-    checksum: string
-    direction: 'up'
-  }>
-  configVersion: string
-  pluginVersions: Record<string, string>
-  createdAt: string
-}
-```
+1. повторно проверяет license, actor, candidate и hashes;
+2. создаёт backup/restore evidence;
+3. применяет совместимые migrations one-shot;
+4. разворачивает exact digest;
+5. выполняет readiness и profile smoke checks;
+6. фиксирует deployment aggregate и audit;
+7. завершает успехом либо запускает согласованный application rollback.
 
-## 18.3. Post-deploy checks
+Worker/модель не получают SSH, registry или production database credentials.
+Side effects выполняет доверенный deployment service.
 
-- app health;
-- Payload health;
-- DB connectivity;
-- migration head;
-- homepage;
-- catalog page;
-- product page;
-- cart operation;
-- admin login;
-- critical API;
-- error rate;
-- latency;
-- queue connectivity.
+## 18.2. Rollback
 
-## 18.4. Rollback types
+Application rollback возвращает предыдущий проверенный digest и повторяет
+health checks. Он не откатывает schema или данные автоматически.
 
-### Application rollback
+Каждый release обязан иметь один из вариантов:
 
-Переключить traffic на previous signed image digest.
+- backward-compatible migration;
+- проверенный compensating migration;
+- operator-approved restore plan с recovery point и допустимой потерей данных.
 
-### Data operation rollback
+Data rollback и production restore относятся к отдельным approvals. Автоматический
+restore поверх новых пользовательских данных запрещён.
 
-Применить inverse operation или before snapshot в новой transaction.
+## 18.3. Failure states
 
-### Schema rollback
-
-Не считать `down` migration главным механизмом.
-
-Предпочтение:
-
-- expand-contract;
-- backward-compatible schema;
-- forward fix;
-- application rollback без удаления новой schema;
-- restore backup только как контролируемая аварийная процедура.
-
-### Content rollback
-
-Использовать Payload versions/drafts либо сохранённый before snapshot.
-
-## 18.5. Автоматический rollback
-
-Допустим при:
-
-- failed health check до traffic switch;
-- crash loop нового slot;
-- невозможности загрузить app;
-- критическом smoke failure.
-
-После успешного traffic switch и data migration автоматический rollback ограничивается policy и может требовать оператора.
-
----
-
+Неопределённый rollout, mismatch digest/signature, failed migration evidence,
+expired approval или недоступная license verification до начала mutation
+блокируют transition. После начатого rollout control plane обязан сохранить
+durable recoverable state, а не терять ownership при timeout.

@@ -1,135 +1,44 @@
 # 22. API и streaming contracts
 
-## 22.1. Site plugin endpoints
+- **Статус:** target specification
 
-Рабочий namespace:
+## 22.1. Общие правила
 
-```text
-/api/realize-ai
-```
+Payload API namespace — `/api/realize-ai`. Browser использует authenticated
+same-origin calls. Request DTO versioned, strict и не принимает доверенные
+identity/role/risk значения. Mutation поддерживает idempotency key и
+`expectedVersion`; hash-bound commands также передают ожидаемый artifact hash.
 
-### Conversations
+Success и error DTO не раскрывают stack, prompt, secret или protected content.
+Stable error codes различают forbidden, conflict, stale approval, validation,
+rate limit, unavailable dependency и internal failure.
 
-```text
-POST   /conversations
-GET    /conversations
-GET    /conversations/:id
-POST   /conversations/:id/messages
-POST   /conversations/:id/archive
-```
+## 22.2. Текущие группы API
 
-### Runs
+Current runtime содержит status, integrations, conversations/messages,
+changes/approvals, data operations/apply/rollback, execution/acceptance,
+preview, source promotion, release candidates, runs/events/cancel.
 
-```text
-GET    /runs/:id
-GET    /runs/:id/events
-POST   /runs/:id/cancel
-POST   /runs/:id/retry
-```
+Это описание групп, а не гарантия универсальных capabilities: фактический Data
+Lane пока ограничен `catalog.assignCategory.v1`.
 
-### Changes
+## 22.3. Target configuration API
 
-```text
-GET    /changes/:id
-POST   /changes/:id/approve-plan
-POST   /changes/:id/reject-plan
-POST   /changes/:id/execute
-POST   /changes/:id/accept-preview
-POST   /changes/:id/reject-preview
-POST   /changes/:id/approve-release
-POST   /changes/:id/cancel
-```
+Namespace `/api/realize-ai/config/*` предоставляет:
 
-### Deployments
+- CRUD только для draft skills, knowledge, prompts, local rules, roles, check
+  bindings, agent profiles и evals;
+- `POST /config/validate`;
+- создание immutable config release;
+- отдельные activate и rollback commands с expected hashes.
 
-```text
-POST   /changes/:id/deploy-preview
-POST   /changes/:id/deploy-production
-POST   /deployments/:id/rollback
-GET    /deployments/:id
-```
+System `.ai/.codex`, license/security policy и executable registries не имеют
+client-editable endpoint.
 
-### Commercial status
+## 22.4. Streaming
 
-```text
-GET    /license/status
-GET    /usage/summary
-GET    /entitlements
-```
-
-## 22.2. Требования к endpoint
-
-- Payload authentication;
-- CSRF protection;
-- access callback;
-- `Idempotency-Key` для writes;
-- request schema validation;
-- no installation ID from request body;
-- rate limit;
-- audit;
-- correlation ID;
-- predictable error codes.
-
-## 22.3. SSE events
-
-Рекомендуемый browser transport первой версии — SSE.
-
-```ts
-interface AIStreamEvent {
-  id: string
-  sequence: number
-  runID: string
-  changeRequestID?: string
-  type:
-    | 'run.started'
-    | 'assistant.delta'
-    | 'assistant.completed'
-    | 'plan.ready'
-    | 'tool.started'
-    | 'tool.completed'
-    | 'check.started'
-    | 'check.completed'
-    | 'approval.required'
-    | 'preview.ready'
-    | 'deployment.updated'
-    | 'usage.updated'
-    | 'run.blocked'
-    | 'run.failed'
-    | 'run.cancelled'
-  visibility: 'user-visible' | 'internal-summary' | 'redacted'
-  payload: Record<string, unknown>
-  createdAt: string
-}
-```
-
-Client возобновляет поток через `Last-Event-ID`.
-
-Разрыв browser SSE не считается terminal state. Пока run имеет статус `queued`
-или `running`, клиент дополнительно сверяет durable projection через
-`GET /runs/:id`, показывает состояние подключения и допускает ручной reconnect.
-Live-текст остаётся видимым до успешной загрузки persisted conversation detail;
-только после этого UI заменяет его сохранённым assistant message.
-
-## 22.4. Central control plane APIs
-
-- register installation;
-- activate license;
-- renew lease;
-- fetch entitlements;
-- create central run;
-- submit context manifest;
-- receive events;
-- issue capability token;
-- ingest usage;
-- fetch release manifest;
-- report deployment health.
-
-Все соединения:
-
-- TLS;
-- mTLS или signed service identity;
-- rotating credentials;
-- audience-bound tokens;
-- replay protection.
-
----
+`GET /runs/:id/events` использует SSE с monotonically ordered event IDs,
+reconnect cursor и heartbeat. События содержат bounded typed payload и
+redacted evidence references. Потеря соединения не отменяет durable run;
+cancel является отдельной idempotent command и не гарантирует откат уже
+завершённого side effect.

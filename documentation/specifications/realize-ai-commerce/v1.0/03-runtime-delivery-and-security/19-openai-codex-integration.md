@@ -1,122 +1,44 @@
 # 19. OpenAI Codex integration
 
-## 19.1. Credential model
+- **Статус:** target specification
+- **Провайдер V1:** OpenAI Codex
 
-Первая версия использует platform-owned OpenAI API project/service credentials.
+## 19.1. Adapter boundary
 
-Запрещено:
+Browser никогда не вызывает Codex напрямую. AI Orchestrator использует
+server-side adapter, который скрывает provider protocol от Change Engine.
 
-- просить каждого клиента подключать ChatGPT Pro;
-- совместно использовать пользовательский ChatGPT login;
-- продавать доступ к одному OpenAI account;
-- отдавать API key клиенту;
-- хранить key в Payload DB.
+Для глубокой интерактивной интеграции с sessions, approvals и streamed events
+ориентиром является [Codex App Server](https://developers.openai.com/codex/app-server).
+Для программных jobs и CI допустим
+[Codex SDK](https://developers.openai.com/codex/sdk). Выбор транспорта не
+изменяет server-owned policy и approvals Realize.
 
-## 19.2. Execution adapter
+## 19.2. Authentication
 
-Ввести интерфейс, несмотря на одного провайдера:
+Production credential хранится только в доверенном central execution boundary.
+Поддерживаемый способ выбирается оператором согласно
+[официальной документации authentication](https://developers.openai.com/codex/auth).
+API key, access token или cached user session нельзя передавать browser-у,
+site image, prompt, logs или client repository.
 
-```ts
-interface CodingAgentAdapter {
-  startThread(input: StartThreadInput): Promise<AgentThread>
-  resumeThread(threadID: string): Promise<AgentThread>
-  runTurn(input: RunTurnInput): AsyncIterable<AgentEvent>
-  cancelRun(runID: string): Promise<void>
-  getUsage(runID: string): Promise<ModelUsage>
-}
-```
+Loopback development adapter может использовать локальную пользовательскую
+Codex authentication, но не считается production topology.
 
-Реализация первой версии:
+## 19.3. Execution contract
 
-```text
-OpenAICodexAdapter
-```
+Adapter получает bounded Context Pack, capability/tool projection, sandbox
+profile, timeout и correlation IDs. Он возвращает structured events, tool
+requests, usage и final result. Любой tool request повторно валидируется
+Realize; текстовая уверенность модели не является evidence.
 
-## 19.3. App Server vs SDK
+Thread/session IDs являются operational references, не authority. Resume
+допустим только с теми же installation, actor policy, config hash и aggregate
+version либо через новый run.
 
-Для rich product integration используется Codex App Server как worker-side protocol, потому что необходимы:
+## 19.4. Security
 
-- conversation/thread lifecycle;
-- streamed events;
-- approvals;
-- tool calls;
-- cancellation;
-- rich status.
-
-Для отдельных non-interactive CI/review jobs допустим Codex SDK.
-
-App Server никогда не выставляется напрямую в публичный интернет или браузер. Он доступен только локально внутри worker container через stdio/Unix socket либо защищённое внутреннее соединение.
-
-## 19.4. Thread strategy
-
-- один planner thread на Change Request;
-- implementer thread может продолжить planner thread только для R1/R2;
-- для R3 — implementation thread и независимый reviewer thread;
-- security review — отдельный thread/role при protected surfaces;
-- thread IDs сохраняются в runtime;
-- в UI не показывается скрытый chain-of-thought;
-- сохраняются планы, tool summaries, diffs и результаты.
-
-## 19.5. Sandbox profiles
-
-```text
-analysis-readonly
-implementation-workspace
-review-readonly
-migration-sandbox
-build-sandbox
-```
-
-### analysis-readonly
-
-- read-only filesystem;
-- no network;
-- read tools only.
-
-### implementation-workspace
-
-- write только в worktree и allowlisted roots;
-- no network по умолчанию;
-- no production credentials;
-- no Docker socket;
-- no host filesystem.
-
-### migration-sandbox
-
-- доступ только к disposable DB clone;
-- no production DB route;
-- migration commands only.
-
-## 19.6. Network policy
-
-Network disabled by default.
-
-Временный доступ разрешается только для:
-
-- approved package registry;
-- official documentation;
-- approved external MCP endpoints;
-- vulnerability database;
-- internal control plane.
-
-Package installation требует dependency approval и обновления lockfile.
-
-## 19.7. Budget gate
-
-Перед run:
-
-- проверить plan entitlement;
-- проверить monthly budget;
-- проверить per-change max;
-- зарезервировать estimated credits;
-- при превышении запросить Budget Override.
-
-Во время run:
-
-- отслеживать usage;
-- soft warning;
-- hard stop;
-- сохранять partial result.
-
----
-
+Sandbox, approvals и network controls сверяются с
+[Agent approvals & security](https://developers.openai.com/codex/agent-approvals-security)
+и [Sandboxing](https://developers.openai.com/codex/sandboxing). Продуктовые
+ограничения Realize остаются дополнительным обязательным слоем.

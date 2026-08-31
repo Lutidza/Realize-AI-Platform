@@ -1,53 +1,33 @@
 # 17. Preview strategy
 
-## 17.1. Content preview
+- **Статус:** target specification
 
-Для обычных content changes используются:
+## 17.1. Виды preview
 
-- Payload drafts;
-- autosave при необходимости;
-- Payload Live Preview;
-- draft access token;
-- iframe/postMessage integration.
+- **Plan preview:** scope, operations, risk, cost и checks без side effect.
+- **Data preview:** resolved targets, before/after projection и validation.
+- **Code preview:** isolated commit, build и standalone site environment.
+- **Release preview:** immutable OCI candidate в production-like изоляции.
 
-## 17.2. Code preview
+Preview одного уровня не заменяет approval следующего.
 
-Payload Live Preview не заменяет code preview.
+## 17.2. Изоляция
 
-Для code changes требуется ephemeral deployment:
+Code/release preview создаётся из exact artifact, отдельной PostgreSQL и
+sanitized data/media snapshot. Он получает собственный hostname/port, TTL,
+authentication и network policy. Production secrets, платежные credentials,
+PII и доступ к другим installations исключены.
 
-- отдельный image digest;
-- отдельный hostname;
-- отдельный environment config;
-- read-only или cloned production media;
-- cloned/sanitized database;
-- TTL и auto cleanup.
+Preview не использует основной checkout или production database. Cleanup
+удаляет environment и volumes по TTL, сохраняя bounded audit/evidence.
 
-## 17.3. Database strategy preview
+## 17.3. Проверки
 
-### Без schema change
+Server-owned core checks включают readiness, rendered page, broken assets,
+console/runtime errors и security headers. Project profile добавляет собственные
+маршруты и бизнес-сценарии: e-commerce может проверять catalog/cart/checkout,
+а content profile — публикацию, navigation и forms.
 
-Допустимо:
-
-- clone текущей базы;
-- либо отдельный draft overlay, если change чисто content.
-
-### Со schema change
-
-Обязателен отдельный database clone. Нельзя применять preview migration к production DB.
-
-## 17.4. PII sanitization
-
-При клонировании:
-
-- emails маскируются;
-- phones маскируются;
-- addresses маскируются;
-- payment tokens не копируются;
-- auth secrets заменяются;
-- webhook endpoints отключаются;
-- outgoing email/SMS блокируются;
-- external integrations переводятся в sandbox/mock.
-
----
-
+`PREVIEW_ACCEPTANCE` связывается с commit/digest, database snapshot hash,
+configuration release, check results и URL evidence. Пересборка или изменение
+данных требует нового решения.

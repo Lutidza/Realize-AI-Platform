@@ -1,41 +1,24 @@
 # Phase 4. Production delivery
 
-## 4.1. Private registry
+- **Статус:** partial foundation
 
-- immutable digests;
-- SBOM;
-- signature;
-- release manifest.
+## Реализовано
 
-## 4.2. Blue/green deployment
+Provider-neutral Release Candidate, JSON-port orchestrator, exact service
+commit, OCI digest/ref, SBOM/signature/migration hashes, TTL-bound release
+preview, release approval, GitHub/GHCR adapter и existing exact-digest
+deploy/rollback workflows.
 
-- inactive slot;
-- health;
-- switch;
-- verification;
-- previous slot retention.
+## Не реализовано как единый продуктовый lane
 
-## 4.3. Migrations
+- `PRODUCTION_AUTHORIZATION` aggregate/command;
+- trusted controller, связывающий Realize approval с exact deployment;
+- production credential isolation от worker;
+- durable rollout state и recovery after timeout;
+- profile health gates перед завершением;
+- database rollback/restore approvals;
+- external pilot evidence на configured GHCR/VPS.
 
-- clone test;
-- backup;
-- forward migration;
-- expand-contract rules.
-
-## 4.4. Rollback
-
-- app;
-- data;
-- content;
-- controlled schema recovery.
-
-## Phase 4 acceptance
-
-- production получает exact approved digest;
-- unsigned image отвергается;
-- deployment audit полный;
-- rollback tested;
-- failure before switch не влияет на production.
-
----
-
+`RELEASE_APPROVAL` не запускает production и не считается заменой недостающего
+controller. Exit — проверенный approval-bound rollout и rollback exact digest
+на pilot installation.

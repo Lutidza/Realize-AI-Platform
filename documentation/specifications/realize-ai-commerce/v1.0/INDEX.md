@@ -1,53 +1,35 @@
-# REALIZE AI COMMERCE PLATFORM
+# Realize AI-Controlled CMS Platform v1.0
 
-## Единое техническое задание, архитектурный blueprint и исполняемое задание для Codex
+- **Статус:** target specification
+- **Модель продукта:** универсальное CMS-ядро и подключаемые профили сайтов
+- **Первый промышленный профиль:** e-commerce
+- **Deployment V1:** single-tenant per installation
+- **Фактический baseline:** [project context](../../../project-context.md)
 
-- **Версия пакета:** 1.0
-- **Дата:** 15 августа 2026 года
-- **Базовый репозиторий:** `Lutidza/Realize-E-Commerce`
-- **Целевая платформа:** Payload CMS 3 + Next.js App Router + PostgreSQL + OpenAI Codex
-- **Модель развёртывания первой версии:** single-tenant, отдельное приложение и отдельная база данных на каждого клиента
-- **Статус:** единый нормативный и исполняемый пакет для AI-агента и инженерной команды
+Legacy-путь `realize-ai-commerce` сохранён для совместимости ссылок. Все
+планируемые интерфейсы должны быть помечены как target и не выдаваться за
+реализованные.
 
----
-
-## Как пользоваться пакетом
-
-Спецификация разделена на два взаимосвязанных контура:
-
-1. **Часть I — полное техническое задание и архитектурный blueprint.** Разделы
-   `00`–`06` определяют продукт, целевую архитектуру, безопасность, Change
-   Engine, pipelines, Payload-плагин, Codex-интеграцию, delivery,
-   лицензирование, биллинг, этапы реализации и Definition of Done.
-2. **Часть II — исполняемое задание `EPIC-000` для Codex.** Раздел `07`
-   ограничивает первый практический этап стабилизацией канонической основы
-   репозитория и запрещает преждевременную реализацию браузерного AI-чата и
-   production delivery.
-
-Порядок работы обязателен: сначала полностью прочитать разделы `00`–`06`,
-затем выполнять `07-epic-000-phase-0`. При смысловом конфликте приоритет имеет
-Часть I как системная спецификация; EPIC-000 конкретизирует только scope и
-порядок исполнения Phase 0.
-
-## Часть I. Полное техническое задание и архитектурный blueprint
-
-- **Версия документа:** 1.0
-- **Дата:** 15 августа 2026 года
-- **Базовый репозиторий:** `Lutidza/Realize-E-Commerce`
-- **Целевая платформа:** Payload CMS 3 + Next.js App Router + PostgreSQL + OpenAI Codex
-- **Модель развёртывания первой версии:** single-tenant, отдельное приложение и отдельная база данных на каждого клиента
-- **Статус:** целевая спецификация для поэтапной реализации AI-агентом и инженерной командой
-
-## Последовательность чтения и реализации
+## Нормативный порядок
 
 1. [Продукт, назначение и scope](00-product-and-scope/INDEX.md)
 2. [Архитектурные контракты](01-architecture/INDEX.md)
 3. [Change Engine и pipelines](02-change-engine-and-pipelines/INDEX.md)
 4. [Runtime, delivery и безопасность](03-runtime-delivery-and-security/INDEX.md)
 5. [Коммерческий и операционный контур](04-commercial-and-operations/INDEX.md)
-6. [Roadmap реализации Phase 0–6](05-implementation-roadmap/INDEX.md)
-7. [Правила исполнения и критерии готовности](06-execution-governance/INDEX.md)
-8. [EPIC-000: исполняемое задание Phase 0](07-epic-000-phase-0/INDEX.md)
+6. [Roadmap Phase 0–6](05-implementation-roadmap/INDEX.md)
+7. [Execution governance и Definition of Done](06-execution-governance/INDEX.md)
 
-Каждый нормативный раздел хранится ровно в одном leaf-файле. `INDEX.md`
-содержат только порядок чтения и навигацию.
+## Исторический контур
+
+[EPIC-000 Phase 0](07-epic-000-phase-0/INDEX.md) — выполненное задание,
+сохранённое как historical evidence. Оно не является текущим backlog и не
+запрещает уже реализованные admin AI, execution, preview или delivery
+capabilities.
+
+## Правило истины
+
+- Target contract: разделы `00–06` этой спецификации.
+- Current implementation: код, manifests, migrations, tests,
+  `documentation/project-context.md` и delivery runbooks.
+- Historical evidence: `07-epic-000-phase-0/**`, reports и ранее принятые ADR.

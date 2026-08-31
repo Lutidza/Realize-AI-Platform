@@ -1,90 +1,31 @@
-# 27. Docker и инфраструктура
+# 27. Docker и infrastructure
 
-## 27.1. Client site stack
+- **Статус:** target specification
 
-Минимальный deployment unit:
+## 27.1. Installation topology
 
-```yaml
-services:
-  web:
-    image: registry/realize-client@sha256:...
-    read_only: true
-    depends_on:
-      - postgres
-  postgres:
-    image: postgres:<pinned>
-    volumes:
-      - client-db:/var/lib/postgresql/data
-  backup-agent:
-    image: registry/realize-backup-agent@sha256:...
-```
+Каждая клиентская installation имеет отдельные web runtime, PostgreSQL,
+media namespace, secrets, backups и deployment state. Reverse proxy/TLS,
+monitoring и central services могут быть общими только при строгой identity и
+network isolation.
 
-Media рекомендуется хранить в S3-compatible storage, а не внутри container filesystem.
+Site container не содержит OpenAI, registry, GitHub или production deploy
+credentials. PostgreSQL и internal services не публикуются в Internet.
 
-## 27.2. Отдельный worker в клиентском compose
+## 27.2. Execution topology
 
-В рекомендованной v1 Codex worker не входит в клиентский stack.
+AI execution и build происходят вне site container в trusted worker pool.
+Worker использует ephemeral workspace, ограниченный network, short-lived
+capability и отдельный service identity. Docker socket/host root не передаются
+модели.
 
-Допустим lightweight site connector для:
+Preview получает отдельный Compose/project namespace, sanitized database/media,
+authentication, TTL и cleanup. Production volume или network к preview не
+подключаются.
 
-- outbound control-plane connection;
-- health;
-- capability-token validation;
-- deployment commands;
-- tool gateway.
+## 27.3. Secrets и backups
 
-Connector не содержит OpenAI key.
-
-## 27.3. Central services
-
-- control-plane-api;
-- license-service;
-- billing-service;
-- usage-service;
-- orchestrator;
-- worker-manager;
-- codex-workers;
-- buildkit/build workers;
-- deployment-controller;
-- operator-console;
-- PostgreSQL control DB;
-- queue;
-- object/artifact storage;
-- OCI registry;
-- observability.
-
-## 27.4. Queue choice
-
-Для site-local low-volume jobs можно использовать Payload Jobs, сохраняемые в Postgres.
-
-Для central orchestration нужен durable queue с:
-
-- leases;
-- retries;
-- delayed jobs;
-- dead-letter;
-- concurrency limits;
-- idempotency;
-- visibility timeout.
-
-Конкретная технология выбирается ADR после оценки текущей инфраструктуры. Domain contract не должен зависеть от конкретной queue library.
-
-## 27.5. Backup
-
-Перед production migration:
-
-- verified backup;
-- backup ID в deployment record;
-- restore test policy;
-- encryption;
-- retention.
-
-Начальные целевые показатели:
-
-- DB backup минимум ежедневно;
-- point-in-time recovery при доступности;
-- pre-deploy snapshot для R3/R4;
-- регулярная проверка восстановления.
-
----
-
+Secrets поступают из operator-owned environment/vault и никогда не встраиваются
+в image или Git. Backup шифруется, имеет retention и регулярно проходит
+restore drill. Single-host V1 обязан честно фиксировать отсутствие multi-host
+HA и off-site recovery, если они не настроены.

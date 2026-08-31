@@ -1,5 +1,9 @@
 # Этап 0J. CI baseline
 
+> **Статус: historical evidence.** Этот файл фиксирует выполненный EPIC-000
+> и не является активной инструкцией. Актуальный roadmap находится в разделе
+> `05-implementation-roadmap`, а порядок работ — в главе 32.
+
 Добавь CI workflow для pull request и main branch, который выполняет:
 
 1. checkout без сохранения лишних credentials;
@@ -17,4 +21,3 @@
 13. secret-safe logs.
 
 Не добавляй production deployment в Phase 0.
-

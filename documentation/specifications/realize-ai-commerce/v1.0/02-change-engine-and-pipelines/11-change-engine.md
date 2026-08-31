@@ -1,145 +1,58 @@
 # 11. Change Engine
 
+- **Статус:** target specification
+
 ## 11.1. Назначение
 
-Change Engine — единственный компонент, который управляет жизненным циклом изменения.
+Change Engine — единственный owner управляемого изменения. Он преобразует
+намерение в versioned plan, разрешает state transitions, связывает approvals с
+exact hashes и передаёт работу только server-owned executors.
 
-Он отвечает за:
+## 11.2. CapabilityDescriptor
 
-- классификацию;
-- риск;
-- scope;
-- policy;
-- approvals;
-- запуск jobs;
-- фиксацию state transitions;
-- блокировки;
-- retries;
-- artifact binding;
-- deployment;
-- rollback;
-- аудит.
+Каждая возможность регистрируется сервером и содержит:
 
-## 11.2. Типы Change Request
+- стабильные `id` и `version`;
+- класс: content, data, schema, design, frontend, code, module, plugin,
+  configuration или release;
+- применимый project profile;
+- разрешённые actions и input schema;
+- server-side selector/resolver и executor;
+- read/write scope и protected-resource policy;
+- risk signals, limits, required checks и approvals;
+- preview, idempotency и rollback support.
 
-```text
-QUERY
-CONTENT_CHANGE
-CATALOG_CHANGE
-CONFIG_CHANGE
-THEME_CHANGE
-CODE_CHANGE
-SCHEMA_CHANGE
-MIXED_CHANGE
-DEPLOYMENT_ONLY
-ROLLBACK
-AGENCY_ENGINEERING_REQUEST
-```
+Installation overlay может выбрать разрешённый descriptor или дополнительно
+сузить его, но не создать новый executable или расширить scope.
 
-## 11.3. Полная state machine
+## 11.3. ChangeRequest
 
-```text
-draft
--> intake
--> clarifying
--> context_compiling
--> classifying
--> planning
--> plan_ready
--> awaiting_plan_approval
--> plan_approved
--> workspace_preparing
--> executing
--> changes_ready
--> validating
--> validation_failed | validation_passed
--> preview_building
--> preview_failed | preview_ready
--> awaiting_acceptance
--> accepted
--> release_preparing
--> release_ready
--> awaiting_release_approval
--> release_approved
--> deploying
--> deployment_failed | deployed
--> verifying
--> verification_failed | completed
-```
+Нормативный Change Request фиксирует:
 
-Контрольные и terminal states:
+- actor и installation identity;
+- system release и `AIConfigSnapshot` hash;
+- исходное intent и выбранные capability versions;
+- normalized operations и exact scope;
+- risk assessment и estimated usage/cost;
+- checks, preview и rollback strategy;
+- input/current-state hashes и optimistic-lock values;
+- approvals, artifacts, events и audit references.
+
+## 11.4. State machine
 
 ```text
-blocked
-cancel_requested
-cancelling
-cancelled
-failed
-expired
-superseded
-rollback_requested
-awaiting_rollback_approval
-rolling_back
-rollback_failed
-rolled_back
+draft → planned → awaiting_approval → approved
+→ executing → evidence_ready → awaiting_acceptance
+→ accepted → release_ready → production_authorized → completed
 ```
 
-## 11.4. Запрещённые переходы
+Допустимы отдельные `rejected`, `cancelled`, `failed`, `blocked`,
+`superseded` и `rolled_back`. Переходы выполняются командами с expected version;
+повтор не должен создавать второй side effect.
 
-Примеры:
+## 11.5. Инварианты
 
-- `draft -> deploying` запрещён;
-- `plan_ready -> executing` запрещён без approval, если policy требует approval;
-- `preview_ready -> deployed` запрещён без acceptance и release approval;
-- `release_approved -> deploying` запрещён, если artifact digest изменился;
-- `completed -> executing` запрещён; создаётся новый Change Request;
-- `failed -> executing` запрещён без retry transition и новой attempt;
-- `cancel_requested -> deployed` запрещён;
-- `rolled_back -> completed` запрещён; rollback является отдельным terminal result.
-
-## 11.5. State transition contract
-
-Каждый переход содержит:
-
-```ts
-interface StateTransition {
-  transitionID: string
-  changeRequestID: string
-  from: ChangeState
-  to: ChangeState
-  actorType: 'user' | 'system' | 'worker' | 'operator'
-  actorID: string
-  reason: string
-  expectedVersion: number
-  idempotencyKey: string
-  payloadHash?: string
-  createdAt: string
-}
-```
-
-Переход выполняется транзакционно с optimistic lock по `version`.
-
-## 11.6. Idempotency
-
-Любой side effect получает idempotency key:
-
-- tool operation;
-- job queue;
-- approval;
-- build;
-- image push;
-- preview deploy;
-- production deploy;
-- usage ingestion;
-- license activation.
-
-Повтор HTTP request или worker retry не должен дважды переносить товары, списывать кредиты или запускать второй production rollout.
-
-## 11.7. Outbox pattern
-
-Изменение state и запись outgoing event выполняются в одной DB transaction.
-
-Outbox worker доставляет событие в control plane. После успешной доставки event помечается delivered.
-
----
-
+Модель не вызывает executor напрямую. Raw SQL, unrestricted Payload CRUD,
+произвольный shell и credentials не являются capabilities. Отсутствующий
+descriptor означает отказ или operator escalation, а не импровизированный
+обход.

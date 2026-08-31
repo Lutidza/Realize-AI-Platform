@@ -1,11 +1,17 @@
-# Контекст проекта: Realize-E-Commerce
+# Контекст проекта: Realize
+
+- **Статус:** current implementation
+- **Дата сверки:** 28 августа 2026 года
 
 ## Цель проекта
 
-Платформа **Realize-E-Commerce** — конструктор интернет-магазинов на
-Next.js App Router и Payload CMS 3. Основной фокус — быстрый старт магазина,
-редактируемый каталог, каталожные страницы, корзина и базовый checkout, с
-возможностью масштабирования за счёт модульных domain-сервисов.
+Realize — AI-управляемая CMS-платформа для сайтов разных типов. Текущий
+репозиторий реализует первый e-commerce-профиль: каталог, storefront, корзину и
+checkout. Целевая архитектура отделяет универсальное ядро управления
+content/data/schema/design/code/delivery от профильных commerce-модулей.
+
+Текст target specification не является доказательством runtime. Эта страница
+фиксирует только подтверждённое состояние текущего checkout.
 
 ## Технологии и runtime baseline
 
@@ -17,7 +23,9 @@ Next.js App Router и Payload CMS 3. Основной фокус — быстр�
 - Delivery: Docker/Compose, GitHub Actions, GHCR и exact-digest deployment на
   Linux VPS.
 - Tests/evidence: Vitest и Playwright.
-- MCP не является разрешённым runtime capability текущего Phase 0/1 slice.
+- В execution worker MCP не является разрешённым runtime capability. В
+  project Codex adapter настроены отдельные development MCP для browser/UI/Next
+  tooling; Payload MCP endpoint сейчас отсутствует.
 
 ## Активный контур приложения
 
@@ -104,6 +112,11 @@ Production authorization handoff, deploy/rollback controller и commercial
 enforcement в текущий slice не входят. `RELEASE_APPROVAL` по-прежнему не даёт
 worker-у production credentials и не запускает rollout.
 
+Настраиваемый installation AI-layer со skills, knowledge, prompts, local
+rules/roles/check bindings, agent profiles, evals и config releases также
+является target и в текущем plugin ещё не реализован. Payload Admin не
+редактирует системные `.ai/**` и `.codex/**`.
+
 ## Правило синхронизации для AI-агентов
 
 `.ai` содержит активные runtime-инструкции.
@@ -112,10 +125,10 @@ worker-у production credentials и не запускает rollout.
 в контракте обязательно валидировать через `documentation/**` gate из
 `.ai/rules/documentation/RULE-CANONICAL-DOCUMENTATION-BEFORE-CONTRACT-CHANGE.md`.
 
-Целевая продуктовая и архитектурная спецификация AI Commerce доступна через
+Целевая продуктовая и архитектурная спецификация Realize доступна через
 канонический entrypoint
 `documentation/REALIZE_AI_COMMERCE_MASTER_SPEC_v1.0_RU.md`. Полный текст
-версии 1.0 разложен в исполняемом порядке в
+версии 1.0 разложен в нормативном порядке чтения в
 `documentation/specifications/realize-ai-commerce/v1.0/**`.
 
 Фактический runbook реализации начинается с

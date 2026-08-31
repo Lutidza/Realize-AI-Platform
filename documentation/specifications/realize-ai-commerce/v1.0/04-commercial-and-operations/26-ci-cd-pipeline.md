@@ -1,77 +1,37 @@
 # 26. CI/CD pipeline
 
-## 26.1. Baseline CI
+- **Статус:** target specification
+- **Current baseline:** GitHub Actions, GHCR и exact-digest deployment уже присутствуют
 
-На каждый pull request/AI branch:
+## 26.1. Source gates
 
-1. checkout exact commit;
-2. verify Node/npm versions;
-3. `npm ci`;
-4. lockfile integrity;
-5. format check;
-6. lint;
-7. TypeScript check;
-8. unit tests;
-9. integration tests;
-10. Payload config initialization;
-11. generated types/import map drift check;
-12. migration status;
-13. Next build;
-14. Playwright smoke;
-15. secret scan;
-16. dependency scan;
-17. protected path policy;
-18. artifact reports.
+Pull Request выполняет runtime verification, formatting, lint, typecheck,
+integration tests, build, migration checks, security/dependency scan и
+profile-specific tests по scope. Generated artifacts и dirty diff после
+проверок запрещены.
 
-## 26.2. Release CI
+## 26.2. Release candidate
 
-После acceptance:
+Release строится из exact commit в trusted CI:
 
-1. clean checkout;
-2. full CI повторно на exact commit;
-3. build image;
-4. generate SBOM;
-5. vulnerability scan;
-6. attach provenance;
-7. sign image;
-8. push by digest;
-9. write Release Manifest;
-10. deploy preview if not already exact artifact;
-11. bind release approval;
-12. production deployment.
+1. reproducible application image;
+2. SBOM и provenance;
+3. vulnerability policy;
+4. signature verification;
+5. manifest/migration/config compatibility hashes;
+6. immutable registry digest;
+7. production-like release preview и health evidence.
 
-## 26.3. Нельзя пересобирать после release approval
+Candidate identity не выводится из mutable tag.
 
-Если build был повторён, digest изменился — требуется новое approval.
+## 26.3. Promotion
 
-## 26.4. Check registry
+Staging и production используют один digest. Production требует environment
+approval и отдельный Realize `PRODUCTION_AUTHORIZATION` exact candidate.
+CI credential, worker credential и deploy credential разделены.
 
-`.ai/checks/**` должен получить machine-readable registry:
+## 26.4. Rollback
 
-```yaml
-check_id: payload-config-init
-command: npm run payload:generate-types -- --check
-applies_to:
-  - schema_change
-  - code_change
-required: true
-timeout_seconds: 300
-artifacts:
-  - report
-failure_state: validation_failed
-```
-
-## 26.5. Dependency changes
-
-При изменении `package.json`/lockfile:
-
-- отдельный risk flag;
-- version evidence;
-- compatibility check;
-- license scan;
-- vulnerability scan;
-- explicit approval;
-- no broad `npm update`.
-
----
-
+Workflow хранит previous known-good digest и release metadata. Failed readiness
+возвращает application digest, но не выполняет автоматический database restore.
+Rollback evidence и operator action входят в audit.

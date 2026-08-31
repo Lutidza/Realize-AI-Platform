@@ -13,9 +13,12 @@
 9. [ADR-0009 — Delivery platform](ADR-0009-delivery-platform.md)
 10. [ADR-0010 — OCI release control-plane boundary](ADR-0010-oci-release-control-plane.md)
 11. [ADR-0011 — GitHub/GHCR/VPS release preview adapter](ADR-0011-github-ghcr-vps-release-preview.md)
-12. [ADR-0012 — Admin integration registry and write-only credentials](ADR-0012-admin-integration-registry.md)
+12. [ADR-0012 — Admin integration registry](ADR-0012-admin-integration-registry.md)
 13. [ADR-0013 — GitHub Pull Request source promotion](ADR-0013-github-pull-request-source-promotion.md)
+14. [ADR-0014 — Universal site core and project profiles](ADR-0014-universal-site-core-and-project-profiles.md)
+15. [ADR-0015 — Protected system AI layer and installation overlay](ADR-0015-protected-system-ai-layer-and-installation-overlay.md)
 
-ADR-0001, 0005, 0006, 0007, 0009, 0010, 0011, 0012 и 0013 имеют статус `accepted`;
-ADR-0002, 0003, 0004 и 0008 — `accepted-as-target`. Изменение решения требует
-нового ADR или явного supersede, а не правки истории без следа.
+ADR-0001, 0005, 0006, 0007, 0009–0013 имеют статус `accepted`.
+ADR-0002–0004, 0008, 0014 и 0015 имеют статус `accepted-as-target`.
+Исторические ADR не переписываются: изменение решения оформляется новым ADR с
+явной связью `supersedes/superseded by`.

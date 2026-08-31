@@ -1,8 +1,12 @@
 # Структура проекта (источник для AI-layer)
 
+- **Статус:** current implementation
+- **Дата сверки:** 28 августа 2026 года
+
 ## Активный продуктовый контур
 
-- `src/app/(app)/**` — storefront и application API routes.
+- `src/app/(app)/**` — public site текущего e-commerce-профиля и application
+  API routes.
 - `src/app/(payload)/**` — generated Payload Admin/API bridge; generated
   page/layout вручную не редактируются.
 - `src/payload.config.ts` — root Payload config и migration owner.
@@ -70,6 +74,11 @@ source promotion не получает merge authority, а release executable п
 только явно allowlisted environment. Source/candidate refs и `release-preview`
 environment не дают production deployment authority.
 
+Target `/admin/ai/settings` и installation AI configuration collections в
+этом current contour отсутствуют. Они должны быть добавлены в
+`packages/payload-ai-plugin/**` и migrations отдельным implementation slice,
+не превращая `.ai/**` или `.codex/**` в client-editable data.
+
 ## Delivery и эксплуатация
 
 - `Dockerfile`, `compose.yaml`, `.dockerignore` — production-like container
@@ -102,9 +111,10 @@ environment не дают production deployment authority.
 - `documentation/project-context.md` — канонический контекст проекта.
 - `documentation/specifications/**` — нормативные product/architecture specs.
 
-AI-layer audit от 2026-08-17 зафиксировал foreign identity и stale paths; до
-отдельной cleanup-задачи см.
-`documentation/reports/AI-LAYER-FOREIGN-ARTIFACT-AUDIT.md`.
+AI-layer audit от 2026-08-17 сохранён как historical evidence в
+`documentation/reports/AI-LAYER-FOREIGN-ARTIFACT-AUDIT.md`. Текущее
+состояние определяется active `.ai/**`, `.codex/**` и фактическими paths,
+а не исходными findings отчёта.
 
 ## Принципы владения
 

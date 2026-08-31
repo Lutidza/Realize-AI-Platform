@@ -1,106 +1,56 @@
-# 6. Целевая архитектура верхнего уровня
+# 6. Целевая архитектура
 
-```mermaid
-flowchart LR
-    U[Пользователь в Payload Admin] --> UI[Realize AI Custom View]
-    UI --> API[AI Plugin API]
-    API --> CE[Change Engine]
-    CE --> POL[Policy and Approval Engine]
-    CE --> SITEQ[Site Job Store]
-
-    SITEQ --> ORCH[Central AI Orchestrator]
-    ORCH --> CTX[Context Pack Compiler]
-    ORCH --> CW[Isolated Codex Worker]
-    CW --> REPO[Isolated Git Worktree]
-    CW --> TG[Scoped Tool Gateway]
-    TG --> PAYLOAD[Client Payload Instance]
-
-    CW --> CHECKS[Test and Review Runners]
-    CHECKS --> BUILD[Build and Release Service]
-    BUILD --> REG[Private OCI Registry]
-    BUILD --> PREVIEW[Ephemeral Preview]
-
-    CE --> APPROVE[Human Approval]
-    APPROVE --> DEPLOY[Deployment Controller]
-    DEPLOY --> PROD[Client Production Slot]
-
-    API --> LICENSE[License and Entitlement Service]
-    ORCH --> METER[Usage Metering]
-    METER --> BILLING[Subscription and Billing]
-    CE --> AUDIT[Immutable Audit Trail]
-```
+- **Статус:** target specification
 
 ## 6.1. Плоскости системы
 
-### A. Site Runtime Plane
+1. **Site runtime** — public site, Payload Local/API, PostgreSQL, media и
+   профильные модули.
+2. **Admin/control interface** — обычный Payload Admin, `/admin/ai`,
+   contextual actions, integrations и AI settings.
+3. **Installation configuration plane** — drafts/releases локальных skills,
+   knowledge, prompts, rules, roles, checks, agents и evals.
+4. **AI control plane** — identity resolution, Context Pack compiler,
+   orchestration, policy, Change Engine, events, audit и usage.
+5. **Execution plane** — изолированные data/schema/code executors, workspaces,
+   checks, preview и artifact verification.
+6. **Build/release plane** — source promotion, OCI build, signing, deployment,
+   health verification и rollback.
+7. **Commercial/operator plane** — installation identity, license,
+   subscriptions, metering, fleet operations и escalation.
 
-Отдельный для каждого клиента:
+Чат является одним client interface к control plane. Те же policy и state
+machine обязательны для contextual actions, API automation и scheduled tasks.
 
-- Next.js/Payload app;
-- PostgreSQL;
-- media storage;
-- plugin collections;
-- site-local audit references;
-- client-facing admin;
-- безопасный tool endpoint;
-- deployment slot metadata.
+## 6.2. Основной поток
 
-### B. AI Control Plane
+```text
+actor request
+→ authenticated installation/actor context
+→ protected context compilation
+→ intent and capability planning
+→ Change Request
+→ policy/risk/check plan
+→ required approval
+→ isolated execution
+→ evidence and preview
+→ result acceptance
+→ release/production approval when applicable
+→ delivery and audit
+```
 
-Общий сервис агентства:
+Ни один downstream переход не наследует authority автоматически. Exact hashes,
+версии и optimistic locks проверяются повторно перед side effect.
 
-- job routing;
-- Context Pack compilation;
-- Codex thread management;
-- streaming event normalization;
-- budgets;
-- run cancellation;
-- retry policy;
-- worker isolation;
-- model usage collection.
+## 6.3. Изоляция
 
-### C. Build and Release Plane
+Инсталляция видит только собственные данные и конфигурацию. Worker получает
+short-lived capability с operation, scope, actor, installation, expiry и
+allowed tool set. Central services хранят минимальные метаданные и не становятся
+общей CMS-базой.
 
-- repository checkout;
-- worktree creation;
-- dependency cache;
-- test runners;
-- DB clone/migration validation;
-- image build;
-- SBOM;
-- image signing;
-- private registry;
-- preview deployment;
-- production rollout.
+## 6.4. Доступность
 
-### D. Commercial Control Plane
-
-- customers;
-- installations;
-- licenses;
-- subscriptions;
-- plans;
-- entitlements;
-- usage ledger;
-- invoices/credits;
-- release channels;
-- agency operator access.
-
-## 6.2. Граница доверия
-
-Модель является недоверенным планировщиком и генератором предложений.
-
-Доверенными являются:
-
-- authenticated user identity;
-- server-side installation context;
-- policy engine;
-- state machine;
-- tool executors;
-- approval verifier;
-- artifact digest verifier;
-- deployment controller;
-- license signature verifier.
-
----
-
+Site runtime продолжает обслуживать публичные read-сценарии при временной
+недоступности AI или commercial control plane. AI mutation и новый production
+transition в неопределённом состоянии прекращаются fail-closed.

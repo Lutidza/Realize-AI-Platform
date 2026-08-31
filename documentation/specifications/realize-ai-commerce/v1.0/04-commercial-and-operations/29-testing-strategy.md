@@ -1,84 +1,28 @@
 # 29. Testing strategy
 
-## 29.1. Unit tests
+- **Статус:** target specification
 
-- state transitions;
-- risk classifier;
-- approval binding;
-- hash calculation;
-- idempotency;
-- policy evaluator;
-- tool schema validation;
-- license verifier;
-- pricing calculation;
-- context pack compiler.
+## 29.1. Уровни
 
-## 29.2. Payload plugin integration tests
+- contract/unit: DTO, state machine, hashes, policy и mappers;
+- integration: Payload access/hooks, PostgreSQL transactions, queues и audit;
+- migration: empty DB, upgrade, backward compatibility и restore proof;
+- execution: worktree/path/sandbox/check/timeout/idempotency;
+- browser: Admin flows, SSE/reconnect, approvals, preview и responsive UI;
+- delivery: exact digest, signature, health, failed rollout и rollback;
+- security: injection, escalation, hidden data, SSRF/egress и secret redaction;
+- commercial: lease expiry, quota, retry/reconciliation и degraded mode.
 
-- plugin config merge;
-- enabled/disabled;
-- collection injection;
-- endpoint access;
-- custom view import map;
-- access controls;
-- Local API with `overrideAccess: false`;
-- transaction rollback;
-- MCP short-lived auth;
-- protected collections.
+## 29.2. Profile packs
 
-## 29.3. Runtime tests
+Core suite не содержит e-commerce assumptions. Активный project profile
+добавляет fixtures, routes, business invariants и browser scenarios. Первый
+e-commerce pack проверяет catalog, product/category relations, cart/checkout и
+profile-specific migrations.
 
-- job leasing;
-- duplicate delivery;
-- worker crash/retry;
-- cancellation;
-- event ordering;
-- resume from cursor;
-- optimistic conflict;
-- outbox replay;
-- no abandoned sessions.
+## 29.3. Evidence
 
-## 29.4. Security tests
-
-- prompt injection in product description;
-- attempt to change installation ID;
-- attempt protected path write;
-- expired capability token;
-- replay token;
-- scope expansion;
-- malicious dependency request;
-- approval hash mismatch;
-- artifact digest mismatch;
-- cross-client network attempt;
-- secret exfiltration attempt.
-
-## 29.5. E2E scenarios
-
-1. Ask read-only question.
-2. Move products with dry-run and approval.
-3. Update page block and open Live Preview.
-4. Create code change, build preview, accept, deploy.
-5. Reject preview and request revision.
-6. Cancel running job.
-7. Simulate failed test.
-8. Simulate failed deployment.
-9. Roll back release.
-10. License goes into grace.
-11. Budget limit reached.
-12. Two admins create conflicting changes.
-
-## 29.6. Chaos/failure tests
-
-- worker killed;
-- queue message redelivered;
-- DB unavailable;
-- control plane unavailable;
-- license service unavailable;
-- SSE disconnected;
-- preview provisioning timeout;
-- registry unavailable;
-- migration failure;
-- health check flaps.
-
----
-
+Capability не считается готовой по mock-only test. Mutation требует real
+database evidence, UI — browser evidence, migration — clean/upgrade proof,
+delivery — immutable artifact и recovery evidence. Пропущенный внешний test
+явно фиксируется как непроверенный operational dependency.

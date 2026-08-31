@@ -1,141 +1,34 @@
 # 24. Licensing architecture
 
-## 24.1. Реалистичная цель защиты
+- **Статус:** target specification
 
-Нельзя гарантировать, что JavaScript-код или Docker image невозможно скопировать. Техническая защита должна сочетаться с:
+## 24.1. Назначение
 
-- proprietary договором;
-- контролируемой поставкой;
-- signed images;
-- private registry;
-- central services;
-- license enforcement;
-- entitlement checks;
-- отсутствием критических private keys в поставке.
+License Service выдаёт signed entitlement projection для installation:
+доступные profiles/modules/capability classes, AI limits, release channel,
+support tier и срок lease.
 
-Ценность должна находиться не только в коде контейнера, но и в AI execution, updates, лицензии, release service и сопровождении.
+License является feature/usage ceiling. Она не заменяет authentication,
+authorization, protected scopes, risk policy или approval. Наличие entitlement
+не может разрешить запрещённую security operation.
 
-## 24.2. Installation identity
+## 24.2. Lease
 
-При первом запуске:
+Site runtime проверяет signature, installation ID, audience, issue/expiry,
+policy version и anti-rollback sequence. Кэшированный lease позволяет
+ограниченную работу при временной недоступности central service.
 
-1. генерируется `installation_id`;
-2. генерируется Ed25519 keypair;
-3. private key хранится локально в secret storage;
-4. public key отправляется на License Service;
-5. activation request подписывается private key;
-6. License Service создаёт installation record.
+После expiry:
 
-## 24.3. License lease
+- публичный сайт и доступ владельца к его данным продолжают работать;
+- read-only CMS сохраняется по локальной policy;
+- новые платные AI mutations и production transitions блокируются;
+- operator получает явный degraded state;
+- уже начатый side effect завершается или восстанавливается по durable state,
+  а не обрывается посередине.
 
-License Service выдаёт signed lease:
+## 24.3. Защита
 
-```json
-{
-  "license_id": "lic_...",
-  "installation_id": "inst_...",
-  "installation_public_key_hash": "...",
-  "customer_id": "cus_...",
-  "plan": "agency-commerce-pro",
-  "environment": "production",
-  "domains": ["shop.example.com"],
-  "entitlements": {
-    "ai": true,
-    "code_changes": true,
-    "production_deploy": true,
-    "monthly_ai_credits": 5000,
-    "max_concurrent_runs": 1,
-    "premium_modules": ["seo-pro", "advanced-carousel"]
-  },
-  "issued_at": "...",
-  "expires_at": "...",
-  "grace_until": "...",
-  "lease_version": 1
-}
-```
-
-Lease подписывается private signing key центрального сервиса и проверяется embedded public verification key.
-
-## 24.4. Domain binding
-
-Domain — дополнительный сигнал, а не единственный идентификатор.
-
-Нужны:
-
-- production domains;
-- staging domains;
-- временная смена;
-- migration workflow;
-- DNS verification при необходимости.
-
-Жёсткая привязка только к одному домену создаёт операционные проблемы и не защищает от копирования сама по себе.
-
-## 24.5. License states
-
-```text
-UNACTIVATED
-TRIAL
-ACTIVE
-GRACE
-SUSPENDED
-EXPIRED
-REVOKED
-INVALID
-```
-
-## 24.6. Поведение по состояниям
-
-### ACTIVE/TRIAL
-
-Все entitlements согласно plan.
-
-### GRACE
-
-- storefront работает;
-- admin работает;
-- существующий контент доступен;
-- AI может быть ограничен warning/budget policy;
-- renewal активно повторяется.
-
-### SUSPENDED/EXPIRED после grace
-
-- storefront работает;
-- заказы и данные не блокируются;
-- AI-run creation запрещён;
-- production deployment запрещён;
-- premium updates запрещены;
-- operator может восстановить подписку.
-
-### REVOKED/INVALID
-
-- AI и deployment отключены;
-- security alert;
-- storefront не выключается автоматически;
-- manual review.
-
-## 24.7. Release protection
-
-- private OCI registry;
-- images pinned by digest;
-- Cosign signature;
-- SBOM attestation;
-- release manifest signature;
-- site pulls only allowed channel/version;
-- unsigned image не запускается deployment controller.
-
-## 24.8. Правовая часть
-
-Потребуются отдельные документы, проверенные юристом:
-
-- proprietary software license;
-- SaaS/service agreement;
-- acceptable use;
-- support/SLA;
-- privacy/DPA;
-- AI usage disclosure;
-- subcontractor list;
-- OpenAI/API terms compliance;
-- notices по MIT и другим open-source dependencies.
-
----
-
+Клиентская Admin не редактирует license, public key trust store или system
+policy. Lease не содержит secrets и не доверяет installation ID из browser
+payload. Revocation и clock-skew policy версионируются и аудитируются.

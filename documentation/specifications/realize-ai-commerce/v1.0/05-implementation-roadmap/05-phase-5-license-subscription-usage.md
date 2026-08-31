@@ -1,42 +1,16 @@
-# Phase 5. License, subscription and usage
+# Phase 5. License, subscription и usage
 
-## 5.1. License Service
+- **Статус:** planned
 
-- activation;
-- installation keypair;
-- leases;
-- grace;
-- entitlements;
-- revoke;
-- domain management.
+Нужно реализовать installation activation, signed lease, entitlements,
+subscription state, usage reservation/reconciliation, quotas, metered overage,
+operator views и degraded/grace behavior.
 
-## 5.2. Billing
+Exit criteria:
 
-- plans;
-- subscriptions;
-- AI credits;
-- reservations;
-- ledger;
-- overage;
-- vendor Stripe contour.
-
-## 5.3. Operator Console
-
-- installations;
-- health;
-- usage;
-- license;
-- deployments;
-- support handoff;
-- emergency disable AI.
-
-## Phase 5 acceptance
-
-- no OpenAI key on client site;
-- expired license does not stop storefront;
-- AI respects entitlements;
-- ledger reconciles with provider usage;
-- pricing version immutable.
-
----
-
+- license только сужает capabilities и не обходит security;
+- public site и доступ клиента к данным переживают control-plane outage;
+- expired/revoked lease блокирует новые платные mutations fail-closed;
+- retry не создаёт двойное списание;
+- usage связан с run, pricing version и provider evidence без prompts/secrets;
+- billing и license failure не оставляют начатый side effect без durable owner.

@@ -1,215 +1,49 @@
-# 21. Модель данных AI-плагина
+# 21. AI plugin data model
 
-Ниже приведена целевая логическая модель. На MVP она может быть реализована Payload collections + скрытые runtime tables.
+- **Статус:** target specification
 
-## 21.1. `realize-ai-conversations`
+## 21.1. Operational aggregates
 
-Поля:
+Нормативные группы:
 
-- `id`;
-- `title`;
-- `status`: active/archived;
-- `createdBy`;
-- `participants`;
-- `contextTarget`;
-- `lastMessageAt`;
-- `activeChangeRequest`;
-- timestamps.
+- Conversation, Message;
+- Run, RunEvent, CheckResult;
+- ChangeRequest, Approval;
+- DataOperation и rollback evidence;
+- ExecutionJob, Deployment/Preview;
+- SourcePromotion, ReleaseCandidate, ProductionDeployment;
+- Integration и IntegrationEvent;
+- UsageRecord и AuditEvent.
 
-Indexes:
+Current plugin реализует значительную часть этих групп, но не
+`ProductionDeployment` и commercial aggregates.
 
-- createdBy + lastMessageAt;
-- status + lastMessageAt.
+## 21.2. Installation AI configuration
 
-## 21.2. `realize-ai-messages`
+Target overlay содержит:
 
-Поля:
+- Skill;
+- KnowledgeSource и KnowledgeDocument;
+- PromptTemplate;
+- LocalRule;
+- LocalRole и CapabilityBinding;
+- CheckBinding;
+- AgentProfile;
+- EvalCase и EvalRun;
+- AIConfigDraft и immutable AIConfigRelease;
+- ActiveConfigPointer.
 
-- conversation;
-- role;
-- kind;
-- content;
-- structuredPayload;
-- run;
-- changeRequest;
-- visibility;
-- sequence;
-- usageSummary;
-- createdAt.
+Editable entities принадлежат draft. Activation создаёт snapshot manifest с
+versions/content hashes, validation/eval evidence, creator/approver и system
+compatibility range.
 
-Content должен проходить redaction policy.
+## 21.3. Общие инварианты
 
-## 21.3. `realize-ai-change-requests`
+Operational collections скрыты от обычного Payload CRUD UI/API либо имеют
+отдельный least-privilege access. Credentials хранятся write-only encrypted
+envelopes. Audit и approvals append-only. DTO redacted и versioned.
 
-Поля:
-
-- type;
-- state;
-- version;
-- riskLevel;
-- requestedBy;
-- conversation;
-- originalRequest;
-- normalizedIntent;
-- plan;
-- planHash;
-- scopeManifest;
-- scopeHash;
-- contextPackHash;
-- baseCommit;
-- branch;
-- affectedDocuments;
-- affectedPaths;
-- operationHash;
-- diffHash;
-- previewURL;
-- releaseArtifactDigest;
-- previousReleaseDigest;
-- rollbackPlan;
-- blockedReason;
-- expiresAt;
-- timestamps.
-
-## 21.4. `realize-ai-runs`
-
-Поля:
-
-- changeRequest;
-- stage;
-- provider;
-- model;
-- threadID;
-- sandboxProfile;
-- workerID;
-- status;
-- attempt;
-- startedAt;
-- finishedAt;
-- usage;
-- providerCost;
-- errorSummary;
-- eventCursor.
-
-## 21.5. `realize-ai-operations`
-
-Поля:
-
-- changeRequest;
-- sequence;
-- lane;
-- toolName;
-- inputRedacted;
-- inputHash;
-- idempotencyKey;
-- state;
-- beforeArtifact;
-- afterArtifact;
-- resultSummary;
-- error;
-- executedBy;
-- timestamps.
-
-## 21.6. `realize-ai-approvals`
-
-Поля:
-
-- changeRequest;
-- type;
-- decision;
-- actor;
-- roleSnapshot;
-- boundHash;
-- targetEnvironment;
-- comment;
-- expiresAt;
-- createdAt;
-- revokedAt.
-
-Approval immutable; revoke создаёт отдельное событие.
-
-## 21.7. `realize-ai-check-results`
-
-Поля:
-
-- changeRequest;
-- run;
-- stage;
-- checkID;
-- status;
-- commandSummary;
-- durationMs;
-- logArtifact;
-- reportArtifact;
-- required;
-- blocking;
-- createdAt.
-
-## 21.8. `realize-ai-deployments`
-
-Поля:
-
-- changeRequest;
-- environment;
-- releaseID;
-- imageDigest;
-- previousImageDigest;
-- migrationSet;
-- state;
-- previewURL;
-- initiatedBy;
-- approval;
-- healthSummary;
-- startedAt;
-- completedAt;
-- rollbackOf;
-- failureReason.
-
-## 21.9. `realize-ai-audit-events`
-
-Append-only:
-
-- eventID;
-- sequence/revision;
-- aggregateType;
-- aggregateID;
-- eventType;
-- actorType;
-- actorID;
-- visibility;
-- summary;
-- payloadRedacted;
-- payloadHash;
-- idempotencyKey;
-- createdAt.
-
-Update/delete access запрещён всем обычным ролям.
-
-## 21.10. `realize-ai-usage-ledger`
-
-Лучше хранить канонический ledger в central control plane, а в site instance — projection.
-
-Поля central ledger:
-
-- usageEventID;
-- installationID;
-- customerID;
-- runID;
-- provider;
-- model;
-- inputTokens;
-- cachedInputTokens;
-- outputTokens;
-- toolRuntimeUnits;
-- providerCost;
-- platformFee;
-- billableAmount;
-- currency;
-- pricingVersion;
-- status;
-- occurredAt;
-- invoicedAt.
-
-Ledger append-only.
-
----
-
+Runs/Change Requests ссылаются на exact system/config/capability versions.
+Удаление или изменение source draft не меняет исторический execution context.
+Retention и hard delete определяются отдельной policy, а не cascade по запросу
+модели.

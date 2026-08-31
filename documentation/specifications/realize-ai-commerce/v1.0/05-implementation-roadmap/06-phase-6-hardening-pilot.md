@@ -1,53 +1,20 @@
-# Phase 6. Hardening and pilot
+# Phase 6. Hardening и pilot
 
-## 6.1. Pilot
+- **Статус:** planned
 
-- 5–10 controlled clients;
-- one vertical/standard template;
-- limited tool catalog;
-- agency approval for all production releases.
+Фаза переводит target capabilities в промышленную эксплуатацию на 5–10
+изолированных сайтах.
 
-## 6.2. Security review
+Обязательны:
 
-- threat model review;
-- penetration testing;
-- dependency audit;
-- secrets audit;
-- cross-installation isolation test;
-- backup restore drill.
+- threat model/red-team по prompt/tool/knowledge injection;
+- restore, application rollback и incident drills;
+- queue/worker/control-plane failure tests;
+- SLO dashboards, alerts и capacity/cost budgets;
+- data retention, audit export и operator escalation;
+- upgrade compatibility system layer ↔ installation config releases;
+- profile-specific browser/business acceptance;
+- подтверждение отсутствия cross-installation access.
 
-## 6.3. Operational readiness
-
-- runbooks;
-- on-call;
-- support process;
-- incident response;
-- cost dashboards;
-- capacity planning.
-
-## 6.4. Scale gates
-
-До 50 клиентов:
-
-- standard onboarding;
-- automated backups;
-- central operator dashboard.
-
-До 100 клиентов:
-
-- worker autoscaling;
-- release rings;
-- usage reconciliation;
-- error budgets.
-
-До 1 000 клиентов:
-
-- fleet management;
-- staged rollouts;
-- configuration drift detection;
-- per-installation SLO;
-- automated update campaigns;
-- stronger self-service.
-
----
-
+Pilot считается успешным только по измеримым SLO и recovery evidence. Наличие
+функции в Admin или один демонстрационный run недостаточны.

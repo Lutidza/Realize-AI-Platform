@@ -1,22 +1,21 @@
-# 36. Открытые решения, которые нужно зафиксировать до Phase 1
+# 36. Open decisions
 
-1. Какой contour является продуктовым: `(app)` или `RealizeCore`?
-2. Где будут размещаться central services?
-3. Один Git repo на клиента или иной fleet model?
-4. Какой CI provider используется?
-5. Какой container registry используется?
-6. Какой preview orchestrator используется: Docker hosts, Nomad или Kubernetes?
-7. Какой secret manager используется?
-8. Какой central queue используется?
-9. Какой billing provider используется для подписки агентства?
-10. Какие collections разрешены AI writes в pilot?
-11. Какие операции требуют dual approval?
-12. Какой срок retention prompts/events?
-13. Какие географии и privacy requirements применимы?
-14. Какой SLA продаётся клиентам?
-15. Какой release cadence для core packages?
+- **Статус:** target decisions requiring later ADR
+- **Правило:** до ADR действует указанный safe default
 
-Эти вопросы не блокируют архитектуру документа, но должны стать ADR перед соответствующей реализацией.
+1. **Packaging новых project profiles.** Default: versioned first-party
+   packages; непроверенный marketplace не включён.
+2. **Central worker orchestration после pilot.** Default: trusted agency-owned
+   worker pool; client-hosted execution запрещён.
+3. **Knowledge storage/search provider.** Default: installation-isolated
+   storage и server-filtered retrieval; cross-installation index запрещён.
+4. **Long-term audit retention.** Default: immutable minimum, заданный
+   operator policy; hard delete требует legal/security decision.
+5. **Production rollout strategy beyond single host.** Default: текущий
+   exact-digest VPS workflow; Kubernetes/multi-region не вводятся заранее.
+6. **Дополнительные LLM providers.** Default: OpenAI Codex only in V1.
+7. **Marketplace и third-party executable skills.** Default: запрещены;
+   допускаются только reviewed server-owned capabilities.
 
----
-
+Эти вопросы не разрешают ослаблять существующие security, isolation,
+approval или recovery contracts.

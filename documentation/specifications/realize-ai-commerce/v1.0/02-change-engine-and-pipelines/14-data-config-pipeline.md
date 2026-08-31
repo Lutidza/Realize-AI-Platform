@@ -1,155 +1,39 @@
-# 14. Pipeline: data/config change
+# 14. Data, schema и configuration pipeline
 
-## 14.1. Применение
+- **Статус:** target specification
 
-- товары;
-- категории;
-- страницы;
-- blocks;
-- media references;
-- theme config;
-- module config;
-- navigation;
-- SEO fields.
+## 14.1. Data/Config Lane
 
-## 14.2. Полный процесс
+Executor получает versioned intent с resource type, selectors, action и
+validated parameters. Сервер:
 
-### Stage 1. Intake
+1. разрешает selectors внутри installation;
+2. проверяет access, field/path policy и limits;
+3. строит dry-run, before-snapshot и impact summary;
+4. фиксирует exact target IDs, versions и hashes;
+5. получает требуемое approval;
+6. повторно проверяет optimistic locks;
+7. выполняет mutation через Payload Local API/domain service с hooks/access;
+8. сохраняет after-state, audit и outbox;
+9. предоставляет exact compensating rollback, если он поддерживается.
 
-- сохранить исходный запрос;
-- определить context target;
-- определить actor;
-- зафиксировать текущие document versions.
+Dry-run без исполняемого apply не считается завершённой capability.
 
-### Stage 2. Read and diagnose
+## 14.2. Schema Lane
 
-- выполнить scoped reads;
-- проверить существование документов;
-- определить объём;
-- обнаружить conflicts/locks.
+Создание/удаление поля или типа данных является schema change, а не обычным
+Payload CRUD. Оно требует code/migration artifact, анализа существующих данных,
+backfill/drop policy, совместимости предыдущего release и restore proof.
+ destructive data loss относится минимум к R3 и может быть operator-only.
 
-### Stage 3. Declarative plan
+## 14.3. Installation configuration
 
-Модель формирует `DataChangeSet`, но не выполняет его.
+Skills, prompts, rules, roles и другие AI settings изменяются как versioned
+drafts. Side effect для runtime возникает только при активации проверенного
+`AIConfigRelease`. История версий и использованные run hashes сохраняются.
 
-```ts
-interface DataChangeSet {
-  version: '1.0'
-  changeRequestID: string
-  operations: DataOperation[]
-  affectedDocuments: Array<{
-    collection: string
-    id: string
-    version?: string | number
-  }>
-  estimatedCount: number
-  riskLevel: RiskLevel
-  assumptions: string[]
-  validations: ValidationRule[]
-  rollbackStrategy: 'before-snapshot' | 'inverse-operation'
-}
-```
+## 14.4. Первый текущий adapter
 
-### Stage 4. Policy validation
-
-Проверяется:
-
-- collection allowlist;
-- operation capability;
-- document count limit;
-- protected fields;
-- actor access;
-- current license entitlement;
-- budget;
-- operation schema;
-- idempotency;
-- stale versions.
-
-### Stage 5. Dry-run
-
-Executor:
-
-- заново читает affected documents;
-- сравнивает versions;
-- строит before/after diff;
-- не пишет production;
-- вычисляет operation hash;
-- сохраняет rollback snapshot.
-
-### Stage 6. Approval
-
-Пользователь видит:
-
-- количество документов;
-- какие поля изменятся;
-- before/after examples;
-- предупреждения;
-- operation hash.
-
-### Stage 7. Transactional execution
-
-- начать transaction;
-- повторить authorization;
-- повторить optimistic version check;
-- применить typed operations;
-- передавать один `req` во все Local API operations;
-- выполнить validation hooks;
-- записать audit/outbox;
-- commit;
-- при ошибке rollback.
-
-### Stage 8. Verification
-
-- повторно прочитать изменённые документы;
-- проверить count;
-- проверить invariants;
-- проверить search/index hooks;
-- при необходимости открыть Live Preview.
-
-### Stage 9. Acceptance and close
-
-- показать результат;
-- сохранить actual diff;
-- закрыть change;
-- списать usage.
-
-## 14.3. Пример типизированной операции
-
-```ts
-const moveProductsTool = {
-  name: 'catalog.moveProducts',
-  inputSchema: z.object({
-    productIDs: z.array(z.string()).min(1).max(500),
-    targetCategoryID: z.string(),
-    expectedVersions: z.record(z.string(), z.string()).optional(),
-  }),
-  policy: {
-    capability: 'catalog.bulkMove',
-    risk: 'R2',
-    approval: 'BULK_DATA_APPROVAL',
-  },
-  execute: async ({ input, req }) => {
-    // req already contains authenticated actor and installation context
-    // no tenant/installation id is accepted from the model
-  },
-}
-```
-
-## 14.4. Запрещённый интерфейс
-
-Нельзя предоставлять модели инструмент вида:
-
-```ts
-executeSQL({ sql: string })
-```
-
-Нельзя предоставлять универсальный инструмент:
-
-```ts
-payloadUpdate({ collection: string, where: unknown, data: unknown })
-```
-
-без server-side capability constraints и field allowlists.
-
----
-
+`catalog.assignCategory.v1` — пример profile-specific descriptor. Он не
+является шаблоном закрытого списка операций: новые adapters подключаются к тем
+же policy/state/audit contracts.

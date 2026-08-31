@@ -1,5 +1,9 @@
 # 6. Обязательные ADR Phase 0
 
+> **Статус: historical evidence.** Этот файл фиксирует выполненный EPIC-000
+> и не является активной инструкцией. Актуальный roadmap находится в разделе
+> `05-implementation-roadmap`, а порядок работ — в главе 32.
+
 Минимум создай:
 
 1. `ADR-0001-active-product-contour.md`;
@@ -24,4 +28,3 @@
 - изменение production в будущем проходит только через Change Engine и immutable delivery pipeline.
 
 ---
-

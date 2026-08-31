@@ -1,5 +1,9 @@
 # Этап 0A. Инвентаризация и доказательная карта репозитория
 
+> **Статус: historical evidence.** Этот файл фиксирует выполненный EPIC-000
+> и не является активной инструкцией. Актуальный roadmap находится в разделе
+> `05-implementation-roadmap`, а порядок работ — в главе 32.
+
 Создай:
 
 - `documentation/reports/EPIC-000-REPOSITORY-AUDIT.md`;
@@ -83,4 +87,3 @@
 - `.env.example` completeness;
 - MCP endpoint;
 - production runtime docs.
-

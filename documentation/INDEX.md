@@ -1,33 +1,38 @@
-# Документация Realize-E-Commerce
+# Документация Realize
 
-`documentation/` хранит канонический продуктовый и архитектурный контекст
-проекта. Активные правила исполнения AI-агентов остаются в `.ai/**`, а
-Codex-specific адаптеры — в `.codex/**`.
+`documentation/` хранит продуктовый, архитектурный и эксплуатационный контекст
+проекта. Активные инструкции агентов находятся в `.ai/**`, а исполняемые
+Codex-адаптеры — в `.codex/**`.
 
-## Основные документы
+## Статусы документов
 
-1. [Контекст проекта](project-context.md)
-2. [Структура проекта](architecture/project-structure.md)
-3. [Master spec Realize AI Commerce v1.0](REALIZE_AI_COMMERCE_MASTER_SPEC_v1.0_RU.md)
-4. [MCP tooling](architecture/mcp-tooling.md)
-5. [Delivery и Realize AI runbook](delivery/INDEX.md)
+- **Target specification** — нормативное целевое состояние продукта.
+- **Current implementation** — подтверждённое состояние текущего репозитория.
+- **Historical evidence** — датированные решения, отчёты и выполненные задания;
+  они не являются активной командой на реализацию.
 
-## Пакет спецификации Realize AI Commerce
+## Основные entrypoints
 
-Полный текст master spec декомпозирован по нормативным разделам, этапам
-реализации и исполняемым шагам:
+1. [Контекст проекта](project-context.md) — current implementation и границы.
+2. [Структура проекта](architecture/project-structure.md) — фактические owners.
+3. [Master spec Realize v1.0](REALIZE_AI_COMMERCE_MASTER_SPEC_v1.0_RU.md) — target specification.
+4. [Delivery runbooks](delivery/INDEX.md) — эксплуатация текущего baseline.
+5. [MCP tooling](architecture/mcp-tooling.md) — project-specific adapter state.
+6. [Architecture Decision Log](architecture/decisions/INDEX.md).
+
+## Спецификация v1.0
+
+Путь `specifications/realize-ai-commerce/` сохранён как legacy namespace
+репозитория. Он не ограничивает продукт интернет-магазинами.
 
 - [Оглавление версии 1.0](specifications/realize-ai-commerce/v1.0/INDEX.md)
 - [Roadmap Phase 0–6](specifications/realize-ai-commerce/v1.0/05-implementation-roadmap/INDEX.md)
-- [Исполняемое задание EPIC-000](specifications/realize-ai-commerce/v1.0/07-epic-000-phase-0/INDEX.md)
+- [Execution governance](specifications/realize-ai-commerce/v1.0/06-execution-governance/INDEX.md)
+- [EPIC-000 Phase 0 — historical snapshot](specifications/realize-ai-commerce/v1.0/07-epic-000-phase-0/INDEX.md)
 
-## Решения и отчёты
+## Исторические материалы
 
-- [Architecture Decision Records](architecture/decisions/INDEX.md)
-- [Pre-edit gate текущего slice](reports/EPIC-000-PRE-EDIT-GATE.md)
-- [Отчёт реализации](reports/EPIC-000-IMPLEMENTATION-REPORT.md)
-- [Admin AI drawer и plan approval](reports/ADMIN-AI-DRAWER-APPROVAL-2026-08-18.md)
-- [Admin AI isolated execution foundation](reports/ADMIN-AI-ISOLATED-EXECUTION-2026-08-21.md)
-- [Admin AI local preview promotion](reports/ADMIN-AI-LOCAL-PREVIEW-PROMOTION-2026-08-22.md)
-- [Применённый migration adoption](reports/MIGRATION-ADOPTION-2026-08-17.md)
-- [Аудит чужих артефактов AI-layer](reports/AI-LAYER-FOREIGN-ARTIFACT-AUDIT.md)
+`documentation/reports/**` и ADR с датой или номером сохраняют evidence
+выполненных решений. Отчёты не следует переписывать под текущее состояние;
+актуальный статус фиксируется в `project-context.md`, delivery runbooks и новых
+ADR.

@@ -1,5 +1,9 @@
 # Этап 0F. Baseline build
 
+> **Статус: historical evidence.** Этот файл фиксирует выполненный EPIC-000
+> и не является активной инструкцией. Актуальный roadmap находится в разделе
+> `05-implementation-roadmap`, а порядок работ — в главе 32.
+
 В чистом окружении выполни:
 
 ```text
@@ -28,4 +32,3 @@ production build
 6. сохрани evidence в execution log.
 
 Если install заблокирован сетью/registry, отметь `blocked`, приложи точную ошибку и продолжи только статический анализ. Нельзя объявлять build green.
-

@@ -1,76 +1,42 @@
-# 32. Immediate implementation order for AI agent
+# 32. Immediate implementation order
 
-AI-агент не должен сразу создавать browser chat и deploy pipeline.
+- **Статус:** current prioritized roadmap
 
-Первый implementation epic:
+## Шаг 1. Policy и capability foundation
 
-```text
-EPIC-000: Stabilize Realize-E-Commerce as a canonical, buildable product base
-```
+Ввести generic `CapabilityDescriptor`, protected read/write scopes,
+server-side policy projection и binding run/Change Request к system/config
+hashes. Существующий `catalog.assignCategory.v1` мигрирует как первый adapter
+без потери текущего behavior.
 
-## Шаг 1. Провести Pre-edit Gate
+## Шаг 2. Installation AI-layer
 
-Зафиксировать:
+Добавить draft/release data model, `/admin/ai/settings`, target config API,
+validation/evals, activation и rollback. Локальные checks выбираются только из
+server registry; `.ai/.codex` остаются read-only для Admin.
 
-- source of truth;
-- active contour;
-- owner-layer;
-- allowlist;
-- planned files;
-- checks;
-- blockers.
+## Шаг 3. Универсальные end-to-end capabilities
 
-## Шаг 2. Не удалять `RealizeCore` автоматически
+Реализовать как минимум:
 
-Сначала создать audit report:
+- content/data/config mutation вне catalog;
+- schema field + safe migration;
+- page/design/frontend change;
+- project module или plugin.
 
-- что импортируется активным app;
-- что не используется;
-- что конфликтует;
-- что можно quarantine;
-- что следует мигрировать.
+Каждая проходит apply, checks, preview/acceptance и rollback/recovery по своему
+классу.
 
-## Шаг 3. Сделать baseline build green
+## Шаг 4. Production authority
 
-Приоритет:
+Добавить `PRODUCTION_AUTHORIZATION` и trusted exact-digest deployment
+controller, связать его с существующим Release Candidate и проверить
+application/database recovery.
 
-1. Node/package manager;
-2. TypeScript boundaries;
-3. imports;
-4. Payload config;
-5. tests;
-6. build.
+## Шаг 5. Commercial и pilot
 
-## Шаг 4. Синхронизировать `.ai/.codex`
+Реализовать license/usage ceilings, затем security/recovery/SLO pilot на 5–10
+installations.
 
-После выбора contour:
-
-- обновить docs;
-- paths;
-- registry;
-- roles;
-- checks;
-- skills;
-- MCP docs.
-
-## Шаг 5. Добавить Docker + CI + migrations
-
-Только после green local baseline.
-
-## Шаг 6. Создать ADR-пакет
-
-Минимум:
-
-- ADR single-tenant;
-- ADR active contour;
-- ADR central AI execution;
-- ADR plugin architecture;
-- ADR delivery pipeline;
-- ADR licensing.
-
-## Шаг 7. Начать Phase 1
-
-Только после formal acceptance Phase 0.
-
----
-
+Косметическая переработка чата не блокирует эти шаги и выполняется отдельным
+UI scope.

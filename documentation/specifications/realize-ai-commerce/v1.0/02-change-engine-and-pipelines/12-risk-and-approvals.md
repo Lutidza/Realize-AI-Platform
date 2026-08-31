@@ -1,119 +1,51 @@
-# 12. Классификация риска и approvals
+# 12. Risk и approvals
 
-## 12.1. Risk levels
+- **Статус:** target specification
 
-### R0 — read-only
+## 12.1. Вычисление риска
 
-- вопрос о структуре;
-- поиск документа;
-- диагностика;
-- объяснение;
-- preview существующего состояния.
+Risk Engine учитывает одновременно:
 
-Approval не требуется.
+- количество и тип затронутых ресурсов;
+- чувствительность данных и наличие read-denied/write-denied scopes;
+- обратимость и качество before-snapshot;
+- schema/code/security влияние;
+- внешние side effects;
+- production blast radius;
+- профильные правила и actor authority.
 
-### R1 — low-risk reversible data/config
+Модель может предложить risk, но итоговый уровень вычисляет сервер.
 
-- изменение одного текста;
-- замена изображения;
-- создание draft;
-- изменение безопасного theme token;
-- добавление готового блока в draft.
+## 12.2. Уровни
 
-В первой версии: явное подтверждение write. Позже разрешается policy-based auto-approval.
+- **R0:** чтение и объяснение без side effect.
+- **R1:** малое обратимое изменение контента/config; policy может разрешить
+  выполнение без предварительного human approval, но с audit.
+- **R2:** обычная data/code mutation; обязательны plan approval и acceptance
+  результата.
+- **R3:** массовые данные, schema/migration, integration credential boundary,
+  release или production; нужны раздельные approvals и усиленные checks.
+- **R4:** запрещённая или operator-only операция. Клиентский run не исполняется.
 
-### R2 — bulk or visible configuration change
+License и роль могут только понизить доступный ceiling. Они не переводят
+запрещённую security policy операцию в разрешённую.
 
-- массовый перенос товаров;
-- изменение категории у набора товаров;
-- изменение навигации;
-- изменение главной страницы;
-- изменение нескольких design tokens;
-- публикация нескольких документов.
+## 12.3. Типы решений
 
-Требуется plan approval и post-preview acceptance.
+- `PLAN_APPROVAL` — разрешает exact plan.
+- `IMPLEMENTATION_ACCEPTANCE` — принимает exact diff/data artifact.
+- `PREVIEW_ACCEPTANCE` — принимает exact preview evidence.
+- `RELEASE_APPROVAL` — принимает immutable release candidate.
+- `PRODUCTION_AUTHORIZATION` — отдельно разрешает rollout exact digest.
+- `ROLLBACK_APPROVAL` — разрешает exact compensating action или restore plan.
 
-### R3 — code/schema/release
+Каждое решение связано с actor, role, timestamp, expiry, aggregate version и
+artifact hash. Изменение scope, config release, input state или artifact
+инвалидирует прежнее решение.
 
-- изменение React/TypeScript;
-- новый block/plugin extension;
-- изменение Payload schema;
-- migration;
-- dependency change;
-- production deploy.
+## 12.4. Separation of duties
 
-Требуется:
-
-- plan approval;
-- автоматические проверки;
-- preview;
-- acceptance;
-- release approval.
-
-### R4 — destructive/privileged
-
-- bulk delete;
-- auth/access control;
-- users;
-- orders/payments;
-- checkout/payment adapter;
-- secrets;
-- license code;
-- deployment infrastructure;
-- core platform;
-- destructive migration;
-- domain/DNS;
-- restore backup.
-
-Требуется dual approval: site owner + agency operator/engineer. Часть операций остаётся unsupported для AI MVP.
-
-## 12.2. Approval types
-
-```text
-WRITE_CONFIRMATION
-PLAN_APPROVAL
-BULK_DATA_APPROVAL
-SCHEMA_APPROVAL
-PREVIEW_ACCEPTANCE
-RELEASE_APPROVAL
-DESTRUCTIVE_APPROVAL
-ROLLBACK_APPROVAL
-BUDGET_OVERRIDE
-SCOPE_EXPANSION_APPROVAL
-```
-
-## 12.3. Cryptographic binding approval
-
-Approval должен быть привязан к:
-
-- change request ID;
-- plan hash;
-- scope hash;
-- operation/diff hash;
-- artifact digest;
-- target environment;
-- actor;
-- expiration;
-- current version.
-
-Если после approval изменился plan, diff, artifact или environment — approval становится invalid.
-
-## 12.4. Матрица ролей
-
-| Действие | Owner | Admin | Content Manager | Catalog Manager | Developer | Agency Operator | Viewer |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| Задать вопрос | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Создать data plan | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Подтвердить content write | ✓ | ✓ | ✓ | при catalog | ✓ | ✓ | — |
-| Подтвердить bulk change | ✓ | ✓ | по policy | по policy | ✓ | ✓ | — |
-| Создать code plan | ✓ | ✓ | — | — | ✓ | ✓ | — |
-| Выполнить code change | ✓ | по policy | — | — | ✓ | ✓ | — |
-| Approve production | ✓ | по policy | — | — | по policy | ✓ | — |
-| Rollback | ✓ | — | — | — | ✓ | ✓ | — |
-| Управлять лицензией | ✓ | — | — | — | — | ✓ | — |
-| Смотреть billing | ✓ | по policy | — | — | — | ✓ | — |
-
-Фактические права реализуются отдельными capabilities, а не только названием роли.
-
----
-
+Для R3 policy может требовать другого approver или operator escalation.
+`RELEASE_APPROVAL` не выдаёт production credentials и не заменяет
+`PRODUCTION_AUTHORIZATION`. Одно подтверждение нельзя неявно распространить на
+будущие шаги.

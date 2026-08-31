@@ -1,108 +1,45 @@
-# 9. Интерфейс AI в Payload Admin
+# 9. Payload Admin interface
 
-## 9.1. Основной экран
+- **Статус:** target specification
 
-Custom View `/admin/ai` содержит три области.
+## 9.1. Информационная архитектура
 
-### Левая колонка
+`/admin/ai` является рабочим пространством управления задачами, а drawer и
+contextual actions — дополнительными точками входа. Все они используют один
+server-side policy и Change Engine.
 
-- список диалогов;
-- фильтр по статусам;
-- поиск;
-- активные изменения;
-- ожидающие approval;
-- последние deployments.
+Основные разделы:
 
-### Центральная колонка
+- Conversations и Runs;
+- Change Requests, approvals и risk;
+- implementation diff/checks и preview;
+- source promotion, releases, deployments и rollback;
+- audit, usage и operator escalation;
+- Integrations;
+- AI Settings.
 
-- сообщения;
-- streaming output;
-- tool summaries;
-- карточки планов;
-- diff summaries;
-- test results;
-- preview links;
-- ошибки и blockers;
-- кнопка отмены run.
+## 9.2. AI Settings
 
-### Правая колонка
+Target route `/admin/ai/settings` содержит:
 
-- текущий Change Request;
-- тип изменения;
-- риск;
-- затронутые сущности и файлы;
-- текущий state;
-- approvals;
-- estimated/actual usage;
-- checks;
-- preview;
-- release artifact digest;
-- rollback point.
+- Skills;
+- Knowledge;
+- Prompt templates;
+- Local rules;
+- Roles и capability bindings;
+- Check bindings;
+- Agent profiles;
+- Evals;
+- Configuration releases.
 
-## 9.2. Типы сообщений
+Admin редактирует draft installation overlay, запускает validation/evals,
+сравнивает diff конфигурации и отдельно активирует immutable release. Интерфейс
+не редактирует `.ai/**`, `.codex/**`, license/security policy или protected
+server registry.
 
-```text
-user_message
-assistant_message
-clarification
-plan
-scope_manifest
-risk_notice
-tool_activity_summary
-data_diff
-code_diff
-check_result
-approval_request
-approval_decision
-preview_ready
-deployment_status
-rollback_status
-usage_notice
-system_error
-```
+## 9.3. UX-инварианты
 
-## 9.3. Кнопки управления
-
-В зависимости от прав и state:
-
-- «Уточнить запрос»;
-- «Подтвердить план»;
-- «Отклонить план»;
-- «Запустить изменение»;
-- «Остановить»;
-- «Повторить проверку»;
-- «Открыть preview»;
-- «Принять результат»;
-- «Опубликовать»;
-- «Откатить»;
-- «Передать специалисту агентства».
-
-## 9.4. Контекстные действия
-
-На странице редактирования товара/страницы можно добавить действие:
-
-- «Обсудить с AI»;
-- «Исправить этот документ»;
-- «Объяснить, почему не публикуется»;
-- «Создать похожий блок».
-
-При этом `collection`, `documentID` и текущая version передаются сервером. Модель не выбирает произвольный документ через подмену UI payload.
-
-## 9.5. UX-политика approvals
-
-Approval не должен быть обычным «Да» в чате.
-
-Подтверждение отображается отдельной карточкой с:
-
-- точным действием;
-- risk level;
-- affected paths/documents;
-- before/after summary;
-- diff hash или operation hash;
-- проверками;
-- стоимостью/лимитом;
-- сроком действия approval;
-- кнопкой, доступной только авторизованной роли.
-
----
-
+Для мутации UI показывает plan, scope, risk, стоимость, approvals, checks и
+rollback strategy до исполнения. После исполнения — exact artifact, evidence,
+preview и новое решение принятия. Disabled/blocked state должен объяснять
+причину и не имитировать успех.

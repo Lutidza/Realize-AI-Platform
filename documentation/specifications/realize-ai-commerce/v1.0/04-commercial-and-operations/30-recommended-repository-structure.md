@@ -1,65 +1,39 @@
-# 30. Рекомендуемая структура репозитория
+# 30. Repository ownership
 
-На первом этапе нельзя одновременно переносить весь проект и строить pipeline. Рекомендуется эволюционный путь.
+- **Статус:** target ownership contract с current mapping
 
-## 30.1. После Phase 0
+## 30.1. Фактические owners
 
-```text
-/
-├── src/                         # существующее клиентское приложение
-├── packages/
-│   ├── ai-contracts/
-│   ├── change-engine/
-│   ├── payload-ai-plugin/
-│   ├── codex-adapter/
-│   ├── license-client/
-│   └── module-registry/
-├── services/
-│   ├── ai-worker/
-│   └── site-connector/
-├── infra/
-│   ├── docker/
-│   ├── compose/
-│   ├── ci/
-│   └── deployment/
-├── tests/
-│   ├── int/
-│   ├── e2e/
-│   ├── security/
-│   └── fixtures/
-├── .ai/
-├── .codex/
-└── documentation/
-```
+- `src/app/(app)/**` — текущий public e-commerce site и health/API routes;
+- `src/app/(payload)/**`, `src/payload.config.ts`, `src/collections/**` —
+  Payload runtime/schema;
+- `packages/ai-contracts/**` — public/internal AI DTO;
+- `packages/change-engine/**` — Change Engine;
+- `packages/codex-adapter/**` — Codex adapter;
+- `packages/payload-ai-plugin/**` — plugin, Admin и API;
+- `services/ai-control-plane/**` и `services/ai-execution-worker/**` —
+  execution services;
+- `src/migrations/**` — versioned schema history;
+- `documentation/**`, `.ai/**` и `.codex/**` — разные documentation/runtime
+  instruction owners.
 
-## 30.2. Отдельный central control plane
+Полная current map хранится в
+[project structure](../../../../architecture/project-structure.md).
 
-Рекомендуется отдельный private repository либо отдельный верхнеуровневый monorepo, недоступный клиентам:
+## 30.2. Target evolution
 
-```text
-realize-control-plane/
-├── apps/operator-console
-├── services/license
-├── services/billing
-├── services/orchestrator
-├── services/usage
-├── services/release
-├── services/deployment
-├── packages/contracts
-└── infra
-```
+Новый owner создаётся только при реальном code boundary и миграции consumers.
+Планируемые `services/*`, `infra/*` или `src/domain/*` нельзя показывать как
+существующие. Profile-specific code должен зависеть от core contracts, а core
+не должен импортировать catalog/order implementation.
 
-## 30.3. Client repositories
+Frontend owner сначала ищется в фактическом `src/components/**` и routes;
+переход к `src/ui/**` требует отдельного decomposition decision. Generated
+Payload types/import maps и build artifacts вручную не редактируются.
 
-Для масштабирования рекомендуется:
+## 30.3. Protected contours
 
-- template repository;
-- один private repo на client installation;
-- core в versioned private packages;
-- client repo хранит composition, content schema extensions, theme, site modules;
-- AI branch per Change Request.
-
-Это лучше, чем хранить 1 000 клиентских кастомизаций в одной общей code branch.
-
----
-
+System AI-layer, licensing/security, credential vault, deployment authority и
+cross-installation operator code отделяются от client-editable project scope.
+Agent-generated plugin/module размещается в project allowlist и не становится
+core package без operator review/release.

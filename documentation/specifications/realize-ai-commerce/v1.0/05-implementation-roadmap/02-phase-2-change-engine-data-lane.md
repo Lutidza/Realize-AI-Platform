@@ -1,51 +1,25 @@
-# Phase 2. Change Engine и data lane
+# Phase 2. Change Engine, Data Lane и installation configuration
 
-## 2.1. Реализовать state machine
+- **Статус:** in progress
 
-- DB entities;
-- transitions;
-- optimistic locking;
-- outbox;
-- idempotency.
+## Реализовано
 
-## 2.2. Реализовать risk and policy engine
+- versioned Change Request и hash-bound plan decisions;
+- server-owned policy/state foundation;
+- первый profile adapter `catalog.assignCategory.v1`;
+- dry-run, exact target resolution, transaction, optimistic lock, audit/outbox;
+- отдельное approval/apply и compensating rollback.
 
-- R0–R4;
-- capability checks;
-- approval matrix;
-- budgets.
+## Осталось до exit
 
-## 2.3. Реализовать typed tools
+- generic `CapabilityDescriptor` registry и resource/action adapters;
+- content/data/config operations без e-commerce coupling;
+- field/path read/write deny projection;
+- batch limits, partial-failure policy и profile packs;
+- installation AI data model, `/admin/ai/settings`, validation/evals,
+  config release/activation/rollback;
+- run binding к exact `AIConfigSnapshot`;
+- adversarial tests для injection, escalation и protected reads.
 
-Стартовый набор:
-
-- read product/category/page;
-- explain publication state;
-- update page block;
-- create landing draft;
-- move products;
-- assign/remove category;
-- update safe SEO fields;
-- update theme tokens;
-- configure registered module.
-
-## 2.4. Dry-run and approval
-
-- before/after;
-- operation hash;
-- approval card;
-- transaction;
-- verification;
-- rollback snapshot.
-
-## Phase 2 acceptance
-
-- массовое изменение не происходит без dry-run;
-- writes используют Payload access;
-- all-or-nothing transaction;
-- duplicate request не повторяет operation;
-- rollback data operation проверен;
-- protected collections недоступны.
-
----
-
+Exit достигается минимум двумя разными project profiles/adapters и полным
+end-to-end apply/rollback, а не набором dry-run предложений.

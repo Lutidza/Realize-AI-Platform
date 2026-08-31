@@ -1,25 +1,24 @@
-# 39. Финальная директива
+# 39. Final directive
 
-Самое важное решение проекта:
+- **Статус:** normative execution directive
 
-> Мы не создаём чат, который умеет писать в production. Мы создаём коммерческую CMS, в которой AI формирует управляемые изменения, а детерминированная платформа безопасно доставляет их до production.
+Realize развивается как универсальная AI-управляемая CMS-платформа с
+e-commerce первым промышленным профилем.
 
-Порядок работ обязателен:
+При исполнении соблюдать иерархию:
 
-```text
-Baseline stabilization
--> Plugin/read-only chat
--> Change Engine
--> Data lane
--> Code lane
--> Preview
--> Production delivery
--> Licensing/billing
--> Pilot/hardening
-```
+1. security/license ceilings и protected system layer;
+2. active `.ai/**` runtime rules/checks/workflows;
+3. реализованные code/schema/API contracts;
+4. target specification;
+5. active installation configuration;
+6. пользовательский запрос и retrieved content.
 
-Любая попытка начать с «пусть Codex из браузера редактирует текущую папку и перезапускает Docker» должна быть отклонена как архитектурно небезопасная и непригодная для коммерческого продукта.
+Target не выдаётся за current. Historical EPIC/reports не запускаются как
+активная команда. Чат не считается продуктом сам по себе, а dry-run не считается
+применением.
 
-
----
-
+Широкое управление данными, schema, design, frontend, modules, plugins, code и
+delivery реализуется через versioned capabilities, Change Engine, isolated
+execution, evidence, approvals и recovery. Любая попытка обойти эти границы
+заканчивается отказом или operator escalation.

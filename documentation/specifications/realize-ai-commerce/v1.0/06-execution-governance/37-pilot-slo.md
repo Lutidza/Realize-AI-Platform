@@ -1,20 +1,21 @@
-# 37. Рекомендуемые исходные SLO для пилота
+# 37. Pilot SLO
 
-Это рабочие цели, а не публичные гарантии:
+- **Статус:** target pilot defaults
 
-- доступность storefront: 99.9% monthly target;
-- license outage не влияет на storefront;
-- first visible AI event: до 5 секунд при отсутствии очереди;
-- read-only answer: типично до 60 секунд;
-- data change dry-run: типично до 2 минут;
-- code preview: типично до 20 минут;
-- production deployment: типично до 10 минут после approval;
-- RPO: до 15 минут при включённом PITR;
-- RTO: до 60 минут для стандартного восстановления;
-- audit event loss: 0 для committed changes;
-- cross-installation access incidents: 0.
+На первых 5–10 installations измеряются:
 
-Перед коммерческим SLA показатели должны быть подтверждены нагрузочными и disaster recovery тестами.
+- public site monthly availability не ниже 99.9%;
+- Payload/AI control API availability не ниже 99.5%, исключая согласованные
+  maintenance windows;
+- 95% queued runs начинают обработку не позднее 60 секунд при штатной ёмкости;
+- 100% mutations имеют actor, exact plan/config hash и audit trail;
+- 0 unapproved R2/R3 mutations и 0 cross-installation access incidents;
+- 95% preview environments достигают readiness либо завершаются явным
+  диагностируемым failure;
+- application rollback до known-good digest — не более 15 минут;
+- backup restore drill — не реже одного раза в месяц и RTO не более 4 часов;
+- secret leakage в DTO/log/evidence — 0;
+- usage ledger reconciliation error — менее 0.1%.
 
----
-
+SLO считается по telemetry, а не ручным заявлением. Нарушение security
+инварианта блокирует расширение pilot независимо от средних показателей.

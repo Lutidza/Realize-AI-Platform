@@ -1,170 +1,51 @@
-# 23. Безопасность
+# 23. Security
 
-## 23.1. Ключевой принцип
+- **Статус:** target specification
 
-Ни tenant, ни installation, ни actor, ни права не выбираются моделью.
+## 23.1. Trust boundaries
 
-В single-tenant instance installation context берётся из server configuration и signed license identity.
+Недоверенными считаются actor input, model output, CMS content, knowledge
+documents, code comments, uploads, external web/MCP data и preview content.
+Доверенными являются только server-resolved identity, policy/license
+projection, protected registries, state machine, executors и artifact
+verifiers.
 
-## 23.2. Threat model
+## 23.2. Authorization
 
-### T1. Prompt injection из CMS-контента
+Effective permission является пересечением actor role, installation policy,
+license entitlement, capability descriptor и protected-scope policy. Любой
+слой может запретить действие; нижний слой не может разрешить его обратно.
 
-Mitigation:
+Поддерживаются `read: deny`, `read-only`, `write: scoped` и `hidden` для paths,
+collections, fields, integrations и runtime resources. Denied content
+фильтруется до retrieval и логирования.
 
-- data is untrusted;
-- system policy separate;
-- tool allowlist;
-- no policy changes from retrieved text;
-- output validation.
+## 23.3. Prompt/tool injection
 
-### T2. Агент пытается изменить protected path
+Instructions из данных отделяются от system/install instructions. Tool
+arguments валидируются независимо от model text. Local skill/prompt/knowledge
+не может изменить identity, capability, check registry, egress или approval.
+Обнаруженная попытка фиксируется как security event и может остановить run.
 
-Mitigation:
+## 23.4. Execution security
 
-- filesystem sandbox;
-- writable roots;
-- pre-edit allowlist;
-- post-diff scanner;
-- protected path CI gate.
+- ephemeral workspace и least-privilege OS identity;
+- path canonicalization и symlink/submodule protection;
+- deny-by-default network egress;
+- no Docker socket, host root или shared client secrets;
+- allowlisted commands/checks без model-owned shell composition;
+- output size/time limits и redaction;
+- signed immutable release artifacts.
 
-### T3. Agent credential exfiltration
+## 23.5. Credentials и audit
 
-Mitigation:
+Credentials не попадают в DTO, prompts, diffs, logs или evidence; используется
+write-only vault и short-lived injection только executor-у. Security-relevant
+events append-only, correlated и защищены от изменения обычным Admin.
 
-- worker не получает production/OpenAI master secrets сверх необходимого;
-- credentials injected only to process;
-- no secrets in prompt;
-- no network by default;
-- log redaction;
-- ephemeral worker.
+## 23.6. Обязательные adversarial tests
 
-### T4. Cross-client access
-
-Mitigation:
-
-- отдельные DB/app/repo/workspace;
-- один installation per worker job;
-- no cross-mount;
-- capability token tied to installation/run;
-- network policy;
-- worker destroyed after job.
-
-### T5. Approval spoofing
-
-Mitigation:
-
-- authenticated server action;
-- hash binding;
-- expiration;
-- optimistic version;
-- audit;
-- role re-check at execution.
-
-### T6. Diff changed after approval
-
-Mitigation:
-
-- re-hash;
-- invalidate approval;
-- deploy only exact artifact digest.
-
-### T7. Arbitrary SQL/destructive data operation
-
-Mitigation:
-
-- typed tools;
-- max document limits;
-- transaction;
-- dry-run;
-- dual approval;
-- protected collections.
-
-### T8. Malicious dependency
-
-Mitigation:
-
-- dependency approval;
-- registry allowlist;
-- lockfile;
-- vulnerability scan;
-- SBOM;
-- network-off build where possible.
-
-### T9. Compromised admin account
-
-Mitigation:
-
-- MFA/SSO where available;
-- least privilege;
-- production approval separation;
-- step-up auth for deploy/rollback;
-- notifications;
-- IP/device policies for agency operators.
-
-### T10. License server outage
-
-Mitigation:
-
-- signed cached lease;
-- grace period;
-- no storefront shutdown;
-- retry/backoff;
-- status visibility.
-
-## 23.3. Worker isolation
-
-- rootless container;
-- read-only root filesystem;
-- tmpfs temporary paths;
-- seccomp/AppArmor where available;
-- no host Docker socket;
-- no Kubernetes service account beyond job need;
-- CPU/RAM/PID/disk limits;
-- timeout;
-- egress deny by default;
-- workspace destroyed after artifact retention.
-
-## 23.4. Secrets
-
-Использовать secret manager.
-
-Категории:
-
-- OpenAI credential — central worker only;
-- license signing key — License Service only;
-- image signing key/workload identity — Release Service only;
-- production deploy credential — Deployment Controller only;
-- site DB credential — site runtime and scoped migration job only;
-- Stripe vendor billing keys — Billing Service only;
-- store Stripe keys — client site payment subsystem only.
-
-Store Stripe и vendor subscription Stripe — разные аккаунты/configuration boundaries.
-
-## 23.5. Audit и privacy
-
-Не сохранять:
-
-- hidden chain-of-thought;
-- raw private reasoning;
-- plaintext secrets;
-- full database dumps;
-- unnecessary PII;
-- payment data;
-- auth tokens.
-
-Сохранять:
-
-- user request;
-- normalized plan;
-- tool name;
-- redacted input summary;
-- hashes;
-- diff;
-- check result;
-- approvals;
-- usage;
-- deployment result.
-
----
-
+Проверяются malicious prompt/skill/knowledge, role escalation, check command
+injection, hidden-resource inference, cross-installation selectors, path
+traversal, stale hash replay, SSRF/egress, secret exfiltration и mismatch между
+plan, preview, release и production artifact.

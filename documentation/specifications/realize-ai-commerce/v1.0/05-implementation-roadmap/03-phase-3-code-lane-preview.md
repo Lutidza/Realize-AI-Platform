@@ -1,43 +1,24 @@
-# Phase 3. Code lane и preview
+# Phase 3. Code Lane и preview
 
-## 3.1. Worktree service
+- **Статус:** foundation implemented, target incomplete
 
-- branch per change;
-- path allowlist;
-- protected paths;
-- ephemeral worker.
+## Реализовано
 
-## 3.2. Codex implementation mode
+Durable execution jobs, short-lived capability, isolated Git worktree,
+workspace-write Codex turn, path/diff gates, server-owned checks, independent
+review, implementation acceptance, clean replay, service commit, sanitized
+loopback preview, browser readiness, preview acceptance и draft Pull Request
+source promotion.
 
-- planner;
-- plan approval;
-- workspace write;
-- self-review;
-- separate reviewer.
+## Осталось до exit
 
-## 3.3. Full checks
+- универсальные code capabilities для page/design/module/plugin/schema tasks;
+- protected core/system scopes и policy projection из Phase 2;
+- dependency and migration evidence как first-class contracts;
+- profile-specific preview test packs;
+- bounded network/sandbox proof в production worker topology;
+- complete cleanup/retry/recovery SLO;
+- end-to-end scenarios: новая страница, schema migration и project plugin.
 
-- lint/typecheck/tests/build;
-- Payload checks;
-- Playwright;
-- security;
-- dependency approval.
-
-## 3.4. Preview service
-
-- image build;
-- preview URL;
-- DB clone;
-- TTL;
-- acceptance.
-
-## Phase 3 acceptance
-
-- code never edits production filesystem;
-- preview создан из Git commit;
-- failed check блокирует preview/release;
-- forbidden path attempt блокируется;
-- acceptance связан с diff/artifact.
-
----
-
+Exit требует, чтобы принятый diff воспроизводился из clean source, preview был
+связан с exact config/commit hashes, а out-of-scope изменение блокировалось.

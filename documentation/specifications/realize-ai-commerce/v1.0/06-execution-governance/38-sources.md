@@ -1,14 +1,22 @@
-# 38. Источники и технологические основания
+# 38. Sources
 
-При проектировании использованы:
+- **Статус:** maintained primary-source registry
 
-- фактическая структура публичного репозитория `Lutidza/Realize-E-Commerce` и переданного архива;
-- Payload CMS documentation по plugins, custom views/components, MCP, Local API, access control, transactions, migrations, jobs, drafts и Live Preview;
-- Next.js App Router documentation по route groups и private folders;
-- OpenAI Codex documentation по App Server, SDK, authentication, sandboxing и approvals;
-- OpenAI business/services terms по интеграции API в Customer Application и запрету передачи/продажи API keys/account access;
-- Sigstore/Cosign documentation по подписи OCI images и attestations;
-- Node.js release documentation по Node 24 LTS.
+Технические решения проверяются по фактическому коду и первичным источникам:
 
----
+- [Payload CMS documentation](https://payloadcms.com/docs)
+- локальные Next.js guides из `node_modules/next/dist/docs/` и
+  [Next.js documentation](https://nextjs.org/docs)
+- [OpenAI Codex App Server](https://developers.openai.com/codex/app-server)
+- [OpenAI Codex SDK](https://developers.openai.com/codex/sdk)
+- [OpenAI Codex authentication](https://developers.openai.com/codex/auth)
+- [OpenAI Codex agent approvals & security](https://developers.openai.com/codex/agent-approvals-security)
+- [OpenAI Codex sandboxing](https://developers.openai.com/codex/sandboxing)
+- [GitHub Actions documentation](https://docs.github.com/actions)
+- [Open Container Initiative specifications](https://opencontainers.org/)
+- [Sigstore documentation](https://docs.sigstore.dev/)
+- [PostgreSQL documentation](https://www.postgresql.org/docs/)
 
+Версия библиотеки, CLI или hosted behavior сверяется на момент реализации.
+Blog, search snippet и model memory не заменяют official docs, installed source
+или runtime evidence. Ссылка не доказывает реализацию функции в репозитории.

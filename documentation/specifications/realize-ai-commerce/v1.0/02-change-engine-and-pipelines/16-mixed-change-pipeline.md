@@ -1,24 +1,37 @@
-# 16. Pipeline: mixed code + data/schema change
+# 16. Mixed change pipeline
 
-Mixed change получает максимальный risk из составляющих.
+- **Статус:** target specification
 
-Порядок:
+Mixed Change объединяет связанные data, schema, code, configuration и release
+операции в один parent Change Request.
 
-1. code/schema plan;
-2. data migration plan;
-3. combined approval;
-4. isolated workspace;
-5. migration on clone;
-6. preview image + preview DB;
-7. acceptance;
-8. backup;
-9. deploy compatible code phase A;
-10. run forward migration;
-11. deploy code phase B при expand-contract;
-12. verify data and storefront;
-13. close.
+## 16.1. План
 
-Для потенциально необратимой migration запрещён автоматический production deploy без Agency Operator approval.
+Parent фиксирует dependency graph, общий risk, target state и acceptance.
+Каждый subplan имеет собственный capability descriptor, executor, checks,
+artifact hash и rollback strategy.
 
----
+Типичный порядок:
 
+1. backward-compatible schema/code preparation;
+2. migration и controlled backfill;
+3. content/data/config mutation;
+4. build и isolated preview;
+5. единое acceptance целевого результата;
+6. release и отдельно production authorization;
+7. cleanup устаревшей schema только в последующем совместимом release.
+
+## 16.2. Атомарность
+
+Одна PostgreSQL transaction допустима только внутри одного data boundary.
+Нельзя притворяться, что Git, database, external API и deployment составляют
+общую транзакцию. Для распределённого изменения используется saga: durable
+states, idempotency keys, compensating actions и explicit partial-failure
+handling.
+
+## 16.3. Failure policy
+
+Ошибка subplan блокирует зависимые шаги. Уже выполненный внешний side effect
+либо компенсируется exact approved action, либо переводит parent в
+`blocked/manual_recovery` с operator runbook. Частичный успех не показывается
+как completed.

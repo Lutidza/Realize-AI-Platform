@@ -1,5 +1,9 @@
 # Этап 0B. Решение по active contour
 
+> **Статус: historical evidence.** Этот файл фиксирует выполненный EPIC-000
+> и не является активной инструкцией. Актуальный roadmap находится в разделе
+> `05-implementation-roadmap`, а порядок работ — в главе 32.
+
 Подготовь `ADR-0001-active-product-contour.md` по шаблону:
 
 ```markdown
@@ -29,4 +33,3 @@ proposed | accepted
 - полезные части experimental contour переносятся позже отдельными задачами после доказанного owner analysis.
 
 Не принимай эту рекомендацию, если фактический import graph доказывает обратное. В таком случае зафиксируй решение на основе evidence.
-
