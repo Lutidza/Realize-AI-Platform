@@ -14,5 +14,7 @@ report: shared_task_result
 - Boundary type определён: Payload schema, migration, API transport, data
   resolver, domain service, search/indexing или cache.
 - Payload CMS 3, Next.js App Router и project data conventions сохранены.
+- При изменении Next.js затронутые API и настройки сверены с документацией
+  установленной версии.
 - Generated files не редактируются вручную.
 - Consumer contract не меняется без соответствующей role/owner проверки.

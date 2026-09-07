@@ -19,6 +19,9 @@ requirement:
   - отделить transport, validation, business logic, persistence, mapping и cache
   - сохранять Payload CMS 3, Next.js App Router и проектные data patterns
   - определить affected consumers до изменения response shape или route contract
+  - для изменений Next.js применять требование документации установленной версии из общего правила разработки
+related_rules:
+  - .ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md
 forbidden:
   - редактировать generated src/payload-types.ts вручную
   - помещать business/data logic в API route handler, если есть service owner

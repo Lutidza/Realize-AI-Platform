@@ -8,6 +8,8 @@ owner_roles:
   - .ai/roles/developer/backend/INDEX.md
 owner_layer: .ai/checks/development/
 rule: .ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md
+related_rules:
+  - .ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md
 enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 workflow: .ai/workflows/core/main-delivery/WORKFLOW.md
 check_stage: development_strict_gate
@@ -28,6 +30,11 @@ scope: all_work_tasks
 - Изменение завершает поставленную задачу в её scope, без постороннего
   рефакторинга, конкурирующих owners и искусственной декомпозиции.
 - Существенные access/auth, DTO, persistence и migration ограничения сохранены.
+- Реальные секреты не добавлены в исходники, инструкции, документацию или
+  результат диагностики; автоматически создаваемые файлы обновлены генератором,
+  если их изменение требуется.
+- При изменении Next.js затронутые API и настройки сверены с документацией
+  установленной версии; недоступность нужного источника не скрыта.
 - Проверки соответствуют риску по матрице связанного rule; уже достаточные
   успешные проверки не повторяются без нового основания.
 - Затронутые ссылки и consumers синхронизированы, факт выполнения и ограничения

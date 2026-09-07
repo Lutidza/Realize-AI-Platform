@@ -23,8 +23,9 @@ behavior.
 ## Порядок
 
 1. Определи exact reference source.
-2. Найди current analogs in `src/app/**`, `src/domain/ui/**`
-   and `src/domain/routes/**`.
+2. Найди существующие аналоги в `src/app/(app)/**`, `src/components/**`,
+   `src/providers/**` и `src/utilities/**`; для Payload Admin — в
+   `packages/payload-ai-plugin/**`. Уточняй владельца по контексту проекта.
 3. Составь mismatch map: composition, markup, spacing, typography, colors,
    state, behavior, responsive differences.
 4. Выбери owner for each mismatch: route/page/layout, shared component, theme,

@@ -1,49 +1,150 @@
-# Realize
+# Realize — AI CMS
 
-Realize — AI-управляемая CMS-платформа для создания, эксплуатации и развития
-сайтов разных типов. E-commerce — первый промышленный профиль текущего
-репозитория, а не ограничение платформенного ядра.
+Realize — CMS-платформа с инструментами ИИ для управления и развития сайтов.
+Текущий репозиторий реализует интернет-магазин: страницы, каталог товаров,
+витрину, корзину и оформление заказов. Контент и данные управляются через
+панель Payload Admin. Каждая установка использует отдельное приложение и базу
+данных.
 
-## Текущий baseline
+Стек: Next.js 16, React 19, TypeScript, Payload CMS 3, Tailwind CSS и PostgreSQL.
+Фактические возможности и ограничения описаны в
+[контексте проекта](documentation/project-context.md).
 
-- Next.js 16.3, React 19.2, Payload CMS 3.88 и PostgreSQL.
-- Single-tenant deployment: отдельное приложение и база данных на инсталляцию.
-- Payload Admin с `/admin/ai`, approval-gated Change Requests, первым Data Lane,
-  изолированным code execution, local preview, source promotion и
-  release-candidate foundation.
-- Production authorization/deploy controller, полный универсальный capability
-  registry и настраиваемый installation AI-layer ещё не завершены.
+## Требования
 
-Подробное разграничение target/current/history находится в
-[документации](documentation/INDEX.md).
+- Node.js **24.18.0** и npm **11.15.0** — точные версии, проверяемые проектом.
+- PostgreSQL; в [Compose](compose.yaml) используется версия **15.18**.
+- Docker с Docker Compose — для запуска PostgreSQL или всего приложения в
+  контейнерах.
 
 ## Локальный запуск
 
-Требуются Node.js 24.18.x, npm 11.15.x и PostgreSQL.
+Все команды выполняются из корня репозитория. При использовании собственного
+PostgreSQL Docker для локальной разработки не требуется.
+
+### 1. Установка зависимостей
 
 ```bash
-npm install
 npm run verify:runtime
+npm ci
+```
+
+Версия Node.js также указана в `.nvmrc` и `.node-version`.
+
+### 2. Настройка окружения
+
+Если `.env` ещё нет, создайте его из шаблона:
+
+```bash
+cp .env.example .env
+```
+
+В [.env.example](.env.example) заданы локальные адреса и переключатели
+возможностей. Перед запуском заполните:
+
+| Переменная                         | Значение                                                                      |
+| ---------------------------------- | ----------------------------------------------------------------------------- |
+| `POSTGRES_PASSWORD`                | Собственный пароль PostgreSQL                                                 |
+| `DATABASE_URI`, `DATABASE_URL`     | Одинаковый адрес БД для локального приложения; по умолчанию `127.0.0.1:55432` |
+| `COMPOSE_DATABASE_URI`             | Адрес той же БД из контейнера приложения: `postgres:5432`                     |
+| `PAYLOAD_SECRET`, `PREVIEW_SECRET` | Два разных случайных секретных значения                                       |
+
+Имя БД, пользователь и пароль в адресах подключения должны совпадать с
+`POSTGRES_DB`, `POSTGRES_USER` и `POSTGRES_PASSWORD`. Зарезервированные символы
+пароля в URL необходимо кодировать. Заполните все значения таблицы и для
+запуска только PostgreSQL через Compose: он проверяет общий файл конфигурации.
+
+Оставьте `PAYLOAD_DB_PUSH=false`: схема обновляется миграциями. При изменении
+адреса сайта согласуйте переменные `NEXT_PUBLIC_*_URL` и `PAYLOAD_PUBLIC_*_URL`.
+Файл `.env`, секреты и дампы БД не добавляются в Git.
+
+### 3. База данных и миграции
+
+Для новой локальной БД через Compose:
+
+```bash
+docker compose up -d postgres
+docker compose ps postgres
+```
+
+Дождитесь состояния `healthy`, затем примените миграции. Для собственного
+PostgreSQL сначала создайте БД и настройте адреса подключения.
+
+Если существующая БД ранее создавалась через Payload schema push, сначала
+следуйте [руководству по миграциям](documentation/delivery/03-migrations-and-rollback.md).
+
+```bash
 npm run payload:migrate
+```
+
+### 4. Запуск приложения
+
+```bash
 npm run dev
 ```
 
-AI control plane и execution worker запускаются отдельными процессами только
-для соответствующего development workflow:
+- Сайт: [localhost:3000](http://localhost:3000).
+- Панель управления: [localhost:3000/admin](http://localhost:3000/admin).
+
+При первом запуске на пустой БД создайте учётную запись администратора в панели
+управления.
+
+## Сборка и запуск в контейнере
+
+Локальная сборка с настроенным окружением и доступной БД:
 
 ```bash
-npm run ai:control-plane
-npm run ai:execution-worker
+npm run build
 ```
 
-Переменные окружения берутся из `.env.example`. Secrets, runtime state,
-database dumps и preview artifacts не должны попадать в Git.
+Вариант ниже использует PostgreSQL из Compose с уже применёнными миграциями.
+Compose выполняет собственную сборку приложения по Dockerfile. Используйте
+окружение, подготовленное выше, и остановите `npm run dev`, чтобы освободить
+порт `3000`:
 
-## Навигация
+```bash
+docker compose up -d --build web
+docker compose ps
+```
 
-- [Контекст и фактическое состояние](documentation/project-context.md)
-- [Master specification v1.0](documentation/REALIZE_AI_COMMERCE_MASTER_SPEC_v1.0_RU.md)
+Проект использует режим `standalone`. [Dockerfile](Dockerfile) подготавливает
+статические файлы и запускает `.next/standalone/server.js`. Приложение доступно
+по тому же локальному адресу. Развёртывание на сервере описано в
+[руководстве по сборке и развёртыванию](documentation/delivery/02-ci-release-deploy.md).
+
+## Основные команды
+
+| Команда                              | Назначение                                 |
+| ------------------------------------ | ------------------------------------------ |
+| `npm run lint`                       | Проверка кода ESLint                       |
+| `npm run typecheck`                  | Проверка типов TypeScript                  |
+| `npm run format:check`               | Проверка форматирования                    |
+| `npm run test:int`                   | Тесты Vitest                               |
+| `npm run test:e2e`                   | Браузерные тесты Playwright                |
+| `npm run payload:migrate:status`     | Состояние миграций                         |
+| `npm run payload:migrate:create`     | Создание миграции после изменения схемы    |
+| `npm run payload:generate-types`     | Генерация типов Payload                    |
+| `npm run payload:generate-importmap` | Генерация карты импортов панели управления |
+
+Для браузерных тестов нужен Chromium: `npx playwright install chromium`.
+Полный список команд находится в [package.json](package.json).
+
+## Дополнительные возможности
+
+- **ИИ в панели управления.** По умолчанию отключён. Настройка чата и отдельных
+  процессов `ai:control-plane` и `ai:execution-worker` описана в
+  [руководстве по локальному ИИ](documentation/delivery/01-local-admin-ai.md).
+- **Локальное подключение Stripe.** Требует заполнения `STRIPE_SECRET_KEY`,
+  `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` и `STRIPE_WEBHOOKS_SIGNING_SECRET`.
+  Для локального приёма событий используется `npm run stripe-webhooks`;
+  необходим настроенный Stripe CLI.
+
+## Документация
+
+- [Оглавление документации](documentation/INDEX.md)
+- [Структура проекта](documentation/architecture/project-structure.md)
+- [Спецификация платформы](documentation/REALIZE_AI_COMMERCE_MASTER_SPEC_v1.0_RU.md)
 - [Архитектурные решения](documentation/architecture/decisions/INDEX.md)
-- [Delivery runbooks](documentation/delivery/INDEX.md)
-- [AI operating layer](.ai/README.md)
-- [Codex adapter layer](.codex/README.md)
+- [Инструкции по эксплуатации](documentation/delivery/INDEX.md)
+- [Протокол работы ИИ-агентов](AGENTS.md) — обязательный вход в операционный слой
+  `.ai` и процедуры `.codex`.

@@ -19,7 +19,8 @@ required_output:
 ## Условия прохождения
 
 - Payload/PostgreSQL остаётся source of truth.
-- Elasticsearch рассматривается как projection/search provider.
-- Search Profile/provider flow не обходится локальным query.
+- Подтверждён существующий поисковый механизм. Если используется Elasticsearch,
+  он остаётся производным индексом; Search Profile и provider проверяются при
+  их фактическом наличии и не обходятся локальным запросом.
 - Reindex/cache invalidation decision зафиксирован.
 - Search response consumers проверены или есть documented skip reason.

@@ -1,4 +1,4 @@
-# Операционный слой ИИ (`ai-operating-layer`)
+# Операционный слой ИИ-агентов
 
 ```yaml
 artifact_id: ai-operating-layer-readme
@@ -12,99 +12,62 @@ runtime_sources:
   - .ai/registry/rules/INDEX.md
 ```
 
-`.ai/` — версионируемый операционный слой ИИ проекта `Realize-E-Commerce`.
-Он хранит активные правила, проверки, роли, workflow, registry, templates и
-локальные tools, которые помогают агентам работать с текущим Next.js +
-Payload CMS 3 приложением.
+`.ai/` хранит проектные инструкции и инструменты ИИ-агентов **Realize — AI CMS**.
+Обязательный протокол и навигация находятся в [AGENTS.md](../AGENTS.md).
+Этот документ объясняет устройство слоя; он не задаёт второй порядок входа.
 
-## Назначение
+## Владельцы информации
 
-- определить source of truth, contour-owner, owner-layer и allowlist;
-- выбрать применимые роли, rules, checks, workflows и skills;
-- отделить рабочие инструкции агента от product code;
-- сохранять traceability решений без runtime-логов;
-- адаптировать поведение агентов к фактическому стеку `Realize-E-Commerce`.
+| Содержание | Место хранения |
+| --- | --- |
+| Требования к работе агента | `rules/` |
+| Критерии прохождения проверок | `checks/` |
+| Последовательность действий | `workflows/` |
+| Ответственность ролей | `roles/` |
+| Связи и условия применения инструкций | `registry/` |
+| Вспомогательные шаблоны | `templates/` |
+| Локальные инструменты агентов | `tools/` |
+| Профили делегируемых задач | `worker-profiles/` |
+| Материалы развития операционного слоя | `agents-evolution/` |
+| Настройки, агенты, запросы и навыки Codex | [Адаптер .codex](../.codex/README.md) |
 
-## Границы
+Полная карта каталогов — [STRUCTURE.md](STRUCTURE.md). Системная карта процесса
+находится в [system/INDEX.md](system/INDEX.md), а порядок выполнения задачи — в
+[основном процессе](workflows/core/main-delivery/WORKFLOW.md).
 
-`.ai/` не содержит product code, migrations, UI components, fixtures, secrets
-или production data.
+## Выбор инструкций
 
-Canonical структура корневого проекта хранится вне рабочего AI-layer:
-`documentation/architecture/project-structure.md`.
+Через [реестр правил](registry/rules/INDEX.md) выбери общие и профильные
+требования, подходящие к задаче. Прочитай само правило и необходимые проверки.
+Роль, специальный процесс и навык подключай по их применимости. Уже изученный
+актуальный документ не требует повторного чтения; наличие ссылки не делает
+все связанные материалы обязательными.
 
-`.ai/**` ссылается на canonical documentation, но не должен дублировать полную
-карту проектных директорий.
+`.ai/` владеет проектными правилами, `.codex/` — процедурами их исполнения в
+Codex. При расхождении адаптер согласуется с правилом. Это разделение не меняет
+приоритет указаний среды и задания пользователя.
 
-Codex-specific исполняемые адаптеры живут в `.codex/`: skills, prompts,
-agents, config и scripts.
+## Границы и проектный контекст
 
-Generated runtime state живёт внутри `.ai/tools/agent-runtime/runtime/**` и не
-является источником истины. В git должны оставаться только entrypoint/index и
-schema-файлы runtime, а не session logs, sqlite stores, prompts/results dumps.
+- Назначение, настройка и запуск проекта — [корневой README](../README.md).
+- Фактические возможности — [контекст проекта](../documentation/project-context.md).
+- Расположение кода — [структура проекта](../documentation/architecture/project-structure.md).
+- Продуктовые и архитектурные договорённости — [документация](../documentation/INDEX.md).
 
-## Проектный Контекст
+Код приложения, его миграции, данные и интерфейсы не размещаются в `.ai/`.
+Исходники собственных инструментов агентов принадлежат `.ai/tools/`.
+Автоматически создаваемое состояние хранится в `.ai/tools/agent-runtime/runtime/`
+и не является проектной инструкцией. В Git из этого каталога сохраняются только
+индексы и схемы; журналы сеансов, SQLite, снимки и дампы исключаются.
 
-Канонический контекст корневого проекта хранится вне рабочего AI-layer:
+## Изменение слоя
 
-- `documentation/project-context.md`;
-- `documentation/architecture/project-structure.md`;
-- `README.md`.
+До правки определи владельца требования, разрешённые пути и проверки по общему
+протоколу. Обновляй само требование у его владельца и согласуй затронутые
+проверки, реестр, роли, процессы и адаптеры. Процедура —
+[навык синхронизации](../.codex/skills/skill-documentation-sync/SKILL.md).
 
-`.ai/**` ссылается на эти документы, но не становится владельцем проектного
-контекста.
-
-## Приоритет исполнения
-
-Для задачи агент открывает:
-
-1. `AGENTS.md`;
-2. `documentation/project-context.md`;
-3. подходящую role card из `.ai/roles/**`;
-4. применимые rules/checks/workflows из registry;
-5. применимые `.codex/skills/**`.
-
-Если `.ai/*` конфликтует с `.codex/*`, активный проектный контракт находится в
-`.ai/*`, а `.codex/*` должен быть приведён к нему как adapter layer.
-
-## Перед изменением `.ai/`
-
-Перед правкой рабочего слоя агент фиксирует pre-edit gate:
-
-- source of truth;
-- contour-owner;
-- owner-layer;
-- allowlist create/edit/delete;
-- impacted `.codex/*` adapters;
-- impacted registry/workflow/role links;
-- проверки после изменения.
-
-## Операционные зоны
-
-- `system/` - системные entrypoints и state machine рабочего слоя;
-- `rules/` - active rules;
-- `checks/` - pass/fail gate contracts;
-- `roles/` - operational role cards;
-- `worker-profiles/` - reusable worker assignment profiles;
-- `workflows/` - execution workflows;
-- `registry/` - traceability and routing;
-- `templates/` - report/gate/comment templates;
-- `tools/` - local AI-layer tools;
-- `tasks/` - current task state, generated by workflow/tools;
-- `agents-evolution/` - controlled evolution artifacts for the AI layer.
-
-## Правила хранения
-
-- Не хранить secrets, tokens, PII, dumps или production data.
-- Не хранить runtime logs и sqlite snapshots как project instruction.
-- Не оставлять параллельные инструкции для другого проекта.
-- Не создавать target-only folders без active `INDEX.md`, rule, check или
-  workflow.
-- При удалении/переименовании rule/workflow/skill обновлять registry, roles,
-  prompts и skills.
-
-## Migration State
-
-AI-layer синхронизирован под текущий stack:
-Next.js, React, Payload CMS 3, PostgreSQL, Elasticsearch/Redis/кэш,
-Tailwind/shadcn and Playwright/Vitest tooling.
+Сохраняй актуальность затронутых инструкций: не оставляй конкурирующие версии,
+устаревшие пути, временные заглушки или материалы другого проекта. Не создавай
+пустые ветки каталогов для будущей реализации. Секреты и рабочие данные не
+включаются в инструкции, документацию и Git.

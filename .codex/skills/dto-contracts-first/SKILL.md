@@ -135,7 +135,7 @@ scope.
 - `npx tsc --noEmit --pretty false`
 - `npm run lint` when source changes require lint.
 - Targeted Vitest for shared mappers or security-sensitive DTOs.
-- `npm run generate:types` only if Payload schema changed.
+- `npm run payload:generate-types` только при изменении схемы Payload.
 - Browser/runtime evidence only when rendered UI behavior changes.
 
 ## Handoff

@@ -18,7 +18,8 @@ runtime_sources:
 
 - public Next.js routes and layouts;
 - React Server/Client Components;
-- `src/ui/**`;
+- `src/components/**`, `src/providers/**`, UI helpers в `src/utilities/**`;
+- интерфейс Payload Admin в `packages/payload-ai-plugin/**`;
 - Tailwind/shadcn/Radix/lucide UI work;
 - browser behavior, forms, responsive layout, rendered DOM or visual parity.
 

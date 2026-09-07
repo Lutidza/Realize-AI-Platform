@@ -33,6 +33,8 @@ related_tools:
 Перед локальной backend-правкой агент проверяет:
 
 - existing Payload config, collections, field factories, hooks и access rules;
+- существующие компоненты Payload Admin, если меняется конфигурация полей или
+  административный интерфейс;
 - data resolvers и mutations в `packages/payload-ai-plugin/src/**`;
 - domain services в `services/**`;
 - route/SRP helpers в `src/utilities/**`;

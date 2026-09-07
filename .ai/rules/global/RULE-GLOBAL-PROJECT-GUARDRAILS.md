@@ -20,6 +20,8 @@ applies_to:
   - local tooling
 enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 registry: .ai/registry/rules/INDEX.md
+checks:
+  - .ai/checks/development/CHECK-DEVELOPMENT-STRICT-PRINCIPLES.md
 related_rules:
   - .ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md
   - .ai/rules/scope-control/RULE-ARTIFACT-DISPOSITION.md
@@ -39,6 +41,18 @@ related_rules:
 Этот файл не заменяет профильные rules/checks. Он фиксирует базовые запреты,
 возникшие из повторяющихся нарушений, которые должны блокироваться на уровне
 всего проекта.
+
+## Сохранение проекта и защищённых данных
+
+- Сохраняй действующий стек и архитектуру. Замена стека требует отдельной
+  явно согласованной задачи.
+- Не записывай реальные секреты в исходники, инструкции, документацию,
+  отчёты или Git и не раскрывай их при диагностике. Используй предусмотренное
+  проектом защищённое хранение и передачу секретов.
+- Не редактируй вручную автоматически создаваемые файлы:
+  `src/payload-types.ts`, `src/app/(payload)/admin/importMap.js`, `.next/**`
+  и результаты сборки. Меняй источник и используй соответствующий генератор.
+  Команды генерации сверяй с `package.json`.
 
 ## 1. Анализ существующего решения до реализации
 

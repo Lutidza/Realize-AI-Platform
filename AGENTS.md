@@ -1,170 +1,74 @@
-# AGENTS.md - инструкция для ИИ
+# Протокол работы ИИ-агентов
 
-## 1. Назначение файла
+Этот файл задаёт обязательный протокол работы в проекте **Realize — AI CMS**.
+Проектные инструкции находятся в операционном слое `.ai/`; входной документ —
+[.ai/README.md](.ai/README.md). Перед выполнением проектной задачи прочитай и
+соблюдай применимые правила, порядок работы и требования к проверкам.
+`.codex/` содержит настройки и процедуры Codex, согласованные с `.ai/`.
 
-`AGENTS.md` является корневым entrypoint для ИИ-агентов в текущем репозитории.
-Он направляет агента в рабочий AI-layer и задаёт обязательный порядок
-использования проектных инструкций.
+Инструкции проекта применяются в рамках указаний среды и задания пользователя.
+Отвечай по-русски, кратко и по делу. Названия технологий, команды, идентификаторы
+и пути сохраняй в исходном виде.
 
-Базовый стиль работы:
+## Порядок работы
 
-- сначала читаешь текущую реализацию и только потом предлагаешь или меняешь код;
-- ищешь причину, owner-layer и контракт, а не только локальный симптом;
-- сохраняешь архитектуру проекта и не внедряешь новый стек без отдельного scope;
-- не имитируешь выполнение команд, тестов или проверок;
-- отвечаешь по-русски, коротко и по делу.
+1. При первом знакомстве прочитай [README.md](README.md) и входной документ
+   операционного слоя. Фактическую архитектуру уточняй в
+   [контексте проекта](documentation/project-context.md) и затронутом коде.
+2. Для проектной задачи открой общие правила через
+   [глобальный раздел реестра](.ai/registry/rules/global/INDEX.md), затем выбери
+   профильные инструкции по таблице ниже. До правки прочитай применимые правила
+   и проверки; процедуры и навыки подключай по условиям их использования.
+3. Изучи текущую реализацию и существующие решения. Определи источник данных,
+   ответственный слой, границы изменений и необходимые проверки по
+   [основному порядку работы](.ai/workflows/core/main-delivery/WORKFLOW.md).
+4. Выполни разрешённую задачу в правильном слое, сохраняя стек и архитектуру.
+   Соблюдай пользовательские ограничения; не расширяй задачу попутным
+   рефакторингом и не перезаписывай чужие изменения.
+5. Проверь результат по фактическим изменениям. Синхронизируй затронутые
+   документы и инструкции. Сообщи результат, выполненные проверки, причины
+   существенных пропусков и оставшиеся ограничения.
 
-## 2. Архитектура рабочего AI-слоя
+Для обычного диалогового ответа достаточно этого протокола. Анализ репозитория
+без изменения файлов также требует относящихся к задаче проектных инструкций.
+Уже прочитанные актуальные документы повторно открывай только при необходимости;
+связи в реестре не требуют чтения всего графа документов.
 
-Рабочий AI-layer разделён на active layer и adapter layer.
+## Навигация и уточнение правил
 
-Active layer:
+| Задача или вопрос | Куда обратиться |
+| --- | --- |
+| Назначение, настройка, запуск, сборка | [README.md](README.md) |
+| Расположение кода и фактические владельцы | [Структура проекта](documentation/architecture/project-structure.md) |
+| Разработка, зависимости, комментарии | [Общие правила разработки](.ai/registry/rules/development/INDEX.md) |
+| Интерфейс, React, маршруты, браузерная проверка | [Правила интерфейса](.ai/registry/rules/development/frontend/INDEX.md) |
+| Payload, API, DTO, миграции, поиск | [Правила серверной разработки](.ai/registry/rules/development/backend/INDEX.md) |
+| Документация и изменение инструкций | [Правила документации](.ai/registry/rules/documentation/INDEX.md), [синхронизация](.codex/skills/skill-documentation-sync/SKILL.md) |
+| Удаление, перенос, границы задачи | [Контроль области изменений](.ai/registry/rules/scope-control/INDEX.md) |
+| Выбор ответственности | [Группы ролей](.ai/roles/role-groups.md) |
+| Делегирование, инструменты, специальный процесс | [Порядки выполнения задач](.ai/workflows/INDEX.md) |
+| Настройки и процедуры Codex | [Адаптер Codex](.codex/README.md) |
+| Разрешённые commit и push | [Порядок commit/push](.ai/workflows/delivery/git/commit-push/WORKFLOW.md) |
+| Устройство операционного слоя | [Карта .ai](.ai/STRUCTURE.md), [карта .codex](.codex/STRUCTURE.md) |
 
-- `.ai/README.md` - обзор назначения, границ и приоритета исполнения;
-- `.ai/STRUCTURE.md` - карта директорий и active entrypoints;
-- `.ai/system/INDEX.md` и `.ai/system/state-machine.md` - системные
-  entrypoints рабочего AI-layer;
-- `documentation/project-context.md` - канонический контекст корневого проекта;
-- `.ai/roles/role-groups.md` - маршрутизатор групп ролей;
-- `.ai/roles/**/INDEX.md` - role cards с зоной ответственности конкретной
-  роли;
-- `.ai/workflows/INDEX.md` - индекс доступных workflow;
-- `.ai/workflows/**/WORKFLOW.md` - порядок выполнения конкретного типа задач;
-- `.ai/rules/**` - обязательные active rules;
-- `.ai/checks/**` - pass/fail gates и required output для проверок;
-- `.ai/registry/**` - карта связей rules/checks/workflows/roles;
-- `.ai/templates/**` - шаблоны gate, report, role и runtime artifacts;
-- `.ai/tools/**` - локальные инструменты AI-layer;
-- `.ai/worker-profiles/**` - reusable profiles для worker assignment;
-- `.ai/agents-evolution/**` - контролируемые изменения самого AI-layer.
+## Обязательные ограничения
 
-Adapter layer:
+- Не записывай реальные секреты в исходники, инструкции, документацию или Git.
+- Не редактируй автоматически создаваемые файлы вручную: меняй их источник и
+  используй соответствующий генератор.
+- Не имитируй выполнение команд, тестов, проверок или работу других агентов.
+- Commit, push и развёртывание выполняй только в рамках разрешённого действия;
+  само завершение правки не является таким разрешением.
 
-- `.codex/README.md` и `.codex/STRUCTURE.md` - описание Codex-specific слоя;
-- `.codex/config.toml` - настройки Codex-адаптера;
-- `.codex/agents/**` - Codex agent profiles, привязанные к workflow;
-- `.codex/prompts/**` - prompts, повторяющие структуру workflow;
-- `.codex/skills/**` - исполняемые procedure skills для Codex.
+## Если инструкции неполны или противоречат друг другу
 
-Контракт качества AI-layer:
+Фактическое состояние сверяй с кодом и документацией проекта. Требования к работе
+агента уточняй в `.ai/`; процедурный адаптер `.codex/` не вводит отдельные
+проектные правила. История, отчёт или целевая спецификация не доказывают наличие
+реализованной возможности.
 
-- `.ai/*` хранит active project-specific instructions;
-- `.codex/*` хранит только адаптеры к active layer и не вводит отдельный
-  источник правил;
-- рабочий слой должен быть синхронизирован с текущим проектом до handoff;
-- артефакты, assumptions, paths, stack notes или workflow из других проектов
-  не допускаются;
-- временные заглушки, параллельные инструкции и known-drift не оставляются как
-  рабочее состояние;
-- при изменении active artifact обновляются связанные registry, roles,
-  workflows, checks, skills и prompts.
-
-## 3. Последовательность использования AI-layer
-
-Для каждой рабочей задачи выполняй порядок ниже. Не перескакивай сразу к
-редактированию файлов, если не выбран owner-layer и применимые gates.
-
-1. Открой `AGENTS.md` как корневой entrypoint.
-2. Открой `.ai/README.md`, `.ai/STRUCTURE.md` и `.ai/system/INDEX.md`, чтобы
-   понять active layout рабочего AI-layer.
-3. Открой `documentation/project-context.md`, чтобы понять контекст корневого
-   проекта.
-4. Если задача зависит от структуры проекта, открой
-   `documentation/architecture/project-structure.md`.
-5. Через `.ai/roles/role-groups.md` выбери применимую role group.
-6. Открой одну или несколько role cards из `.ai/roles/**/INDEX.md`.
-7. Открой `.ai/workflows/INDEX.md` и затем конкретный
-   `.ai/workflows/**/WORKFLOW.md`, если задача требует workflow.
-8. Через `.ai/registry/rules/INDEX.md` найди применимые rules и checks.
-9. Открой нужные `.ai/rules/**` и `.ai/checks/**` до реализации.
-10. Если задача использует Codex-specific исполнение, открой связанные
-   `.codex/agents/**`, `.codex/prompts/**` и `.codex/skills/**`.
-11. Сформируй pre-edit gate: source of truth, contour-owner, owner-layer,
-   allowlist, planned create/edit/delete, checks, blockers.
-12. После реализации выполни проверки по фактическому scope и обнови
-    связанные `.ai/.codex` artifacts, если менялся рабочий слой.
-
-Для простого диалогового ответа без изменений файлов достаточно `AGENTS.md` и
-явной проверки, что задача не является `work_task`.
-
-## 4. Pre-edit Gate
-
-Перед изменением файлов зафиксируй:
-
-- source of truth;
-- contour-owner;
-- owner-layer;
-- allowlist путей;
-- какие файлы будут созданы;
-- какие файлы будут изменены;
-- какие файлы будут удалены;
-- какие проверки будут выполнены;
-- что требует подтверждения пользователя.
-
-После этого выполняй работу маленькими шагами. Если правильный owner выходит за
-allowlist, остановись и попроси расширить scope.
-
-## 5. Project Documentation
-
-- Структура корневого проекта хранится в
-  `documentation/architecture/project-structure.md`.
-- `AGENTS.md` не дублирует карту директорий проекта.
-- Архитектура рабочего AI-layer хранится внутри `.ai/**` и `.codex/**`.
-- Если структура проекта меняется, сначала обнови canonical documentation, а
-  затем синхронизируй связанные AI-layer references.
-
-## 6. Engineering Rules
-
-- Сохраняй Payload CMS 3 и Next.js App Router patterns.
-- Для Payload config/collections сначала ищи существующие field factories,
-  hooks, access rules and admin components.
-- DB changes выполняй через Payload migrations или явно согласованный
-  schema-push/migration workflow.
-- PostGIS используется для geo-сценариев, если они присутствуют.
-- Search layer строится вокруг Search Profile + поискового provider и Elasticsearch,
-  Payload остаётся source of truth.
-- Не редактируй generated files вручную: `src/payload-types.ts`, import maps,
-  `.next/**`, build artifacts.
-- Secrets не добавляй в код, `.ai`, `.codex`, docs или git.
-- Перед установкой или обновлением зависимостей проверяй актуальную версию и
-  совместимость с Node/Next/React/Payload constraints.
-- Не расширяй scope скрыто за счёт попутного рефакторинга.
-
-## 7. Frontend Rules
-
-- Для public UI сначала ищи существующий owner в `src/ui/**`.
-- Для routes сначала проверь `src/app/**` и доменные helpers в
-  `src/domain/routes/**`.
-- Для shared UI переиспользуй shadcn/Radix/lucide patterns из проекта.
-- Явно различай Server Components и Client Components.
-- Browser/Playwright checks нужны, когда задача зависит от rendered DOM, CSS,
-  responsive behavior, forms, focus/input, client interactions или screenshot
-  parity.
-
-## 8. Delivery
-
-Перед commit/push используй соответствующие `.codex/skills/*`, если задача
-требует delivery. Не коммить secrets, runtime state, dumps, `node_modules`,
-`.next`, Playwright reports или generated session logs.
-
-## 9. Definition of Done
-
-Задача считается готовой, когда:
-
-- изменение сделано в правильном owner-layer;
-- рабочий AI-layer синхронизирован с текущим проектом и не содержит чужих или
-  устаревших артефактов;
-- выполнены или честно пропущены проверки с причиной;
-- связанные `.ai/.codex` artifacts синхронизированы, если менялся рабочий
-  слой;
-- пользователь получил краткое описание результата, рисков и следующих шагов.
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->
+Не выдумывай отсутствующие пути, правила или результаты. Применяй установленный
+приоритет инструкций. Если оставшийся конфликт мешает корректно выполнить
+задачу, назови конкретные файлы и недостающее решение; продолжай независимую
+работу в разрешённых границах. Исправление постороннего долга выполняется
+отдельной задачей.

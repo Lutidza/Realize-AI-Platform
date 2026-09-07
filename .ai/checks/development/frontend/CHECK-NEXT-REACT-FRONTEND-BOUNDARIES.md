@@ -13,4 +13,5 @@ report: shared_task_result
 - Source owner выбран до правки.
 - Server/Client Component boundary определён.
 - Правка сохраняет Next.js App Router, React and project UI conventions.
+- Затронутые API и настройки Next.js сверены с документацией установленной версии.
 - API/data/search contract не меняется из frontend role без backend role.

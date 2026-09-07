@@ -15,6 +15,7 @@ entries:
     primary_artifact: .ai/rules/development/frontend/RULE-NEXT-REACT-FRONTEND-BOUNDARIES.md
     owner_layer: .ai/rules/development/frontend/
     owner_roles: [.ai/roles/developer/frontend/INDEX.md]
+    related_rules: [.ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md]
     related_checks: [.ai/checks/development/frontend/CHECK-NEXT-REACT-FRONTEND-BOUNDARIES.md]
     related_workflows: [.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md]
     related_codex_artifacts: [.codex/skills/next-react-frontend-architecture/SKILL.md, .codex/skills/dto-contracts-first/SKILL.md]

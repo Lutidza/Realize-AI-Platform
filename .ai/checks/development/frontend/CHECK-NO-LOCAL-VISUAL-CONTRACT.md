@@ -18,5 +18,6 @@ required_output:
 ## Pass Condition
 
 - Правка классифицирована как local layout или reusable contract.
-- Проверены existing owners in `src/ui`, route layouts and theme.
+- Проверены существующие владельцы в `src/components/**`, `src/providers/**`,
+  макетах маршрутов и теме; для Payload Admin — в `packages/payload-ai-plugin/**`.
 - Новый visual/behavior owner не дублирует существующий shared UI pattern.

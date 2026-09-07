@@ -13,4 +13,4 @@ report: shared_task_result
 - Выполнен `rg` или эквивалентный scan по affected backend contour.
 - Existing pattern либо выбран как owner, либо явно объяснён local exception.
 - Новый owner не дублирует существующий mapper, service, access helper, hook,
-  query, cache policy или provider.
+  field factory, компонент Payload Admin, query, cache policy или provider.

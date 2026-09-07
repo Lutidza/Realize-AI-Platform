@@ -14,6 +14,9 @@ requirement:
   - определить source owner до изменения route/page/component/style behavior
   - различить Server Component and Client Component boundary
   - сохранять Next.js App Router, React, Tailwind/shadcn/Radix conventions
+  - для изменений Next.js применять требование документации установленной версии из общего правила разработки
+related_rules:
+  - .ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md
 forbidden:
   - создавать локальный UI stack поверх существующего design/system owner
   - смешивать server-only code в client component без явного adapter

@@ -19,12 +19,12 @@ entries:
     owner_roles: [all-agents]
     enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
     related_rules: [.ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md, .ai/rules/scope-control/RULE-ARTIFACT-DISPOSITION.md, .ai/rules/scope-control/RULE-STALE-ARTIFACT-CLEANUP-AFTER-REFACTOR.md]
-    related_checks: []
+    related_checks: [.ai/checks/development/CHECK-DEVELOPMENT-STRICT-PRINCIPLES.md]
     related_workflows: []
     related_codex_artifacts: []
     related_tools: []
     routing_tags: [global, guardrail, artifact-introduction, objectivity]
-    trigger: "New contour, owner-layer, runtime path, tooling path, bridge, temporary artifact, uncertain handoff or objectivity risk."
+    trigger: "Любая проектная рабочая задача; обычный диалоговый ответ не требует этой проверки."
   - entry_id: safe-command-proposal
     entry_type: active_rule
     status: active

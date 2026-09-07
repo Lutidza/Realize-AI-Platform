@@ -13,6 +13,10 @@ report: shared_task_result
 - Changed contract назван до реализации.
 - Source of truth определён.
 - Для DB/schema изменения есть migration/schema workflow decision.
+- Schema push выбран только для явно согласованной одноразовой локальной БД;
+  в остальных случаях изменения выполняются миграциями Payload.
+- При изменении геополей подтверждён используемый механизм и проверено влияние
+  на потребителей; PostGIS не предполагается по одному названию сценария.
 - Для Payload schema изменения есть generated types decision.
 - Affected consumers перечислены или обоснованно отсутствуют.
 - `src/payload-types.ts` не редактируется вручную.

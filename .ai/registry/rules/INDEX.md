@@ -34,5 +34,7 @@ checks. Текст правила живёт в `.ai/rules/*`, текст про
 
 1. Определи task contour and owner-layer.
 2. Открой root `INDEX.md`, затем 1-2 подходящих shard files.
-3. Из shard entry открой `primary_artifact`, затем related checks/workflows/skills.
+3. Из записи открой `primary_artifact`, затем необходимые для задачи проверки,
+   процессы и навыки. Связь в реестре сама по себе не требует их применения
+   или рекурсивного чтения. Уже изученные актуальные документы не перечитывай.
 4. Registry не хранит full rule body.

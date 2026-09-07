@@ -15,6 +15,7 @@ entries:
     primary_artifact: .ai/rules/development/backend/RULE-PAYLOAD-NEXT-BACKEND-BOUNDARIES.md
     owner_layer: .ai/rules/development/backend/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
+    related_rules: [.ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md]
     related_checks: [.ai/checks/development/backend/CHECK-PAYLOAD-NEXT-BACKEND-BOUNDARIES.md]
     related_codex_artifacts: [.codex/skills/payload-next-contracts-first/SKILL.md, .codex/skills/dto-contracts-first/SKILL.md]
     related_tools: [rg]
@@ -74,7 +75,7 @@ entries:
     related_codex_artifacts: [.codex/skills/payload-next-contracts-first/SKILL.md]
     related_tools: [rg, elasticsearch, redis]
     routing_tags: [backend, search, indexing, cache]
-    trigger: "Backend-правка меняет Search Profile, Elasticsearch provider/query/indexing, Redis/cache или search API response."
+    trigger: "Правка меняет существующий поисковый механизм, индекс, Search Profile, кэш или поисковый API."
   - entry_id: backend-guardrail-self-review
     entry_type: supporting_check
     status: active
