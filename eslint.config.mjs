@@ -14,6 +14,7 @@ const eslintConfig = [
     ignores: [
       ".next/**",
       ".ai/**",
+      ".ai-workspace/**",
       ".codex/**",
       ".postgres/**",
       "documentation/**",

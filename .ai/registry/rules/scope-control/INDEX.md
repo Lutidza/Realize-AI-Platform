@@ -11,6 +11,20 @@ coverage:
 
 ```yaml
 entries:
+  - entry_id: task-workspace-artifacts
+    entry_type: active_rule
+    status: active
+    primary_artifact: .ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md
+    owner_layer: .ai/rules/scope-control/
+    owner_roles: [all-agents]
+    enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
+    related_rules: [.ai/rules/scope-control/RULE-ARTIFACT-DISPOSITION.md]
+    related_checks: []
+    related_workflows: []
+    related_codex_artifacts: [.codex/skills/frontend-runtime-evidence/SKILL.md, .codex/skills/frontend-guardrail-audit/SKILL.md, .codex/skills/reference-to-implementation/SKILL.md]
+    related_tools: []
+    routing_tags: [scope-control, task, workspace, artifacts]
+    trigger: "Создание, сохранение, чтение или очистка локальных материалов задачи: референсов, скриншотов, снимков страниц, логов и черновиков."
   - entry_id: artifact-disposition
     entry_type: active_rule
     status: active

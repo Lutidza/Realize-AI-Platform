@@ -45,6 +45,7 @@
 | Payload, API, DTO, миграции, поиск | [Правила серверной разработки](.ai/registry/rules/development/backend/INDEX.md) |
 | Документация и изменение инструкций | [Правила документации](.ai/registry/rules/documentation/INDEX.md), [синхронизация](.codex/skills/skill-documentation-sync/SKILL.md) |
 | Удаление, перенос, границы задачи | [Контроль области изменений](.ai/registry/rules/scope-control/INDEX.md) |
+| Материалы задач, референсы, скриншоты и логи | [Рабочая область агентов](.ai-workspace/README.md) |
 | Выбор ответственности | [Группы ролей](.ai/roles/role-groups.md) |
 | Делегирование, инструменты, специальный процесс | [Порядки выполнения задач](.ai/workflows/INDEX.md) |
 | Настройки и процедуры Codex | [Адаптер Codex](.codex/README.md) |

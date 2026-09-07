@@ -1,4 +1,4 @@
-# Структура AI-слоя (`ai_structure`)
+# Структура операционного слоя ИИ-агентов
 
 ```yaml
 artifact_id: ai-operating-layer-structure
@@ -10,7 +10,11 @@ runtime_sources:
   - documentation/project-context.md
 ```
 
-## Фактические active entrypoints
+Карта показывает существующие каталоги `.ai/` и основные входные документы.
+Протокол работы находится в [AGENTS.md](../AGENTS.md), назначение разделов —
+в [README.md](README.md).
+
+## Карта каталогов
 
 ```text
 .ai/
@@ -28,46 +32,78 @@ runtime_sources:
 ├── rules/
 ├── checks/
 ├── registry/
+│   └── rules/INDEX.md
 ├── workflows/
 │   ├── INDEX.md
 │   ├── core/
+│   │   ├── main-delivery/WORKFLOW.md
+│   │   ├── worker-assignment/WORKFLOW.md
+│   │   └── worker-session/WORKFLOW.md
 │   ├── ai-operations/
+│   │   ├── agent-monitor-service-lifecycle/WORKFLOW.md
+│   │   ├── agent-runtime-maintenance/WORKFLOW.md
+│   │   ├── agents-evolution/WORKFLOW.md
+│   │   └── mcp-tooling/WORKFLOW.md
 │   ├── delivery/
+│   │   └── git/commit-push/WORKFLOW.md
 │   └── frontend/
-│       └── next-react/
-│           └── guardrail/
+│       └── next-react/guardrail/WORKFLOW.md
 ├── templates/
 ├── tools/
 │   ├── agent-runtime/
-│   ├── agent-monitor/
-│   └── agent-search/
+│   │   ├── README.md
+│   │   └── runtime/INDEX.md
+│   ├── agent-monitor/README.md
+│   └── agent-search/README.md
 ├── worker-profiles/
-└── agents-evolution/
+│   └── INDEX.md
+├── agents-evolution/
+│   ├── INDEX.md
+│   ├── observations/
+│   ├── improvement-proposals/
+│   └── applied-changes/
+└── research/
 ```
 
-## Target-only policy
+## Назначение материалов
 
-Папка или workflow считается active owner-layer только если у неё есть
-`INDEX.md`, `WORKFLOW.md`, `RULE-*.md`, `CHECK-*.md`, `PROFILE.md` или другой
-согласованный entrypoint.
+- `rules/`, `checks/`, `roles/` и `workflows/` содержат действующие инструкции;
+  связи и условия применения правил находятся в [реестре](registry/rules/INDEX.md).
+- `tools/` содержит исходники и документацию локальных инструментов агентов.
+- `worker-profiles/` предназначен для необязательных повторно используемых
+  профилей делегирования. Сейчас содержит только индекс, готовых профилей нет.
+- `agents-evolution/` хранит наблюдения, предложения и результаты изменения
+  слоя. Исторические записи не переопределяют действующие инструкции.
+- `research/` содержит справочные исследования внешних образцов. Они не
+  подтверждают наличие соответствующих возможностей в проекте и читаются
+  только по относящейся к ним задаче.
 
-Не создавай пустые target-only ветки заранее.
+Действующий раздел инструкций должен иметь `INDEX.md`, `WORKFLOW.md`,
+`RULE-*.md`, `CHECK-*.md`, `PROFILE.md` или другой согласованный входной документ.
+Наличие каталога само по себе не делает его источником правил. Пустые ветки
+для будущей реализации заранее не создаются.
 
-## Runtime state policy
+## Материалы задач
 
-`.ai/tools/agent-runtime/runtime/**` хранит generated state. В git допустимы
-только index/schema files. Session logs, sqlite stores, current sessions,
-external worker dumps, prompts/results and maintenance snapshots должны быть
-ignored/cleaned.
+Локальные референсы, скриншоты, снимки страниц, логи и черновики хранятся
+в соседнем каталоге [.ai-workspace/](../.ai-workspace/README.md), сгруппированными
+по задачам. Его правила принадлежат
+[операционному слою](rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
 
-## Проектная Адаптация
+## Локальное состояние инструментов
 
-Проектный контекст хранится вне `.ai`:
+`.ai/tools/agent-runtime/runtime/` содержит локальное состояние выполнения и
+документы его форматов. В Git сохраняются только индексы и схемы. Создаваемые
+данные — SQLite, реестр и история сеансов, сообщения, входные данные и
+результаты внешних агентов, снимки обслуживания — исключаются по
+[правилам `.gitignore`](tools/agent-runtime/.gitignore).
 
-- `documentation/project-context.md`;
-- `documentation/architecture/project-structure.md`;
-- `documentation/delivery/INDEX.md`;
-- `documentation/reports/AI-LAYER-FOREIGN-ARTIFACT-AUDIT.md`;
-- `README.md`.
+## Связанные документы
 
-`.ai/STRUCTURE.md` описывает только структуру рабочего AI-layer.
+Проектный контекст и настройки Codex имеют отдельные входные документы:
+
+- [Назначение, настройка и запуск проекта](../README.md).
+- [Фактические возможности проекта](../documentation/project-context.md).
+- [Структура приложения](../documentation/architecture/project-structure.md).
+- [Сборка, публикация и развёртывание](../documentation/delivery/INDEX.md).
+- [Адаптер Codex](../.codex/README.md).

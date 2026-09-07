@@ -10,6 +10,10 @@
 /playwright-report
 /test-results
 
+# Временные файлы аудитов размещаются в .ai-workspace, а не в корне.
+/audit-*.png
+/audit-*-snapshot.md
+
 /node_modules
 npm-debug.log*
 yarn-debug.log*

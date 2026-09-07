@@ -33,6 +33,9 @@ behavior.
 5. Выполняй правки по одному coherent layer.
 6. Перепроверь result against reference or document blocker.
 
+При сохранении образца или материалов сравнения применяй
+[правило материалов задачи](../../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
+
 ## Жёсткие правила
 
 - Не импровизируй UI при наличии reference.

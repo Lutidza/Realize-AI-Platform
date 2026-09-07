@@ -29,6 +29,9 @@ description: >-
    owner-layer and next step.
 5. Не расширяй scope за пределы audit request.
 
+При сохранении отчёта или доказательств применяй
+[правило материалов задачи](../../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
+
 ## Ограничения
 
 - Не редактируй product code in audit mode.

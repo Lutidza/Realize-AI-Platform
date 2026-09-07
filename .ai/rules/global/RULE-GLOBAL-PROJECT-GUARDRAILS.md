@@ -53,6 +53,8 @@ related_rules:
   `src/payload-types.ts`, `src/app/(payload)/admin/importMap.js`, `.next/**`
   и результаты сборки. Меняй источник и используй соответствующий генератор.
   Команды генерации сверяй с `package.json`.
+- Локальные материалы задач размещай по
+  [правилу рабочей области](../scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
 
 ## 1. Анализ существующего решения до реализации
 

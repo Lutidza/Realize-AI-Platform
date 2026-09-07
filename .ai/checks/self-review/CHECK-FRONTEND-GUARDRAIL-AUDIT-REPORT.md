@@ -7,7 +7,8 @@ owner_role: Владелец frontend-архитектуры
 applies_to:
   - self-review
   - frontend guardrail audit
-  - .ai/reports/frontend
+  - .ai-workspace/tasks/*/drafts/**
+  - documentation/reports/**
 trigger:
   - создан или обновлён отчёт frontend guardrail audit
   - применялся .codex/skills/frontend-guardrail-audit/SKILL.md
@@ -29,6 +30,7 @@ pass_condition:
   - структура отчёта на русском языке
   - режим аудита указан как только чтение
   - продуктовый код не изменён
+  - размещение сохранённых материалов соответствует RULE-TASK-WORKSPACE-ARTIFACTS
   - применённые rules/checks/skills перечислены путями
   - каждая найденная проблема имеет evidence и owner-layer
   - отложенные решения отделены от архитектурных решений
@@ -42,6 +44,8 @@ fail_condition:
   - отчёт предлагает несколько несогласованных следующих шагов
 related_template:
   - .ai/templates/agent-reports/TEMPLATE-FRONTEND-GUARDRAIL-AUDIT.md
+related_rules:
+  - .ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md
 related_codex_artifacts:
   - .codex/skills/frontend-guardrail-audit/SKILL.md
 related_tools:
@@ -52,7 +56,10 @@ related_tools:
 ## Когда выполнять
 
 Проверка обязательна после создания или обновления отчёта frontend guardrail
-audit в `.ai/reports/frontend/`.
+audit. Временный отчёт сохраняется в `.ai-workspace/tasks/<task-id>/drafts/`,
+постоянный — в `documentation/reports/`, если это входит в задачу.
+Размещение материалов и ограничения записи определяет
+[правило материалов задачи](../../rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
 
 ## Обязательный вывод
 
@@ -81,6 +88,7 @@ audit в `.ai/reports/frontend/`.
 - Проверить отсутствие англоязычных служебных заголовков.
 - Проверить, что в отчёте есть режим только чтение.
 - Проверить `git diff --name-only`, чтобы audit не изменил product code.
+- Проверить размещение сохранённых материалов по правилу материалов задачи.
 - Проверить, что rules/checks/skills указаны путями.
 - Проверить, что findings имеют evidence и owner-layer.
 - Проверить, что временные решения и отложенные решения не названы

@@ -115,6 +115,9 @@ activate/rollback и runtime binding остаются следующим slice. 
 
 - `.ai/**` — активные rules, checks, workflows, roles и local agent tools.
 - `.codex/**` — Codex adapters к active AI-layer.
+- [.ai-workspace/](../../.ai-workspace/README.md) — локальные материалы задач
+  агентов: референсы, скриншоты, снимки страниц, логи и черновики. Содержимое
+  задач исключено из Git; постоянные документы хранятся в `documentation/`.
 - `AGENTS.md` — корневой entrypoint.
 - `documentation/project-context.md` — канонический контекст проекта.
 - `documentation/specifications/**` — нормативные product/architecture specs.

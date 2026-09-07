@@ -29,6 +29,7 @@ runtime_sources:
 | Локальные инструменты агентов | `tools/` |
 | Профили делегируемых задач | `worker-profiles/` |
 | Материалы развития операционного слоя | `agents-evolution/` |
+| Локальные материалы текущих задач | [Рабочая область .ai-workspace](../.ai-workspace/README.md) |
 | Настройки, агенты, запросы и навыки Codex | [Адаптер .codex](../.codex/README.md) |
 
 Полная карта каталогов — [STRUCTURE.md](STRUCTURE.md). Системная карта процесса
