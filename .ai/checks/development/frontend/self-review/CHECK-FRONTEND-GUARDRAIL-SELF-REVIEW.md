@@ -10,16 +10,21 @@ related_rules:
   - .ai/rules/development/frontend/RULE-REUSE-BEFORE-LOCAL-IMPLEMENTATION.md
   - .ai/rules/development/frontend/RULE-NO-LOCAL-VISUAL-CONTRACT.md
   - .ai/rules/development/frontend/RULE-NO-RELATED-UI-DRIFT.md
-required_output:
-  - changed_files
-  - owner_layer_confirmed
-  - stale_stack_terms_absent
-  - checks_run_or_skipped
-  - residual_risks
+report: shared_task_result
 ```
 
-## Pass Condition
+## Условия прохождения
 
-- Diff не содержит stale assumptions from another project stack.
-- Next/React boundary соблюдён.
-- Проверки выполнены или пропущены с причиной.
+- Использован фактический UI owner; Server/Client boundary и DTO/data ownership
+  сохранены, затронутые shared consumers учтены.
+- Проверки выбраны по риску из
+  `.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`.
+- Rendered DOM/CSS, формы, focus, interactions и responsive behavior подтверждены
+  в браузере на затронутом сценарии. При недоступной среде причина и конкретное
+  непроверенное поведение указаны явно.
+- Screenshot comparison выполнен, если результат оценивается по reference.
+
+Чистые docs/comments/type-only изменения не требуют браузера. Для локальной
+UI правки достаточно соответствующего сценария; full e2e suite и build не
+следуют автоматически из факта изменения frontend файла. Итог объединяется
+с общим review; неприменимые поля не заполняй.

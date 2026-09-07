@@ -1,34 +1,22 @@
 ---
 name: feature-decomposition-guard
 description: >-
-  Используй, когда файл или feature folder смешивает несколько самостоятельных
-  зон ответственности: transport, validation, business logic, mapping,
-  rendering, state, helpers, config, styles or orchestration.
+  Используй при реальном смешении независимых обязанностей в файле или feature,
+  когда выделение owner улучшает изменение и проверку. Размер сам по себе
+  не требует декомпозиции.
 ---
 
-# Feature decomposition guard
+# Декомпозиция по обязанности
 
-## When to use
+Контракт: `.ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md`.
 
-- Next API route mixes validation, persistence, search and response assembly.
-- Payload collection mixes unrelated admin UI, hooks, access and data mapping.
-- React component mixes data fetching, layout, business rules and client state.
-- Service/helper grows unrelated responsibilities.
-- AI-layer artifact mixes rule, check, workflow and history.
+1. Найди конкретную проблему связности и существующего владельца поведения.
+2. Сравни сохранение связного кода рядом с выделением независимой обязанности.
+   Выделяй модуль, когда это делает контракт яснее или устраняет дублирование.
+3. Выполни необходимое разделение внутри scope; сохрани public contracts и
+   поддерживаемые package/runtime imports. Проверь затронутых consumers.
 
-## Procedure
-
-1. Определи responsibilities inside target file/folder.
-2. Найди existing owners in current project.
-3. Split only within approved allowlist.
-4. Keep compatibility with current Next.js, React, Payload CMS, PostgreSQL and
-   Elasticsearch constraints.
-5. Do not introduce new framework/layer just to make split convenient.
-
-## Output
-
-- mixed responsibilities;
-- selected owners;
-- files to create/edit/delete;
-- checks;
-- residual risks.
+Не дроби файл ради лимита строк, единственного helper или формального списка
+слоёв. Не добавляй framework, alias/loader или новый архитектурный слой без
+необходимости. Обоснование существенного решения включи в общий review;
+отдельный decomposition gate не нужен.

@@ -5,8 +5,8 @@ rule_id: RULE-NO-LOCAL-VISUAL-CONTRACT
 owner_role: .ai/roles/developer/frontend/INDEX.md
 applies_to:
   - src/app/**
-  - src/ui/**
-  - src/ui/theme/**
+  - src/components/**
+  - src/providers/**
 trigger:
   - добавляется class, style, wrapper, component variant or repeated behavior
   - локальная правка задаёт повторяемый visual/behavior contract

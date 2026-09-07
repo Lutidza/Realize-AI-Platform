@@ -10,27 +10,7 @@ related_tools:
   - .ai/tools/agent-search/
 ```
 
-## Назначение
-
-Gate формирует минимальный retrieval pack для LLM-агента перед решением об
-эволюции. Агент не должен читать весь AI-layer или писать новое правило без
-поиска релевантных существующих artifacts.
-
-## Retrieval sources
-
-- role mapper и применимые role cards;
-- active rules/checks/workflows из registry;
-- related Codex skills/prompts/agents;
-- `.ai/agents-evolution/observations/**`;
-- `.ai/agents-evolution/improvement-proposals/**`;
-- `.ai/agents-evolution/applied-changes/**`;
-- canonical docs в `documentation/**`;
-- релевантные code patterns через `rg` или `.ai/tools/agent-search/`.
-
-## Выход
-
-- opened artifacts;
-- rejected artifacts with reason;
-- matching historical fingerprints;
-- missing retrieval blockers;
-- context pack summary для proposal/root-cause step.
+Найди изменяемый owner и его прямых consumers через rg/registry. Читай
+нужные rules/checks/skill/docs один раз. Историю ищи только когда требуется
+разобраться с повторяемым решением. Не составляй обязательный отчёт о каждом
+открытом/отвергнутом файле; передай другому агенту лишь relevant paths и факты.

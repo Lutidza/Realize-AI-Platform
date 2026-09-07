@@ -6,8 +6,6 @@ artifact_type: ai-workflow-transition
 owner_layer: .ai/workflows/ai-operations/agents-evolution/transitions/
 ```
 
-## Условие перехода (`condition`)
-
-Переход разрешён только после review decision `accepted`, подтверждённого
-change target, owner-layer, allowlist и явного approval, если proposal меняет
-active rule/check/workflow/role/skill/adapter/tooling.
+Предложение принято, когда понятны evidence, scope, owner и решение о работе.
+Уже данное разрешение пользователя достаточно. Запрашивай новое решение лишь
+для действия, выходящего за это разрешение, после подготовки reviewable плана.

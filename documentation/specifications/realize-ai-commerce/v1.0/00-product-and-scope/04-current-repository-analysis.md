@@ -1,7 +1,7 @@
 # 4. Анализ текущего репозитория
 
 - **Статус:** current implementation
-- **Дата среза:** 28 августа 2026 года
+- **Дата среза:** 1 сентября 2026 года
 - **Источник истины:** code, manifests, migrations, tests и delivery workflows
 
 ## 4.1. Подтверждённый baseline
@@ -13,8 +13,10 @@ health endpoints и versioned Payload migrations.
 
 AI-контур декомпозирован по owners:
 
-- `packages/ai-contracts/**` — DTO и события;
-- `packages/change-engine/**` — планы, bindings, policies и checks;
+- `packages/ai-contracts/**` — DTO, события, capabilities и installation config
+  contracts;
+- `packages/change-engine/**` — планы, bindings, policies, checks, capability
+  registry и configuration compiler;
 - `packages/codex-adapter/**` — server-side Codex integration;
 - `packages/payload-ai-plugin/**` — Payload collections, endpoints и Admin UI;
 - `services/ai-control-plane/**` — loopback development control plane;
@@ -25,11 +27,16 @@ AI-контур декомпозирован по owners:
 В Payload Admin доступны drawer и `/admin/ai`. Реализованы read-only chat,
 approval-gated Change Requests, durable run/events audit и SSE.
 
-Первый Data Lane — `catalog.assignCategory.v1`. Он выполняет server-resolved
+Первый Data Lane — `catalog.assignCategory.v1`. Он зарегистрирован как первый
+generic exact-version `CapabilityDescriptor` и выполняет server-resolved
 dry-run, hash-bound approval, transactional Payload write, optimistic lock,
-audit/outbox и отдельный compensating rollback. Это подтверждает архитектуру,
-но остаётся одной профильной операцией, а не универсальным data capability
-registry.
+audit/outbox и отдельный compensating rollback. Typed installation config
+foundation уже валидирует skills/prompts/rules/roles/workflows, публикует
+immutable content-addressed release и компилирует его без расширения system
+capability ceiling. Четыре hidden Payload collections, versioned migration и
+strict `/api/realize-ai/config/*` уже реализуют draft replacement, validation,
+immutable release и durable replay. Settings UI, eval, activation и runtime
+binding ещё отсутствуют.
 
 Code Lane умеет создавать durable execution job, запускать Codex в отдельном
 Git worktree, ограничивать paths, выполнять server-owned checks и сохранять
@@ -42,7 +49,7 @@ write-only encrypted credential.
 
 ## 4.3. Реализованный delivery foundation
 
-В репозитории находятся десять зарегистрированных миграций, CI/release/deploy
+В репозитории находятся одиннадцать зарегистрированных миграций, CI/release/deploy
 workflows, exact-digest deployment, application rollback, release-candidate
 workflow, signed image evidence и TTL-bound release preview foundation.
 Внешний GitHub/GHCR/VPS lane требует operator configuration и не считается
@@ -53,7 +60,8 @@ workflow, signed image evidence и TTL-bound release preview foundation.
 Пока отсутствуют или не завершены:
 
 - универсальные capability adapters для data/schema/design/module/plugin;
-- управляемый через Admin installation AI-layer;
+- UI управления installation AI-layer, eval, activation/rollback и runtime
+  binding active release;
 - полный policy projection для read-denied и write-denied ресурсов;
 - production authorization handoff и approval-bound deploy controller;
 - полный database/data rollback для каждого класса изменений;

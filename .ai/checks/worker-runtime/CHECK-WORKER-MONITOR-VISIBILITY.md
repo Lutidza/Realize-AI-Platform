@@ -17,68 +17,20 @@ runtime_gateway: http://127.0.0.1:8765/
 monitor_url: http://127.0.0.1:5173/
 ```
 
-## Назначение
+Применяется только в явно выбранном managed external режиме с project
+monitor. Direct, native и обычный external режим: not_required.
 
-Проверка запрещает запуск worker-а или группы worker-ов, если будущая
-runtime node не видна в `agent-runtime` store/monitor contract до фактического
-`codex exec`.
-
-Для рабочих роёв этого проекта `spawn_agent` не является допустимым execution
-backend. Его блокирует
-`.ai/checks/worker-runtime/CHECK-CODEX-EXEC-WORKER-RUNTIME-BRIDGE.md`.
-
-Markdown artifact фиксирует pass/fail contract. Детерминированную проверку
-выполняет runtime tool.
-
-## Команда
-
-Перед worker/group launch выполнить:
+До managed запуска выполни:
 
 ```bash
-npm --prefix .ai/tools/agent-runtime run runtime -- worker-launch-preflight --session-id=<session-id> --group-id=<group-id> --json
+npm --prefix .ai/tools/agent-runtime run runtime -- worker-launch-preflight --session-id=<session-id> --json
 ```
 
-Для single-worker запуска `--group-id` не передаётся.
+Для настоящей managed группы добавь `--group-id=<group-id>`. Pass/fail берётся
+из JSON команды; это проверка planned sessions, topology, presence и monitor
+heartbeat выбранного режима. Не подменяй её успешным HTTP status.
 
-## Pass contract
-
-```text
-worker_monitor_visibility_check: pass
-service_lifecycle_mode: reuse_existing_only
-worker_launch_preflight.pass: true
-worker_launch_preflight.status: pass
-monitor_heartbeat_freshness: fresh
-monitor_heartbeat_expected_gateway_url: http://127.0.0.1:8765/
-monitor_heartbeat_expected_monitor_url: http://127.0.0.1:5173/
-planned_session_visible_before_launch: true
-presence_written_before_launch: true
-group_visible_before_launch: true|not_applicable
-group_edges_visible_before_launch: true|not_applicable
-coordinator_session_validation: pass|not_applicable
-spawn_allowed: true
-execution_backend_allowed: codex_exec
-```
-
-HTTP probe `/health` и `/snapshot` являются диагностикой из результата команды.
-Они не заменяют runtime store и heartbeat contract.
-
-## Fail contract
-
-```text
-worker_monitor_visibility_check: fail
-worker_launch_preflight.pass: false
-blocker: monitor_visibility_unavailable|planned_session_not_visible|presence_not_visible|group_not_visible|group_edges_not_visible|coordinator_not_visible|coordinator_not_separate|returns_to_invalid
-spawn_allowed: false
-```
-
-Fail blocks launch unless the user explicitly approves an emergency deviation.
-
-## Service lifecycle boundary
-
-Worker launch is `reuse_existing_only`:
-
-- do not start/stop/restart `agent-runtime gateway` or `agent-monitor UI`;
-- do not switch host/port;
-- use `preview`, not `dev`, for normal monitor UI operation;
-- use `.ai/workflows/ai-operations/agent-monitor-service-lifecycle/WORKFLOW.md`
-  only when the operator explicitly asks to start or inspect monitor services.
+При `pass=false` не запускай managed worker. Если monitor не был условием
+задания, можно выбрать direct/native способ выполнения без synthetic state.
+Lifecycle сервисов задаёт `RULE-AGENT-MONITOR-SERVICE-LIFECYCLE`; launch их
+не перезапускает и не меняет host/port.

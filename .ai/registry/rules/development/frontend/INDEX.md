@@ -40,7 +40,6 @@ entries:
     owner_layer: .ai/rules/development/frontend/
     owner_roles: [.ai/roles/developer/frontend/INDEX.md]
     related_checks: [.ai/checks/development/frontend/CHECK-REFERENCE-PATTERN-SCAN-BEFORE-IMPLEMENTATION.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/reference-to-implementation/SKILL.md]
     related_tools: [rg]
     routing_tags: [frontend, reference, visual-parity]
@@ -64,7 +63,6 @@ entries:
     owner_layer: .ai/rules/development/frontend/
     owner_roles: [.ai/roles/developer/frontend/INDEX.md]
     related_checks: [.ai/checks/development/frontend/CHECK-NO-RELATED-UI-DRIFT.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/frontend-runtime-evidence/SKILL.md]
     related_tools: [rg]
     routing_tags: [frontend, ui-drift, shared-ui]
@@ -75,10 +73,7 @@ entries:
     primary_artifact: .ai/checks/development/frontend/self-review/CHECK-FRONTEND-GUARDRAIL-SELF-REVIEW.md
     owner_layer: .ai/checks/development/frontend/self-review/
     owner_roles: [.ai/roles/developer/frontend/INDEX.md]
-    related_checks: []
     related_workflows: [.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md]
-    related_codex_artifacts: []
-    related_tools: []
     routing_tags: [frontend, self-review]
     trigger: "Frontend implementation diff is ready for self-review."
 ```

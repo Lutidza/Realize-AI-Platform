@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/OperatorPanel.tsx
  * @version 0.2.5 - 2026-05-05 09:45
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Right-side OperatorPanel composition for read-only selected
  * session inspector, operator console, and live activity. The panel
  * deliberately excludes outbound message editor and mutation controls.

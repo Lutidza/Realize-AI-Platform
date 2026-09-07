@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/AdapterStatePanel.tsx
  * @version 0.1.0 - 2026-05-05 02:25
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Compact read-only adapter state indicator for loading, empty,
  * ready and invalid runtime snapshots. It renders adapter source health only
  * and does not expose outbound controls or raw source content.

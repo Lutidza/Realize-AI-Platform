@@ -6,13 +6,10 @@ artifact_type: ai-worker-profile-index
 owner_layer: .ai/worker-profiles/
 ```
 
-## Назначение
+Reusable profiles помогают повторяющимся назначениям; они необязательны.
+Сейчас materialized profiles нет: используй подходящую role card и короткий
+task-specific assignment.
 
-`worker-profiles/` хранит reusable profiles для будущих worker assignments.
-Профиль не запускает worker сам по себе и не расширяет scope задачи.
-
-## Active Profiles
-
-На текущий момент нет materialized application worker profiles. Новые профили
-создаются отдельным pre-edit gate с role, rules, checks, workflow and result
-contract.
+Новый profile полезен при повторяемом контуре. Он ссылается на актуальные
+rules/checks/workflow и не дублирует их bodies. Scope конкретного задания
+определяется пользовательским запросом и assignment, а не самим profile.

@@ -6,7 +6,5 @@ artifact_type: ai-workflow-transition
 owner_layer: .ai/workflows/ai-operations/agents-evolution/transitions/
 ```
 
-## Условие перехода (`condition`)
-
-Переход разрешён после применения change, проверки stale paths, registry/role
-sync, RAG visibility и выполнения согласованных checks.
+Переходи к результату после нужных checks, проверки прямых ссылок и удаления
+заменённого поведения. Не добавляй новые несвязанные проверки после pass.

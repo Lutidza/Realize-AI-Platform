@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/MessagesPanel.tsx
  * @version 0.2.3 - 2026-05-05 02:30
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Read-only Operator Console feed for worker-visible summaries,
  * status events, and handoffs. It intentionally excludes private reasoning,
  * raw transcripts, outbound input, target selectors, and submit controls.

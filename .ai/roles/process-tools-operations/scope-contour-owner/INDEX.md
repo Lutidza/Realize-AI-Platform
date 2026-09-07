@@ -10,29 +10,18 @@ runtime_sources:
   - .ai/roles/role-groups.md
 ```
 
-## Назначение
+Определяет владельца и границы межслойной задачи, переноса/удаления artifact
+или изменения с неочевидным owner.
 
-Роль определяет contour-owner, owner-layer, allowlist and disposition для
-изменений в проекте.
+Контуры: application `src/**`, `packages/**`, `services/**`; checks `tests/**`;
+операционные `scripts/**`, `.github/**`, deployment config; documentation
+`documentation/**`; AI instructions `.ai/**`, `.codex/**`, `AGENTS.md`.
+Canonical карта: `documentation/architecture/project-structure.md`.
 
-## Когда выбирать
+До записи достаточно коротко определить source, owner, разрешённые изменения
+и проверки. Используй уже полученное разрешение пользователя; технический
+allowlist уточняется внутри этого scope без повторного approval. Worker
+сообщает назначившему агенту о выходе за свой assignment.
 
-- Задача пересекает application code, AI-layer, delivery, docs or tooling.
-- Нужно удалить, перенести, переименовать или архивировать artifact.
-- Правильный owner-layer не очевиден.
-
-## Контуры
-
-- Application: `app`, `routes`, `database`, `resources`, `public`, `config`,
-  `tests`.
-- AI operating layer: `.ai`.
-- Codex adapter layer: `.codex`.
-- Secrets/local env: `.env*`, `.env.workflow*` - не коммитить.
-
-## Выход
-
-- source of truth;
-- contour-owner;
-- owner-layer;
-- allowlist create/edit/delete;
-- checks and blockers.
+Не добавляй scope скрыто и не трогай чужие изменения. При удалении проверь
+references и назначение artifact. Secrets/local runtime не коммитятся.

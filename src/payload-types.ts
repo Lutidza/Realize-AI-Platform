@@ -93,6 +93,10 @@ export interface Config {
     'realize-ai-data-operations': RealizeAiDataOperation;
     'realize-ai-data-operation-approvals': RealizeAiDataOperationApproval;
     'realize-ai-data-operation-events': RealizeAiDataOperationEvent;
+    'realize-ai-config-drafts': RealizeAiConfigDraft;
+    'realize-ai-config-releases': RealizeAiConfigRelease;
+    'realize-ai-active-config-pointers': RealizeAiActiveConfigPointer;
+    'realize-ai-config-events': RealizeAiConfigEvent;
     'realize-ai-execution-jobs': RealizeAiExecutionJob;
     'realize-ai-deployments': RealizeAiDeployment;
     'realize-ai-release-candidates': RealizeAiReleaseCandidate;
@@ -142,6 +146,10 @@ export interface Config {
     'realize-ai-data-operations': RealizeAiDataOperationsSelect<false> | RealizeAiDataOperationsSelect<true>;
     'realize-ai-data-operation-approvals': RealizeAiDataOperationApprovalsSelect<false> | RealizeAiDataOperationApprovalsSelect<true>;
     'realize-ai-data-operation-events': RealizeAiDataOperationEventsSelect<false> | RealizeAiDataOperationEventsSelect<true>;
+    'realize-ai-config-drafts': RealizeAiConfigDraftsSelect<false> | RealizeAiConfigDraftsSelect<true>;
+    'realize-ai-config-releases': RealizeAiConfigReleasesSelect<false> | RealizeAiConfigReleasesSelect<true>;
+    'realize-ai-active-config-pointers': RealizeAiActiveConfigPointersSelect<false> | RealizeAiActiveConfigPointersSelect<true>;
+    'realize-ai-config-events': RealizeAiConfigEventsSelect<false> | RealizeAiConfigEventsSelect<true>;
     'realize-ai-execution-jobs': RealizeAiExecutionJobsSelect<false> | RealizeAiExecutionJobsSelect<true>;
     'realize-ai-deployments': RealizeAiDeploymentsSelect<false> | RealizeAiDeploymentsSelect<true>;
     'realize-ai-release-candidates': RealizeAiReleaseCandidatesSelect<false> | RealizeAiReleaseCandidatesSelect<true>;
@@ -1574,6 +1582,103 @@ export interface RealizeAiDataOperationEvent {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-config-drafts".
+ */
+export interface RealizeAiConfigDraft {
+  id: number;
+  draftID: string;
+  schemaVersion: '1.0';
+  state: 'editing' | 'validating' | 'ready' | 'released';
+  revision: number;
+  baseReleaseID?: string | null;
+  baseReleaseManifestHash?: string | null;
+  artifacts:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  createdBy: number | User;
+  updatedBy: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-config-releases".
+ */
+export interface RealizeAiConfigRelease {
+  id: number;
+  releaseID: string;
+  releaseKey: string;
+  schemaVersion: '1.0';
+  version: number;
+  sourceDraftID: string;
+  sourceDraftRevision: number;
+  systemMinimumRelease: string;
+  systemMaximumRelease?: string | null;
+  artifacts:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  manifestHash: string;
+  releasedAt: string;
+  createdBy: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-active-config-pointers".
+ */
+export interface RealizeAiActiveConfigPointer {
+  id: number;
+  pointerKey: string;
+  pointerVersionKey: string;
+  version: number;
+  releaseID: string;
+  manifestHash: string;
+  action: 'activate' | 'rollback';
+  activatedAt: string;
+  activatedBy: number | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-config-events".
+ */
+export interface RealizeAiConfigEvent {
+  id: number;
+  idempotencyKey: string;
+  action: 'draft_created' | 'draft_updated' | 'draft_validated' | 'release_created';
+  actor: number | User;
+  requestHash: string;
+  resourceKind: 'draft' | 'release';
+  resourceID: string;
+  status: 'succeeded' | 'validation_failed';
+  responseSnapshot:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "realize-ai-source-promotions".
  */
 export interface RealizeAiSourcePromotion {
@@ -1845,6 +1950,22 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'realize-ai-data-operation-events';
         value: number | RealizeAiDataOperationEvent;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-config-drafts';
+        value: number | RealizeAiConfigDraft;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-config-releases';
+        value: number | RealizeAiConfigRelease;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-active-config-pointers';
+        value: number | RealizeAiActiveConfigPointer;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-config-events';
+        value: number | RealizeAiConfigEvent;
       } | null)
     | ({
         relationTo: 'realize-ai-execution-jobs';
@@ -2654,6 +2775,75 @@ export interface RealizeAiDataOperationEventsSelect<T extends boolean = true> {
   deliveryStatus?: T;
   occurredAt?: T;
   idempotencyKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-config-drafts_select".
+ */
+export interface RealizeAiConfigDraftsSelect<T extends boolean = true> {
+  draftID?: T;
+  schemaVersion?: T;
+  state?: T;
+  revision?: T;
+  baseReleaseID?: T;
+  baseReleaseManifestHash?: T;
+  artifacts?: T;
+  createdBy?: T;
+  updatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-config-releases_select".
+ */
+export interface RealizeAiConfigReleasesSelect<T extends boolean = true> {
+  releaseID?: T;
+  releaseKey?: T;
+  schemaVersion?: T;
+  version?: T;
+  sourceDraftID?: T;
+  sourceDraftRevision?: T;
+  systemMinimumRelease?: T;
+  systemMaximumRelease?: T;
+  artifacts?: T;
+  manifestHash?: T;
+  releasedAt?: T;
+  createdBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-active-config-pointers_select".
+ */
+export interface RealizeAiActiveConfigPointersSelect<T extends boolean = true> {
+  pointerKey?: T;
+  pointerVersionKey?: T;
+  version?: T;
+  releaseID?: T;
+  manifestHash?: T;
+  action?: T;
+  activatedAt?: T;
+  activatedBy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-config-events_select".
+ */
+export interface RealizeAiConfigEventsSelect<T extends boolean = true> {
+  idempotencyKey?: T;
+  action?: T;
+  actor?: T;
+  requestHash?: T;
+  resourceKind?: T;
+  resourceID?: T;
+  status?: T;
+  responseSnapshot?: T;
   updatedAt?: T;
   createdAt?: T;
 }

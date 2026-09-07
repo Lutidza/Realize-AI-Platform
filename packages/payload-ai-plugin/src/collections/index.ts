@@ -1,12 +1,16 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/index.ts
- * @version 2026-08-28
- * @description Компонует chat, source/release delivery и server-only integration collections.
+ * @version 2026-09-02
+ * @description Компонует runtime, integration и installation config collections.
  */
 
 import type { CollectionConfig } from "payload";
 
 import type { SanitizedRealizeAIPluginOptions } from "../types";
+import { createActiveAIConfigPointersCollection } from "./activeAIConfigPointers";
+import { createAIConfigDraftsCollection } from "./aiConfigDrafts";
+import { createAIConfigEventsCollection } from "./aiConfigEvents";
+import { createAIConfigReleasesCollection } from "./aiConfigReleases";
 import { createApprovalsCollection } from "./approvals";
 import { createChangeRequestsCollection } from "./changeRequests";
 import { createCheckResultsCollection } from "./checkResults";
@@ -34,6 +38,10 @@ export const createAICollections = (
   createDataOperationsCollection(options),
   createDataOperationApprovalsCollection(options),
   createDataOperationEventsCollection(options),
+  createAIConfigDraftsCollection(options),
+  createAIConfigReleasesCollection(options),
+  createActiveAIConfigPointersCollection(options),
+  createAIConfigEventsCollection(options),
   createExecutionJobsCollection(options),
   createDeploymentsCollection(options),
   createReleaseCandidatesCollection(options),

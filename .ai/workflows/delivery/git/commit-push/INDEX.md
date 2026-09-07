@@ -16,9 +16,8 @@ codex_adapter:
 
 ## Назначение
 
-Входной файл workflow commit/push. Общий вход через Dialog Assistant задаётся
-описывает SSH-only delivery gates после отдельной команды пользователя на
-commit/push.
+Входной файл GitHub SSH delivery для авторизованного пользователем commit/push.
+Порядок и применимые checks описаны в `WORKFLOW.md`.
 
 ## Entrypoint
 

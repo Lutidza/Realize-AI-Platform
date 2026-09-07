@@ -1,10 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-schema/index.mjs
  * @version 0.1.0 - 2026-05-06 01:20
- * @docref DOC-SYSTEM-SPEC-032
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Public runtime schema API. It initializes normalized agent
  * tables, legacy compatibility tables, migrations, indexes, and user_version.
  *

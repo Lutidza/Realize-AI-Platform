@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/data/runtimeGateway/runtimeGatewayAdapter.ts
  * @version 0.3.0 - 2026-05-07 02:15
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Entry point for the Agent Monitor direct runtime gateway
  * adapter. The adapter uses loopback HTTP for snapshots and Socket.IO events
  * for reactive updates, without periodic timer refresh.

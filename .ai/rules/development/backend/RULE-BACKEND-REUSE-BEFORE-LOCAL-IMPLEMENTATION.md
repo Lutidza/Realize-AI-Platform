@@ -7,11 +7,11 @@ owner_role: .ai/roles/developer/backend/INDEX.md
 applies_to:
   - src/payload.config.ts
   - src/collections/**
-  - src/domain/collections/**
-  - src/app/api/**
-  - src/domain/data/**
-  - src/domain/services/**
-  - src/domain/routes/**
+  - packages/payload-ai-plugin/src/collections/**
+  - src/app/(app)/api/**
+  - packages/payload-ai-plugin/src/**
+  - services/**
+  - src/utilities/**
 trigger:
   - создаётся или меняется collection, API route, resolver, service, mapper, hook, access rule, job, cache или search behavior
 requirement:
@@ -33,10 +33,10 @@ related_tools:
 Перед локальной backend-правкой агент проверяет:
 
 - existing Payload config, collections, field factories, hooks и access rules;
-- data resolvers и mutations в `src/domain/data/**`;
-- domain services в `src/domain/services/**`;
-- route/SRP helpers в `src/domain/routes/**`;
-- API route patterns в `src/app/api/**`;
+- data resolvers и mutations в `packages/payload-ai-plugin/src/**`;
+- domain services в `services/**`;
+- route/SRP helpers в `src/utilities/**`;
+- API route patterns в `src/app/(app)/api/**`;
 - search providers, indexing jobs и cache helpers.
 
 Если existing owner найден, правка идёт туда или требуется explicit reason,

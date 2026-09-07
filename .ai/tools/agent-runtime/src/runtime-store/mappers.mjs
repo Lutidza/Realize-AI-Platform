@@ -1,10 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-store/mappers.mjs
  * @version 0.1.0 - 2026-05-06 04:05
- * @docref DOC-SYSTEM-SPEC-032
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Pure mapping helpers between legacy worker_* values and the
  * normalized agent_* runtime schema.
  *

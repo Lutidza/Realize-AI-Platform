@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/Board.tsx
  * @version 0.2.8 - 2026-05-05 12:55
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Swarm board for visualizing active worker sessions and handoffs.
  * The graph is read-only and maps adapter output into React Flow nodes/edges.
  *

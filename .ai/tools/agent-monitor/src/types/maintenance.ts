@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/types/maintenance.ts
  * @version 0.1.1 - 2026-05-05 21:05
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Typed read model for agent-runtime maintenance history reports.
  * The monitor consumes these objects as read-only observability data and never
  * writes maintenance artifacts from browser runtime.

@@ -1,10 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-store/group-store.mjs
  * @version 0.1.0 - 2026-05-10 00:00
- * @docref DOC-SYSTEM-SPEC-032
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Worker group writer operations for first-class runtime rows:
  * lifecycle, membership, communication edges, and Dialog Assistant acceptance
  * evidence before group closure.

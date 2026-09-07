@@ -2,8 +2,6 @@
 /**
  * @file .ai/tools/agent-runtime/bin/agent-runtime.mjs
  * @version 0.3.0 - 2026-05-15 00:00
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description CLI-точка входа локального runtime-инструмента ИИ-агентов.
  * Команда владеет доступом к runtime database, запуском gateway, экспортом
  * projection и записью maintenance reports внутри контура agent-runtime.

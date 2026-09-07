@@ -17,4 +17,4 @@ React components, Tailwind/shadcn UI, rendered DOM and browser behavior.
 ## Active workflows
 
 - `next-react/guardrail/` - pre-implementation и self-review guardrail для
-  `src/app/**`, `src/ui/**` and UI-facing route helpers.
+  `src/app/(app)/**`, `src/components/**`, `src/providers/**` и package UI.

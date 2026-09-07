@@ -16,14 +16,20 @@ exact hashes и передаёт работу только server-owned executor
 - класс: content, data, schema, design, frontend, code, module, plugin,
   configuration или release;
 - применимый project profile;
-- разрешённые actions и input schema;
-- server-side selector/resolver и executor;
+- разрешённые actions и versioned input schema reference;
+- стабильные server-side selector/resolver и executor references;
 - read/write scope и protected-resource policy;
 - risk signals, limits, required checks и approvals;
 - preview, idempotency и rollback support.
 
 Installation overlay может выбрать разрешённый descriptor или дополнительно
 сузить его, но не создать новый executable или расширить scope.
+
+Registry отклоняет malformed descriptor и повтор exact пары `id@version`.
+Change Request и run всегда ссылаются на точную версию; неявный выбор
+«последней» версии во время исполнения запрещён. Строковые references на
+schema/resolver/executor/check являются идентификаторами server-owned
+реализаций, а не командами для shell или кодом из installation config.
 
 ## 11.3. ChangeRequest
 

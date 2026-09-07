@@ -2,9 +2,12 @@
 
 /**
  * @file tests/int/migration-adoption.int.spec.ts
- * @version 2026-08-28
+ * @version 2026-09-01
  * @description Проверяет semantic schema comparison и fail-closed migration adoption.
  */
+
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -29,11 +32,27 @@ const expectedMigrations = [
   "20260827_070003_admin_integration_registry",
   "20260828_022809_github_pull_request_source_promotion",
   "20260828_044410_data_operation_lane",
+  "20260901_163832_ai_config_persistence",
 ];
 
 describe("migration adoption evidence", () => {
   it("reads every versioned migration in canonical index order", () => {
     expect(readExpectedMigrationNames()).toEqual(expectedMigrations);
+  });
+
+  it("drops config lock relations before their referenced tables", () => {
+    const source = readFileSync(
+      resolve(
+        process.cwd(),
+        "src/migrations/20260901_163832_ai_config_persistence.ts",
+      ),
+      "utf8",
+    );
+    const down = source.slice(source.indexOf("export async function down"));
+    expect(down.indexOf("DROP CONSTRAINT")).toBeGreaterThan(-1);
+    expect(down.indexOf("DROP CONSTRAINT")).toBeLessThan(
+      down.indexOf('DROP TABLE "realize_ai_config_drafts"'),
+    );
   });
 
   it("keeps probe ownership with the target application role", () => {

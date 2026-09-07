@@ -1,7 +1,7 @@
 /**
  * @file tests/int/payload-ai-plugin.int.spec.ts
- * @version 2026-08-28
- * @description Проверяет AI, source/release delivery и integrations Payload transformer.
+ * @version 2026-09-02
+ * @description Проверяет AI config, source/release и integration Payload transformer.
  */
 
 import type { Config, PayloadRequest } from "payload";
@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 
 import { realizeAIPlugin } from "@realize/payload-ai-control";
 import {
+  requireAIConfigurationManager,
   requireDataManager,
   requireIntegrationManager,
   requireReleaseApprover,
@@ -18,6 +19,7 @@ import { sanitizeOptions } from "../../packages/payload-ai-plugin/src/options";
 const options = {
   access: {
     canApproveRelease: () => true,
+    canManageAIConfiguration: () => true,
     canManageData: () => true,
     canManageIntegrations: () => true,
     canUseChat: () => true,
@@ -73,6 +75,10 @@ describe("realizeAIPlugin", () => {
       "realize-ai-data-operations",
       "realize-ai-data-operation-approvals",
       "realize-ai-data-operation-events",
+      "realize-ai-config-drafts",
+      "realize-ai-config-releases",
+      "realize-ai-active-config-pointers",
+      "realize-ai-config-events",
       "realize-ai-execution-jobs",
       "realize-ai-deployments",
       "realize-ai-release-candidates",
@@ -96,11 +102,12 @@ describe("realizeAIPlugin", () => {
     expect(views?.realizeIntegrations?.path).toBe("/integrations");
     expect(transformed.custom?.existing).toBe("preserved");
     expect(transformed.custom?.realizeAIControl).toMatchObject({
+      canManageAIConfiguration: options.access.canManageAIConfiguration,
       canManageIntegrations: options.access.canManageIntegrations,
       integrationEncryptionKeyEnv: "REALIZE_INTEGRATIONS_ENCRYPTION_KEY",
     });
     expect(transformed.endpoints?.[0]?.path).toBe("/existing");
-    expect(transformed.endpoints).toHaveLength(38);
+    expect(transformed.endpoints).toHaveLength(45);
     const conversations = transformed.collections?.find(
       (collection) => collection.slug === "realize-ai-conversations",
     );
@@ -155,6 +162,20 @@ describe("realizeAIPlugin", () => {
         expect.objectContaining({ name: "idempotencyKey", unique: true }),
       ]),
     );
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/config/validate",
+      ),
+    ).toBe(true);
+    expect(
+      transformed.endpoints?.some(
+        (endpoint) =>
+          endpoint.method === "post" &&
+          endpoint.path === "/realize-ai/config/releases",
+      ),
+    ).toBe(true);
     expect(
       transformed.endpoints?.some(
         (endpoint) =>
@@ -322,6 +343,20 @@ describe("realizeAIPlugin", () => {
       code: "FORBIDDEN",
       status: 403,
     });
+  });
+
+  it("keeps installation configuration behind a separate permission", async () => {
+    const req = { user: { id: 42 } } as unknown as PayloadRequest;
+    const denied = sanitizeOptions({
+      ...options,
+      access: {
+        ...options.access,
+        canManageAIConfiguration: () => false,
+      },
+    });
+    await expect(
+      requireAIConfigurationManager(req, denied),
+    ).rejects.toMatchObject({ code: "FORBIDDEN", status: 403 });
   });
 
   it("keeps Payload data writes behind a separate permission", async () => {

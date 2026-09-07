@@ -6,13 +6,6 @@ artifact_type: ai-workflow-state
 owner_layer: .ai/workflows/ai-operations/agents-evolution/states/
 ```
 
-## Назначение (`purpose`)
-
-Закрыть lifecycle item: resolved, rejected, deferred или obsolete.
-
-## Выход (`output`)
-
-- final status;
-- archive target;
-- linked applied artifacts;
-- reason, если rejected/deferred/obsolete.
+Используется только для уже существующего долговременного lifecycle item.
+Обнови его состояние и ссылку на решение; сохрани историческое evidence.
+Отдельный архивный документ для обычной завершённой правки не нужен.

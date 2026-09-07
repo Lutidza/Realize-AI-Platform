@@ -5,14 +5,7 @@ check_id: CHECK-PAYLOAD-NEXT-BACKEND-BOUNDARIES
 owner_layer: .ai/checks/development/backend/
 related_rule:
   - .ai/rules/development/backend/RULE-PAYLOAD-NEXT-BACKEND-BOUNDARIES.md
-required_output:
-  - affected_backend_contour
-  - source_owner
-  - boundary_type
-  - changed_contract
-  - affected_consumers
-  - checks_or_skip_reason
-  - decision
+report: shared_task_result
 ```
 
 ## Условия прохождения

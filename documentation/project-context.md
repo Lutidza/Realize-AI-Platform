@@ -1,7 +1,7 @@
 # Контекст проекта: Realize
 
 - **Статус:** current implementation
-- **Дата сверки:** 28 августа 2026 года
+- **Дата сверки:** 1 сентября 2026 года
 
 ## Цель проекта
 
@@ -112,10 +112,27 @@ Production authorization handoff, deploy/rollback controller и commercial
 enforcement в текущий slice не входят. `RELEASE_APPROVAL` по-прежнему не даёт
 worker-у production credentials и не запускает rollout.
 
-Настраиваемый installation AI-layer со skills, knowledge, prompts, local
-rules/roles/check bindings, agent profiles, evals и config releases также
-является target и в текущем plugin ещё не реализован. Payload Admin не
-редактирует системные `.ai/**` и `.codex/**`.
+В `packages/ai-contracts/**` и `packages/change-engine/**` реализован foundation
+настраиваемого installation AI-layer: generic exact-version capability registry,
+первый adapter `catalog.assignCategory.v1`, typed skills/prompts/rules/roles,
+capability/check bindings, agent profiles и декларативные workflows. Ready draft
+можно валидировать, опубликовать как детерминированный immutable release,
+проверить по SHA-256 и скомпилировать с exact server-owned system ceiling в
+bounded effective projection.
+
+Payload persistence/API первого configuration slice также реализованы. Четыре
+hidden коллекции хранят mutable drafts, immutable releases, append-only active
+pointer history и audit/idempotency events; migration
+`20260901_163832_ai_config_persistence` добавляет их в PostgreSQL. Namespace
+`/api/realize-ai/config/*` предоставляет bootstrap, create/read/replace draft,
+validation и create/read release через strict DTO, отдельное admin permission,
+optimistic revision, canonical request hash и durable replay. Generic Payload
+CRUD для этих коллекций закрыт.
+
+UI `/admin/ai/settings`, per-artifact CRUD, evals, activate/rollback commands и
+binding chat run к exact active config ещё не реализованы. Наличие pointer
+schema не активирует release. Payload Admin и Config API не редактируют
+системные `.ai/**`, `.codex/**`, license/security policy или executable registry.
 
 ## Правило синхронизации для AI-агентов
 

@@ -13,39 +13,31 @@ codex_adapter:
   - .codex/skills/git-commit-push/SKILL.md
 ```
 
-## Условие срабатывания
+## Контракт
 
-Применять при любой операции staging, commit или push в рамках delivery шага.
+Применяется к авторизованному пользователем commit/push. Сам запрос пользователя
+задаёт delivery scope; отдельный worker, assignment-файл, runtime session или
+повторное подтверждение не требуются.
 
-## Обязательное правило
+- Проверь текущую ветку и фактический diff. Stage только относящиеся к задаче
+  пути либо явно запрошенный snapshot; не включай чужие изменения и secrets.
+- Используй результаты достаточных проверок текущего diff по
+  `.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`. Повторный full
+  test/build suite ради commit/push не нужен; CI/release gates сохраняются.
+- Выполни связанные pre-commit/pre-push checks. `origin` должен быть GitHub SSH
+  remote вида `git@github.com:<owner>/<repo>.git`.
+- Перед push проверь SSH в BatchMode. При ошибке auth останови push, сохрани
+  локальный commit и сообщи причину; HTTPS/token fallback запрещён.
+- Push направляй в проверенную ветку без force. Изменение истории и отдельные
+  PR/merge операции должны входить в авторизованную задачу.
+- Сообщи commit hash, branch, проверки и фактический результат push.
 
-Commit/push delivery выполняется только после прохождения общего entry gate и
-delivery assignment. Delivery platform для репозитория - GitHub.
+Если delivery выполняется внутри уже назначенной worker-runtime mission,
+сохрани её result/session contract, включая `result: push_succeeded` при успехе.
+Обычная CLI delivery не создаёт runtime state или notification ради отчётности.
 
-Это правило владеет только предметными safety conditions:
+## Блокеры
 
-- staged files должны совпадать с allowlist или явно approved snapshot;
-- staging, commit и push выполняются только в пределах delivery assignment;
-- перед commit выполняется `.ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md`;
-- перед push выполняется `.ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md`;
-- remote `origin` должен быть GitHub SSH URL вида
-  `git@github.com:<owner>/<repo>.git`;
-- push выполняется только через GitHub SSH remote `origin`;
-- перед push выполняется SSH preflight в `BatchMode`;
-- если SSH key не принят remote host, workflow останавливается с
-  `ssh_auth_failed`; HTTPS/token fallback запрещён;
-- successful push фиксируется durable result с `result: push_succeeded`;
-- durable `push_succeeded` создаётся только в рамках delivery workflow.
-- GitHub Pull Request создаётся, обновляется или merge-ится только по
-  отдельному явному запросу пользователя.
-
-## Условия остановки
-
-- Entry gate не пройден.
-- Delivery assignment отсутствует или не покрывает staging/commit/push.
-- Staged files выходят за allowlist.
-- Secret scan нашёл token или tokenized URL в tracked-файлах.
-- `origin` не является GitHub SSH remote.
-- `origin` указывает не на `github.com`.
-- SSH preflight failed или SSH key не имеет write-доступа.
-- Runtime signal обязателен по mission, но writer недоступен.
+Неверный target, посторонние staged files, secrets, отсутствующая авторизация,
+непройденная необходимая проверка или SSH failure блокируют соответствующее
+действие. Отсутствие runtime writer вне runtime mission блокером не является.

@@ -38,4 +38,6 @@ installation, capability или risk никогда не считаются до
 Текущий plugin уже реализует chat, Change Requests, первый Data Lane,
 execution/preview/source/release foundations и integrations. Расширение до
 target выполняется через совместимые versioned contracts и миграции, без
-выдачи существующим endpoint новых неявных прав.
+выдачи существующим endpoint новых неявных прав. Первый installation config
+slice уже добавляет hidden draft/release/pointer/event persistence и отдельный
+strict Config API; Settings UI, activation и runtime binding остаются вне него.

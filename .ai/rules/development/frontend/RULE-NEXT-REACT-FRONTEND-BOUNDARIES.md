@@ -5,9 +5,9 @@ rule_id: RULE-NEXT-REACT-FRONTEND-BOUNDARIES
 owner_role: .ai/roles/developer/frontend/INDEX.md
 applies_to:
   - src/app/**
-  - src/ui/**
-  - src/domain/routes/**
-  - src/app/api/**
+  - src/components/**
+  - src/utilities/**
+  - src/app/(app)/api/**
 trigger:
   - любая UI-facing правка в текущем приложении
 requirement:
@@ -28,9 +28,9 @@ checks:
 Source-first порядок:
 
 1. Route owner в `src/app/**`.
-2. Page/layout/component owner в `src/ui/**`.
-3. URL/SRP owner в `src/domain/routes/**`.
-4. Data/API owner в `src/app/api/**`, `src/domain/data/**` или
-   `src/domain/services/**`.
+2. Page/layout/component owner в `src/components/**`.
+3. URL/SRP owner в `src/utilities/**`.
+4. Data/API owner в `src/app/(app)/api/**`, `packages/payload-ai-plugin/src/**` или
+   `services/**`.
 5. Browser evidence нужен только для rendered DOM, responsive, forms,
    interactions or visual parity.

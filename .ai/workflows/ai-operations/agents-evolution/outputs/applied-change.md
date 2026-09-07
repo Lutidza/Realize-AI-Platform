@@ -6,9 +6,9 @@ artifact_type: ai-workflow-output
 owner_layer: .ai/workflows/ai-operations/agents-evolution/outputs/
 ```
 
-## Назначение (`purpose`)
+## Необязательный формат
 
-Файл задаёт минимальный формат sanitized applied-change artifact внутри
+Используй только если нужен отдельный сохраняемый artifact. Файл задаёт формат sanitized applied-change artifact внутри
 `.ai/agents-evolution/applied-changes/`.
 
 ## Минимальный формат
@@ -18,7 +18,7 @@ artifact_id: APPLIED-YYYYMMDD-short-slug
 artifact_type: agents-evolution-applied-change
 owner_layer: .ai/agents-evolution/applied-changes/
 status: applied|partially-applied|blocked
-source_proposal: PROP-YYYYMMDD-short-slug
+source_proposal: <optional reference, if one exists>
 change_target: code|rule|check|workflow|role|skill|documentation|tooling|mixed
 related_change_targets: []
 prevented_failure: <short failure mode now covered>

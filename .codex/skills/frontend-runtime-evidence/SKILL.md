@@ -1,43 +1,27 @@
 ---
 name: frontend-runtime-evidence
 description: >-
-  Используй для frontend задач Realize-E-Commerce, где Next.js/React UI, Tailwind CSS,
-  forms, responsive behavior, browser rendering или visual bug нужно
-  подтвердить фактическим evidence. Skill выбирает static/build/browser tier.
+  Выбирает достаточную проверку Next/React UI: browser для DOM/CSS, форм,
+  focus и responsive поведения, screenshot для visual/reference comparison.
 ---
 
-# Runtime evidence для frontend
+# Проверка frontend поведения
 
-Skill применяется только к текущему Next/React frontend stack проекта.
+Используй матрицу `.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`
+и фактический owner из `documentation/project-context.md`. Уже прочитанные
+правила и контекст повторно не загружай.
 
-## Что открыть
+1. Назови затронутый route/component, observable scenario и критерий успеха.
+   Для responsive изменений выбери нужные viewport, для форм — изменённые states.
+2. Выбери проверку по матрице. Static/typecheck/build/browser не являются
+   последовательностью обязательных tier. Воспроизведи дефект до правки,
+   если это помогает проверить исправление.
+3. После изменения собери evidence выбранного сценария: rendered DOM/computed CSS,
+   ввод/focus или screenshot comparison — по предмету задачи. Повторный full e2e
+   suite или build не следуют автоматически из изменения frontend файла.
 
-1. `documentation/project-context.md`
-2. `.ai/roles/developer/frontend/INDEX.md`
-3. `.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md`
-4. `.ai/rules/development/frontend/RULE-NEXT-REACT-FRONTEND-BOUNDARIES.md`
-
-## Evidence tiers
-
-- `static` - достаточно diff/rg/source review.
-- `typecheck-lint` - нужен `npx tsc --noEmit --pretty false` or `npm run lint`.
-- `build` - нужен `npm run build`, если меняется route/runtime boundary.
-- `browser` - нужен rendered DOM, form behavior, focus/input, responsive,
-  computed CSS or console evidence.
-- `screenshot` - нужен visual/reference comparison.
-
-## Порядок
-
-1. Определи route/page/component/style owner.
-2. Выбери минимальный tier.
-3. Зафиксируй verification method до правки.
-4. Если browser/screenshot tier невозможен из-за отсутствия `.env`, database,
-   dev server or running app, зафиксируй fallback reason.
-5. После правки повтори выбранную проверку or report blocker.
-
-## Ограничения
-
-- Не объявляй rendered behavior проверенным без browser evidence or clear skip
-  reason.
-- Не требуй browser evidence для чисто статического docs/AI-layer change.
-- Не меняй API/search/Payload contract из frontend-only evidence step.
+Если route/DB/dev server недоступны, выполни независимые проверки, сообщи
+точную причину и непроверенное поведение. Static review и причина пропуска не
+считаются подтверждением browser результата. Не добавляй постоянные тесты для
+обратимой малорисковой визуальной правки; сохраняй regression test, когда он
+защищает существенное поведение.

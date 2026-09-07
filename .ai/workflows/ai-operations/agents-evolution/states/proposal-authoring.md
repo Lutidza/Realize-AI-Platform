@@ -6,18 +6,7 @@ artifact_type: ai-workflow-state
 owner_layer: .ai/workflows/ai-operations/agents-evolution/states/
 ```
 
-## Назначение (`purpose`)
-
-Сформировать improvement proposal с bounded change scope и verification plan.
-
-## Выход (`output`)
-
-- proposal path или inline proposal;
-- change target: rule, check, workflow, role, skill, documentation, tooling,
-  code или mixed;
-- target owner-layer;
-- expected changed artifacts;
-- code fix handoff, если target включает `code`;
-- risks;
-- verification plan;
-- user approval requirements.
+Optional state для решения вне уже авторизованной правки. Достаточно inline
+proposal или одного файла: evidence, target owner, scope, изменение, риск и
+проверка. Не дублируй уже принятое пользователем задание. Новый approval
+укажи только если исходного разрешения недостаточно.

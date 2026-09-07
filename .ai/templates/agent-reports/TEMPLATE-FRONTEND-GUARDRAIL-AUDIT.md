@@ -1,30 +1,18 @@
-# Template: frontend guardrail audit report
+# Необязательный шаблон отчёта frontend-аудита
 
-## Scope
+Используй для отдельно запрошенного read-only аудита. Обычная UI правка не
+требует отдельного audit report. Оставь только применимые поля.
 
-- mode: read-only
-- target paths:
-- applied rules/checks:
+```text
+Scope: проверенные пути и ограничения аудита.
 
-## Findings
+Findings:
+- Файл/место, наблюдаемая проблема и evidence.
+- Влияние, владелец исправления и следующий шаг.
 
-For each finding:
+Проверки: что выполнено; что существенно не подтверждено и почему.
+```
 
-- file:
-- evidence:
-- issue:
-- owner-layer:
-- recommended next step:
-- severity:
-
-## Checks
-
-- stale stack assumptions:
-- source/compiled boundary:
-- repeated UI/behavior contracts:
-- runtime evidence needed:
-
-## Result
-
-- decision:
-- residual risks:
+Если findings нет, сообщи это прямо с областью проверки. Не копируй вывод tools,
+весь список rules и неприменимые checks. Проверки выбираются по
+`.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`.

@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/ActivityPanel.tsx
  * @version 0.2.1 - 2026-05-05 11:05
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Read-only Live Activity timeline for normalized
  * worker-session events. It is fed from adapter-level summaries rather than
  * raw conversation content.

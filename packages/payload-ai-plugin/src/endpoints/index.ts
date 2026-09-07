@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 2026-08-28
- * @description Регистрирует chat, source/release delivery и authorized integration endpoints.
+ * @version 2026-09-02
+ * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
 import type { Endpoint } from "payload";
 
 import { DEFAULT_API_ROUTE } from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
+import { createAIConfigEndpoints } from "./aiConfigEndpoints";
 import { createChangeHandlers } from "./changeHandlers";
 import { createDataOperationHandlers } from "./dataOperationHandlers";
 import { createExecutionHandlers } from "./executionHandlers";
@@ -26,6 +27,7 @@ export const createAIEndpoints = (
   options: SanitizedRealizeAIPluginOptions,
 ): Endpoint[] => {
   const conversations = createConversationHandlers(options);
+  const config = createAIConfigEndpoints(options);
   const changes = createChangeHandlers(options);
   const dataOperations = createDataOperationHandlers(options);
   const runs = createRunHandlers(options);
@@ -41,6 +43,7 @@ export const createAIEndpoints = (
       method: "get",
       path: `${DEFAULT_API_ROUTE}/status`,
     },
+    ...config,
     {
       handler: integrations.list,
       method: "get",

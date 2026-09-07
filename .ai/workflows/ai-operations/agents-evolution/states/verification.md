@@ -6,15 +6,7 @@ artifact_type: ai-workflow-state
 owner_layer: .ai/workflows/ai-operations/agents-evolution/states/
 ```
 
-## Назначение (`purpose`)
-
-Проверить, что изменение AI-layer реально снижает риск повторения ошибки и не
-создаёт новый workflow drift.
-
-## Выход (`output`)
-
-- verification evidence;
-- passed/failed/deferred decision;
-- regression check decision;
-- retrieval/RAG visibility decision;
-- follow-up, если улучшение не сработало.
+Проверь ссылки, актуальность owners и отсутствие противоречий в изменённом
+маршруте. Для instructions пройди типичные сценарии мысленно; для executable
+tooling запусти относящиеся к изменению checks. Не запускай app suite из-за
+одной документационной правки. Укажи только реальные evidence и ограничения.

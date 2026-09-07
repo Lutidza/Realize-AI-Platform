@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/graph/FlowEdge.tsx
  * @version 0.1.6 - 2026-05-10 16:10
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Custom React Flow edge for read-only worker-session topology.
  * It keeps semantic edge labels out of the canvas and renders a directional
  * animated flow accent from source to target.

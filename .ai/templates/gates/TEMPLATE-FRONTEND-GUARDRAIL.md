@@ -1,16 +1,12 @@
-# Template: frontend guardrail
+# Необязательная заметка для frontend-задачи
+
+Можно объединить с общим pre-edit сообщением:
 
 ```text
-Frontend guardrail:
-- affected contour:
-- source owner:
-- compiled artifact touched:
-- existing pattern search:
-- reusable visual/behavior owner:
-- runtime evidence tier:
-- checks to run:
-- checks skipped with reason:
-- decision:
+Затронутый сценарий и критерий успеха; существующий UI owner;
+пути изменения; достаточная проверка и известный blocker, если есть.
 ```
 
-Use for Next.js/React frontend tasks.
+Не создавай отдельный gate/report ради шаблона. Профиль UI и нужное evidence
+выбираются через `.ai/system/INDEX.md` и
+`.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`.

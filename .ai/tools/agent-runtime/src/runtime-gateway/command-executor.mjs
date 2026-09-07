@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-gateway/command-executor.mjs
  * @version 0.2.1 - 2026-05-10 16:10
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description Executes gateway command requests through the shared runtime
  * command dispatcher and broadcasts committed deltas for write commands.
  *

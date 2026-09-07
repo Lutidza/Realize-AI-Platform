@@ -10,56 +10,23 @@ rules:
   - .ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md
 ```
 
-## Когда выполнять
+## Проверка перед push
 
-После commit и перед SSH push текущей ветки.
+- Запрос пользователя покрывает push; проверены commit hash, branch и target.
+- Необходимые проверки относятся к публикуемому diff; после них нет изменений,
+  которые делают evidence неактуальным.
+- `origin` имеет вид `git@github.com:<owner>/<repo>.git`; в диагностике нет
+  credentials или tokenized URL.
+- SSH preflight выполнен в BatchMode. Ошибка auth блокирует push; HTTPS/token
+  fallback не используется.
+- Push выполняется в проверенную ветку, без неавторизованного force push.
 
-## Обязательные проверки
+Команды SSH находятся в `.codex/skills/git-commit-push/SKILL.md`.
+Повторять app tests/build на этом gate без нового риска не нужно.
 
-- Commit hash и message зафиксированы.
-- Branch, tracking target и GitHub SSH remote host проверены.
-- `origin` указывает на SSH URL вида `git@github.com:<owner>/<repo>.git`.
-- `git remote get-url origin` не содержит HTTPS URL, token или non-GitHub host.
-- SSH preflight выполнен:
+## Результат
 
-  ```bash
-  GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-    git ls-remote origin HEAD
-  ```
-
-- Push текущей ветки выполняется только через SSH:
-
-  ```bash
-  GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-    git push origin <branch>
-  ```
-
-- HTTPS/token fallback запрещён.
-- Durable runtime result plan подготовлен: `worker_jobs.result_json` или session
-  result.
-- Для успешного push planned payload содержит `result: push_succeeded`.
-- Session должна перейти в `result-ready` при успешном push или `blocked` при
-  failed push.
-- Notification `result_ready` Dialog Assistant-у подготовлена с тем же payload.
-
-## Required output
-
-- delivery session/job id, если используется runtime;
-- commit hash;
-- branch;
-- tracking/branch target;
-- GitHub repository owner/name;
-- remote host без token, ожидаемо `github.com`;
-- SSH preflight result;
-- durable result target;
-- runtime signal result;
-- decision: `passed` или `blocked`.
-
-## Fail condition
-
-- Entry gate не пройден.
-- `origin` не является GitHub SSH remote.
-- `origin` указывает не на `github.com`.
-- SSH preflight вернул `Permission denied`, rejected key или другой auth error.
-- Delivery runtime пытается использовать HTTPS/token fallback.
-- Push target не соответствует текущей ветке.
+В общий delivery result включи commit hash, branch, remote, preflight и результат
+push. Session/job id и durable runtime result добавляются только при работе
+в уже назначенной worker-runtime mission. Отсутствие runtime вне такой mission
+не блокирует push.

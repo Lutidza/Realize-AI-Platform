@@ -6,9 +6,9 @@ artifact_type: ai-workflow-output
 owner_layer: .ai/workflows/ai-operations/agents-evolution/outputs/
 ```
 
-## Назначение (`purpose`)
+## Необязательный формат
 
-Файл задаёт минимальный формат sanitized observation внутри
+Используй только если нужен отдельный сохраняемый artifact. Файл задаёт формат sanitized observation внутри
 `.ai/agents-evolution/observations/`.
 
 ## Минимальный формат

@@ -1,7 +1,7 @@
 /**
  * @file src/plugins/index.ts
- * @version 2026-08-28
- * @description Компонует Payload plugins и AI source/release/integration gates.
+ * @version 2026-09-02
+ * @description Компонует Payload plugins и AI config/source/release/integration gates.
  */
 
 import { formBuilderPlugin } from "@payloadcms/plugin-form-builder";
@@ -35,6 +35,8 @@ const stripeWebhookSecret = process.env.STRIPE_WEBHOOKS_SIGNING_SECRET;
 const realizeAI = realizeAIPlugin({
   access: {
     canApproveRelease: ({ req }) =>
+      Boolean(req.user && checkRole(["admin"], req.user)),
+    canManageAIConfiguration: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
     canManageData: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),

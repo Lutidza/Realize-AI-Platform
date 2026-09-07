@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/Inspector.tsx
  * @version 0.1.2 - 2026-05-05 22:10
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description Read-only inspector for the selected worker session. It focuses
  * on registry contract fields and does not expose hidden reasoning.
  *

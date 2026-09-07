@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/projection-exporter.mjs
  * @version 0.2.1 - 2026-05-10 17:05
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description Read-only exporter that derives compatibility worker-session
  * projections from the local agent runtime SQLite store.
  *

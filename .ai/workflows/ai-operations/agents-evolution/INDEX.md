@@ -16,30 +16,17 @@ related_artifacts:
   - .codex/skills/
 ```
 
-## Назначение (`purpose`)
+Основной entrypoint — `WORKFLOW.md`: короткая реализация явно запрошенной
+правки AI-слоя и отдельный optional proposal route для будущих решений.
 
-Workflow фиксирует активный процесс evidence-based эволюции AI-агентов. Он
-превращает реальные сигналы проекта в controlled changes рабочего AI-layer:
-observation, proposal, applied change, deferred или rejected decision.
+Дополнительные материалы открывай по необходимости:
 
-## Границы (`boundaries`)
+- `states/` — детали выбранного состояния;
+- `gates/` — evidence, owner, dedup и sync;
+- `transitions/` — переходы долговременного proposal;
+- `outputs/` — форматы optional artifacts;
+- `adapters/` — связи с Codex skills.
 
-- `INDEX.md` является entrypoint-картой workflow-директории.
-- `WORKFLOW.md` хранит текущий runtime contract.
-- `.ai/agents-evolution/` хранит sanitized trace, но не runtime logs.
-- Active rules/checks/workflows/templates обновляются в своих owner-layer.
-- Codex-specific artifacts обновляются в `.codex/*`.
-
-## Карта папок (`folder_map`)
-
-- `states/` - состояния процесса.
-- `gates/` - проверки процесса.
-- `transitions/` - переходы процесса.
-- `outputs/` - форматы выходов процесса.
-- `adapters/` - связи с Codex skills и runtime artifacts.
-
-## Передача результата (`handoff`)
-
-Новый evolution artifact создаётся только после evidence gate, target
-classification, recurrence/dedup scan и owner-layer decision. Active behavior
-меняется в owner-layer, а `.ai/agents-evolution/**` фиксирует sanitized trace.
+Наличие этих файлов не требует чтения всей директории, отдельного observation,
+proposal и applied-change для каждой правки. Текущие instructions находятся
+в owners rules/checks/workflows/skills, а не в историческом trace.

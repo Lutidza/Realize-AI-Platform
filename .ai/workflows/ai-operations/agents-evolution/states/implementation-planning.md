@@ -6,17 +6,6 @@ artifact_type: ai-workflow-state
 owner_layer: .ai/workflows/ai-operations/agents-evolution/states/
 ```
 
-## Назначение (`purpose`)
-
-Перед применением accepted proposal зафиксировать pre-edit gate, allowlist и
-порядок синхронизации `.ai/*`, `.codex/*` и `documentation/*`.
-
-## Выход (`output`)
-
-- source of truth;
-- contour-owner;
-- owner-layer;
-- change target;
-- allowlist create/edit/delete;
-- checks;
-- documentation sync decision.
+Коротко определи source, owner, разрешённые изменения, прямых consumers и
+необходимые проверки. Плана в диалоге/assignment достаточно; отдельный report,
+перечень отвергнутых файлов и полный context pack не требуются.

@@ -6,7 +6,6 @@ artifact_type: ai-workflow-transition
 owner_layer: .ai/workflows/ai-operations/agents-evolution/transitions/
 ```
 
-## Условие перехода (`condition`)
-
-Переход разрешён, если pre-edit gate, change target, owner-layer, allowlist,
-RAG/context pack и verification plan зафиксированы.
+Применяй change, когда его цель, owner, scope и проверки понятны и покрыты
+пользовательским разрешением. Отдельный accepted-proposal artifact не нужен
+для уже запрошенной правки.

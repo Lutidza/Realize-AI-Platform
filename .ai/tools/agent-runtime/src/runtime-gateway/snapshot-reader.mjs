@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-gateway/snapshot-reader.mjs
  * @version 0.2.4 - 2026-05-24 09:30
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Собирает snapshot только для чтения, health, metrics и delta
  * payload из нормализованных SQLite-таблиц agent runtime.
  *

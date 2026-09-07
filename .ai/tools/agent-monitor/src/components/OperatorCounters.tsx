@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/OperatorCounters.tsx
  * @version 0.2.2 - 2026-05-05 00:35
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Read-only Operator View counters block for adapter-provided
  * runtime metrics. The component does not calculate business metrics and only
  * renders the typed metrics supplied by the data boundary.

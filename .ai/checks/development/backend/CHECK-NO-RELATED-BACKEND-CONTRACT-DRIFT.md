@@ -5,13 +5,7 @@ check_id: CHECK-NO-RELATED-BACKEND-CONTRACT-DRIFT
 owner_layer: .ai/checks/development/backend/
 related_rule:
   - .ai/rules/development/backend/RULE-NO-RELATED-BACKEND-CONTRACT-DRIFT.md
-required_output:
-  - changed_shared_owner
-  - affected_consumers
-  - projections_or_caches
-  - allowlist
-  - drift_checks
-  - decision
+report: shared_task_result
 ```
 
 ## Условия прохождения

@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-schema/legacy-schema.mjs
  * @version 0.2.0 - 2026-05-10 00:00
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description SQLite DDL for the transitional legacy worker_* compatibility
  * tables used until all live writers and monitor adapters consume agent_*.
  *

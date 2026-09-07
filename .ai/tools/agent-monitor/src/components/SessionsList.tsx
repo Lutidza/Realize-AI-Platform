@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/SessionsList.tsx
  * @version 0.2.0 - 2026-05-05 00:05
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description Dense session navigation list for active worker sessions. It
  * exposes registry identity, role, lifecycle status, and last update time.
  *

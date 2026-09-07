@@ -1,10 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-gateway/socket-io-server.mjs
  * @version 0.1.0 - 2026-05-07 02:15
- * @docref DOC-SYSTEM-SPEC-032
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Socket.IO gateway for runtime snapshot, resume, heartbeat, and
  * delta push events. It accepts only loopback clients and uses WebSocket
  * transport only, so the monitor does not rely on browser polling.

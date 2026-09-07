@@ -6,8 +6,8 @@ title: Reuse before local frontend implementation
 owner_role: .ai/roles/developer/frontend/INDEX.md
 applies_to:
   - src/app/**
-  - src/ui/**
-  - src/domain/routes/**
+  - src/components/**
+  - src/utilities/**
 trigger:
   - создаётся или меняется route, page, layout, component, style or client behavior
 requirement:
@@ -28,8 +28,8 @@ related_tools:
 Перед локальной frontend-правкой агент проверяет:
 
 - похожие routes/pages in `src/app/**`;
-- shared UI/layout components in `src/ui/**`;
-- route/SRP helpers in `src/domain/routes/**`;
+- shared UI/layout components in `src/components/**`;
+- route/SRP helpers in `src/utilities/**`;
 - existing shadcn/Radix/lucide usage in project UI.
 
 Если existing owner найден, правка идёт туда или требуется explicit reason,

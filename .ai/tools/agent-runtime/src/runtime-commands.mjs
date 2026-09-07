@@ -1,10 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-commands.mjs
  * @version 0.1.1 - 2026-05-10 16:20
- * @docref DOC-SYSTEM-SPEC-032
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Shared command dispatcher for local AI runtime store commands.
  * It keeps the CLI and the local runtime gateway on the same command contract
  * while the gateway becomes the future single writer for live operations.

@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/App.tsx
  * @version 0.5.0 - 2026-05-07 03:10
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Top-level composition for the local worker-session monitor. It
  * owns selected-session UI state and wires the read-only dataset into board,
  * sidebar operator summary, session list, and the operator panel.

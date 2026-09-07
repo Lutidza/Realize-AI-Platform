@@ -29,6 +29,7 @@ Target route `/admin/ai/settings` содержит:
 - Roles и capability bindings;
 - Check bindings;
 - Agent profiles;
+- Workflows;
 - Evals;
 - Configuration releases.
 
@@ -36,6 +37,16 @@ Admin редактирует draft installation overlay, запускает vali
 сравнивает diff конфигурации и отдельно активирует immutable release. Интерфейс
 не редактирует `.ai/**`, `.codex/**`, license/security policy или protected
 server registry.
+
+Workflow редактируется как декларативная типизированная схема. Он может
+ссылаться только на prompt templates, check bindings и зарегистрированные
+server capabilities из того же configuration release. Произвольные JS/TS,
+shell-команды, SQL и executable-код не являются содержимым installation
+workflow. Обязательные policy, approval и execution gates добавляются Change
+Engine независимо от локальной схемы workflow.
+
+Текущее состояние: persistence и aggregate Config API уже реализованы, но сам
+route `/admin/ai/settings` и его artifact editor ещё отсутствуют.
 
 ## 9.3. UX-инварианты
 

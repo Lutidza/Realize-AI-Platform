@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/maintenance-report-writer.mjs
  * @version 0.2.0 - 2026-05-07 04:10
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description Writes machine-readable maintenance reports for the local
  * agent-runtime tool state without turning runtime output into source code.
  */

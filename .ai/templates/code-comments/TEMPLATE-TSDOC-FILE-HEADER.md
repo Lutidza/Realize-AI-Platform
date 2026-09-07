@@ -1,16 +1,16 @@
-# TSDoc file header template
+# Необязательный комментарий уровня файла
 
-Use only for TypeScript files in application code, AI tooling, or explicitly
-approved TS contours. Do not add decorative headers to routine component files
-when the local file style does not use them.
+Применяй только когда назначение или ограничение всего модуля не видно из кода.
+Новый файл, export или boundary сами по себе не требуют header. License/tool
+comments сохраняй по их контракту.
+
+Пример пояснения причины:
 
 ```ts
-/**
- * @file .ai/tools/agent-monitor/src/path/exampleFile.ts
- * @owner .ai/tools/agent-monitor
- * @purpose Short purpose of this file.
- */
+/** Native ESM execution requires file extensions in local imports. */
 ```
 
-For current application frontend, prefer concise local comments and avoid adding
-decorative headers unless the file is a contract boundary or tooling adapter.
+Используй такое пояснение только если ограничение действительно существует.
+`@file`, дата/версия, `@description` и ссылки не являются обязательными полями.
+Для локального инварианта размещай комментарий рядом с соответствующим кодом.
+Контракт: `.ai/rules/development/RULE-CODE-COMMENT-DISCIPLINE.md`.

@@ -11,20 +11,6 @@ related_artifacts:
   - .ai/workflows/core/main-delivery/WORKFLOW.md
 ```
 
-## Назначение (`purpose`)
-
-Директория хранит workflow основного рабочего AI-шага.
-
-## Границы (`boundaries`)
-
-- `INDEX.md` описывает директорию.
-- `WORKFLOW.md` задаёт порядок states.
-- Rules/checks не встраиваются в индекс.
-
-## Карта файлов (`file_map`)
-
-- `WORKFLOW.md` - runtime workflow основной AI-доставки.
-
-## Передача результата (`handoff`)
-
-Для исполнения открыть `WORKFLOW.md` и применимые rules/checks по задаче.
+Основной короткий порядок работы — `WORKFLOW.md`. Применяй rules/checks
+по фактическому изменению; дополнительные worker/delivery workflows нужны
+только для соответствующих действий.

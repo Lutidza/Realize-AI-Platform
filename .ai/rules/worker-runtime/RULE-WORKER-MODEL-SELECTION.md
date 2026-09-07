@@ -11,54 +11,16 @@ checks:
   - .ai/checks/worker-runtime/CHECK-WORKER-MODEL-SELECTION.md
 ```
 
-## Назначение (`purpose`)
+По умолчанию используй модель, унаследованную от текущей среды или задания.
+Не передавай override, если он не нужен. Если выбор требуется, учитывай
+сложность, риск и реально доступные модели в текущих tool/config capabilities.
+Конкретные model IDs не фиксируются в проектном правиле.
 
-Диалоговый ассистент определяет модель для каждого worker-а перед `worker_launch`,
-а `codex exec` получает уже валидный выбор в `assignment manifest`.
+Соблюдай явный выбор пользователя и ограничения среды на overrides. При
+разрешённом выборе модели дополнительный approval не нужен. Если явно
+запрошенная модель недоступна, сообщи это; замену выбирай только в пределах
+уже разрешённого пользователем fallback. Неподдерживаемый ID не выдумывай.
 
-## Модельная матрица (`model_matrix`)
-
-`small/simple tasks`:
-
-- `gpt-5.3-codex-spark`
-
-`standard coding tasks`:
-
-- `gpt-5.3-codex`
-
-`complex/high-risk tasks`:
-
-- `advanced_current` (если доступен)
-- fallback только при явном отсутствии доступной `advanced_current`: `gpt-5.3-codex`
-
-## Требования (`requirements`)
-
-Перед выбором модели Dialog Assistant обязан зафиксировать:
-
-- причина категории сложности (`task_complexity`),
-- критерий решения (`selection_rationale`),
-- подтверждение о доступности выбранной модели (`model_availability`),
-- проверочное условие для fallback-а.
-
-Для group/staged execution модельный gate обязателен на каждом
-`worker_group`/`launch_stage`: либо явный `selected_model`, либо
-`model_inherit_from_manifest=true` с указанием базовой модели manifest.
-
-## Запреты (`forbidden`)
-
-- Нельзя использовать несуществующие идентификаторы моделей.
-- Нельзя оставлять модель неуказанной при запуске worker-а.
-- Нельзя менять модель на более слабую без сохранения rationale.
-- Нельзя запускать group/staged chain, где хотя бы одна группа/стадия
-  не имеет model decision.
-
-## Выход (`output`)
-
-```text
-selected_model: gpt-5.3-codex-spark|gpt-5.3-codex|advanced_current
-selection_rationale: <short reason>
-model_available: true|false
-fallback_used: true|false
-group_model_gate: pass|fail|not_applicable
-decision: pass|stop-for-approval|failed
-```
+Не добавляй model gate для каждой стадии и не запрашивай availability повторно
+при обычном наследовании. Причину override укажи одной строкой, если она важна
+для стоимости или качества результата.

@@ -17,7 +17,6 @@ entries:
     primary_artifact: .ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md
     owner_layer: .ai/rules/git/
     owner_roles: [.ai/roles/process-tools-operations/scope-contour-owner/INDEX.md]
-    related_rules: []
     related_checks: [.ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md, .ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md]
     related_workflows: [.ai/workflows/delivery/git/commit-push/WORKFLOW.md]
     related_codex_artifacts: [.codex/skills/git-commit-push/SKILL.md]

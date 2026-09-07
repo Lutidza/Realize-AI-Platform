@@ -6,23 +6,7 @@ artifact_type: ai-workflow-gate
 owner_layer: .ai/workflows/ai-operations/agents-evolution/gates/
 ```
 
-## Назначение (`purpose`)
-
-Определить, требует ли agents-evolution change синхронизации canonical docs,
-skills, registry или adapter artifacts.
-
-Documentation sync обязателен, если change меняет:
-
-- роль, routing или role mapper;
-- workflow entrypoint, state, gate, output или handoff;
-- rule/check registry;
-- Codex skill/prompt/agent behavior;
-- project context в `documentation/**`;
-- RAG/search discoverability для будущих агентов.
-
-## Выход (`output`)
-
-- documentation sync required;
-- affected docs/artifacts;
-- registry/role/skill sync decision;
-- sync skipped reason, если не требуется.
+Проверь прямых consumers изменённого контракта: rules/checks, workflow,
+registry/roles и Codex adapters. Удали stale references. Canonical product docs
+обновляй лишь если затронут их контракт. Один diff/report достаточно отражает
+результат; отдельный lifecycle trace и полный documentation audit не нужны.

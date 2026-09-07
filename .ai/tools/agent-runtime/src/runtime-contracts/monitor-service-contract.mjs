@@ -1,10 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-contracts/monitor-service-contract.mjs
  * @version 0.1.0 - 2026-05-15 00:00
- * @docref DOC-SYSTEM-SPEC-032
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Фиксированный локальный контракт сервиса для agent runtime
  * gateway и жизненного цикла agent monitor preview, используемый шлюзами
  * видимости запуска worker-а.

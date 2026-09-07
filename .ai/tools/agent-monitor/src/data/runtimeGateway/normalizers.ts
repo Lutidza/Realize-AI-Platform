@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/data/runtimeGateway/normalizers.ts
  * @version 0.1.0 - 2026-05-07 01:30
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Normalization helpers that map agent runtime gateway enum and
  * primitive values into the Agent Monitor read model contract.
  *

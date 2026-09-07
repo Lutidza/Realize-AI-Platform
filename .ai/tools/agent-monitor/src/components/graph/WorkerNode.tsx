@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/graph/WorkerNode.tsx
  * @version 0.1.3 - 2026-05-05 22:10
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description React Flow node for worker sessions. It displays registry
  * fields relevant to coordination without embedding session mutation controls.
  *

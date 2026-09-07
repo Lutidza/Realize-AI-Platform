@@ -5,7 +5,7 @@ artifact_id: worker-session-messages-schema
 artifact_type: ai-run-trace-schema
 owner_role: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 owner_layer: .ai/tools/agent-runtime/runtime/worker-sessions/messages/
-source_spec: documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
+lifecycle_rule: .ai/rules/agent-runtime/RULE-WORKER-SESSION-LIFECYCLE-AND-AUTONOMOUS-MODE.md
 ```
 
 ## Формат файла

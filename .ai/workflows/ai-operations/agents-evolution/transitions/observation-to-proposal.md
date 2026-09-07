@@ -6,8 +6,6 @@ artifact_type: ai-workflow-transition
 owner_layer: .ai/workflows/ai-operations/agents-evolution/transitions/
 ```
 
-## Условие перехода (`condition`)
-
-Переход разрешён, если observation имеет evidence, issue target,
-fingerprint, recurrence key, root cause candidate и потенциальный owner-layer
-изменения.
+Optional proposal полезен, когда сохранённое evidence указывает на
+самостоятельное улучшение, требующее будущего решения. Для явной задачи
+используй implementation route; observation не является prerequisite.

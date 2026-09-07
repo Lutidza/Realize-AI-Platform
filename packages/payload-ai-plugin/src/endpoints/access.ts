@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/access.ts
- * @version 2026-08-27
+ * @version 2026-09-02
  * @description Проверяет authentication, scoped authorization и rate limiting endpoints.
  */
 
@@ -49,6 +49,28 @@ export const requireIntegrationManager = async (
     throw new EndpointError(
       "FORBIDDEN",
       "Integration management is not permitted.",
+      403,
+    );
+  }
+  return req.user;
+};
+
+/** Requires the dedicated permission for installation configuration changes. */
+export const requireAIConfigurationManager = async (
+  req: PayloadRequest,
+  options: SanitizedRealizeAIPluginOptions,
+): Promise<NonNullable<PayloadRequest["user"]>> => {
+  if (!req.user) {
+    throw new EndpointError(
+      "UNAUTHENTICATED",
+      "Authentication is required.",
+      401,
+    );
+  }
+  if (!(await options.access.canManageAIConfiguration({ req }))) {
+    throw new EndpointError(
+      "FORBIDDEN",
+      "AI configuration management is not permitted.",
       403,
     );
   }

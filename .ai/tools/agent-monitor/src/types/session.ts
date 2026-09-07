@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/types/session.ts
  * @version 0.4.0 - 2026-05-07 03:10
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Typed read model for worker-session registry data used by the
  * local monitor. The shapes mirror the runtime gateway fields needed for
  * read-only UI and keep adapter mapping independent from React components.

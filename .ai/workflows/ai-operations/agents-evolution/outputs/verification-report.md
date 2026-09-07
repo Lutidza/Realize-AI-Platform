@@ -6,13 +6,6 @@ artifact_type: ai-workflow-output
 owner_layer: .ai/workflows/ai-operations/agents-evolution/outputs/
 ```
 
-## Обязательные поля (`required_fields`)
-
-- verified change;
-- prevented failure;
-- evidence;
-- pass/fail/deferred decision;
-- regression check decision;
-- retrieval/RAG visibility decision;
-- follow-up;
-- scoped status, если проверка выполнялась в dirty worktree.
+Краткий итог в диалоге или уже созданном audit report: что изменено,
+что реально проверено и какие значимые ограничения остались. Отдельный
+verification-report файл не требуется. Не перечисляй нерелевантные skips.

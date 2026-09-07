@@ -18,169 +18,31 @@ related_workflows:
   - .ai/workflows/core/main-delivery/WORKFLOW.md
 ```
 
-## Назначение
+## Запуск
 
-Workflow задаёт активный порядок commit/push для delivery шага. Он не хранит
-секреты и не заменяет Codex skill: workflow определяет состояния и gates, skill
-выполняет Codex-specific процедуру внутри этих gates.
+Используется для commit/push, авторизованного пользователем. Не запускай delivery
+из обычного запроса на правку кода. Уже полученную авторизацию не запрашивай
+повторно; отдельный delivery worker или assignment-файл не нужны.
 
-Delivery transition основан на durable runtime result и notification через
-Node/npm runtime adapter `.ai/tools/agent-runtime/`, если runtime доступен.
+## Порядок
 
-## Условие запуска
+1. Проверь branch, scope и состояние worktree; определи, что входит в commit.
+2. Выполни pre-commit check. Используй достаточное evidence текущего diff;
+   недостающие проверки выбирай по риску, не запускай full suite автоматически.
+3. Stage scoped paths, прочитай staged diff и создай commit.
+4. Если запрошен push, выполни pre-push check, GitHub SSH preflight и push.
+5. Сообщи hash, branch, результаты проверок и фактический статус доставки.
 
-Workflow запускается только если выполнены все условия:
+Авторизация commit не означает авторизацию push/merge/deploy. Ошибка SSH
+останавливает push и сохраняет сделанный commit; fallback через token/HTTPS
+не применяется. Не переписывай чужую историю или изменения.
 
-- пользователь отдельно запросил commit/push;
-- общий entry gate пройден;
-- `DoD`-направления main delivery по фактическому scope выполнены, не
-  требуются или явно отложены пользователем как `approved snapshot`;
-- delivery assignment содержит bounded mission, allowlist, forbidden paths и
-  expected output.
+## Worker runtime
 
-Commit/push workflow проверяет delivery scope, GitHub SSH remote, secret
-handling и durable signal. Он не заменяет tests, documentation sync, contract
-review, runtime evidence или ручную пользовательскую приёмку из
-`main_delivery_workflow`.
+Только для delivery внутри уже назначенной worker-runtime mission сохрани
+результат по её lifecycle: `push_succeeded` или `push_failed`, diagnostic summary
+без secrets, session transition и notification, если они входят в mission.
+Не создавай runtime session специально для обычной CLI delivery.
 
-## Состояния
-
-```text
-dialog_assistant_entry_gate
--> delivery_assignment
--> pre_commit_gate
--> staged_scope
--> commit
--> pre_push_gate
--> ssh_preflight
--> push
--> durable_push_result
--> result_signal
--> delivery_review
-```
-
-Контрольные states:
-
-```text
-blocked
-scope_expanded
-push_failed
-ssh_auth_failed
-delivery_result_rejected
-```
-
-## Контракты состояний
-
-### `delivery_assignment`
-
-Зафиксировать delivery operation contract после успешного entry gate.
-
-Выход:
-
-- commit class;
-- target branch;
-- GitHub remote target;
-- delivery executor/session/job id, если используется worker runtime;
-- allowed paths;
-- forbidden paths;
-- checks to run;
-- expected output.
-
-### `pre_commit_gate`
-
-Выполнить `.ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md`.
-
-Выход:
-
-- `git status --short`;
-- staged или planned staged files;
-- allowlist match;
-- secret handling result;
-- runtime signal plan.
-
-### `staged_scope`
-
-Stage-ить только согласованные файлы.
-
-Выход:
-
-- `git diff --cached --name-only`;
-- `git diff --cached --stat`;
-- подтверждение отсутствия unrelated files;
-- blocker при scope expansion.
-
-### `commit`
-
-Создать commit с согласованным conventional message.
-
-Выход:
-
-- commit hash;
-- commit message;
-- committed files;
-- evidence проверок из применимых `DoD`-направлений и delivery gates.
-
-### `ssh_preflight`
-
-До push проверить GitHub SSH remote и выполнить fail-fast SSH проверку:
-
-```bash
-git remote get-url origin
-```
-
-Remote `origin` должен иметь вид `git@github.com:<owner>/<repo>.git`.
-
-```bash
-GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-  git ls-remote origin HEAD
-```
-
-Если ключ не принят remote host, workflow переходит в `ssh_auth_failed`: commit
-retry, HTTPS/token fallback или другой обход запрещены.
-
-### `push`
-
-Выполнить явный SSH push текущей ветки в GitHub remote `origin`:
-
-```bash
-GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-  git push origin <branch>
-```
-
-### `durable_push_result`
-
-Если push успешен, durable result обязан содержать:
-
-```json
-{
-  "result": "push_succeeded"
-}
-```
-
-Если push неуспешен, durable result обязан содержать `result: push_failed` и
-diagnostic summary без секретов.
-
-### `result_signal`
-
-После durable result создать notification через Node/npm runtime adapter, если
-runtime session доступна:
-
-```bash
-npm --prefix .ai/tools/agent-runtime run runtime -- notification-create \
-  --source-session-id=<delivery-session-id> \
-  --target-role=dialog_assistant \
-  --notification-type=result_ready \
-  --priority=high \
-  --summary="Commit/push completed" \
-  --payload-json='{"result":"push_succeeded"}'
-```
-
-## Запреты
-
-- Запрещено использовать `git add -A` без явного approved snapshot или полного
-  scoped allowlist.
-- Запрещено push через HTTPS/token remote.
-- Запрещено push в non-GitHub remote для этого репозитория.
-- GitHub Pull Request операции не выполняются без отдельного явного запроса.
-- Запрещено печатать secrets or tokenized remotes.
-- Запрещено считать push заменой tests, docs sync or user acceptance.
+Правило владеет safety conditions, checks — критериями проверки, Codex skill —
+командами. Результат delivery не заменяет необходимые проверки изменения.

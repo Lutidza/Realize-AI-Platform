@@ -12,21 +12,6 @@ related_artifacts:
   - .ai/tools/agent-runtime/README.md
 ```
 
-## Назначение (`purpose`)
-
-Директория хранит workflow lifecycle worker-сессий.
-
-## Границы (`boundaries`)
-
-- `INDEX.md` описывает директорию.
-- `WORKFLOW.md` задаёт статусы, presence и handoff.
-- Runtime writer находится в `.ai/tools/agent-runtime/`.
-
-## Карта файлов (`file_map`)
-
-- `WORKFLOW.md` - lifecycle worker-сессий.
-
-## Передача результата (`handoff`)
-
-Для запуска или проверки worker-сессии открыть `WORKFLOW.md` и runtime writer
-documentation.
+Режимы direct/native/external/managed external и cleanup — `WORKFLOW.md`.
+Runtime writer documentation открывай только при работе с managed external
+store; обычная native сессия не требует SQLite/monitor.

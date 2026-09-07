@@ -1,7 +1,7 @@
 # Миграции и rollback
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 28 августа 2026 года
+- **Дата сверки:** 1 сентября 2026 года
 
 ## 1. Канонический порядок миграций
 
@@ -24,7 +24,9 @@
 9. `20260828_022809_github_pull_request_source_promotion` — durable source
    promotion и draft Pull Request evidence;
 10. `20260828_044410_data_operation_lane` — approval-gated catalog Data Lane,
-    operation events и rollback decisions.
+    operation events и rollback decisions;
+11. `20260901_163832_ai_config_persistence` — hidden installation config drafts,
+    immutable releases, active pointer history и durable replay events.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -33,7 +35,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-На пустой PostgreSQL все десять миграций должны применяться по порядку.
+На пустой PostgreSQL все одиннадцать миграций должны применяться по порядку.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 

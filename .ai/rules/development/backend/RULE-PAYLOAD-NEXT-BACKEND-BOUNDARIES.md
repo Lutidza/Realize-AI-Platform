@@ -6,11 +6,11 @@ owner_role: .ai/roles/developer/backend/INDEX.md
 applies_to:
   - src/payload.config.ts
   - src/collections/**
-  - src/domain/collections/**
-  - src/app/api/**
-  - src/domain/data/**
-  - src/domain/services/**
-  - src/domain/routes/**
+  - packages/payload-ai-plugin/src/collections/**
+  - src/app/(app)/api/**
+  - packages/payload-ai-plugin/src/**
+  - services/**
+  - src/utilities/**
   - src/migrations/**
 trigger:
   - любая backend/data/API/search правка в текущем приложении
@@ -33,11 +33,11 @@ checks:
 Backend source-first порядок:
 
 1. Payload config/collection owner: `src/payload.config.ts`,
-   `src/collections/**`, `src/domain/collections/**`.
+   `src/collections/**`, `packages/payload-ai-plugin/src/collections/**`.
 2. Migration owner: `src/migrations/**`.
-3. API transport owner: `src/app/api/**`.
-4. Data/domain owner: `src/domain/data/**`,
-   `src/domain/services/**`, `src/domain/routes/**`.
+3. API transport owner: `src/app/(app)/api/**`.
+4. Data/domain owner: `packages/payload-ai-plugin/src/**`,
+   `services/**`, `src/utilities/**`.
 5. Consumer owner: public UI, admin UI, jobs, imports, search indexing, cache
    или внешний API caller.
 

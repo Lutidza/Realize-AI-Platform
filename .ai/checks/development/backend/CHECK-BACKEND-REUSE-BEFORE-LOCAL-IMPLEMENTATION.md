@@ -5,13 +5,7 @@ check_id: CHECK-BACKEND-REUSE-BEFORE-LOCAL-IMPLEMENTATION
 owner_layer: .ai/checks/development/backend/
 related_rule:
   - .ai/rules/development/backend/RULE-BACKEND-REUSE-BEFORE-LOCAL-IMPLEMENTATION.md
-required_output:
-  - target_backend_surface
-  - searched_paths
-  - existing_patterns
-  - selected_owner_layer
-  - local_reason_if_any
-  - decision
+report: shared_task_result
 ```
 
 ## Условия прохождения

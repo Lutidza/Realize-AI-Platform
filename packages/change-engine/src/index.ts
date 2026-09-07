@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 2026-08-28
- * @description Экспортирует политики plan, execution, preview, source promotion и release approval.
+ * @version 2026-09-01
+ * @description Экспортирует Change Engine policies, registries и configuration compiler.
  */
 
 import { createHash } from "node:crypto";
@@ -184,8 +184,18 @@ export const buildReadOnlyDeveloperInstructions = (): string => {
 
 export * from "./dataOperationPolicy";
 export * from "./dataOperationProtocol";
+export * from "./aiConfigurationCompiler";
+export * from "./aiConfigurationDraftPolicy";
+export * from "./aiConfigurationError";
+export * from "./aiConfigurationRelease";
+export * from "./aiConfigurationSystemValidation";
+export * from "./aiConfigurationValidation";
+export * from "./canonicalJson";
+export * from "./capabilityRegistry";
 export * from "./executionCapability";
 export * from "./executionPolicy";
 export * from "./previewPolicy";
 export * from "./releasePolicy";
 export * from "./sourcePromotionPolicy";
+export * from "./systemCapabilityRegistry";
+export * from "./workflowPolicy";

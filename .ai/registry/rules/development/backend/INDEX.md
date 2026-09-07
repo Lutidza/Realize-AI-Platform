@@ -16,7 +16,6 @@ entries:
     owner_layer: .ai/rules/development/backend/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
     related_checks: [.ai/checks/development/backend/CHECK-PAYLOAD-NEXT-BACKEND-BOUNDARIES.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/payload-next-contracts-first/SKILL.md, .codex/skills/dto-contracts-first/SKILL.md]
     related_tools: [rg]
     routing_tags: [backend, payload, next, api, boundaries]
@@ -28,7 +27,6 @@ entries:
     owner_layer: .ai/rules/development/backend/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
     related_checks: [.ai/checks/development/backend/CHECK-BACKEND-REUSE-BEFORE-LOCAL-IMPLEMENTATION.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/payload-next-contracts-first/SKILL.md, .codex/skills/dto-contracts-first/SKILL.md]
     related_tools: [rg]
     routing_tags: [backend, reuse, payload, service]
@@ -40,7 +38,6 @@ entries:
     owner_layer: .ai/rules/development/backend/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
     related_checks: [.ai/checks/development/backend/CHECK-PAYLOAD-DATA-CONTRACT-FIRST.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/payload-next-contracts-first/SKILL.md, .codex/skills/dto-contracts-first/SKILL.md]
     related_tools: [rg, payload]
     routing_tags: [backend, payload, data-contract, migration]
@@ -52,7 +49,6 @@ entries:
     owner_layer: .ai/rules/development/backend/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
     related_checks: [.ai/checks/development/backend/CHECK-DTO-CONTRACTS-NO-RAW-PAYLOAD.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/dto-contracts-first/SKILL.md, .codex/skills/payload-next-contracts-first/SKILL.md]
     related_tools: [rg]
     routing_tags: [backend, dto, api-contract, mapper, payload, frontend-contract]
@@ -64,7 +60,6 @@ entries:
     owner_layer: .ai/rules/development/backend/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
     related_checks: [.ai/checks/development/backend/CHECK-NO-RELATED-BACKEND-CONTRACT-DRIFT.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/payload-next-contracts-first/SKILL.md, .codex/skills/dto-contracts-first/SKILL.md]
     related_tools: [rg]
     routing_tags: [backend, contract-drift, consumers]
@@ -76,7 +71,6 @@ entries:
     owner_layer: .ai/rules/development/backend/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
     related_checks: [.ai/checks/development/backend/CHECK-SEARCH-INDEXING-CACHE-BOUNDARIES.md]
-    related_workflows: []
     related_codex_artifacts: [.codex/skills/payload-next-contracts-first/SKILL.md]
     related_tools: [rg, elasticsearch, redis]
     routing_tags: [backend, search, indexing, cache]
@@ -87,10 +81,6 @@ entries:
     primary_artifact: .ai/checks/development/backend/self-review/CHECK-BACKEND-GUARDRAIL-SELF-REVIEW.md
     owner_layer: .ai/checks/development/backend/self-review/
     owner_roles: [.ai/roles/developer/backend/INDEX.md]
-    related_checks: []
-    related_workflows: []
-    related_codex_artifacts: []
-    related_tools: []
     routing_tags: [backend, self-review]
     trigger: "Backend implementation diff готов к self-review."
 ```

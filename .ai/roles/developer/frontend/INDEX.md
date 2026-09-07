@@ -18,47 +18,19 @@ related_skills:
   - .codex/skills/feature-decomposition-guard/SKILL.md
 ```
 
-## Назначение
+Владеет Next.js/React UI: `src/app/(app)/**`, `src/components/**`,
+`src/providers/**` и UI helpers в `src/utilities/**`. Payload Admin plugin UI
+имеет владельца в `packages/payload-ai-plugin/**`; точный путь находи в коде.
 
-`Developer Frontend` владеет изменениями в public UI текущего проекта:
-Next.js routes, React Server/Client Components, `src/ui/**`,
-Tailwind/shadcn/Radix/lucide patterns, rendered DOM and interaction behavior.
+- Найди route/component/theme owner и существующий pattern до правки.
+- Явно различай Server/Client Components; сохраняй project UI primitives.
+- Для изменения data/API shape подключи backend owner и существующий DTO
+  contract. AI DTO находятся в `packages/ai-contracts/**`; другие контракты
+  ищи у фактического feature owner, не создавай target directories автоматически.
+- Выбери проверки по риску через frontend-runtime-evidence skill. Rendering,
+  CSS, interaction и visual parity требуют относящегося к задаче browser
+  evidence; документация и нетронутые сценарии не требуют UI suite.
+- Применяй boundary/reuse/reference rules только к затронутой границе.
 
-## Когда выбирать роль
-
-- Меняются `src/app/**`.
-- Меняются `src/ui/**`.
-- Меняются UI-facing route helpers in `src/domain/routes/**`.
-- Задача затрагивает layout, forms, client interactions, responsive behavior,
-  rendered DOM, visual parity, account UI, listing/company/search pages.
-- Backend/API/search response влияет на React consumer.
-
-## Ответственность
-
-- Определить frontend source of truth: route, page component, shared UI
-  component, layout, theme token or domain route helper.
-- Явно различать Server Components and Client Components.
-- Переиспользовать project UI primitives and shadcn/Radix/lucide conventions.
-- Проверить existing pattern через `rg` перед новым component/style/behavior.
-- Не создавать локальный design system внутри отдельной страницы.
-- Выбирать browser/Playwright evidence только для rendered UI, forms,
-  interaction, responsive или visual parity задач.
-- Открывать `Developer Backend`, если изменяется data shape, validation,
-  authorization, Search API or route contract.
-- Для UI data contract импортировать public DTO из
-  `src/domain/contracts/**`, а не raw Payload types как frontend contract.
-
-## Границы
-
-- Роль не владеет Payload schema, migrations, jobs or indexing internals.
-- Роль не владеет `.ai/tools/agent-monitor/**`; это AI tooling contour.
-- Роль не создаёт новые rules/checks внутри role card.
-
-## Required Checks
-
-- `.ai/rules/development/frontend/RULE-NEXT-REACT-FRONTEND-BOUNDARIES.md`.
-- `.ai/checks/development/frontend/CHECK-NEXT-REACT-FRONTEND-BOUNDARIES.md`.
-- Reuse/reference checks для новых UI patterns.
-- Runtime evidence skill, если результат зависит от browser rendering.
-- `npm run lint`, typecheck/build or documented skip reason according to blast
-  radius.
+Роль не владеет schema/migrations/indexing или agent-monitor tooling.
+Наличие role card не требует отдельного worker или guardrail audit.

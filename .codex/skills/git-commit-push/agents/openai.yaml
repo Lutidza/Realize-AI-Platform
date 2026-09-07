@@ -1,7 +1,7 @@
 interface:
   display_name: "Git Commit Push"
-  short_description: "Commits and pushes scoped changes"
-  default_prompt: "Use $git-commit-push to stage the agreed change set, run checks, commit and push over SSH."
+  short_description: "Commits and pushes authorized changes"
+  default_prompt: "Use $git-commit-push to stage the scoped diff, reuse valid check results, commit and push over SSH when authorized."
 
 policy:
   allow_implicit_invocation: true

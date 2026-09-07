@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/index.ts
- * @version 2026-08-27
- * @description Implements the Payload transformer for chat, delivery and integrations.
+ * @version 2026-09-02
+ * @description Implements the Payload transformer for chat, delivery, integrations and config.
  */
 
 import type { Plugin } from "payload";
@@ -116,6 +116,7 @@ export const realizeAIPlugin = (
       custom: {
         ...(incomingConfig.custom || {}),
         [REALIZE_AI_SERVER_RUNTIME_KEY]: {
+          canManageAIConfiguration: options.access.canManageAIConfiguration,
           canManageIntegrations: options.access.canManageIntegrations,
           integrationEncryptionKeyEnv: options.integrations.encryptionKeyEnv,
         },

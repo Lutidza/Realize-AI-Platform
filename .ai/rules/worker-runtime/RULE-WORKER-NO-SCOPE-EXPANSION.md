@@ -14,34 +14,16 @@ checks:
   - .ai/checks/worker-runtime/CHECK-WORKER-CONTEXT-BUDGET-REUSE.md
 ```
 
-## Назначение (`purpose`)
+Worker выполняет только полученный assignment. Если правильный owner выходит
+за разрешённые пути, верни назначившему агенту нужный path и причину; продолжай
+независимую работу внутри scope.
 
-Scope/paths и chain ownership не расширяются автоматически после старта worker-а.
+Основной агент может уточнять assignment и пути внутри уже авторизованной
+задачи без повторного вопроса пользователю. Новый продуктовый scope, внешнее
+действие или необратимый шаг требуют отдельного решения только когда текущего
+разрешения недостаточно.
 
-## Принцип (`principle`)
-
-1. Базовый scope берётся из профиля.
-2. Dialog Assistant выполняет task-specific `scope_narrowing`.
-3. Любое расширение профиля или scope разрешено только через
-   `scope_expansion_request` + direct confirmation в pre-launch gate.
-
-## Запрещённые действия (`forbidden`)
-
-- Добавление новых allowlist путей после `worker_launch` без нового manifest.
-- Смена owner-layer или profile без `profile_selection` и новой manifest.
-- Передача worker-а с неполной или расширенной задачей при сохранении старого
-  `handoff_ready_evidence`.
-- Наличие более широкого scope у peer worker для того же job без explicit split decision.
-
-## Минимальные условия разрешения (`allowed`)
-
-- Не меняется `create_paths`, `edit_paths`, `delete_paths` без manifest update.
-- `forbidden_paths` для новой задачи не может быть уже покрыта только worker-logic,
-  без manifest.
-
-## Выход (`output`)
-
-scope_stable: true|false
-scope_delta: none|allowed|blocked
-scope_delta_reason: <short reason>
-policy_reviewed: true|false
+Не изменяй чужой diff, не объединяй несовместимые allowlists и не превращай
+read-only assignment в запись. Удаление устаревшего файла внутри согласованной
+оптимизации допустимо с проверкой ссылок и disposition; standalone approval
+для каждого такого файла не требуется.

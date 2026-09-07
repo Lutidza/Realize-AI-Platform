@@ -6,9 +6,9 @@ artifact_type: ai-workflow-output
 owner_layer: .ai/workflows/ai-operations/agents-evolution/outputs/
 ```
 
-## Назначение (`purpose`)
+## Необязательный формат
 
-Файл задаёт минимальный формат sanitized proposal внутри
+Используй только если нужен отдельный сохраняемый artifact. Файл задаёт формат sanitized proposal внутри
 `.ai/agents-evolution/improvement-proposals/`.
 
 ## Минимальный формат
@@ -18,7 +18,7 @@ artifact_id: PROP-YYYYMMDD-short-slug
 artifact_type: agents-evolution-improvement-proposal
 owner_layer: .ai/agents-evolution/improvement-proposals/
 status: proposed|accepted|rejected|deferred
-source_observation: OBS-YYYYMMDD-short-slug
+source_observation: <optional reference, if one exists>
 change_target: code|rule|check|workflow|role|skill|documentation|tooling|mixed
 related_change_targets: []
 fingerprint: <stable short fingerprint>

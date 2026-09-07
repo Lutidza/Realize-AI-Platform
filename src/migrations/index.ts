@@ -8,6 +8,7 @@ import * as migration_20260822_092506_release_candidate_approval from './2026082
 import * as migration_20260827_070003_admin_integration_registry from './20260827_070003_admin_integration_registry';
 import * as migration_20260828_022809_github_pull_request_source_promotion from './20260828_022809_github_pull_request_source_promotion';
 import * as migration_20260828_044410_data_operation_lane from './20260828_044410_data_operation_lane';
+import * as migration_20260901_163832_ai_config_persistence from './20260901_163832_ai_config_persistence';
 
 export const migrations = [
   {
@@ -58,6 +59,11 @@ export const migrations = [
   {
     up: migration_20260828_044410_data_operation_lane.up,
     down: migration_20260828_044410_data_operation_lane.down,
-    name: '20260828_044410_data_operation_lane'
+    name: '20260828_044410_data_operation_lane',
+  },
+  {
+    up: migration_20260901_163832_ai_config_persistence.up,
+    down: migration_20260901_163832_ai_config_persistence.down,
+    name: '20260901_163832_ai_config_persistence'
   },
 ];

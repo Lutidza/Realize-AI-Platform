@@ -11,38 +11,18 @@ rules:
   - .ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md
 ```
 
-## Когда выполнять
+## Проверка перед commit
 
-Перед staging и commit в delivery workflow.
+- Запрос пользователя покрывает commit и его scope; текущая ветка проверена.
+- Просмотрены `git status --short` и staged diff; staged files относятся к
+  задаче или явно запрошенному snapshot, чужие изменения исключены.
+- В staged diff нет secrets/tokenized URLs, runtime logs, dumps и случайных
+  build artifacts. Подозрительные значения не печатаются в отчёт.
+- Необходимые проверки текущего изменения выполнены по риску; оставшиеся
+  ограничения явно известны. Успешный неизменившийся diff не проверяется заново
+  только из-за перехода к commit.
 
-## Обязательные проверки
-
-- Общий entry gate пройден.
-- Delivery assignment содержит bounded mission, allowlist, forbidden paths и
-  expected output.
-- `git status --short` просмотрен.
-- Planned staged files входят в allowlist или явно approved snapshot.
-- Forbidden paths не затронуты.
-- Secret scan по staged/planned files не находит secrets, tokenized remotes or
-  webhook-bearing URLs.
-- Delivery signal plan определён: durable result и notification через
-  Node/npm adapter `.ai/tools/agent-runtime/` или явная причина пропуска.
-
-## Required output
-
-- delivery session/job id, если используется runtime;
-- branch;
-- allowlist;
-- planned staged files;
-- forbidden path result;
-- secret scan command/result;
-- runtime signal plan;
-- decision: `passed`, `blocked` или `scope-expanded`.
-
-## Fail condition
-
-- Entry gate не пройден.
-- Delivery assignment отсутствует или неполный.
-- Есть staged/planned file вне allowlist.
-- Найден secret или tokenized URL.
-- Runtime signal обязателен, но writer недоступен без согласованной замены.
+Неполный scope, secrets или провал необходимой проверки блокируют commit.
+Assignment-файл и runtime signal нужны только если это условие уже назначенной
+worker mission. Для обычного запроса commit достаточно краткого сообщения о
+scope, результате проверок и затем commit hash.

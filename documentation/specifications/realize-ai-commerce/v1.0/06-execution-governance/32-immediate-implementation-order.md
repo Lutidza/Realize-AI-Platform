@@ -9,11 +9,21 @@ server-side policy projection и binding run/Change Request к system/config
 hashes. Существующий `catalog.assignCategory.v1` мигрирует как первый adapter
 без потери текущего behavior.
 
+Текущее состояние: exact-version registry, descriptor первого adapter,
+installation scope narrowing, binding к exact system manifest и deterministic
+config/context hashes реализованы. Полный protected-resource projection и
+binding Run/Change Request ещё остаются.
+
 ## Шаг 2. Installation AI-layer
 
 Добавить draft/release data model, `/admin/ai/settings`, target config API,
 validation/evals, activation и rollback. Локальные checks выбираются только из
 server registry; `.ai/.codex` остаются read-only для Admin.
+
+Текущее состояние: typed artifacts/workflows, validation, immutable release,
+active pointer contract, pure compiler, hidden Payload persistence, migration и
+strict aggregate Config API реализованы. Следующий slice — `/admin/ai/settings`
+и per-artifact editing; после него eval/activation/runtime binding.
 
 ## Шаг 3. Универсальные end-to-end capabilities
 

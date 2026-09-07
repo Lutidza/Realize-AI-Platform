@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/constants.ts
- * @version 2026-08-27
- * @description Хранит стабильные collection и route identifiers Payload AI plugin.
+ * @version 2026-09-02
+ * @description Хранит стабильные runtime/config collection и route identifiers plugin.
  */
 
 export const CONVERSATIONS_SLUG = "realize-ai-conversations" as const;
@@ -22,6 +22,11 @@ export const DATA_OPERATION_APPROVALS_SLUG =
   "realize-ai-data-operation-approvals" as const;
 export const DATA_OPERATION_EVENTS_SLUG =
   "realize-ai-data-operation-events" as const;
+export const AI_CONFIG_DRAFTS_SLUG = "realize-ai-config-drafts" as const;
+export const AI_CONFIG_RELEASES_SLUG = "realize-ai-config-releases" as const;
+export const ACTIVE_AI_CONFIG_POINTERS_SLUG =
+  "realize-ai-active-config-pointers" as const;
+export const AI_CONFIG_EVENTS_SLUG = "realize-ai-config-events" as const;
 
 export const AI_COLLECTION_SLUGS = [
   CONVERSATIONS_SLUG,
@@ -40,6 +45,10 @@ export const AI_COLLECTION_SLUGS = [
   DATA_OPERATIONS_SLUG,
   DATA_OPERATION_APPROVALS_SLUG,
   DATA_OPERATION_EVENTS_SLUG,
+  AI_CONFIG_DRAFTS_SLUG,
+  AI_CONFIG_RELEASES_SLUG,
+  ACTIVE_AI_CONFIG_POINTERS_SLUG,
+  AI_CONFIG_EVENTS_SLUG,
 ] as const;
 
 export const DEFAULT_ADMIN_ROUTE = "/ai";

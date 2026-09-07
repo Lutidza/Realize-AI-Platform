@@ -1,10 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-store/operator-command-dispatcher.mjs
  * @version 0.1.1 - 2026-05-10 16:10
- * @docref DOC-SYSTEM-SPEC-032
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description High-level operator command dispatcher for UI/runtime actions.
  * It validates supported commands, persists operator intent, writes worker
  * message traces, and applies only lifecycle transitions that are executable

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/types.ts
- * @version 2026-08-28
- * @description Задаёт public configuration contract AI, source/release delivery и integrations.
+ * @version 2026-09-02
+ * @description Задаёт public plugin options для AI config, delivery и integrations.
  */
 
 import type { CollectionSlug, PayloadRequest } from "payload";
@@ -15,6 +15,7 @@ export type RealizeAIAccessResolver = (args: {
 export type RealizeAIPluginOptions = {
   access: {
     canApproveRelease: RealizeAIAccessResolver;
+    canManageAIConfiguration: RealizeAIAccessResolver;
     canManageData: RealizeAIAccessResolver;
     canManageIntegrations: RealizeAIAccessResolver;
     canUseChat: RealizeAIAccessResolver;
@@ -92,6 +93,7 @@ export type SanitizedRealizeAIPluginOptions = {
 
 /** Server-only plugin state exposed to custom Payload views through config.custom. */
 export type RealizeAIServerRuntime = {
+  canManageAIConfiguration: RealizeAIAccessResolver;
   canManageIntegrations: RealizeAIAccessResolver;
   integrationEncryptionKeyEnv: string;
 };

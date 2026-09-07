@@ -11,27 +11,15 @@ runtime_sources:
   - .ai/agents-evolution/INDEX.md
 ```
 
-## Назначение
+Владеет реализацией local agent tooling: runtime store/writer, monitor,
+gateway, process tracking и lifecycle checks. Для изменения только текстовых
+инструкций достаточно AI Evolution Steward.
 
-Роль владеет изменениями agent runtime и tooling: worker sessions, monitor,
-gateway, process tracking, runtime store, runtime checks и local runtime tools.
+Разделяй direct/native collaboration, внешние development-процессы и
+продуктовый `services/ai-execution-worker/**`: их lifecycle и permissions
+различаются. Не навязывай SQLite/monitor/bootstrap прямой разработке.
 
-Evidence-based развитие rules, checks, workflows, roles, skills,
-documentation или tooling на основе ошибок проекта передаётся роли
-`.ai/roles/process-tools-operations/ai-evolution-steward/INDEX.md`.
-
-## Когда выбирать
-
-- Нужно адаптировать AI-layer под новый project stack.
-- Найден drift между `.ai` and `.codex`.
-- Меняется agent runtime, worker session policy or monitor tooling.
-- Сигнал связан с runtime visibility, worker lifecycle, gateway, monitor или
-  runtime store.
-
-## Правила
-
-- Не переносить исторические session outputs в active instructions.
-- Не оставлять stale project names, paths or stack assumptions.
-- После изменения проверить registry, role links, skills and prompts.
-- Если вопрос не про runtime/tooling, а про повторяемые ошибки агентов,
-  передать intake в `AI Evolution Steward`.
+До изменения tool contract прочитай реализацию и consumers; сохраняй cleanup,
+actor ownership и валидацию writer/schema. Проверь изменённые команды точечно,
+синхронизируй документацию/adapter. Не запускать maintenance или менять чужие
+сессии лишь потому, что задача использует worker-а.

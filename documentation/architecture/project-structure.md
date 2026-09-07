@@ -1,7 +1,7 @@
 # Структура проекта (источник для AI-layer)
 
 - **Статус:** current implementation
-- **Дата сверки:** 28 августа 2026 года
+- **Дата сверки:** 1 сентября 2026 года
 
 ## Активный продуктовый контур
 
@@ -26,18 +26,21 @@ storefront.
 
 ## Realize AI chat, Data Lane, execution, preview, source promotion и release gate
 
-- `packages/ai-contracts/**` — DTO, API envelope, SSE events и adapter contract.
+- `packages/ai-contracts/**` — DTO, API envelope, SSE events, adapter contracts,
+  `CapabilityDescriptor`, installation config artifacts и declarative workflows.
 - `packages/change-engine/**` — plan derivation,
   plan/implementation/preview/release bindings, protected paths, check
-  registries и short-lived execution capability.
+  registries, short-lived execution capability, exact-version capability
+  registry, canonical config hashes, draft/release validation и effective config
+  compiler.
 - `packages/codex-adapter/**` — server-side Codex App Server adapter для
   read-only chat, изолированного `workspace-write` turn и отдельного ephemeral
   read-only reviewer.
-- `packages/payload-ai-plugin/**` — Payload plugin, hidden runtime collections,
+- `packages/payload-ai-plugin/**` — Payload plugin, hidden runtime/config collections,
   authenticated endpoints, SSE bridge, глобальный Admin provider/drawer и
   полноэкранный UI, включая отдельные `DataOperation`, `SourcePromotion` и
-  `ReleaseCandidate` aggregates, а также provider-neutral integration registry
-  с redacted audit.
+  `ReleaseCandidate` aggregates, provider-neutral integration registry и
+  installation Config API с redacted/audited DTO boundaries.
 - `services/ai-control-plane/**` — loopback development control plane и bounded
   Context Pack.
 - `services/ai-execution-worker/**` — отдельный PostgreSQL queue consumer,
@@ -74,10 +77,13 @@ source promotion не получает merge authority, а release executable п
 только явно allowlisted environment. Source/candidate refs и `release-preview`
 environment не дают production deployment authority.
 
-Target `/admin/ai/settings` и installation AI configuration collections в
-этом current contour отсутствуют. Они должны быть добавлены в
-`packages/payload-ai-plugin/**` и migrations отдельным implementation slice,
-не превращая `.ai/**` или `.codex/**` в client-editable data.
+Typed foundation installation AI configuration находится в
+`packages/ai-contracts/**` и `packages/change-engine/**`. Его Payload owner уже
+добавляет hidden draft/release/pointer/event collections и strict
+`/api/realize-ai/config/*`; schema зафиксирована migration
+`20260901_163832_ai_config_persistence`. Target `/admin/ai/settings`, eval,
+activate/rollback и runtime binding остаются следующим slice. `.ai/**` и
+`.codex/**` не являются client-editable data.
 
 ## Delivery и эксплуатация
 
@@ -97,8 +103,10 @@ Target `/admin/ai/settings` и installation AI configuration collections в
 
 ## Tests
 
-- `tests/int/**` — contracts, access/plugin, Context Pack, execution/promotion
-  worktrees, reviewer parsing и runtime primitives.
+- `tests/int/**` — contracts, capability/config foundation и Config API,
+  migration/access/plugin,
+  Context Pack, execution/promotion worktrees, reviewer parsing и runtime
+  primitives.
 - `tests/e2e/**` — browser smoke tests и real API approval regression.
 - Browser evidence для `/admin/ai` хранится в
   `documentation/reports/evidence/**`.

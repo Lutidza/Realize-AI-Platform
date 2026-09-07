@@ -5,16 +5,12 @@ check_id: CHECK-WORKER-PROFILE-REFERENCES
 owner_layer: .ai/checks/worker-runtime/
 related_artifacts:
   - .ai/worker-profiles/INDEX.md
-required_output:
-  - profile_path
-  - referenced_rules
-  - referenced_checks
-  - referenced_workflows
-  - missing_or_stale_links
-  - decision
 ```
 
-## Pass Condition
+Применяется только если выбран reusable profile. Отсутствие готового профиля
+не блокирует bounded assignment.
 
-Profile references exist and match the current project stack. No stale imported
-project contour is used as active worker scope.
+Pass: указанные в профиле правила, checks и workflows существуют, относятся
+к текущему owner-layer и не расширяют пользовательское разрешение.
+Fail: обязательная ссылка отсутствует либо profile навязывает чужой стек/scope.
+Достаточно указать конкретную устаревшую ссылку; полный report не нужен.

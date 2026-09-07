@@ -32,6 +32,16 @@ Skills, prompts, rules, roles и другие AI settings изменяются �
 drafts. Side effect для runtime возникает только при активации проверенного
 `AIConfigRelease`. История версий и использованные run hashes сохраняются.
 
+Draft validation проверяет schema, уникальность stable keys и references между
+agent profiles, workflows, prompts, rules, skills и capability/check bindings.
+Configuration compiler отдельно проверяет bindings и их сужения по текущему
+system registry. Release manifest строится детерминированно; runtime никогда не
+компилирует effective context из mutable draft.
+
+Первый текущий configuration slice уже сохраняет aggregate draft/release и
+durable replay через Payload API. Runtime side effect по-прежнему отсутствует:
+activate/rollback и run binding остаются отдельным следующим gate.
+
 ## 14.4. Первый текущий adapter
 
 `catalog.assignCategory.v1` — пример profile-specific descriptor. Он не

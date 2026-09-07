@@ -1,79 +1,39 @@
 ---
 name: git-commit-push
 description: >-
-  Используй, когда пользователь просит commit and push изменений текущего
-  репозитория. Выполняет scoped staging, проверки and GitHub SSH-only push.
+  Используй для авторизованного пользователем commit или commit/push текущего
+  репозитория: scoped staging, достаточные проверки, GitHub SSH delivery.
 ---
 
 # Commit и push
 
-## Что открыть
+Прочитай `.ai/workflows/delivery/git/commit-push/WORKFLOW.md` и связанные checks,
+если ещё не загружены. Обычная delivery не требует отдельного worker/runtime.
 
-1. `.ai/workflows/delivery/git/commit-push/WORKFLOW.md`
-2. `.ai/rules/global/RULE-SAFE-COMMAND-PROPOSAL.md`
-3. `.ai/checks/pre-implementation/CHECK-SAFE-COMMAND-PROPOSAL.md`
-4. `.ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md`
-5. `.ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md`
-6. `.ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md`
+1. Проверь `git status --short`, ветку и diff; отдели scope задачи от чужих
+   изменений. Перед выводом remote убедись, что URL не содержит credentials.
+2. Используй результаты проверок текущего diff. Недостающие проверки выбирай
+   по риску из `.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`:
+   AI/docs — syntax/links/diff; код — релевантные lint/typecheck/tests;
+   schema — migration checks. Full build/test и DB status не нужны для каждого
+   commit. Команды бери из актуального `package.json`.
+3. Stage явные пути, прочитай `git diff --cached` и создай conventional commit.
+   `git add -A` допустим только для проверенного полного scope/snapshot.
+4. Если push авторизован, проверь `origin`: ожидается
+   `git@github.com:<owner>/<repo>.git`. Выполни SSH preflight:
 
-## Preflight
+   ```bash
+   GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
+     git ls-remote origin HEAD
+   ```
 
-1. `git status --short`.
-2. Проверить GitHub remote:
-   - `git remote get-url origin`;
-   - URL должен иметь вид `git@github.com:<owner>/<repo>.git`.
-3. Определить contour-owner: application, AI layer, Codex adapter, docs or
-   delivery state.
-4. Выбрать checks by blast radius:
-   - TypeScript: `npx tsc --noEmit --pretty false`;
-   - lint/build/test according to changed scope;
-   - Payload/database: `npm run payload -- migrate:status`;
-   - AI layer/docs: stale path scan and markdown/config sanity;
-   - generated/runtime state: must not be staged unless explicitly intended.
-5. Stage only scoped paths unless user requested full snapshot.
+5. При успехе отправь проверенную ветку:
 
-## Commit
+   ```bash
+   GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
+     git push origin <branch>
+   ```
 
-Use conventional message:
-
-- `feat(...)`
-- `fix(...)`
-- `refactor(...)`
-- `docs(...)`
-- `chore(dev-env)(...)`
-- `chore(repo-process)(...)`
-
-## Push
-
-Push only through GitHub SSH `origin`:
-
-```bash
-git remote get-url origin
-```
-
-Expected remote format:
-
-```text
-git@github.com:<owner>/<repo>.git
-```
-
-Then:
-
-```bash
-GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-  git ls-remote origin HEAD
-```
-
-Then:
-
-```bash
-GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-  git push origin <branch>
-```
-
-No HTTPS token fallback.
-No Pull Request create/update/merge unless the user explicitly requests it.
-
-## Final output
-
-Report commit hash, branch, GitHub remote, checks and push result.
+При ошибке SSH сохрани commit и сообщи причину; HTTPS/token fallback запрещён.
+Сообщи hash, branch, remote, проверки и результат push. PR/merge/deploy выполняй
+только в пределах отдельной авторизации соответствующего действия.

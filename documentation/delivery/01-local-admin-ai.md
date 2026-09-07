@@ -1,10 +1,12 @@
 # Локальный запуск и чат в Payload Admin
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 28 августа 2026 года
+- **Дата сверки:** 1 сентября 2026 года
 
-Этот runbook описывает существующий e-commerce baseline. Универсальный
-capability registry и `/admin/ai/settings` ещё не реализованы.
+Этот runbook описывает существующий e-commerce baseline. Capability/config
+foundation, hidden Payload persistence и aggregate Config API уже реализованы.
+`/admin/ai/settings`, activation и подключение active release к chat runtime
+ещё отсутствуют.
 
 ## 1. Требования
 
@@ -178,8 +180,9 @@ GitHub adapter принимает canonical HTTPS repository URL. Кнопка �
 - один provider обслуживает drawer и полноэкранный `/admin/ai`, поэтому второй
   параллельный chat state не создаётся;
 - сообщения, события, Change Requests, Data Operations, hash-bound decisions,
-  transactional outbox, execution jobs, deployments, integration settings/audit
-  и check results сохраняются в скрытых Payload collections;
+  transactional outbox, execution jobs, deployments, integration settings/audit,
+  installation config drafts/releases/events и check results сохраняются в
+  скрытых Payload collections;
 - browser получает только DTO/envelope, не raw Payload documents;
 - automatic SSE reconnect использует `Last-Event-ID`, а полная
   перезагрузка UI восстанавливает active run через persisted replay;
@@ -254,7 +257,30 @@ container/VM, отдельную service identity, lease recovery, external arti
 storage, OCI image/digest, сетевую preview-изоляцию и production-grade cleanup
 controller.
 
-## 6. Ручная проверка Data Lane
+## 6. Проверка Config API до появления Settings UI
+
+Authenticated admin bootstrap доступен через
+`GET /api/realize-ai/config`. Mutation endpoints требуют заголовок
+`Idempotency-Key` длиной 8–128 символов и strict body с
+`schemaVersion: "1.0"`:
+
+1. `POST /api/realize-ai/config/drafts` создаёт editing draft с
+   `expectedRevision: 0`.
+2. `PUT /api/realize-ai/config/drafts/:id` полностью заменяет artifacts по
+   exact revision; новый artifact имеет revision 1, изменённый повышает её на
+   один.
+3. `POST /api/realize-ai/config/validate` проверяет exact draft/system manifest
+   и только при success переводит draft в `ready`.
+4. `POST /api/realize-ai/config/releases` требует ready revision и
+   `expectedSystemManifestHash` из bootstrap, после чего создаёт immutable
+   release.
+5. `GET /api/realize-ai/config/releases/:id` возвращает verified full snapshot.
+
+Эти endpoints не активируют release и не изменяют `.ai/.codex`. Для ручных
+запросов используй same-origin authenticated browser session; не добавляй
+Payload cookies или секреты в shell history и документацию.
+
+## 7. Ручная проверка Data Lane
 
 1. Открой `/admin/ai` под пользователем с ролью `admin`.
 2. Попроси добавить существующую категорию существующему товару, указав

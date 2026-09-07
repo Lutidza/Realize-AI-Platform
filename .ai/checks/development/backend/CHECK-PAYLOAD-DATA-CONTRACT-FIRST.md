@@ -5,14 +5,7 @@ check_id: CHECK-PAYLOAD-DATA-CONTRACT-FIRST
 owner_layer: .ai/checks/development/backend/
 related_rule:
   - .ai/rules/development/backend/RULE-PAYLOAD-DATA-CONTRACT-FIRST.md
-required_output:
-  - changed_contract
-  - source_of_truth
-  - migration_or_schema_workflow
-  - generated_types_decision
-  - affected_consumers
-  - documentation_sync
-  - decision
+report: shared_task_result
 ```
 
 ## Условия прохождения

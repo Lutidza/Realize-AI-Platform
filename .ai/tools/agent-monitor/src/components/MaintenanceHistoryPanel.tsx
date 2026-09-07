@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-monitor/src/components/MaintenanceHistoryPanel.tsx
  * @version 0.1.1 - 2026-05-05 21:05
- * @docref DOC-SYSTEM-SPEC-042
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-042-agent-monitor-runtime-observability.md
  * @description Compact read-only operator panel section for agent-runtime
  * maintenance history reports. It renders adapter-normalized summaries only
  * and does not expose mutation controls or raw runtime artifacts.

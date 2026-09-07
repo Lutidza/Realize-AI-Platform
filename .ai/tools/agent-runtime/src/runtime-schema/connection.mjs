@@ -1,8 +1,6 @@
 /**
  * @file .ai/tools/agent-runtime/src/runtime-schema/connection.mjs
  * @version 0.1.0 - 2026-05-06 01:20
- * @docref DOC-SYSTEM-SPEC-032
- * @see /documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
  * @description SQLite connection factory and runtime PRAGMA configuration for
  * the local AI runtime database.
  *
