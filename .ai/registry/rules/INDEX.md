@@ -26,7 +26,7 @@ checks. Текст правила живёт в `.ai/rules/*`, текст про
 | `agent-runtime` | `.ai/registry/rules/agent-runtime/INDEX.md` | `.ai/rules/agent-runtime/*` | Agent runtime lifecycle |
 | `worker-runtime` | `.ai/registry/rules/worker-runtime/INDEX.md` | `.ai/rules/worker-runtime/*` | Worker sessions |
 | `scope-control` | `.ai/registry/rules/scope-control/INDEX.md` | `.ai/rules/scope-control/*` | Disposition/stale cleanup |
-| `git` | `.ai/registry/rules/git/INDEX.md` | `.ai/rules/git/*` | Commit/push delivery |
+| `git` | `.ai/registry/rules/git/INDEX.md` | `.ai/rules/git/*` | Git-операции через воркера |
 | `delivery` | `.ai/registry/rules/delivery/INDEX.md` | `.ai/rules/delivery/*` | Project delivery extensions |
 | `external-tools` | `.ai/registry/rules/external-tools/INDEX.md` | `.ai/rules/external-tools/*` | MCP/tooling and external tool fallback |
 

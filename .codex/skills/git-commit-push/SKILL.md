@@ -1,39 +1,36 @@
 ---
 name: git-commit-push
 description: >-
-  Используй для авторизованного пользователем commit или commit/push текущего
-  репозитория: scoped staging, достаточные проверки, GitHub SSH delivery.
+  Передаёт Git-операции отдельному воркеру: чтение состояния, разрешённые
+  commit и push через HTTPS/SSH. Используй для операций Git рабочего слоя.
 ---
 
-# Commit и push
+# Git через воркера
 
-Прочитай `.ai/workflows/delivery/git/commit-push/WORKFLOW.md` и связанные checks,
-если ещё не загружены. Обычная delivery не требует отдельного worker/runtime.
+Открой [порядок Git-операций](../../../.ai/workflows/delivery/git/commit-push/WORKFLOW.md)
+и указанные в нём инструкции только для выбранного действия.
 
-1. Проверь `git status --short`, ветку и diff; отдели scope задачи от чужих
-   изменений. Перед выводом remote убедись, что URL не содержит credentials.
-2. Используй результаты проверок текущего diff. Недостающие проверки выбирай
-   по риску из `.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`:
-   AI/docs — syntax/links/diff; код — релевантные lint/typecheck/tests;
-   schema — migration checks. Full build/test и DB status не нужны для каждого
-   commit. Команды бери из актуального `package.json`.
-3. Stage явные пути, прочитай `git diff --cached` и создай conventional commit.
-   `git add -A` допустим только для проверенного полного scope/snapshot.
-4. Если push авторизован, проверь `origin`: ожидается
-   `git@github.com:<owner>/<repo>.git`. Выполни SSH preflight:
+## Передача задания
 
-   ```bash
-   GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-     git ls-remote origin HEAD
-   ```
+- Передай `action` (`inspect`, `commit`, `push`, `commit_push`) и необязательный
+  `message` для действия с commit. Заданный текст сохраняй; при его отсутствии
+  воркер составляет краткое сообщение Conventional Commits по изменениям.
+- Доверенный контекст передаётся механизмом запуска, отдельно от текста задания:
+  рабочая копия, разрешённая область и действия, сведения о проверках. Не включай
+  историю диалога, пересказ каждого файла, комментарии с историей или секреты.
+- При native-запуске используй `fork_turns="none"` и фактически доступную
+  выбранную модель. Для внешнего `codex exec` применяй профильный навык только
+  если этот способ запуска действительно настроен и нужен.
+- Получи отчёт воркера и передай существенный результат пользователю.
+  Порядок Git-команд принадлежит обработчику, ограничения — связанному правилу.
 
-5. При успехе отправь проверенную ветку:
+## Доступность
 
-   ```bash
-   GIT_SSH_COMMAND='ssh -o BatchMode=yes -o PreferredAuthentications=publickey' \
-     git push origin <branch>
-   ```
+В [обработчике](../../../.ai/tools/git-delivery/README.md) реализованы локальные
+`inspect` и `commit`. Вызов из Git-воркера, доверенный механизм запуска,
+конфигурация Spark и HTTPS/SSH доставка ещё не подключены. До подключения
+не заменяй этот маршрут прямым вызовом CLI или ручной доставкой. Сообщи блокер
+вызова; не выдавай его за результат уже выполненной работы воркера.
 
-При ошибке SSH сохрани commit и сообщи причину; HTTPS/token fallback запрещён.
-Сообщи hash, branch, remote, проверки и результат push. PR/merge/deploy выполняй
-только в пределах отдельной авторизации соответствующего действия.
+При реализации используй [ADR-0016](../../../documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md).
+Эта спецификация не загружается для каждой обычной операции.

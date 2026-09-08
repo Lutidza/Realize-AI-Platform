@@ -17,8 +17,8 @@ import {
 import type { ExecutionWorkerConfig } from "./config";
 import {
   IntegrationRuntimeError,
-  type IntegrationWorkerRepository,
-} from "./integrationRepository";
+  type GitHubConnectionResolver,
+} from "@realize/payload-ai-control/server/integration-runtime";
 import {
   publishExactGitHubBranch,
   SourcePromotionGitPolicyError,
@@ -54,7 +54,7 @@ const safeSummary = (value: string, repositoryRoot: string): string =>
 /** Выполняет claimed source promotion и сохраняет только проверенный PR result. */
 export const executeClaimedSourcePromotion = async (input: {
   config: ExecutionWorkerConfig;
-  integrations: IntegrationWorkerRepository;
+  integrations: GitHubConnectionResolver;
   job: ClaimedSourcePromotion;
   repository: SourcePromotionWorkerRepository;
 }): Promise<void> => {

@@ -1,20 +1,16 @@
-/**
- * @file services/ai-execution-worker/src/integrationRepository.ts
- * @version 2026-08-28
- * @docref ADR-0012, ADR-0013
- * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
- * @see documentation/architecture/decisions/ADR-0013-github-pull-request-source-promotion.md
- * @description Resolves a revision-bound GitHub connection for worker-owned consumers.
- */
+/** Серверное чтение подключения из реестра ADR-0012 для исполнителей ADR-0013/0016. */
 
-import { parseGitHubRepositoryURL } from "@realize/ai-contracts";
+import {
+  ContractValidationError,
+  parseGitHubRepositoryURL,
+} from "@realize/ai-contracts";
 import {
   decryptIntegrationCredential,
   IntegrationVaultError,
-} from "@realize/payload-ai-control/server/integration-vault";
+} from "./credentialVault";
 import type { Pool } from "pg";
 
-const PRIMARY_GITHUB_CONNECTION_KEY = "github:primary";
+import { PRIMARY_GITHUB_CONNECTION_KEY } from "./providers";
 
 type GitHubIntegrationRow = {
   configuration: unknown;
@@ -36,7 +32,12 @@ export type RuntimeGitHubIntegration =
       token: string;
     };
 
-/** Safe configuration failure that should block rather than retry one candidate. */
+/** Узкий серверный контракт; token запрещено передавать модели, Admin DTO или журналу. */
+export interface GitHubConnectionResolver {
+  resolvePrimaryGitHub(): Promise<RuntimeGitHubIntegration>;
+}
+
+/** Ошибка сохранённой конфигурации блокирует операцию, а не запускает повтор. */
 export class IntegrationRuntimeError extends Error {
   constructor(message: string) {
     super(message);
@@ -76,22 +77,28 @@ const configurationOf = (
   return { ...normalized, ...(defaultBranch ? { defaultBranch } : {}) };
 };
 
-/** Reads only the single connection needed immediately before release execution. */
-export class IntegrationWorkerRepository {
+/** Каждый вызов читает актуальную запись; Pool и ключ принадлежат процессу запуска. */
+export class IntegrationRuntimeRepository implements GitHubConnectionResolver {
   constructor(
-    private readonly pool: Pool,
+    private readonly pool: Pick<Pool, "query">,
     private readonly encryptionKey: string | undefined,
   ) {}
 
   async resolvePrimaryGitHub(): Promise<RuntimeGitHubIntegration> {
-    const result = await this.pool.query<GitHubIntegrationRow>(
-      `SELECT provider, connection_key, enabled, configuration, credential_envelope, revision
+    let row: GitHubIntegrationRow | undefined;
+    try {
+      const result = await this.pool.query<GitHubIntegrationRow>(
+        `SELECT provider, connection_key, enabled, configuration, credential_envelope, revision
          FROM realize_ai_integrations
         WHERE connection_key = $1
         LIMIT 1`,
-      [PRIMARY_GITHUB_CONNECTION_KEY],
-    );
-    const row = result.rows[0];
+        [PRIMARY_GITHUB_CONNECTION_KEY],
+      );
+      row = result.rows[0];
+    } catch {
+      // Сбой БД остаётся повторяемой ошибкой чтения; детали драйвера могут содержать секреты.
+      throw new Error("Integration registry is unavailable.");
+    }
     if (!row) return { state: "absent" };
     if (
       row.provider !== "github" ||
@@ -107,9 +114,19 @@ export class IntegrationWorkerRepository {
         "Enabled GitHub integration has no credential.",
       );
     }
-    const configuration = configurationOf(row.configuration);
+    let configuration: ReturnType<typeof configurationOf>;
+    try {
+      configuration = configurationOf(row.configuration);
+    } catch (error) {
+      if (error instanceof ContractValidationError) {
+        throw new IntegrationRuntimeError(
+          "Stored GitHub integration configuration is invalid.",
+        );
+      }
+      throw error;
+    }
     const revision = Number(row.revision);
-    if (!Number.isInteger(revision) || revision < 1) {
+    if (!Number.isSafeInteger(revision) || revision < 1) {
       throw new IntegrationRuntimeError(
         "Stored GitHub integration revision is invalid.",
       );
@@ -135,7 +152,7 @@ export class IntegrationWorkerRepository {
     } catch (error) {
       if (error instanceof IntegrationVaultError) {
         throw new IntegrationRuntimeError(
-          "GitHub integration credential cannot be decrypted by this worker.",
+          "GitHub integration credential cannot be decrypted by this executor.",
         );
       }
       throw error;

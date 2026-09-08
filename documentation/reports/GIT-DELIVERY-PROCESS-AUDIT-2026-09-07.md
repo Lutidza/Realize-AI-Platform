@@ -6,6 +6,11 @@
 - Область: Git-навык, процесс, правило, две проверки и два навигационных индекса.
 - Режим: доставка разрешена; Git-инструкции в этом шаге не изменяются.
 
+Последующее целевое решение об обязательном Git-воркере, программном обработчике
+и подключениях HTTPS/SSH сохранено в
+[ADR-0016](../architecture/decisions/ADR-0016-development-git-delivery-handler.md).
+Наблюдения и предложения ниже описывают состояние на момент аудита.
+
 ## Наблюдения этого прохода
 
 1. Пользовательский запрос сразу разрешил полный проверенный состав изменений
@@ -42,7 +47,7 @@
 | --- | ---: | ---: |
 | [Навык Git](../../.codex/skills/git-commit-push/SKILL.md) | 39 | 2 293 |
 | [Процесс доставки](../../.ai/workflows/delivery/git/commit-push/WORKFLOW.md) | 48 | 2 678 |
-| [Правило Git](../../.ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md) | 43 | 2 794 |
+| [Правило Git](../../.ai/rules/git/RULE-GIT-DELIVERY.md) | 43 | 2 794 |
 | [Проверка коммита](../../.ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md) | 29 | 1 821 |
 | [Проверка push](../../.ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md) | 32 | 1 691 |
 | [Раздел реестра](../../.ai/registry/rules/git/INDEX.md) | 26 | 919 |

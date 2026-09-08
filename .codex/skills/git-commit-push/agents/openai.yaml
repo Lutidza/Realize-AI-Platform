@@ -1,7 +1,7 @@
 interface:
-  display_name: "Git Commit Push"
-  short_description: "Commits and pushes authorized changes"
-  default_prompt: "Use $git-commit-push to stage the scoped diff, reuse valid check results, commit and push over SSH when authorized."
+  display_name: "Git через воркера"
+  short_description: "Git-операции через отдельного воркера"
+  default_prompt: "Используй $git-commit-push для передачи разрешённой Git-операции отдельному воркеру без истории диалога."
 
 policy:
   allow_implicit_invocation: true

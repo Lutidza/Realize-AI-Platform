@@ -32,7 +32,7 @@ entries:
     owner_layer: .ai/rules/global/
     owner_roles: [all-agents]
     enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
-    related_rules: [.ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md, .ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md]
+    related_rules: [.ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md, .ai/rules/git/RULE-GIT-DELIVERY.md]
     related_checks: [.ai/checks/pre-implementation/CHECK-SAFE-COMMAND-PROPOSAL.md]
     related_workflows: []
     related_codex_artifacts: [.codex/skills/git-commit-push/SKILL.md]

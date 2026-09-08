@@ -19,7 +19,7 @@
 - `feature-decomposition-guard` - decomposition of large or mixed files.
 - `frontend-guardrail-audit` - read-only audit of frontend guardrails.
 - `frontend-runtime-evidence` - choose static/build/browser evidence tier.
-- `git-commit-push` - SSH-only commit/push workflow.
+- `git-commit-push` — Git-операции через отдельного воркера, HTTPS/SSH.
 - `reference-to-implementation` - reference/screenshot/current-page parity.
 - `skill-documentation-sync` - sync `.ai`, `.codex` and docs artifacts.
 

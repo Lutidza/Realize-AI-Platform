@@ -2,31 +2,26 @@
 
 ```yaml
 check_id: CHECK-DELIVERY-PUSH-READINESS
-title: Проверка delivery readiness перед push
+title: Проверка назначения и коммитов перед push
 owner_role: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 owner_layer: .ai/checks/pre-push/
 workflow: .ai/workflows/delivery/git/commit-push/WORKFLOW.md
 rules:
-  - .ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md
+  - .ai/rules/git/RULE-GIT-DELIVERY.md
 ```
 
-## Проверка перед push
+## Критерии
 
-- Запрос пользователя покрывает push; проверены commit hash, branch и target.
-- Необходимые проверки относятся к публикуемому diff; после них нет изменений,
-  которые делают evidence неактуальным.
-- `origin` имеет вид `git@github.com:<owner>/<repo>.git`; в диагностике нет
-  credentials или tokenized URL.
-- SSH preflight выполнен в BatchMode. Ошибка auth блокирует push; HTTPS/token
-  fallback не используется.
-- Push выполняется в проверенную ветку, без неавторизованного force push.
+Применяется внутри обработчика только для `push` и `commit_push`.
 
-Команды SSH находятся в `.codex/skills/git-commit-push/SKILL.md`.
-Повторять app tests/build на этом gate без нового риска не нужно.
+- Разрешены назначение и весь публикуемый набор коммитов; хеш и ветка определены.
+- Содержимое коммита соответствует проверенному, включая возможные изменения
+  hooks; результаты проверок применимы. Повтор тестов без нового основания не нужен.
+- Подключение из БД включено, его ревизия и репозиторий соответствуют заданию и
+  рабочей копии. Выбранный HTTPS/SSH настроен по связанному правилу.
+- Ветку и назначение не меняли после проверки; запись для восстановления
+  сохранена до отправки. Подготовлен обычный push без force.
 
-## Результат
-
-В общий delivery result включи commit hash, branch, remote, preflight и результат
-push. Session/job id и durable runtime result добавляются только при работе
-в уже назначенной worker-runtime mission. Отсутствие runtime вне такой mission
-не блокирует push.
+Невыполненный критерий блокирует push, сохраняя локальный commit. Прохождение
+этой проверки ещё не доказывает успешную авторизацию или запись на сервере;
+фактический результат устанавливается после push по workflow.

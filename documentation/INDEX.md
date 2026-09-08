@@ -20,6 +20,12 @@ Codex-адаптеры — в `.codex/**`.
 5. [MCP tooling](architecture/mcp-tooling.md) — project-specific adapter state.
 6. [Architecture Decision Log](architecture/decisions/INDEX.md).
 
+## На согласовании
+
+- [Стандарт именования и структуры кода](architecture/code-naming-and-structure.md)
+  — ссылки на действующие правила именования и комментариев;
+  структура модулей и разделение ответственности остаются на согласовании.
+
 ## Спецификация v1.0
 
 Путь `specifications/realize-ai-commerce/` сохранён как legacy namespace

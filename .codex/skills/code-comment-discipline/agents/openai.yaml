@@ -1,7 +1,7 @@
 interface:
-  display_name: "Code Comment Discipline"
-  short_description: "Explains non-obvious code contracts"
-  default_prompt: "Use $code-comment-discipline to review comments and explain non-obvious constraints in the changed code."
+  display_name: "Шапки и комментарии исходников"
+  short_description: "Проверка обязательных шапок и комментариев кода"
+  default_prompt: "Примени $code-comment-discipline для проверки и актуализации шапок и комментариев исходников по проектному правилу."
 
 policy:
   allow_implicit_invocation: true

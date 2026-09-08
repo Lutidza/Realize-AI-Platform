@@ -70,8 +70,9 @@ rollback_required
 Перед `handoff` агент выбирает только применимые `DoD`-направления:
 
 - `code` - профильные role/rule checks, tests/typecheck/lint или runtime
-  evidence по blast radius, code comment discipline для новых и изменяемых
-  boundary/source owner files;
+  evidence по blast radius,
+  [проверка комментариев](../../../checks/development/CHECK-CODE-COMMENT-DISCIPLINE.md)
+  в области, определённой соответствующим правилом;
 - `docs` - documentation sync, language gate для working artifacts, отсутствие
   historical noise и проверка ссылок/paths в пределах allowlist;
 - `schema` - migration/data contract review, PostgreSQL/PostGIS/read-only

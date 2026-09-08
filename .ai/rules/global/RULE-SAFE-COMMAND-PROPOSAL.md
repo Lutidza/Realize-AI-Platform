@@ -18,7 +18,7 @@ check: .ai/checks/pre-implementation/CHECK-SAFE-COMMAND-PROPOSAL.md
 registry: .ai/registry/rules/INDEX.md
 related_rules:
   - .ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md
-  - .ai/rules/git/RULE-COMMIT-PUSH-SSH-DELIVERY.md
+  - .ai/rules/git/RULE-GIT-DELIVERY.md
 related_codex_artifacts:
   - .codex/skills/git-commit-push/SKILL.md
 ```

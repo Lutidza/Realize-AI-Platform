@@ -5,7 +5,7 @@
  * @version 2026-08-28
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
- * @description Verifies safe DTO mapping and revision-bound worker credential resolution.
+ * @description Проверяет безопасный DTO и общее серверное получение credential.
  */
 
 import { randomBytes } from "node:crypto";
@@ -17,8 +17,8 @@ import { toGitHubIntegrationDTO } from "../../packages/payload-ai-plugin/src/end
 import { encryptIntegrationCredential } from "@realize/payload-ai-control/server/integration-vault";
 import {
   IntegrationRuntimeError,
-  IntegrationWorkerRepository,
-} from "../../services/ai-execution-worker/src/integrationRepository";
+  IntegrationRuntimeRepository,
+} from "@realize/payload-ai-control/server/integration-runtime";
 
 const encryptionKey = randomBytes(32).toString("base64");
 const token = "integration-worker-only-test-token-123456789";
@@ -62,10 +62,13 @@ describe("integration runtime boundary", () => {
     expect(dto).not.toHaveProperty("credentialEnvelope");
   });
 
-  it("decrypts an enabled connection only inside the worker repository", async () => {
-    const query = vi.fn().mockResolvedValue({ rows: [row] });
-    const repository = new IntegrationWorkerRepository(
-      { query } as unknown as Pool,
+  it("расшифровывает через серверный export и читает актуальную revision при каждом вызове", async () => {
+    const query = vi
+      .fn()
+      .mockResolvedValueOnce({ rows: [row] })
+      .mockResolvedValueOnce({ rows: [{ ...row, revision: "4" }] });
+    const repository = new IntegrationRuntimeRepository(
+      { query } as unknown as Pick<Pool, "query">,
       encryptionKey,
     );
 
@@ -79,27 +82,151 @@ describe("integration runtime boundary", () => {
     expect(query).toHaveBeenCalledWith(expect.stringContaining("LIMIT 1"), [
       "github:primary",
     ]);
+    await expect(repository.resolvePrimaryGitHub()).resolves.toEqual({
+      defaultBranch: "main",
+      repositorySlug: "realize/store",
+      revision: 4,
+      state: "ready",
+      token,
+    });
+    expect(query).toHaveBeenCalledTimes(2);
   });
 
-  it("blocks disabled or undecryptable configured connections", async () => {
-    const disabled = new IntegrationWorkerRepository(
+  it.each([
+    { state: "absent", rows: [] },
+    {
+      state: "disabled",
+      rows: [
+        {
+          ...row,
+          enabled: false,
+          credential_envelope: "invalid fixture envelope",
+        },
+      ],
+    },
+  ])("возвращает $state без ключа vault", async ({ state, rows }) => {
+    const repository = new IntegrationRuntimeRepository(
+      { query: vi.fn().mockResolvedValue({ rows }) } as unknown as Pick<
+        Pool,
+        "query"
+      >,
+      undefined,
+    );
+    await expect(repository.resolvePrimaryGitHub()).resolves.toEqual({
+      state,
+    });
+  });
+
+  it("возвращает безопасную ошибку конфигурации для сохранённого некорректного URL", async () => {
+    const invalidURL = new URL(row.configuration.repositoryURL);
+    invalidURL.username = "fixture-user";
+    invalidURL.password = "fixture-password";
+    const repository = new IntegrationRuntimeRepository(
       {
         query: vi.fn().mockResolvedValue({
-          rows: [{ ...row, enabled: false }],
+          rows: [
+            {
+              ...row,
+              configuration: {
+                ...row.configuration,
+                repositoryURL: invalidURL.href,
+              },
+            },
+          ],
         }),
-      } as unknown as Pool,
+      } as unknown as Pick<Pool, "query">,
       encryptionKey,
     );
-    await expect(disabled.resolvePrimaryGitHub()).resolves.toEqual({
-      state: "disabled",
-    });
+    const error = await repository
+      .resolvePrimaryGitHub()
+      .catch((failure: unknown) => failure);
+    expect(error).toBeInstanceOf(IntegrationRuntimeError);
+    expect(String(error)).not.toContain(invalidURL.href);
+    expect(String(error)).not.toContain("fixture-password");
+    expect(error).not.toHaveProperty("cause");
+  });
 
-    const wrongKey = new IntegrationWorkerRepository(
-      { query: vi.fn().mockResolvedValue({ rows: [row] }) } as unknown as Pool,
-      randomBytes(32).toString("base64"),
+  it.each([
+    { label: "provider", value: { ...row, provider: "other-provider" } },
+    {
+      label: "connectionKey",
+      value: { ...row, connection_key: "github:other" },
+    },
+    {
+      label: "repositorySlug",
+      value: {
+        ...row,
+        configuration: {
+          ...row.configuration,
+          repositorySlug: "other/repository",
+        },
+      },
+    },
+    {
+      label: "revision",
+      value: { ...row, revision: Number.MAX_SAFE_INTEGER + 1 },
+    },
+    {
+      label: "credential_envelope",
+      value: { ...row, credential_envelope: null },
+    },
+  ])(
+    "отклоняет некорректный $label без раскрытия credential",
+    async ({ value }) => {
+      const repository = new IntegrationRuntimeRepository(
+        {
+          query: vi.fn().mockResolvedValue({ rows: [value] }),
+        } as unknown as Pick<Pool, "query">,
+        encryptionKey,
+      );
+      const error = await repository
+        .resolvePrimaryGitHub()
+        .catch((failure: unknown) => failure);
+      expect(error).toBeInstanceOf(IntegrationRuntimeError);
+      expect(String(error)).not.toContain(token);
+      expect(String(error)).not.toContain(envelope);
+      expect(String(error)).not.toContain(encryptionKey);
+      expect(error).not.toHaveProperty("cause");
+    },
+  );
+
+  it.each([
+    { label: "отсутствующий", key: undefined },
+    { label: "неверный", key: randomBytes(32).toString("base64") },
+  ])("блокирует включённое подключение: $label ключ vault", async ({ key }) => {
+    const repository = new IntegrationRuntimeRepository(
+      {
+        query: vi.fn().mockResolvedValue({ rows: [row] }),
+      } as unknown as Pick<Pool, "query">,
+      key,
     );
-    await expect(wrongKey.resolvePrimaryGitHub()).rejects.toThrow(
-      IntegrationRuntimeError,
+    const error = await repository
+      .resolvePrimaryGitHub()
+      .catch((failure: unknown) => failure);
+    expect(error).toBeInstanceOf(IntegrationRuntimeError);
+    expect(String(error)).not.toContain(token);
+    expect(String(error)).not.toContain(envelope);
+    expect(error).not.toHaveProperty("cause");
+  });
+
+  it("скрывает детали сбоя БД и сохраняет отличие от ошибки конфигурации", async () => {
+    const sensitiveFixture = "synthetic database credential diagnostic";
+    const query = vi.fn().mockRejectedValue(new Error(sensitiveFixture));
+    const repository = new IntegrationRuntimeRepository(
+      { query } as unknown as Pick<Pool, "query">,
+      encryptionKey,
     );
+    const error = await repository
+      .resolvePrimaryGitHub()
+      .catch((failure: unknown) => failure);
+    expect(error).toBeInstanceOf(Error);
+    expect(error).not.toBeInstanceOf(IntegrationRuntimeError);
+    expect(error).toHaveProperty(
+      "message",
+      "Integration registry is unavailable.",
+    );
+    expect(error).not.toHaveProperty("cause");
+    expect(String(error)).not.toContain(sensitiveFixture);
+    expect(JSON.stringify(error)).not.toContain(sensitiveFixture);
   });
 });

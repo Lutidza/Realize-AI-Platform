@@ -5,15 +5,12 @@
  */
 
 import { createMigrationSetHash } from "@realize/change-engine";
+import type { GitHubConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ExecutionWorkerConfig } from "../../services/ai-execution-worker/src/config";
-import type { IntegrationWorkerRepository } from "../../services/ai-execution-worker/src/integrationRepository";
 import { executeClaimedRelease } from "../../services/ai-execution-worker/src/releaseExecutor";
-import {
-  parseReleaseOrchestratorResult,
-  runReleaseOrchestrator,
-} from "../../services/ai-execution-worker/src/releaseOrchestrator";
+import * as releaseOrchestrator from "../../services/ai-execution-worker/src/releaseOrchestrator";
 import type { ReleaseWorkerRepository } from "../../services/ai-execution-worker/src/releaseRepository";
 import type { ClaimedReleaseCandidate } from "../../services/ai-execution-worker/src/releaseTypes";
 
@@ -81,7 +78,7 @@ const repositoryFixture = () => ({
   markVerifyingPreview: vi.fn().mockResolvedValue(undefined),
 });
 
-const integrationFixture = () => ({
+const integrationFixture = (): GitHubConnectionResolver => ({
   resolvePrimaryGitHub: vi.fn().mockResolvedValue({ state: "absent" }),
 });
 
@@ -95,7 +92,7 @@ describe("release orchestrator port", () => {
     ].join("\n");
 
     await expect(
-      runReleaseOrchestrator({
+      releaseOrchestrator.runReleaseOrchestrator({
         config: config(script),
         request: {
           candidateKey: "candidate-1",
@@ -115,7 +112,7 @@ describe("release orchestrator port", () => {
 
   it("rejects an unsigned result before persistence", () => {
     expect(() =>
-      parseReleaseOrchestratorResult({
+      releaseOrchestrator.parseReleaseOrchestratorResult({
         ...result,
         signatureVerified: false,
       }),
@@ -128,8 +125,7 @@ describe("release orchestrator port", () => {
 
     await executeClaimedRelease({
       config: config(script),
-      integrations:
-        integrationFixture() as unknown as IntegrationWorkerRepository,
+      integrations: integrationFixture(),
       job,
       repository: repository as unknown as ReleaseWorkerRepository,
     });
@@ -153,8 +149,7 @@ describe("release orchestrator port", () => {
 
     await executeClaimedRelease({
       config: config(script),
-      integrations:
-        integrationFixture() as unknown as IntegrationWorkerRepository,
+      integrations: integrationFixture(),
       job,
       repository: repository as unknown as ReleaseWorkerRepository,
     });
@@ -174,9 +169,10 @@ describe("release orchestrator port", () => {
       `process.stdout.write(JSON.stringify(${JSON.stringify(result)}));`,
     ].join("\n");
     const repository = repositoryFixture();
-    const integrations = {
+    const integrations: GitHubConnectionResolver = {
       resolvePrimaryGitHub: vi.fn().mockResolvedValue({
         repositorySlug: "realize/store",
+        revision: 3,
         state: "ready",
         token: "secret-token",
       }),
@@ -184,12 +180,41 @@ describe("release orchestrator port", () => {
 
     await executeClaimedRelease({
       config: config(script),
-      integrations: integrations as unknown as IntegrationWorkerRepository,
+      integrations,
       job,
       repository: repository as unknown as ReleaseWorkerRepository,
     });
 
     expect(repository.complete).toHaveBeenCalled();
     expect(repository.fail).not.toHaveBeenCalled();
+  });
+
+  it("блокирует отключённое подключение до вызова release orchestrator", async () => {
+    const orchestrator = vi
+      .spyOn(releaseOrchestrator, "runReleaseOrchestrator")
+      .mockRejectedValue(
+        new Error("Disabled integration must not reach the orchestrator."),
+      );
+    const repository = repositoryFixture();
+    const integrations: GitHubConnectionResolver = {
+      resolvePrimaryGitHub: vi.fn().mockResolvedValue({ state: "disabled" }),
+    };
+    try {
+      await executeClaimedRelease({
+        config: config(""),
+        integrations,
+        job,
+        repository: repository as unknown as ReleaseWorkerRepository,
+      });
+      expect(orchestrator).not.toHaveBeenCalled();
+      expect(repository.fail).toHaveBeenCalledWith(job, {
+        blocked: true,
+        summary: "GitHub integration is disabled.",
+      });
+      expect(repository.markScanning).not.toHaveBeenCalled();
+      expect(repository.complete).not.toHaveBeenCalled();
+    } finally {
+      orchestrator.mockRestore();
+    }
   });
 });

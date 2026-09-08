@@ -54,7 +54,8 @@ runtime_sources:
 │   │   ├── README.md
 │   │   └── runtime/INDEX.md
 │   ├── agent-monitor/README.md
-│   └── agent-search/README.md
+│   ├── agent-search/README.md
+│   └── git-delivery/README.md
 ├── worker-profiles/
 │   └── INDEX.md
 ├── agents-evolution/

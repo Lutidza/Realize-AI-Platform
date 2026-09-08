@@ -108,6 +108,13 @@ release adapter connection имеет приоритет над legacy repositor
 environment. Provider infrastructure (CLI paths, workflow и timeouts) остаётся
 server-owned configuration.
 
+Общее серверное чтение подключения находится в
+`packages/payload-ai-plugin/src/integrations/runtimeRepository.ts`
+(`@realize/payload-ai-control/server/integration-runtime`). Execution worker
+передаёт ему существующий Pool и ключ; SQL и расшифровка не дублируются в
+операционном слое. Подключение этого модуля к Git-обработчику и настройка
+HTTPS/SSH по ADR-0016 остаются следующими этапами.
+
 Production authorization handoff, deploy/rollback controller и commercial
 enforcement в текущий slice не входят. `RELEASE_APPROVAL` по-прежнему не даёт
 worker-у production credentials и не запускает rollout.

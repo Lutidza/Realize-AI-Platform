@@ -1,0 +1,13 @@
+{
+  "name": "@realize/git-delivery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.18.0"
+  },
+  "scripts": {
+    "run": "node src/cli.ts",
+    "test": "node --test test/*.test.ts"
+  }
+}

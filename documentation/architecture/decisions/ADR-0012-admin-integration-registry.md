@@ -47,6 +47,15 @@ environment execution worker-а. Такой способ годится для o
   release consumer передаёт repository/token только environment дочернего
   orchestrator process. Для release эти значения имеют приоритет над legacy
   `GH_TOKEN`/`REALIZE_AI_GITHUB_REPOSITORY` environment;
+- общее серверное чтение принадлежит
+  [IntegrationRuntimeRepository](../../../packages/payload-ai-plugin/src/integrations/runtimeRepository.ts),
+  экспорт `@realize/payload-ai-control/server/integration-runtime`. Модуль
+  принимает существующий `Pool` и ключ, читает актуальную запись при каждом
+  вызове и использует общий vault. Он не создаёт соединений с БД и не загружает
+  окружение. Состояния `absent`, `disabled`, `ready` и серверный результат
+  подключения сохранены; решение о допустимости отсутствующей записи остаётся
+  у потребителя. Ошибки сохранённой конфигурации блокируют операцию, а сбой БД
+  возвращает безопасную ошибку чтения без деталей драйвера;
 - legacy environment остаётся временным bootstrap fallback, если connection ещё
   не создан. Остальные executable paths, workflow name, timeouts и provider
   infrastructure остаются operator-owned environment, а не editable Admin

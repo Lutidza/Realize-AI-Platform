@@ -6,10 +6,10 @@
 
 import { Pool } from "pg";
 import { config as loadEnvironment } from "dotenv";
+import { IntegrationRuntimeRepository } from "@realize/payload-ai-control/server/integration-runtime";
 
 import { readExecutionWorkerConfig } from "./config";
 import { executeClaimedJob } from "./executor";
-import { IntegrationWorkerRepository } from "./integrationRepository";
 import { ExecutionJobRepository } from "./jobRepository";
 import {
   cleanupPreviewRuntimes,
@@ -31,7 +31,7 @@ const repository = new ExecutionJobRepository(pool);
 const promotionRepository = new PromotionRepository(pool);
 const releaseRepository = new ReleaseWorkerRepository(pool);
 const sourcePromotionRepository = new SourcePromotionWorkerRepository(pool);
-const integrationRepository = new IntegrationWorkerRepository(
+const integrationRepository = new IntegrationRuntimeRepository(
   pool,
   config.integrationEncryptionKey,
 );

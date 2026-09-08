@@ -12,8 +12,8 @@ import {
 import type { ExecutionWorkerConfig } from "./config";
 import {
   IntegrationRuntimeError,
-  type IntegrationWorkerRepository,
-} from "./integrationRepository";
+  type GitHubConnectionResolver,
+} from "@realize/payload-ai-control/server/integration-runtime";
 import {
   ReleaseOrchestratorError,
   runReleaseOrchestrator,
@@ -37,7 +37,7 @@ const sanitizeSummary = (value: string, repositoryRoot: string): string =>
 /** Выполняет claimed release job и сохраняет только проверенный result. */
 export const executeClaimedRelease = async (input: {
   config: ExecutionWorkerConfig;
-  integrations: IntegrationWorkerRepository;
+  integrations: GitHubConnectionResolver;
   job: ClaimedReleaseCandidate;
   repository: ReleaseWorkerRepository;
 }): Promise<void> => {
