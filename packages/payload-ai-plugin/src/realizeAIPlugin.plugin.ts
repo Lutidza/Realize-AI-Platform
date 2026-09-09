@@ -1,7 +1,8 @@
 /**
- * @file packages/payload-ai-plugin/src/index.ts
- * @version 2026-09-02
- * @description Implements the Payload transformer for chat, delivery, integrations and config.
+ * @file packages/payload-ai-plugin/src/realizeAIPlugin.plugin.ts
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Подключает коллекции, endpoints и Admin views плагина Payload.
  */
 
 import type { Plugin } from "payload";
@@ -17,7 +18,7 @@ import type { RealizeAIPluginOptions } from "./types";
 
 export type { RealizeAIPluginOptions } from "./types";
 
-/** Merges gated AI collections, endpoints, global provider and Admin view. */
+/** Сохраняет входную конфигурацию и добавляет защищённые возможности плагина. */
 export const realizeAIPlugin = (
   pluginOptions: RealizeAIPluginOptions,
 ): Plugin => {
@@ -42,9 +43,13 @@ export const realizeAIPlugin = (
 
     const components = incomingConfig.admin?.components || {};
     const views = components.views || {};
+    const integrationsRoute = options.admin.integrationsRoute;
+    const integrationSettingsRoute =
+      `${integrationsRoute.replace(/\/$/, "")}/:provider` as `/${string}`;
     for (const route of [
       options.admin.route,
-      options.admin.integrationsRoute,
+      integrationsRoute,
+      integrationSettingsRoute,
     ]) {
       if (
         Object.values(views).some(
@@ -104,10 +109,20 @@ export const realizeAIPlugin = (
               path: options.admin.route,
             },
             realizeIntegrations: {
-              Component:
-                "@realize/payload-ai-control/integrations-rsc#IntegrationsView",
+              Component: {
+                path: "@realize/payload-ai-control/integrations-rsc#IntegrationsView",
+                serverProps: { integrationsRoute, mode: "catalog" },
+              },
               exact: true,
-              path: options.admin.integrationsRoute,
+              path: integrationsRoute,
+            },
+            realizeIntegrationSettings: {
+              Component: {
+                path: "@realize/payload-ai-control/integrations-rsc#IntegrationsView",
+                serverProps: { integrationsRoute, mode: "settings" },
+              },
+              exact: true,
+              path: integrationSettingsRoute,
             },
           },
         },

@@ -1,0 +1,76 @@
+/**
+ * @file packages/ui-kit/src/theme/UiTheme.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Задаёт общие цвета, размеры и эффекты светлой и тёмной темы.
+ */
+
+.theme {
+  --ui-color-bg: #f8f9fc;
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-raised: #f1f1f9;
+  --ui-color-text: #212137;
+  --ui-color-muted: #676980;
+  --ui-color-border: #dedfec;
+  --ui-color-primary: #7544de;
+  --ui-color-secondary: #078d9c;
+  --ui-color-on-accent: #ffffff;
+  --ui-color-success: #16815b;
+  --ui-color-danger: #be3451;
+  --ui-color-glow-primary: rgb(133 80 245 / 16%);
+  --ui-color-glow-secondary: rgb(39 210 230 / 10%);
+  --ui-gradient-accent: linear-gradient(120deg, #8550e8, #6940cf);
+  --ui-gradient-border: linear-gradient(
+    125deg,
+    rgb(156 108 250 / 55%),
+    rgb(130 110 220 / 12%) 48%,
+    rgb(38 199 215 / 40%)
+  );
+  --ui-shadow-control: 0 4px 14px rgb(111 64 210 / 20%);
+  --ui-shadow-surface: 0 8px 28px rgb(45 36 90 / 6%);
+  --ui-shadow-glow: 0 0 24px rgb(133 80 245 / 10%);
+  --ui-focus-ring: 0 0 0 3px rgb(133 80 245 / 25%);
+  --ui-radius-sm: 10px;
+  --ui-radius-md: 14px;
+  --ui-radius-lg: 20px;
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-control-height: 42px;
+  --ui-duration: 160ms;
+  width: 100%;
+  min-width: 0;
+  color: var(--ui-color-text);
+  color-scheme: light;
+}
+
+.theme[data-ui-theme="dark"] {
+  --ui-color-bg: #111118;
+  --ui-color-surface: #191921;
+  --ui-color-surface-raised: #23232e;
+  --ui-color-text: #f4f3ff;
+  --ui-color-muted: #a3a2b9;
+  --ui-color-border: #32323f;
+  --ui-color-primary: #b190ff;
+  --ui-color-secondary: #52dde5;
+  --ui-color-success: #5dd6aa;
+  --ui-color-danger: #ff8fa6;
+  --ui-color-glow-primary: rgb(143 78 255 / 24%);
+  --ui-color-glow-secondary: rgb(30 210 233 / 13%);
+  --ui-gradient-accent: linear-gradient(120deg, #8850e8, #6636cc);
+  --ui-gradient-border: linear-gradient(
+    125deg,
+    rgb(181 141 255 / 58%),
+    rgb(169 121 255 / 14%) 48%,
+    rgb(59 213 229 / 42%)
+  );
+  --ui-shadow-control: 0 0 20px rgb(142 78 255 / 24%);
+  --ui-shadow-surface: 0 12px 32px rgb(0 0 0 / 20%);
+  --ui-shadow-glow: 0 0 28px rgb(138 75 255 / 12%);
+  --ui-focus-ring: 0 0 0 3px rgb(179 142 255 / 30%);
+  color-scheme: dark;
+}

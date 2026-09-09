@@ -1,0 +1,41 @@
+/**
+ * @file packages/ui-kit/src/badge/UiBadge.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Оформляет статусы едиными радиусами, цветами и отступами.
+ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  max-width: 100%;
+  padding: 5px 9px;
+  border-radius: 99px;
+  background: var(--ui-color-surface-raised);
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.positive {
+  background: color-mix(in srgb, var(--ui-color-success) 12%, transparent);
+  color: var(--ui-color-success);
+}
+
+.danger {
+  background: color-mix(in srgb, var(--ui-color-danger) 12%, transparent);
+  color: var(--ui-color-danger);
+}
+
+.dot {
+  flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}

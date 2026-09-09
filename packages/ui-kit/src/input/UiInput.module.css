@@ -1,0 +1,57 @@
+/**
+ * @file packages/ui-kit/src/input/UiInput.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Оформляет поля ввода, фокус, ошибки и недоступность через токены UI-кита.
+ */
+
+.input {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: var(--ui-control-height);
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  outline: none;
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  transition:
+    border-color var(--ui-duration) ease,
+    box-shadow var(--ui-duration) ease;
+}
+
+.input::placeholder {
+  color: var(--ui-color-muted);
+  opacity: 1;
+}
+
+.input:focus-visible {
+  border-color: var(--ui-color-primary);
+  box-shadow: var(--ui-focus-ring);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--ui-color-danger);
+}
+
+.input[aria-invalid="true"]:focus-visible {
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--ui-color-danger) 20%, transparent);
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .input {
+    transition: none;
+  }
+}

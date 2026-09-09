@@ -1,0 +1,59 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/GitHubDisconnectAction.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Располагает отдельное действие отключения GitHub в сетке настроек.
+ */
+
+.disconnect {
+  grid-area: disconnect;
+  min-width: 0;
+  padding: var(--ui-space-6);
+}
+.disconnect h2 {
+  margin: 0 0 var(--ui-space-2);
+  font-size: 15px;
+  font-weight: 600;
+}
+.disconnect p {
+  margin: 0 0 var(--ui-space-4);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.disconnect button {
+  width: 100%;
+}
+@media (max-width: 1100px) {
+  .disconnect {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--ui-space-3);
+  }
+  .disconnect h2 {
+    margin: 0;
+  }
+  .disconnect p {
+    flex: 1;
+    margin: 0;
+  }
+  .disconnect button {
+    width: auto;
+  }
+}
+@media (max-width: 640px) {
+  .disconnect {
+    display: block;
+    padding: var(--ui-space-5);
+  }
+  .disconnect h2 {
+    margin-bottom: var(--ui-space-2);
+  }
+  .disconnect p {
+    margin-bottom: var(--ui-space-4);
+  }
+  .disconnect button {
+    width: 100%;
+  }
+}

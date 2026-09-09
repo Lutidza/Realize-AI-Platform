@@ -1,0 +1,129 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/GitHubConnectionSummary.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Оформляет адаптивную сводку сохранённого состояния GitHub.
+ */
+
+.sidebar {
+  grid-area: summary;
+  display: grid;
+  gap: var(--ui-space-6);
+  min-width: 0;
+}
+.overview {
+  padding: var(--ui-space-6);
+  min-width: 0;
+}
+.identity {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+}
+.logo {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+}
+.name {
+  margin-top: var(--ui-space-6);
+}
+.name p,
+.evidence dt {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.name h2 {
+  margin: var(--ui-space-2) 0 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.evidence {
+  display: grid;
+  gap: var(--ui-space-5);
+  margin: var(--ui-space-6) 0;
+  padding-top: var(--ui-space-6);
+  border-top: 1px solid var(--ui-color-border);
+}
+.evidence dd {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.branch {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+.branch svg {
+  color: var(--ui-color-primary);
+  flex-shrink: 0;
+}
+.security {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  padding-top: var(--ui-space-5);
+  border-top: 1px solid var(--ui-color-border);
+  color: var(--ui-color-muted);
+}
+.security svg {
+  color: var(--ui-color-primary);
+  flex-shrink: 0;
+}
+.security p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 1100px) {
+  .overview {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--ui-space-6);
+  }
+  .identity,
+  .name {
+    grid-column: 1;
+  }
+  .evidence {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    border-top: 0;
+    border-left: 1px solid var(--ui-color-border);
+    padding: 0 0 0 var(--ui-space-6);
+    margin: 0;
+  }
+  .security {
+    grid-column: 1;
+    margin-top: var(--ui-space-5);
+  }
+}
+@media (max-width: 640px) {
+  .overview {
+    display: block;
+    padding: var(--ui-space-5);
+  }
+  .evidence {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-left: 0;
+    border-top: 1px solid var(--ui-color-border);
+    padding: var(--ui-space-5) 0 0;
+    margin: var(--ui-space-5) 0;
+    gap: var(--ui-space-4);
+  }
+  .evidence > div:last-child {
+    grid-column: 1 / -1;
+  }
+}

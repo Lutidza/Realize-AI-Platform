@@ -65,9 +65,11 @@ storefront.
   controller доступен в drawer на остальных страницах `/admin/**`;
   `REALIZE_AI_ENABLED` включает запуски, а при `false` UI показывает
   явный disabled state.
-- `/admin/integrations` — custom Payload root view для масштабируемого каталога
-  подключений; GitHub является первым adapter-ом, а credentials остаются
-  write-only и доступны только server-side vault/runtime consumer.
+- `/admin/integrations` — каталог карточек сервисов с поиском и фильтром
+  активности; `/admin/integrations/:provider` — отдельные настройки сервиса.
+  UI принадлежит `packages/payload-ai-plugin/src/admin/integrations/`,
+  карточки и фильтры — вложенному `catalog/`. Первый адаптер — GitHub;
+  credentials остаются write-only и доступны только серверным исполнителям.
 
 Browser не вызывает Codex напрямую. Chat-поток: Payload Admin → authenticated
 Payload endpoint → server-only control-plane client → Codex adapter.
@@ -145,3 +147,11 @@ AI-layer audit от 2026-08-17 сохранён как historical evidence в
 - Product UI не смешивается с Payload Admin plugin UI.
 - Production release — immutable digest; migrations выполняются до web
   rollout, rollback не rebuild-ит image.
+
+## Общий UI-кит
+
+`packages/ui-kit` (`@realize/ui-kit`) владеет семантическими токенами,
+темой и общими кнопками, полями, статусами и поверхностями.
+`packages/payload-ai-plugin/src/admin/AdminUiTheme.component.tsx` связывает
+его с темой Payload. Каталог интеграций и настройки GitHub используют
+общие компоненты. Контракт и границы миграции — [UI-кит](ui-kit.md).

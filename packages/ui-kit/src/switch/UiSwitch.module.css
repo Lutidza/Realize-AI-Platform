@@ -1,0 +1,86 @@
+/**
+ * @file packages/ui-kit/src/switch/UiSwitch.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Оформляет состояния переключателя, клавиатурный фокус и движение через токены UI-кита.
+ */
+
+.switch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  vertical-align: middle;
+}
+
+.input {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.track {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 99px;
+  background: var(--ui-color-surface-raised);
+  transition:
+    border-color var(--ui-duration) ease,
+    background-color var(--ui-duration) ease,
+    box-shadow var(--ui-duration) ease;
+}
+
+.thumb {
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ui-color-muted);
+  transform: translateY(-50%);
+  transition:
+    transform var(--ui-duration) ease,
+    background-color var(--ui-duration) ease;
+}
+
+.input:checked + .track {
+  border-color: var(--ui-color-primary);
+  background: var(--ui-gradient-accent);
+  box-shadow: var(--ui-shadow-control);
+}
+
+.input:checked + .track .thumb {
+  background: var(--ui-color-on-accent);
+  transform: translate(18px, -50%);
+}
+
+.input:focus-visible + .track {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 3px;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.input:disabled {
+  cursor: not-allowed;
+}
+
+.input:disabled + .track {
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track,
+  .thumb {
+    transition: none;
+  }
+}

@@ -1,0 +1,72 @@
+/**
+ * @file packages/ui-kit/src/notice/UiNotice.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Оформляет нейтральные сообщения, подтверждения и ошибки через токены UI-кита.
+ */
+
+.notice {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+  min-width: 0;
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-text);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.neutral {
+  background: var(--ui-color-surface-raised);
+}
+
+.positive {
+  border-color: color-mix(in srgb, var(--ui-color-success) 25%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-success) 8%,
+    var(--ui-color-surface)
+  );
+}
+
+.danger {
+  border-color: color-mix(in srgb, var(--ui-color-danger) 25%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-danger) 8%,
+    var(--ui-color-surface)
+  );
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  color: var(--ui-color-muted);
+}
+
+.positive .icon {
+  color: var(--ui-color-success);
+}
+
+.danger .icon {
+  color: var(--ui-color-danger);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin-bottom: var(--ui-space-1);
+  font-weight: 600;
+}

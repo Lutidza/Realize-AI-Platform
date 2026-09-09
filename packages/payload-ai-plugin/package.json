@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./client": "./src/admin/RealizeAINavLink.tsx",
-    "./integrations-rsc": "./src/admin/integrations/IntegrationsView.tsx",
+    ".": "./src/realizeAIPlugin.plugin.ts",
+    "./client": "./src/admin/RealizeAINavLink.component.tsx",
+    "./integrations-rsc": "./src/admin/integrations/IntegrationsView.view.tsx",
     "./provider": "./src/admin/RealizeAIProvider.tsx",
     "./server/integration-vault": "./src/integrations/credentialVault.ts",
     "./server/integration-runtime": "./src/integrations/runtime/integrationRuntime.index.ts",
@@ -14,7 +14,8 @@
   },
   "dependencies": {
     "@realize/ai-contracts": "0.1.0",
-    "@realize/change-engine": "0.1.0"
+    "@realize/change-engine": "0.1.0",
+    "@realize/ui-kit": "0.1.0"
   },
   "peerDependencies": {
     "@payloadcms/next": "^3.88.0",

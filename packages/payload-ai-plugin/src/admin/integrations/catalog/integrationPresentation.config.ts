@@ -1,0 +1,13 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/catalog/integrationPresentation.config.ts
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Сопоставляет реализованные сервисы их фирменным логотипам.
+ */
+
+import { GitHubLogo } from "../GitHubLogo.component";
+import type { IntegrationPresentationRegistry } from "./IntegrationCatalog.types";
+
+export const integrationPresentation = {
+  github: { Logo: GitHubLogo },
+} satisfies IntegrationPresentationRegistry;

@@ -1,13 +1,16 @@
 /**
  * @file tests/int/payload-ai-plugin.int.spec.ts
- * @version 2026-09-02
+ * @version 1.0.0
+ * @date 2026-09-09
  * @description Проверяет AI config, source/release и integration Payload transformer.
  */
 
 import type { Config, PayloadRequest } from "payload";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { realizeAIPlugin } from "@realize/payload-ai-control";
+import type { IntegrationsViewProps } from "../../packages/payload-ai-plugin/src/admin/integrations/IntegrationsView.types";
+import { loadIntegrationsView } from "../../packages/payload-ai-plugin/src/admin/integrations/loadIntegrationsView.service";
 import {
   requireAIConfigurationManager,
   requireDataManager,
@@ -15,6 +18,15 @@ import {
   requireReleaseApprover,
 } from "../../packages/payload-ai-plugin/src/endpoints/access";
 import { sanitizeOptions } from "../../packages/payload-ai-plugin/src/options";
+
+vi.mock("next/navigation.js", () => ({
+  notFound: () => {
+    throw new Error("NEXT_HTTP_ERROR_FALLBACK;404");
+  },
+  redirect: (url: string) => {
+    throw new Error(`NEXT_REDIRECT;${url}`);
+  },
+}));
 
 const options = {
   access: {
@@ -58,6 +70,86 @@ const baseConfig = (): Config =>
     ],
   }) as unknown as Config;
 
+const integrationViewProps = (
+  mode: IntegrationsViewProps["mode"],
+): IntegrationsViewProps =>
+  ({
+    initPageResult: { req: { user: { id: 42 } } },
+    integrationsRoute: "/tools/connections",
+    mode,
+    params: { segments: ["tools", "connections", "github"] },
+    payload: {
+      config: {
+        admin: { routes: { login: "/login", unauthorized: "/unauthorized" } },
+        custom: {
+          realizeAIControl: {
+            canManageIntegrations: () => true,
+            integrationEncryptionKeyEnv: "REALIZE_TEST_INTEGRATION_VIEW_KEY",
+          },
+        },
+        routes: { admin: "/control" },
+      },
+      db: { defaultIDType: "number" },
+      find: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+    },
+  }) as unknown as IntegrationsViewProps;
+
+describe("integration Admin views", () => {
+  it("resolves settings from Payload catch-all segments and custom base routes", async () => {
+    const props = integrationViewProps("settings");
+    const result = await loadIntegrationsView(props);
+
+    expect(result.catalogURL).toBe("/control/tools/connections");
+    expect(result.providerID).toBe("github");
+    expect(result.initialCatalog.connections).toEqual([]);
+    expect(props.payload.find).toHaveBeenCalledOnce();
+  });
+
+  it("renders the catalog without selecting a provider", async () => {
+    const props = integrationViewProps("catalog");
+    const result = await loadIntegrationsView(props);
+
+    expect(result.providerID).toBeUndefined();
+    expect(result.catalogURL).toBe("/control/tools/connections");
+  });
+
+  it("rejects unknown providers before reading integrations", async () => {
+    const props = integrationViewProps("settings");
+    const unknownProviderProps = {
+      ...props,
+      params: { segments: ["tools", "connections", "unknown"] },
+    };
+
+    await expect(loadIntegrationsView(unknownProviderProps)).rejects.toThrow(
+      "NEXT_HTTP_ERROR_FALLBACK;404",
+    );
+    expect(props.payload.find).not.toHaveBeenCalled();
+  });
+
+  it.each(["catalog", "settings"] as const)(
+    "authorizes the %s view before accessing connections",
+    async (mode) => {
+      const props = integrationViewProps(mode);
+      props.initPageResult.req.user = null;
+
+      await expect(loadIntegrationsView(props)).rejects.toThrow(
+        "NEXT_REDIRECT;/control/login",
+      );
+      expect(props.payload.find).not.toHaveBeenCalled();
+
+      props.initPageResult.req.user = { id: 42 } as PayloadRequest["user"];
+      props.payload.config.custom!.realizeAIControl = {
+        canManageIntegrations: () => false,
+      };
+
+      await expect(loadIntegrationsView(props)).rejects.toThrow(
+        "NEXT_REDIRECT;/control/unauthorized",
+      );
+      expect(props.payload.find).not.toHaveBeenCalled();
+    },
+  );
+});
+
 describe("realizeAIPlugin", () => {
   it("preserves incoming config and installs the disabled schema", async () => {
     const transformed = await realizeAIPlugin(options)(baseConfig());
@@ -100,6 +192,9 @@ describe("realizeAIPlugin", () => {
     expect(views?.existing?.path).toBe("/existing");
     expect(views?.realizeAI?.path).toBe("/ai");
     expect(views?.realizeIntegrations?.path).toBe("/integrations");
+    expect(views?.realizeIntegrationSettings?.path).toBe(
+      "/integrations/:provider",
+    );
     expect(transformed.custom?.existing).toBe("preserved");
     expect(transformed.custom?.realizeAIControl).toMatchObject({
       canManageAIConfiguration: options.access.canManageAIConfiguration,
@@ -262,6 +357,36 @@ describe("realizeAIPlugin", () => {
     ).toBe(true);
   });
 
+  it.each(["/integrations", "/tools/connections", "/tools/connections/"])(
+    "registers separate exact catalog and settings views under %s",
+    async (integrationsRoute) => {
+      const config = baseConfig();
+      config.routes = { admin: "/control" };
+      const transformed = await realizeAIPlugin({
+        ...options,
+        admin: { integrationsRoute: integrationsRoute as `/${string}` },
+      })(config);
+
+      expect(transformed.routes?.admin).toBe("/control");
+      expect(transformed.admin?.components?.views).toMatchObject({
+        realizeIntegrations: {
+          Component: {
+            serverProps: { integrationsRoute, mode: "catalog" },
+          },
+          exact: true,
+          path: integrationsRoute,
+        },
+        realizeIntegrationSettings: {
+          Component: {
+            serverProps: { integrationsRoute, mode: "settings" },
+          },
+          exact: true,
+          path: `${integrationsRoute.replace(/\/$/, "")}/:provider`,
+        },
+      });
+    },
+  );
+
   it("fails closed on collection, route and endpoint collisions", () => {
     const collectionCollision = baseConfig();
     collectionCollision.collections = [
@@ -279,6 +404,17 @@ describe("realizeAIPlugin", () => {
     expect(() => realizeAIPlugin(options)(routeCollision)).toThrow(
       "Realize Admin route collision",
     );
+
+    const integrationSettingsCollision = baseConfig();
+    integrationSettingsCollision.admin!.components!.views = {
+      conflict: {
+        Component: "./conflict",
+        path: "/integrations/:provider",
+      },
+    };
+    expect(() =>
+      realizeAIPlugin(options)(integrationSettingsCollision),
+    ).toThrow("Realize Admin route collision: /integrations/:provider");
 
     const endpointCollision = baseConfig();
     endpointCollision.endpoints = [

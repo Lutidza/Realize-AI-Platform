@@ -98,8 +98,14 @@ commit только в scoped candidate ref, запускает trusted GitHub A
 preview на VPS Docker Compose. Без `REALIZE_AI_RELEASE_ORCHESTRATOR_COMMAND` и
 operator-owned GitHub/VPS configuration этот lane выключен fail-closed.
 
-Payload Admin также содержит provider-neutral раздел `/admin/integrations`.
-Первый adapter настраивает GitHub repository и write-only token. Browser получает
+Payload Admin содержит каталог `/admin/integrations`: квадратные карточки
+с логотипами, поиск по названию и описанию, фильтр по `connection.enabled`.
+Каталог и настройки используют общий `@realize/ui-kit`: семантические токены,
+тему, кнопки, поля, статусы и поверхности. Тема Payload подключается отдельным
+адаптером; другие экраны и storefront переводятся последовательно.
+Карточка открывает отдельную страницу `/admin/integrations/:provider`;
+первый реализованный сервис — GitHub. Его форма настраивает репозиторий,
+write-only token и автора коммитов. Browser получает
 только redacted DTO; credential хранится в installation-local AES-256-GCM vault
 с отдельным operator-owned `REALIZE_INTEGRATIONS_ENCRYPTION_KEY`. Включённое
 GitHub connection передаётся серверным исполнителям source promotion, release

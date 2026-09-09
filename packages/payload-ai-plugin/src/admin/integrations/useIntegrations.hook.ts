@@ -1,7 +1,8 @@
 /**
- * @file packages/payload-ai-plugin/src/admin/integrations/useIntegrations.ts
- * @version 2026-08-27
- * @description Owns Admin integration catalog state without persisting draft secrets.
+ * @file packages/payload-ai-plugin/src/admin/integrations/useIntegrations.hook.ts
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Управляет загрузкой и операциями интеграций без хранения секретов.
  */
 
 "use client";
@@ -14,6 +15,7 @@ import type {
   TestGitHubIntegrationInput,
 } from "@realize/ai-contracts";
 import { useCallback, useState } from "react";
+import type { GitHubIntegrationPanelProps } from "./GitHubIntegrationPanel.types";
 
 import {
   disconnectGitHubIntegration,
@@ -22,12 +24,11 @@ import {
   testGitHubIntegration,
 } from "./integrationAPI";
 
-/** Coordinates list/save/test/disconnect while keeping token in form-local memory. */
+/** Управляет безопасным DTO; черновик токена остаётся только в состоянии формы. */
 export const useIntegrations = (initialCatalog: IntegrationCatalogDTO) => {
   const [catalog, setCatalog] = useState<IntegrationCatalogDTO>(initialCatalog);
-  const [busyAction, setBusyAction] = useState<
-    "disconnect" | "load" | "save" | "test" | undefined
-  >();
+  const [busyAction, setBusyAction] =
+    useState<GitHubIntegrationPanelProps["busyAction"]>();
   const [error, setError] = useState<string>();
 
   const load = useCallback(async () => {

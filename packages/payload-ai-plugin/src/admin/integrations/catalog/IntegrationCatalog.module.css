@@ -1,0 +1,105 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/catalog/IntegrationCatalog.module.css
+ * @version 1.0.3
+ * @date 2026-09-09
+ * @description Задаёт компоновку поиска, фильтров и сетки каталога интеграций.
+ */
+
+.catalog {
+  min-width: 0;
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+}
+.search {
+  position: relative;
+  width: min(100%, 460px);
+}
+.search > svg {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: var(--ui-space-3);
+  transform: translateY(-50%);
+  color: var(--ui-color-muted);
+  pointer-events: none;
+}
+.search input {
+  padding-inline: 40px;
+}
+.search input::-webkit-search-cancel-button {
+  display: none;
+}
+.search button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-height: 38px;
+  width: 38px;
+  height: 38px;
+}
+.filters {
+  display: flex;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1);
+  background: var(--ui-color-surface);
+  border-radius: var(--ui-radius-md);
+  box-shadow: inset 0 0 0 1px var(--ui-color-border);
+}
+.resultCount {
+  margin: 0 0 var(--ui-space-4);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.separator {
+  margin: var(--ui-space-6) 0;
+  border: 0;
+  border-top: 1px solid var(--ui-color-border);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: var(--ui-space-6);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.grid li {
+  min-width: 0;
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ui-space-4);
+  padding: 52px var(--ui-space-6);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-muted);
+  text-align: center;
+}
+.empty h2 {
+  margin: 0;
+  color: var(--ui-color-text);
+  font-size: 20px;
+}
+.empty p {
+  margin: 0;
+}
+@media (max-width: 800px) {
+  .toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: var(--ui-space-3);
+  }
+  .search {
+    width: 100%;
+  }
+  .filters {
+    align-self: flex-start;
+    max-width: 100%;
+  }
+}

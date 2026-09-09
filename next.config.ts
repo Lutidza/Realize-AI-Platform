@@ -1,7 +1,8 @@
 /**
  * @file next.config.ts
- * @version 2026-08-17
- * @description Configures the Payload-aware standalone Next.js production build.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
 import { withPayload } from "@payloadcms/next/withPayload";
@@ -16,6 +17,7 @@ const nextConfig: NextConfig = {
     "@realize/change-engine",
     "@realize/codex-adapter",
     "@realize/payload-ai-control",
+    "@realize/ui-kit",
   ],
 };
 

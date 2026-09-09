@@ -1,6 +1,7 @@
 /**
  * @file tests/int/change-engine.int.spec.ts
- * @version 2026-08-22
+ * @version 1.0.0
+ * @date 2026-09-09
  * @description Проверяет plan policy и cryptographic execution/release bindings.
  */
 
@@ -191,7 +192,9 @@ describe("isolated execution policy", () => {
     ).toEqual({ allowed: true });
     expect(
       assessExecutionScope({
-        affectedPaths: ["packages/payload-ai-plugin/src/index.ts"],
+        affectedPaths: [
+          "packages/payload-ai-plugin/src/realizeAIPlugin.plugin.ts",
+        ],
         checks: ["npm run typecheck"],
         type: "CODE_CHANGE",
       }),

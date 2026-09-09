@@ -1,0 +1,58 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/GitHubSettingsActions.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Располагает действия сохранения GitHub и состояние ожидания.
+ */
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+  padding: var(--ui-space-5) var(--ui-space-6);
+}
+.actions p {
+  margin: 0;
+  max-width: 24ch;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.buttons {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--ui-space-3);
+}
+.spinner {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (max-width: 640px) {
+  .actions {
+    align-items: stretch;
+    flex-direction: column;
+    padding: var(--ui-space-5);
+  }
+  .actions p {
+    max-width: none;
+  }
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 380px) {
+  .buttons {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}
