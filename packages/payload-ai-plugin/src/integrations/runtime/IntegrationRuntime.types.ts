@@ -1,8 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/runtime/IntegrationRuntime.types.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-09-09
- * @description Задаёт контракты чтения и серверного разрешения подключения GitHub.
+ * @description Задаёт общую запись runtime registry и серверные контракты подключения GitHub.
  */
 
 import type { GitHubIntegrationConfigurationDTO } from "@realize/ai-contracts";
@@ -11,7 +11,7 @@ import type { Pool } from "pg";
 export type IntegrationRegistryDatabase = Pick<Pool, "query">;
 
 // SQL возвращает непроверенную конфигурацию и revision как число или строку.
-export type GitHubIntegrationRow = {
+export type IntegrationRuntimeRow = {
   configuration: unknown;
   connection_key: string;
   credential_envelope: string | null;
@@ -19,6 +19,8 @@ export type GitHubIntegrationRow = {
   provider: string;
   revision: string | number;
 };
+
+export type GitHubIntegrationRow = IntegrationRuntimeRow;
 
 type InactiveGitHubIntegration = { state: "absent" } | { state: "disabled" };
 

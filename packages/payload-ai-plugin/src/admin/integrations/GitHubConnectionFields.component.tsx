@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/GitHubConnectionFields.component.tsx
- * @version 1.0.2
+ * @version 1.0.3
  * @date 2026-09-09
  * @description Собирает управляемые секции репозитория, доступа и автора коммитов GitHub.
  */
@@ -10,7 +10,7 @@
 import { GitHubAccessFields } from "./GitHubAccessFields.component";
 import { GitHubAuthorFields } from "./GitHubAuthorFields.component";
 import type { GitHubConnectionFieldsProps } from "./GitHubConnectionFields.types";
-import styles from "./GitHubConnectionForm.module.css";
+import styles from "./IntegrationConnectionForm.module.css";
 import { GitHubRepositoryFields } from "./GitHubRepositoryFields.component";
 
 export const GitHubConnectionFields = ({

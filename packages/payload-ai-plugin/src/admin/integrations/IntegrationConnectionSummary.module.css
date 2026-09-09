@@ -1,8 +1,8 @@
 /**
- * @file packages/payload-ai-plugin/src/admin/integrations/GitHubConnectionSummary.module.css
- * @version 1.0.0
+ * @file packages/payload-ai-plugin/src/admin/integrations/IntegrationConnectionSummary.module.css
+ * @version 1.0.1
  * @date 2026-09-09
- * @description Оформляет адаптивную сводку сохранённого состояния GitHub.
+ * @description Располагает адаптивную сводку сохранённого состояния интеграции.
  */
 
 .sidebar {

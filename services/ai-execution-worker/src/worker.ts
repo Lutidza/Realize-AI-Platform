@@ -1,13 +1,14 @@
 /**
  * @file services/ai-execution-worker/src/worker.ts
- * @version 1.0.0
- * @date 2026-09-08
+ * @version 1.1.0
+ * @date 2026-09-09
  * @description Обрабатывает execution, preview, source/release durable queues и integrations.
  */
 
 import { Pool } from "pg";
 import { config as loadEnvironment } from "dotenv";
 import {
+  CodexConnectionService,
   GitHubConnectionService,
   IntegrationRuntimeRepository,
 } from "@realize/payload-ai-control/server/integration-runtime";
@@ -30,7 +31,15 @@ loadEnvironment({ path: ".env.local", quiet: true });
 loadEnvironment({ quiet: true });
 
 const config = readExecutionWorkerConfig();
-const pool = new Pool({ connectionString: config.databaseURL, max: 2 });
+const pool = new Pool({
+  connectionString: config.databaseURL,
+  max: 2,
+  connectionTimeoutMillis: 5_000,
+});
+const codex = new CodexConnectionService({
+  pool,
+  encryptionKey: config.integrationEncryptionKey,
+});
 const repository = new ExecutionJobRepository(pool);
 const promotionRepository = new PromotionRepository(pool);
 const releaseRepository = new ReleaseWorkerRepository(pool);
@@ -60,7 +69,7 @@ const run = async (): Promise<void> => {
       console.log(
         `[ai-execution-worker] claimed execution=${job.executionKey}; change=${job.changeRequestID}`,
       );
-      await executeClaimedJob({ config, job, repository });
+      await executeClaimedJob({ config, codex, job, repository });
       continue;
     }
     const promotion = config.previewEnabled
@@ -72,6 +81,7 @@ const run = async (): Promise<void> => {
       );
       await executeClaimedPromotion({
         config,
+        codex,
         job: promotion,
         repository: promotionRepository,
       });

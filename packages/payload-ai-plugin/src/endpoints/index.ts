@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 2026-09-02
+ * @version 1.1.0
+ * @date 2026-09-09
  * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
@@ -13,6 +14,8 @@ import { createChangeHandlers } from "./changeHandlers";
 import { createDataOperationHandlers } from "./dataOperationHandlers";
 import { createExecutionHandlers } from "./executionHandlers";
 import { createIntegrationHandlers } from "./integrationHandlers";
+import { createCodexIntegrationHandlers } from "./codexIntegrationHandlers";
+import { createCodexLoginEndpoints } from "./codexLoginEndpoints.config";
 import { createPreviewHandlers } from "./previewHandlers";
 import { createReleaseHandlers } from "./releaseHandlers";
 import { createSourcePromotionHandlers } from "./sourcePromotionHandlers";
@@ -33,6 +36,7 @@ export const createAIEndpoints = (
   const runs = createRunHandlers(options);
   const execution = createExecutionHandlers(options);
   const integrations = createIntegrationHandlers(options);
+  const codex = createCodexIntegrationHandlers(options);
   const preview = createPreviewHandlers(options);
   const release = createReleaseHandlers(options);
   const sourcePromotion = createSourcePromotionHandlers(options);
@@ -44,6 +48,27 @@ export const createAIEndpoints = (
       path: `${DEFAULT_API_ROUTE}/status`,
     },
     ...config,
+    ...createCodexLoginEndpoints(options),
+    {
+      handler: codex.environment,
+      method: "get",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex/auth/environment`,
+    },
+    {
+      handler: codex.save,
+      method: "put",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex`,
+    },
+    {
+      handler: codex.test,
+      method: "post",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex/test`,
+    },
+    {
+      handler: codex.disconnect,
+      method: "delete",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex`,
+    },
     {
       handler: integrations.list,
       method: "get",

@@ -1,10 +1,11 @@
 /**
  * @file services/ai-control-plane/src/server.ts
- * @version 2026-08-21
- * @description Exposes the loopback-only development control plane for read-only Codex runs.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Предоставляет loopback control plane для read-only запуска выбранной интеграции Codex.
  */
 
-import "dotenv/config";
+import { config as loadEnvironment } from "dotenv";
 
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -17,13 +18,15 @@ import { resolve } from "node:path";
 import type { AgentEvent, AIStreamEvent } from "@realize/ai-contracts";
 import { encodeSSE } from "@realize/ai-contracts";
 import { buildReadOnlyDeveloperInstructions } from "@realize/change-engine";
-import {
-  createCodexEnvironment,
-  OpenAICodexAdapter,
-} from "@realize/codex-adapter";
+import { OpenAICodexAdapter } from "@realize/codex-adapter";
+import type { CodexConnectionLease } from "@realize/payload-ai-control/server/integration-runtime";
 
 import { createContextSnapshot } from "./contextSnapshot";
+import { createCodexRuntime } from "./createCodexRuntime.config";
 import { RunStore, type ControlPlaneRun } from "./runStore";
+
+loadEnvironment({ path: ".env.local", quiet: true });
+loadEnvironment({ quiet: true });
 
 const host = process.env.REALIZE_AI_CONTROL_PLANE_HOST || "127.0.0.1";
 const port = Number(process.env.REALIZE_AI_CONTROL_PLANE_PORT || 3100);
@@ -42,9 +45,9 @@ if (token.length < 32)
     "REALIZE_AI_CONTROL_PLANE_TOKEN must contain at least 32 characters.",
   );
 
-const adapter = new OpenAICodexAdapter({
-  environment: createCodexEnvironment(),
-});
+const runtime = createCodexRuntime();
+const activeAdapters = new Map<string, OpenAICodexAdapter>();
+const executions = new Map<string, Promise<void>>();
 const store = new RunStore();
 
 const isAuthorized = (request: IncomingMessage): boolean => {
@@ -105,8 +108,17 @@ const sanitizeError = (error: unknown): string => {
 
 const executeRun = async (run: ControlPlaneRun): Promise<void> => {
   let snapshot: Awaited<ReturnType<typeof createContextSnapshot>> | undefined;
+  let lease: CodexConnectionLease | undefined;
+  let completion: AgentEvent | undefined;
 
   try {
+    lease = await runtime.codex.acquire();
+    const adapter = new OpenAICodexAdapter({
+      codexBinary: process.env.REALIZE_CODEX_BINARY || undefined,
+      environment: lease.environment,
+      signal: lease.signal,
+    });
+    activeAdapters.set(run.id, adapter);
     snapshot = await createContextSnapshot(workspaceRoot);
     if (run.cancelRequested) return;
     const instructions = `${buildReadOnlyDeveloperInstructions()}\nContext Pack contains ${snapshot.fileCount} files (${snapshot.totalBytes} bytes).`;
@@ -123,15 +135,29 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
         await adapter.cancelRun(run.id);
         break;
       }
-      applyAgentEvent(run, event);
+      if (event.type === "assistant.completed") completion = event;
+      else applyAgentEvent(run, event);
     }
+    await lease.dispose();
+    lease = undefined;
+    if (completion && !run.cancelRequested) applyAgentEvent(run, completion);
   } catch (error) {
     if (!run.cancelRequested) {
       run.status = "failed";
       store.append(run.id, "run.failed", { message: sanitizeError(error) });
     }
   } finally {
-    await snapshot?.cleanup();
+    activeAdapters.delete(run.id);
+    try {
+      await lease?.dispose();
+    } catch (error) {
+      if (!run.cancelRequested) {
+        run.status = "failed";
+        store.append(run.id, "run.failed", { message: sanitizeError(error) });
+      }
+    } finally {
+      await snapshot?.cleanup();
+    }
   }
 };
 
@@ -289,7 +315,11 @@ const server = createServer(async (request, response) => {
         prompt: body.prompt.trim(),
         threadID: body.threadID,
       });
-      void executeRun(run);
+      const execution = executeRun(run).finally(() =>
+        executions.delete(run.id),
+      );
+      executions.set(run.id, execution);
+      void execution.catch(() => undefined);
       json(response, 202, { run: publicRun(run) });
       return;
     }
@@ -326,7 +356,7 @@ const server = createServer(async (request, response) => {
         return;
       }
       run.cancelRequested = true;
-      await adapter.cancelRun(run.id);
+      await activeAdapters.get(run.id)?.cancelRun(run.id);
       run.status = "cancelled";
       store.append(run.id, "run.cancelled", {});
       json(response, 202, { run: publicRun(run) });
@@ -346,7 +376,13 @@ server.listen(port, host, () => {
 });
 
 const shutdown = (): void => {
-  server.close(() => process.exit(0));
+  server.close();
+  void Promise.allSettled(
+    [...activeAdapters].map(([runID, adapter]) => adapter.cancelRun(runID)),
+  )
+    .then(() => Promise.allSettled(executions.values()))
+    .then(() => runtime.dispose())
+    .then(() => process.exit(0));
   setTimeout(() => process.exit(1), 5_000).unref();
 };
 

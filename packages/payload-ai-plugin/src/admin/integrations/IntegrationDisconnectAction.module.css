@@ -1,8 +1,8 @@
 /**
- * @file packages/payload-ai-plugin/src/admin/integrations/GitHubDisconnectAction.module.css
- * @version 1.0.0
+ * @file packages/payload-ai-plugin/src/admin/integrations/IntegrationDisconnectAction.module.css
+ * @version 1.0.1
  * @date 2026-09-09
- * @description Располагает отдельное действие отключения GitHub в сетке настроек.
+ * @description Располагает отдельное действие отключения интеграции в сетке настроек.
  */
 
 .disconnect {

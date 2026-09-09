@@ -2,7 +2,7 @@
 
 /**
  * @file tests/int/integration-transport-api.int.spec.ts
- * @version 1.1.0
+ * @version 1.1.1
  * @date 2026-09-09
  * @description Проверяет сохранение Git-транспорта и автора коммитов через API без БД и сети.
  */
@@ -58,10 +58,22 @@ const fixture = (existing?: AIDocument) => {
   const payload = {
     db: { defaultIDType: "number" },
     logger: { error: vi.fn() },
-    find: vi.fn(async ({ collection }: { collection: string }) => ({
-      docs: collection === "realize-ai-integrations" && stored ? [stored] : [],
-      totalDocs: collection === "realize-ai-integrations" && stored ? 1 : 0,
-    })),
+    find: vi.fn(
+      async ({
+        collection,
+        where,
+      }: {
+        collection: string;
+        where?: { connectionKey?: { equals?: string } };
+      }) => {
+        const found =
+          collection === "realize-ai-integrations" &&
+          stored &&
+          (!where?.connectionKey ||
+            where.connectionKey.equals === stored.connectionKey);
+        return { docs: found ? [stored] : [], totalDocs: found ? 1 : 0 };
+      },
+    ),
     create: vi.fn(
       async ({
         collection,

@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationRepository.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
@@ -8,20 +8,20 @@
  */
 
 import type { Payload, PayloadRequest } from "payload";
-import type { GitHubIntegrationConfigurationDTO } from "@realize/ai-contracts";
 
 import { INTEGRATIONS_SLUG, INTEGRATION_EVENTS_SLUG } from "../constants";
 import { PRIMARY_GITHUB_CONNECTION_KEY } from "../integrations/providers";
 import { EndpointError } from "./http";
 import type { AIDocument } from "./repository";
-
-type FindResult = { docs: AIDocument[]; totalDocs: number };
-type UntypedLocalAPI = {
-  create: (args: Record<string, unknown>) => Promise<AIDocument>;
-  delete: (args: Record<string, unknown>) => Promise<unknown>;
-  find: (args: Record<string, unknown>) => Promise<FindResult>;
-  update: (args: Record<string, unknown>) => Promise<unknown>;
-};
+import type {
+  IntegrationFindResult,
+  IntegrationLocalAPI,
+  SaveGitHubRecordInput,
+  SaveIntegrationRecordInput,
+  RecordGitHubTestInput,
+  RecordIntegrationTestInput,
+  RecordIntegrationEventInput,
+} from "./IntegrationRepository.types";
 
 const revisionConflict = (): EndpointError =>
   new EndpointError(
@@ -59,48 +59,55 @@ const oneBulkDocument = (result: unknown): AIDocument => {
   return oneDocument(bulk.docs[0]);
 };
 
-/** Narrow Local API repository; collection access remains denied to generic CRUD. */
+/** Общий Local API repository; внешнее управление остаётся в разрешённых endpoints. */
 export class IntegrationRepository {
-  private readonly api: UntypedLocalAPI;
+  private readonly api: IntegrationLocalAPI;
   private readonly defaultIDType: "number" | "text";
 
   constructor(
     payload: Payload,
     private readonly req: PayloadRequest,
   ) {
-    this.api = payload as unknown as UntypedLocalAPI;
+    this.api = payload as unknown as IntegrationLocalAPI;
     this.defaultIDType = payload.db.defaultIDType;
   }
 
   async getPrimaryGitHub(): Promise<AIDocument | undefined> {
+    return this.getByConnectionKey(PRIMARY_GITHUB_CONNECTION_KEY);
+  }
+
+  /** Читает одно подключение по серверному стабильному ключу. */
+  async getByConnectionKey(
+    connectionKey: string,
+  ): Promise<AIDocument | undefined> {
     const result = await this.find(INTEGRATIONS_SLUG, {
-      connectionKey: { equals: PRIMARY_GITHUB_CONNECTION_KEY },
+      connectionKey: { equals: connectionKey },
     });
     return result.docs[0];
   }
 
-  async saveGitHub(input: {
-    actorID: number | string;
-    configuration: GitHubIntegrationConfigurationDTO;
-    credentialEnvelope?: string;
-    credentialUpdatedAt?: string;
-    displayName: string;
-    enabled: boolean;
-    existing?: AIDocument;
-    lastTestStatus: "failed" | "never" | "passed";
-    revision: number;
-  }): Promise<AIDocument> {
-    const data = {
+  async saveGitHub(input: SaveGitHubRecordInput): Promise<AIDocument> {
+    return this.save({
+      ...input,
       category: "development",
-      configuration: input.configuration,
       connectionKey: PRIMARY_GITHUB_CONNECTION_KEY,
+      provider: "github",
+    });
+  }
+
+  /** Общая запись использует CAS по предыдущей revision для обоих провайдеров. */
+  async save(input: SaveIntegrationRecordInput): Promise<AIDocument> {
+    const data = {
+      category: input.category,
+      configuration: input.configuration,
+      connectionKey: input.connectionKey,
       credentialEnvelope: input.credentialEnvelope,
       credentialUpdatedAt: input.credentialUpdatedAt,
       displayName: input.displayName,
       enabled: input.enabled,
       lastErrorCode: undefined,
       lastTestStatus: input.lastTestStatus,
-      provider: "github",
+      provider: input.provider,
       revision: input.revision,
       updatedBy: input.actorID,
     };
@@ -130,13 +137,7 @@ export class IntegrationRepository {
     );
   }
 
-  async recordGitHubTest(input: {
-    connection: AIDocument;
-    defaultBranch?: string;
-    errorCode?: string;
-    status: "failed" | "passed";
-    testedAt: string;
-  }): Promise<AIDocument> {
+  async recordGitHubTest(input: RecordGitHubTestInput): Promise<AIDocument> {
     const configuration =
       input.connection.configuration &&
       typeof input.connection.configuration === "object" &&
@@ -179,6 +180,34 @@ export class IntegrationRepository {
     );
   }
 
+  /** Не присоединяет результат проверки к другой версии или заменённому credential. */
+  async recordTest(input: RecordIntegrationTestInput): Promise<void> {
+    oneBulkDocument(
+      await this.api.update({
+        collection: INTEGRATIONS_SLUG,
+        data: {
+          lastErrorCode: input.errorCode,
+          lastTestStatus: input.status,
+          lastTestedAt: input.testedAt,
+        },
+        limit: 1,
+        overrideAccess: true,
+        req: this.req,
+        where: {
+          and: [
+            { id: { equals: this.documentID(input.connection.id) } },
+            { revision: { equals: input.connection.revision } },
+            {
+              credentialEnvelope: {
+                equals: input.connection.credentialEnvelope,
+              },
+            },
+          ],
+        },
+      }),
+    );
+  }
+
   async findEvent(idempotencyKey: string): Promise<AIDocument | undefined> {
     const result = await this.find(INTEGRATION_EVENTS_SLUG, {
       idempotencyKey: { equals: idempotencyKey },
@@ -186,23 +215,16 @@ export class IntegrationRepository {
     return result.docs[0];
   }
 
-  async recordEvent(input: {
-    action: "disconnected" | "saved" | "tested";
-    actorID: number | string;
-    idempotencyKey: string;
-    metadata?: Record<string, unknown>;
-    status: "failed" | "passed";
-    summary: string;
-  }): Promise<void> {
+  async recordEvent(input: RecordIntegrationEventInput): Promise<void> {
     await this.api.create({
       collection: INTEGRATION_EVENTS_SLUG,
       data: {
         action: input.action,
         actor: input.actorID,
-        connectionKey: PRIMARY_GITHUB_CONNECTION_KEY,
+        connectionKey: input.connectionKey ?? PRIMARY_GITHUB_CONNECTION_KEY,
         idempotencyKey: input.idempotencyKey,
         metadata: input.metadata || {},
-        provider: "github",
+        provider: input.provider ?? "github",
         status: input.status,
         summary: input.summary,
       },
@@ -221,7 +243,7 @@ export class IntegrationRepository {
   private async find(
     collection: string,
     where: Record<string, unknown>,
-  ): Promise<FindResult> {
+  ): Promise<IntegrationFindResult> {
     return await this.api.find({
       collection,
       depth: 0,

@@ -20,6 +20,9 @@ Codex-адаптеры — в `.codex/**`.
 5. [MCP tooling](architecture/mcp-tooling.md) — project-specific adapter state.
 6. [Architecture Decision Log](architecture/decisions/INDEX.md).
 
+Подключение аккаунта ChatGPT или API key и требования к исполнителям:
+[интеграция Codex](architecture/codex-integration.md).
+
 ## Стандарты разработки
 
 - [Стандарт именования и структуры кода](architecture/code-naming-and-structure.md)

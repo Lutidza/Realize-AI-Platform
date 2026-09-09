@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/GitHubAuthorFields.component.tsx
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-09-09
  * @description Отображает поля автора коммитов и связанную ошибку проверки формы.
  */
@@ -11,7 +11,7 @@ import { UiInput, UiNotice } from "@realize/ui-kit";
 import { CircleAlert, UserRound } from "lucide-react";
 
 import type { GitHubAuthorFieldsProps } from "./GitHubConnectionFields.types";
-import styles from "./GitHubConnectionForm.module.css";
+import styles from "./IntegrationConnectionForm.module.css";
 import { IntegrationFormSection } from "./IntegrationFormSection.component";
 
 export const GitHubAuthorFields = ({

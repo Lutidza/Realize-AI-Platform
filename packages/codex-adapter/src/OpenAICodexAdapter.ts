@@ -1,6 +1,6 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 1.0.0
+ * @version 1.2.0
  * @date 2026-09-09
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
@@ -13,6 +13,7 @@ import type {
 } from "@realize/ai-contracts";
 
 import { JsonLineRPCClient } from "./JsonLineRpcClient.adapter";
+import type { ActiveRun, OpenAICodexAdapterOptions } from "./OpenAICodex.types";
 import type {
   RPCMessage,
   ThreadStartResult,
@@ -20,17 +21,7 @@ import type {
   TurnStartResult,
 } from "./protocol";
 
-type ActiveRun = {
-  client: JsonLineRPCClient;
-  threadID: string;
-  turnID: string;
-};
-
-/** Process-level options that remain outside browser and public API contracts. */
-export type OpenAICodexAdapterOptions = {
-  codexBinary?: string;
-  environment?: NodeJS.ProcessEnv;
-};
+export type { OpenAICodexAdapterOptions } from "./OpenAICodex.types";
 
 const asRecord = (value: unknown): Record<string, unknown> | undefined => {
   return value && typeof value === "object"
@@ -64,7 +55,7 @@ const finalMessageFromTurn = (turn: Record<string, unknown>): string => {
   return typeof message?.text === "string" ? message.text : "";
 };
 
-/** Executes policy-selected turns and normalizes App Server notifications. */
+/** Выполняет сессии с выбранной политикой доступа и нормализует уведомления App Server. */
 export class OpenAICodexAdapter implements CodingAgentAdapter {
   private readonly activeRuns = new Map<string, ActiveRun>();
 
@@ -91,6 +82,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     const client = new JsonLineRPCClient({
       codexBinary: this.options.codexBinary,
       environment: this.options.environment,
+      signal: this.options.signal,
       workingDirectory: input.cwd,
     });
     client.start();
@@ -99,6 +91,20 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     let accumulatedMessage = "";
     const writable = input.sandboxProfile === "code-workspace-write";
     const sandbox = writable ? "workspace-write" : "read-only";
+    const machineCredential = Boolean(
+      this.options.environment?.CODEX_ACCESS_TOKEN ||
+      this.options.environment?.OPENAI_FEDERATION_RULE_ID,
+    );
+    // WIF использует профиль с запретом чтения каталога assertion для любого инструмента.
+    const permissions = this.options.environment?.OPENAI_FEDERATION_RULE_ID
+      ? {
+          config: {
+            default_permissions: writable
+              ? "realize_wif_workspace"
+              : "realize_wif_readonly",
+          },
+        }
+      : { sandbox };
 
     try {
       await client.request("initialize", {
@@ -118,7 +124,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             cwd: input.cwd,
             developerInstructions: input.developerInstructions,
             model: input.model || null,
-            sandbox,
+            ...permissions,
             threadId: input.threadID,
           })
         : await client.request<ThreadStartResult>("thread/start", {
@@ -127,7 +133,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             developerInstructions: input.developerInstructions,
             ephemeral: input.ephemeral ?? false,
             model: input.model || null,
-            sandbox,
+            ...permissions,
           });
 
       const turn = await client.request<TurnStartResult>("turn/start", {
@@ -240,8 +246,9 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           } else {
             const error = asRecord(turnResult.error);
             yield {
-              message:
-                typeof error?.message === "string"
+              message: machineCredential
+                ? "Не удалось выполнить запрос Codex. Проверьте подключение в разделе интеграций."
+                : typeof error?.message === "string"
                   ? error.message
                   : "Codex run failed.",
               type: "run.failed",
@@ -252,8 +259,11 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       }
     } catch (error) {
       yield {
-        message:
-          error instanceof Error ? error.message : "Codex adapter failed.",
+        message: machineCredential
+          ? "Не удалось выполнить запрос Codex. Проверьте подключение в разделе интеграций."
+          : error instanceof Error
+            ? error.message
+            : "Codex adapter failed.",
         type: "run.failed",
       };
     } finally {

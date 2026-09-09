@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/useIntegrations.hook.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Управляет загрузкой и операциями интеграций без хранения секретов.
  */
@@ -11,6 +11,8 @@ import type {
   GitHubIntegrationConnectionDTO,
   GitHubIntegrationTestDTO,
   IntegrationCatalogDTO,
+  IntegrationConnectionDTO,
+  IntegrationProviderID,
   SaveGitHubIntegrationInput,
   TestGitHubIntegrationInput,
 } from "@realize/ai-contracts";
@@ -47,15 +49,18 @@ export const useIntegrations = (initialCatalog: IntegrationCatalogDTO) => {
     }
   }, []);
 
-  const replaceGitHub = useCallback(
-    (connection?: GitHubIntegrationConnectionDTO) => {
+  const replaceConnection = useCallback(
+    (
+      provider: IntegrationProviderID,
+      connection?: IntegrationConnectionDTO,
+    ) => {
       setCatalog((current) =>
         current
           ? {
               ...current,
               connections: [
                 ...current.connections.filter(
-                  (item) => item.provider !== "github",
+                  (item) => item.provider !== provider,
                 ),
                 ...(connection ? [connection] : []),
               ],
@@ -74,7 +79,7 @@ export const useIntegrations = (initialCatalog: IntegrationCatalogDTO) => {
       setError(undefined);
       try {
         const connection = await saveGitHubIntegration(input);
-        replaceGitHub(connection);
+        replaceConnection("github", connection);
         return connection;
       } catch (cause) {
         setError(
@@ -86,7 +91,7 @@ export const useIntegrations = (initialCatalog: IntegrationCatalogDTO) => {
         setBusyAction(undefined);
       }
     },
-    [replaceGitHub],
+    [replaceConnection],
   );
 
   const testGitHub = useCallback(
@@ -118,7 +123,7 @@ export const useIntegrations = (initialCatalog: IntegrationCatalogDTO) => {
       setError(undefined);
       try {
         await disconnectGitHubIntegration({ expectedRevision: revision });
-        replaceGitHub();
+        replaceConnection("github");
         return true;
       } catch (cause) {
         setError(
@@ -131,7 +136,7 @@ export const useIntegrations = (initialCatalog: IntegrationCatalogDTO) => {
         setBusyAction(undefined);
       }
     },
-    [replaceGitHub],
+    [replaceConnection],
   );
 
   return {
@@ -141,6 +146,7 @@ export const useIntegrations = (initialCatalog: IntegrationCatalogDTO) => {
     disconnectGitHub,
     error,
     reload: load,
+    replaceConnection,
     saveGitHub,
     testGitHub,
   };

@@ -1,6 +1,6 @@
 /**
  * @file packages/ai-contracts/src/integrations.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
@@ -9,12 +9,13 @@
 
 import type { GitIntegrationTransport } from "./GitIntegrationTransport.types";
 import type { GitCommitAuthor } from "./GitCommitAuthor.types";
+import type { CodexIntegrationConnectionDTO } from "./CodexIntegration.types";
 
 /** Стабильные идентификаторы провайдеров с реализованными серверными адаптерами. */
-export type IntegrationProviderID = "github";
+export type IntegrationProviderID = "github" | "codex";
 
 /** Группирует каталог провайдеров без зависимости UI от persistence. */
-export type IntegrationCategory = "development";
+export type IntegrationCategory = "development" | "ai";
 
 /** Безопасная конфигурация GitHub для авторизованного Admin browser. */
 export type GitHubIntegrationConfigurationDTO = GitIntegrationTransport & {
@@ -46,7 +47,8 @@ export type GitHubIntegrationConnectionDTO = IntegrationConnectionBaseDTO & {
 };
 
 /** Объединение безопасных конфигураций поддерживаемых провайдеров. */
-export type IntegrationConnectionDTO = GitHubIntegrationConnectionDTO;
+export type IntegrationConnectionDTO =
+  GitHubIntegrationConnectionDTO | CodexIntegrationConnectionDTO;
 
 /** Безопасные метаданные провайдера для отображения каталога. */
 export type IntegrationProviderDescriptorDTO = {

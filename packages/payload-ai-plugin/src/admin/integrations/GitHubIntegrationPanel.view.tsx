@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/GitHubIntegrationPanel.view.tsx
- * @version 1.1.2
+ * @version 1.1.3
  * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
@@ -15,7 +15,7 @@ import { GitHubDisconnectAction } from "./GitHubDisconnectAction.component";
 import { GitHubConnectionFields } from "./GitHubConnectionFields.component";
 import { GitHubConnectionSummary } from "./GitHubConnectionSummary.component";
 import { GitHubSettingsActions } from "./GitHubSettingsActions.component";
-import styles from "./GitHubIntegrationPanel.module.css";
+import styles from "./IntegrationSettingsLayout.module.css";
 import type { GitHubIntegrationPanelViewProps } from "./GitHubIntegrationPanel.types";
 
 export const GitHubIntegrationPanelView = ({

@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/GitHubAccessFields.component.tsx
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-09-09
  * @description Отображает поле ввода и замены токена доступа к GitHub.
  */
@@ -11,7 +11,7 @@ import { UiInput } from "@realize/ui-kit";
 import { CheckCircle2, KeyRound } from "lucide-react";
 
 import type { GitHubAccessFieldsProps } from "./GitHubConnectionFields.types";
-import styles from "./GitHubConnectionForm.module.css";
+import styles from "./IntegrationConnectionForm.module.css";
 import { IntegrationFormSection } from "./IntegrationFormSection.component";
 
 export const GitHubAccessFields = ({

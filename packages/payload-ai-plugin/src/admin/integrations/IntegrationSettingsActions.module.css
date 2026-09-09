@@ -1,8 +1,8 @@
 /**
- * @file packages/payload-ai-plugin/src/admin/integrations/GitHubSettingsActions.module.css
- * @version 1.0.0
+ * @file packages/payload-ai-plugin/src/admin/integrations/IntegrationSettingsActions.module.css
+ * @version 1.0.1
  * @date 2026-09-09
- * @description Располагает действия сохранения GitHub и состояние ожидания.
+ * @description Располагает общие действия сохранения интеграции и состояние ожидания.
  */
 
 .actions {

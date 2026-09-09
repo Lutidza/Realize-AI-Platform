@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationMappers.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
@@ -10,8 +10,14 @@
 import type {
   GitHubIntegrationConfigurationDTO,
   GitHubIntegrationConnectionDTO,
+  CodexIntegrationConnectionDTO,
+  IntegrationConnectionBaseDTO,
+  IntegrationProviderID,
 } from "@realize/ai-contracts";
-import { parseGitHubIntegrationConfiguration } from "@realize/ai-contracts";
+import {
+  parseCodexIntegrationConfiguration,
+  parseGitHubIntegrationConfiguration,
+} from "@realize/ai-contracts";
 
 import type { AIDocument } from "./repository";
 
@@ -28,11 +34,12 @@ export const githubConfigurationOf = (
 ): GitHubIntegrationConfigurationDTO =>
   parseGitHubIntegrationConfiguration(value);
 
-/** Returns only safe GitHub metadata and a credential-presence marker. */
-export const toGitHubIntegrationDTO = (
+/** Общий allowlist исключает credential, закрытый audit и исходный документ. */
+const toIntegrationBaseDTO = (
   document: AIDocument,
-): GitHubIntegrationConnectionDTO => {
-  if (document.provider !== "github") {
+  provider: IntegrationProviderID,
+): IntegrationConnectionBaseDTO => {
+  if (document.provider !== provider) {
     throw new Error("Stored integration provider is unsupported.");
   }
   const lastTestStatus = document.lastTestStatus;
@@ -48,7 +55,6 @@ export const toGitHubIntegrationDTO = (
     throw new Error("Stored integration revision is invalid.");
   }
   return {
-    configuration: githubConfigurationOf(document.configuration),
     connectionKey: requiredString(document.connectionKey, "connectionKey"),
     ...(typeof document.credentialUpdatedAt === "string"
       ? { credentialUpdatedAt: document.credentialUpdatedAt }
@@ -63,8 +69,26 @@ export const toGitHubIntegrationDTO = (
       ? { lastTestedAt: document.lastTestedAt }
       : {}),
     lastTestStatus,
-    provider: "github",
+    provider,
     revision,
     updatedAt: requiredString(document.updatedAt, "updatedAt"),
   };
 };
+
+/** Возвращает только безопасные GitHub-настройки и признак credential. */
+export const toGitHubIntegrationDTO = (
+  document: AIDocument,
+): GitHubIntegrationConnectionDTO => ({
+  ...toIntegrationBaseDTO(document, "github"),
+  configuration: githubConfigurationOf(document.configuration),
+  provider: "github",
+});
+
+/** Возвращает только безопасные данные аккаунта Codex без native auth JSON. */
+export const toCodexIntegrationDTO = (
+  document: AIDocument,
+): CodexIntegrationConnectionDTO => ({
+  ...toIntegrationBaseDTO(document, "codex"),
+  configuration: parseCodexIntegrationConfiguration(document.configuration),
+  provider: "codex",
+});

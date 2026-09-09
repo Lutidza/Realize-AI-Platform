@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/GitHubSettingsActions.component.tsx
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-09-09
  * @description Отображает доступные действия проверки и сохранения настроек GitHub.
  */
@@ -8,7 +8,7 @@
 import { UiButton, UiSurface } from "@realize/ui-kit";
 import { LoaderCircle, Save, ShieldCheck } from "lucide-react";
 import type { GitHubSettingsActionsProps } from "./GitHubSettingsActions.types";
-import styles from "./GitHubSettingsActions.module.css";
+import styles from "./IntegrationSettingsActions.module.css";
 
 export const GitHubSettingsActions = ({
   busyAction,

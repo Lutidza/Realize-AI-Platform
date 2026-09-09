@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/GitHubConnectionSummary.component.tsx
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-09-09
  * @description Показывает сохранённое состояние и результаты проверки подключения GitHub.
  */
@@ -10,7 +10,7 @@ import { GitBranch, ShieldCheck } from "lucide-react";
 import { GitHubLogo } from "./GitHubLogo.component";
 import { formatGitHubTestStatus } from "./formatGitHubTestStatus.util";
 import type { GitHubConnectionSummaryProps } from "./GitHubConnectionSummary.types";
-import styles from "./GitHubConnectionSummary.module.css";
+import styles from "./IntegrationConnectionSummary.module.css";
 
 export const GitHubConnectionSummary = ({
   connection,

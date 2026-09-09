@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/loadIntegrationsView.service.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Проверяет доступ и загружает безопасный каталог для Admin views интеграций.
  * @docref ADR-0012
@@ -11,9 +11,8 @@ import { notFound, redirect } from "next/navigation.js";
 import { formatAdminURL } from "payload/shared";
 
 import { REALIZE_AI_SERVER_RUNTIME_KEY } from "../../constants";
-import { toGitHubIntegrationDTO } from "../../endpoints/integrationMappers";
 import { IntegrationRepository } from "../../endpoints/integrationRepository";
-import { isIntegrationVaultConfigured } from "../../integrations/credentialVault";
+import { loadIntegrationCatalog } from "../../integrations/loadIntegrationCatalog.service";
 import { INTEGRATION_PROVIDER_CATALOG } from "../../integrations/providers";
 import type { RealizeAIServerRuntime } from "../../types";
 import type {
@@ -61,20 +60,16 @@ export const loadIntegrationsView = async (
   if (props.mode === "settings" && !provider) notFound();
 
   const repository = new IntegrationRepository(props.payload, req);
-  const github = await repository.getPrimaryGitHub();
 
   return {
     catalogURL: formatAdminURL({
       adminRoute,
       path: props.integrationsRoute,
     }).replace(/\/$/, ""),
-    initialCatalog: {
-      connections: github ? [toGitHubIntegrationDTO(github)] : [],
-      providers: INTEGRATION_PROVIDER_CATALOG,
-      vaultConfigured: isIntegrationVaultConfigured(
-        runtime.integrationEncryptionKeyEnv,
-      ),
-    },
+    initialCatalog: await loadIntegrationCatalog(
+      repository,
+      runtime.integrationEncryptionKeyEnv,
+    ),
     providerID: provider?.id,
   };
 };

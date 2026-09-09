@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/runtime/integrationRuntime.index.ts
- * @version 1.2.0
+ * @version 1.3.0
  * @date 2026-09-09
  * @description Объявляет публичные серверные экспорты модуля разрешения интеграций.
  */
@@ -14,6 +14,16 @@ export type {
 } from "./GitCommitAuthor.types";
 export { IntegrationRuntimeError } from "./IntegrationRuntime.error";
 export { IntegrationRuntimeRepository } from "./IntegrationRuntime.repository";
+export { CodexConnectionService } from "../codex/runtime/CodexConnection.service";
+export { acquireCodexConnectionLock } from "../codex/runtime/CodexConnectionLock.adapter";
+export { CodexConnectionError } from "../codex/runtime/CodexConnection.error";
+export { readCodexStateRoot } from "../codex/runtime/readCodexStateRoot.config";
+export type {
+  CodexConnectionLease,
+  CodexConnectionLock,
+  CodexConnectionOptions,
+  CodexConnectionResolver,
+} from "../codex/runtime/CodexConnection.types";
 export type {
   GitHubConnectionResolver,
   GitHubIntegrationReader,

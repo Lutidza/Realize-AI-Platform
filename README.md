@@ -135,6 +135,10 @@ docker compose ps
 - **ИИ в панели управления.** По умолчанию отключён. Настройка чата и отдельных
   процессов `ai:control-plane` и `ai:execution-worker` описана в
   [руководстве по локальному ИИ](documentation/delivery/01-local-admin-ai.md).
+- **Подключения сервисов.** В `/admin/integrations` доступны GitHub и
+  [GPT — Codex](documentation/architecture/codex-integration.md): вход через
+  ChatGPT в браузере или по коду устройства, API key с отдельной оплатой,
+  токен рабочего пространства и серверная идентификация.
 - **Локальное подключение Stripe.** Требует заполнения `STRIPE_SECRET_KEY`,
   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` и `STRIPE_WEBHOOKS_SIGNING_SECRET`.
   Для локального приёма событий используется `npm run stripe-webhooks`;

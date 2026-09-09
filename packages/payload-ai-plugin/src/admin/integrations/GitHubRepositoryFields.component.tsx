@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/GitHubRepositoryFields.component.tsx
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-09-09
  * @description Отображает название, адрес репозитория и переключатель подключения GitHub.
  */
@@ -11,7 +11,7 @@ import { UiInput, UiSurface, UiSwitch } from "@realize/ui-kit";
 import { FolderGit2 } from "lucide-react";
 
 import type { GitHubRepositoryFieldsProps } from "./GitHubConnectionFields.types";
-import styles from "./GitHubConnectionForm.module.css";
+import styles from "./IntegrationConnectionForm.module.css";
 import { IntegrationFormSection } from "./IntegrationFormSection.component";
 
 export const GitHubRepositoryFields = ({

@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationHandlers.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
@@ -14,17 +14,14 @@ import {
   parseSaveGitHubIntegrationInput,
   parseTestGitHubIntegrationInput,
 } from "@realize/ai-contracts";
-import type { IntegrationCatalogDTO } from "@realize/ai-contracts";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
 import {
   encryptIntegrationCredential,
   isIntegrationVaultConfigured,
 } from "../integrations/credentialVault";
-import {
-  INTEGRATION_PROVIDER_CATALOG,
-  PRIMARY_GITHUB_CONNECTION_KEY,
-} from "../integrations/providers";
+import { PRIMARY_GITHUB_CONNECTION_KEY } from "../integrations/providers";
+import { loadIntegrationCatalog } from "../integrations/loadIntegrationCatalog.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { consumeRateLimit, requireIntegrationManager } from "./access";
 import { testGitHubConnection } from "../integrations/githubProvider";
@@ -55,14 +52,10 @@ export const createIntegrationHandlers = (
   list: withHandler(async (req, correlationID) => {
     await requireIntegrationManager(req, options);
     const repository = new IntegrationRepository(req.payload, req);
-    const github = await repository.getPrimaryGitHub();
-    const data: IntegrationCatalogDTO = {
-      connections: github ? [toGitHubIntegrationDTO(github)] : [],
-      providers: INTEGRATION_PROVIDER_CATALOG,
-      vaultConfigured: isIntegrationVaultConfigured(
-        options.integrations.encryptionKeyEnv,
-      ),
-    };
+    const data = await loadIntegrationCatalog(
+      repository,
+      options.integrations.encryptionKeyEnv,
+    );
     return success(data, correlationID);
   }),
 

@@ -1,13 +1,16 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationHandlerSupport.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
  * @description Поддерживает транзакции, повторы и получение API credential обработчиками интеграций.
  */
 
-import type { GitHubIntegrationTestDTO } from "@realize/ai-contracts";
+import type {
+  GitHubIntegrationTestDTO,
+  IntegrationProviderID,
+} from "@realize/ai-contracts";
 import { commitTransaction, initTransaction, killTransaction } from "payload";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
@@ -51,15 +54,24 @@ export const requireMatchingIntegrationReplay = (
   event: Record<string, unknown>,
   action: "disconnected" | "saved" | "tested",
   actorID: number | string,
+  provider: IntegrationProviderID = "github",
+  requestHash?: string,
 ): void => {
   if (
-    event.provider !== "github" ||
+    event.provider !== provider ||
     event.action !== action ||
-    relationID(event.actor) !== String(actorID)
+    relationID(event.actor) !== String(actorID) ||
+    (requestHash !== undefined &&
+      (!event.metadata ||
+        typeof event.metadata !== "object" ||
+        (event.metadata as Record<string, unknown>).requestHash !==
+          requestHash))
   ) {
     throw new EndpointError(
       "CONFLICT",
-      "Idempotency-Key was already used for another integration operation.",
+      provider === "codex"
+        ? "Idempotency-Key уже использован для другого запроса интеграции."
+        : "Idempotency-Key was already used for another integration operation.",
       409,
     );
   }

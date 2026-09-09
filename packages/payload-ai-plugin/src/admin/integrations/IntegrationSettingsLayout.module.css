@@ -1,8 +1,8 @@
 /**
- * @file packages/payload-ai-plugin/src/admin/integrations/GitHubIntegrationPanel.module.css
- * @version 1.0.1
+ * @file packages/payload-ai-plugin/src/admin/integrations/IntegrationSettingsLayout.module.css
+ * @version 1.0.2
  * @date 2026-09-09
- * @description Располагает редактор GitHub и сводку подключения в адаптивной сетке.
+ * @description Располагает редактор интеграции и сводку подключения в общей адаптивной сетке.
  */
 
 .layout {

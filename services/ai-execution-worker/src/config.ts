@@ -1,6 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/config.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-09
  * @description Проверяет execution, source/release и integration runtime configuration.
  */
 
@@ -9,6 +10,7 @@ import { isAbsolute, resolve } from "node:path";
 
 /** Полностью проверенная process configuration одного worker instance. */
 export type ExecutionWorkerConfig = {
+  codexBinary?: string;
   databaseURL: string;
   integrationEncryptionKey?: string;
   model?: string;
@@ -147,6 +149,7 @@ export const readExecutionWorkerConfig = (): ExecutionWorkerConfig => {
   );
 
   return {
+    codexBinary: process.env.REALIZE_CODEX_BINARY || undefined,
     databaseURL,
     integrationEncryptionKey:
       process.env.REALIZE_INTEGRATIONS_ENCRYPTION_KEY || undefined,

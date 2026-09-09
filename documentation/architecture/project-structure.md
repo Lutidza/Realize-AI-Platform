@@ -35,7 +35,7 @@ storefront.
   compiler.
 - `packages/codex-adapter/**` — server-side Codex App Server adapter для
   read-only chat, изолированного `workspace-write` turn и отдельного ephemeral
-  read-only reviewer.
+  read-only reviewer; управление отдельным профилем и протоколом входа Codex.
 - `packages/payload-ai-plugin/**` — Payload plugin, hidden runtime/config collections,
   authenticated endpoints, SSE bridge, глобальный Admin provider/drawer и
   полноэкранный UI, включая отдельные `DataOperation`, `SourcePromotion` и
@@ -49,6 +49,9 @@ storefront.
   `@realize/payload-ai-control/server/integration-runtime`.
   Source promotion и release используют этот модуль через узкий контракт
   `GitHubConnectionResolver`.
+- `packages/payload-ai-plugin/src/integrations/codex/` — сохранение, проверка
+  и вход Codex; вложенный `runtime/` предоставляет блокировку и авторизацию
+  исполнителям. Контракт описан в [интеграции Codex](codex-integration.md).
 - `services/ai-control-plane/**` — loopback development control plane и bounded
   Context Pack.
 - `services/ai-execution-worker/**` — отдельный PostgreSQL queue consumer,
@@ -68,7 +71,7 @@ storefront.
 - `/admin/integrations` — каталог карточек сервисов с поиском и фильтром
   активности; `/admin/integrations/:provider` — отдельные настройки сервиса.
   UI принадлежит `packages/payload-ai-plugin/src/admin/integrations/`,
-  карточки и фильтры — вложенному `catalog/`. Первый адаптер — GitHub;
+  карточки и фильтры — вложенному `catalog/`. Реализованы GitHub и Codex;
   credentials остаются write-only и доступны только серверным исполнителям.
 
 Browser не вызывает Codex напрямую. Chat-поток: Payload Admin → authenticated
@@ -153,5 +156,5 @@ AI-layer audit от 2026-08-17 сохранён как historical evidence в
 `packages/ui-kit` (`@realize/ui-kit`) владеет семантическими токенами,
 темой и общими кнопками, полями, статусами и поверхностями.
 `packages/payload-ai-plugin/src/admin/AdminUiTheme.component.tsx` связывает
-его с темой Payload. Каталог интеграций и настройки GitHub используют
+его с темой Payload. Каталог интеграций и настройки GitHub и Codex используют
 общие компоненты. Контракт и границы миграции — [UI-кит](ui-kit.md).

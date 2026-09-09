@@ -104,7 +104,7 @@ Payload Admin содержит каталог `/admin/integrations`: квадр�
 тему, кнопки, поля, статусы и поверхности. Тема Payload подключается отдельным
 адаптером; другие экраны и storefront переводятся последовательно.
 Карточка открывает отдельную страницу `/admin/integrations/:provider`;
-первый реализованный сервис — GitHub. Его форма настраивает репозиторий,
+реализованные сервисы — GitHub и Codex. Форма GitHub настраивает репозиторий,
 write-only token и автора коммитов. Browser получает
 только redacted DTO; credential хранится в installation-local AES-256-GCM vault
 с отдельным operator-owned `REALIZE_INTEGRATIONS_ENCRYPTION_KEY`. Включённое
@@ -113,6 +113,15 @@ orchestrator и отдельного Git push; browser и Payload DTO credential
 release adapter connection имеет приоритет над legacy repository/token
 environment. Provider infrastructure (CLI paths, workflow и timeouts) остаётся
 server-owned configuration.
+
+[Интеграция Codex](architecture/codex-integration.md) поддерживает вход через
+ChatGPT через браузер или код устройства, API key, Codex access token и
+серверный workload identity. Настройки и зашифрованные credentials хранятся
+в том же реестре; workload identity получает доступ из серверного окружения
+без постоянного секрета в БД. Чат CMS, execution worker и reviewer используют
+включённое подключение и отдельный постоянный профиль CMS; обновление токенов
+синхронизируется через общую блокировку БД. Личный профиль Codex и ключи из
+окружения не подменяют отсутствующее или отключённое подключение.
 
 Общее серверное чтение подключения находится в
 `packages/payload-ai-plugin/src/integrations/runtime/`

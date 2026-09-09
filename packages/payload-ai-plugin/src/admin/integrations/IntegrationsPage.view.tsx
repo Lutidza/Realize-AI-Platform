@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/IntegrationsPage.view.tsx
- * @version 1.0.3
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Отображает общую оболочку каталога и страницы настроек интеграции.
  */
@@ -17,6 +17,7 @@ export const IntegrationsPageView = ({
   catalogURL,
   children,
   heading,
+  isActionBusy = false,
   isSettings,
   state,
 }: IntegrationsPageViewProps) => (
@@ -39,7 +40,7 @@ export const IntegrationsPageView = ({
           : "Подключайте сервисы и управляйте их настройками."}
       </p>
       <UiButton
-        disabled={Boolean(state.busyAction)}
+        disabled={Boolean(state.busyAction) || isActionBusy}
         onClick={() => void state.reload()}
         variant={isSettings ? "secondary" : "primary"}
       >

@@ -1,11 +1,13 @@
 /**
  * @file services/ai-execution-worker/src/promotionExecutor.ts
- * @owner services/ai-execution-worker
- * @purpose Orchestrates exact-diff checks, review, commit, local preview and cleanup.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Проверяет принятый diff, выполняет независимый Codex review и запускает local preview.
  */
 
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
+import type { CodexConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 
 import { runExecutionCheck } from "./checkRunner";
 import type { ExecutionWorkerConfig } from "./config";
@@ -69,6 +71,7 @@ const cleanupStartedRuntime = async (input: {
 /** Promotes one claimed accepted diff and persists every terminal transition. */
 export const executeClaimedPromotion = async (input: {
   config: ExecutionWorkerConfig;
+  codex: CodexConnectionResolver;
   job: ClaimedPreviewDeployment;
   repository: PromotionRepository;
 }): Promise<void> => {
@@ -111,6 +114,7 @@ export const executeClaimedPromotion = async (input: {
     await input.repository.markReviewing(input.job);
     const review = await runIndependentReview({
       config: input.config,
+      codex: input.codex,
       job: input.job,
       workspace,
     });

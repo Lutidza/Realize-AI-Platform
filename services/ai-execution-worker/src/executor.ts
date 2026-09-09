@@ -1,7 +1,8 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 2026-08-21
- * @description Orchestrates capability verification, Codex, diff policy and checks.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Выполняет разрешённую реализацию через выбранную интеграцию Codex и проверяет результат.
  */
 
 import { createHash } from "node:crypto";
@@ -11,10 +12,8 @@ import {
   buildCodeExecutionDeveloperInstructions,
   verifyExecutionCapability,
 } from "@realize/change-engine";
-import {
-  createCodexEnvironment,
-  OpenAICodexAdapter,
-} from "@realize/codex-adapter";
+import { OpenAICodexAdapter } from "@realize/codex-adapter";
+import type { CodexConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 
 import { runExecutionCheck } from "./checkRunner";
 import type { ExecutionWorkerConfig } from "./config";
@@ -42,11 +41,15 @@ const sanitizeSummary = (value: string, roots: string[]): string => {
 
 const runAgent = async (input: {
   config: ExecutionWorkerConfig;
+  codex: CodexConnectionResolver;
   job: ClaimedExecutionJob;
   workspace: string;
 }): Promise<string> => {
+  const lease = await input.codex.acquire();
   const adapter = new OpenAICodexAdapter({
-    environment: createCodexEnvironment(),
+    codexBinary: input.config.codexBinary,
+    environment: lease.environment,
+    signal: lease.signal,
   });
   let finalSummary = "";
   let failure: string | undefined;
@@ -82,6 +85,7 @@ const runAgent = async (input: {
     }
   } finally {
     clearTimeout(timer);
+    await lease.dispose();
   }
   if (timedOut) throw new Error("Codex implementation turn timed out.");
   if (failure) throw new Error(failure);
@@ -91,6 +95,7 @@ const runAgent = async (input: {
 /** Executes one already-claimed job and persists every terminal transition. */
 export const executeClaimedJob = async (input: {
   config: ExecutionWorkerConfig;
+  codex: CodexConnectionResolver;
   job: ClaimedExecutionJob;
   repository: ExecutionJobRepository;
 }): Promise<void> => {
@@ -116,6 +121,7 @@ export const executeClaimedJob = async (input: {
     await input.repository.markRunning(input.job);
     const workerSummary = await runAgent({
       config: input.config,
+      codex: input.codex,
       job: input.job,
       workspace,
     });

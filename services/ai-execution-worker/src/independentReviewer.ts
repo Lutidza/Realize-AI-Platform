@@ -1,17 +1,16 @@
 /**
  * @file services/ai-execution-worker/src/independentReviewer.ts
- * @owner services/ai-execution-worker
- * @purpose Runs and strictly parses a separate ephemeral read-only Codex review.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Запускает отдельную read-only проверку через выбранную интеграцию Codex.
  */
 
 import { createHash, randomUUID } from "node:crypto";
 
 import type { AgentEvent } from "@realize/ai-contracts";
 import { buildIndependentReviewDeveloperInstructions } from "@realize/change-engine";
-import {
-  createCodexEnvironment,
-  OpenAICodexAdapter,
-} from "@realize/codex-adapter";
+import { OpenAICodexAdapter } from "@realize/codex-adapter";
+import type { CodexConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 
 import type { ExecutionWorkerConfig } from "./config";
 import type {
@@ -125,11 +124,15 @@ export const parseIndependentReview = (
 /** Executes one independent reviewer turn with no implementation thread reuse. */
 export const runIndependentReview = async (input: {
   config: ExecutionWorkerConfig;
+  codex: CodexConnectionResolver;
   job: ClaimedPreviewDeployment;
   workspace: string;
 }): Promise<IndependentReviewResult> => {
+  const lease = await input.codex.acquire();
   const adapter = new OpenAICodexAdapter({
-    environment: createCodexEnvironment(),
+    codexBinary: input.config.codexBinary,
+    environment: lease.environment,
+    signal: lease.signal,
   });
   const runID = randomUUID();
   let content = "";
@@ -168,6 +171,7 @@ export const runIndependentReview = async (input: {
     }
   } finally {
     clearTimeout(timer);
+    await lease.dispose();
   }
   if (timedOut)
     throw new IndependentReviewError("Independent review timed out.");

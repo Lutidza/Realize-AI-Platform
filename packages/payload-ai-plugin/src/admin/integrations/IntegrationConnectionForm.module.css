@@ -1,8 +1,8 @@
 /**
- * @file packages/payload-ai-plugin/src/admin/integrations/GitHubConnectionForm.module.css
- * @version 1.0.1
+ * @file packages/payload-ai-plugin/src/admin/integrations/IntegrationConnectionForm.module.css
+ * @version 1.0.2
  * @date 2026-09-09
- * @description Располагает секции, заголовки и поля формы подключения GitHub.
+ * @description Располагает секции, подписи и поля общей формы подключения интеграции.
  */
 
 .formSections,

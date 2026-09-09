@@ -6,7 +6,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./rpc": "./src/JsonLineRpcClient.adapter.ts",
-    "./environment": "./src/environment.ts"
+    "./environment": "./src/environment.ts",
+    "./profile": "./src/codexProfile.index.ts",
+    "./account": "./src/CodexAccountClient.adapter.ts"
   },
   "dependencies": {
     "@realize/ai-contracts": "0.1.0"

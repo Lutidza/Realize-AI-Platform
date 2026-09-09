@@ -1,7 +1,7 @@
 # Локальный запуск и чат в Payload Admin
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 1 сентября 2026 года
+- **Дата сверки:** 9 сентября 2026 года
 
 Этот runbook описывает существующий e-commerce baseline. Capability/config
 foundation, hidden Payload persistence и aggregate Config API уже реализованы.
@@ -13,7 +13,7 @@ foundation, hidden Payload persistence и aggregate Config API уже реали
 - Node.js `24.18.x`;
 - npm `11.15.x`;
 - PostgreSQL;
-- установленный и авторизованный Codex CLI для реального read-only чата;
+- установленный Codex CLI и включённое подключение Codex в Admin для чата;
 - для code execution — отдельный локальный workspace root вне репозитория;
 - секреты только в локальном `.env`, который не коммитится.
 
@@ -46,7 +46,7 @@ REALIZE_AI_EXECUTION_WORKSPACE_ROOT=/absolute/path/outside/repository
 
 Для write-only credentials раздела `/admin/integrations` site runtime и
 execution worker должны получить один installation-owned master key. Для
-локального запуска его можно хранить в ignored `.env.local`; worker читает
+локального запуска его можно хранить в ignored `.env.local`; control plane и worker читают
 сначала этот файл, затем `.env`, не перезаписывая уже переданное process env:
 
 ```dotenv
@@ -97,9 +97,22 @@ worktree. Promotion worktree и preview runtime roots также находят�
 Например, если Admin открыт на `http://localhost:3000`, не смешивай его с
 `http://127.0.0.1:3000`: Payload CSRF проверяет origin.
 
-OpenAI/Codex credential не передаётся browser bundle или web endpoint. Локальный
-control plane запускает `codex app-server` с server-side окружением текущего
-пользователя.
+Подключите GPT — Codex в `/admin/integrations/codex`: доступны вход ChatGPT
+через браузер или код устройства, API key, Codex access token и workload identity.
+Для кода устройства разрешите этот способ в настройках безопасности ChatGPT.
+API оплачивается отдельно от подписки; корпоративным способам нужны права
+рабочего пространства и соответствующая серверная настройка. Сохранённые
+секреты не выдаются через Admin/API. Порядок и условия всех способов — в
+[архитектуре интеграции](../architecture/codex-integration.md#авторизация).
+
+Next/Payload, control plane и worker должны видеть одну БД и постоянный
+`REALIZE_CODEX_STATE_ROOT` (абсолютный путь вне репозитория). Для способов
+с сохраняемым секретом также нужен общий master key; workload identity
+использует отдельную серверную настройку без vault.
+При пустом значении используется `~/.local/share/realize-ai-cms/codex`.
+Codex CLI берётся из `PATH` либо из `REALIZE_CODEX_BINARY`. Подключение из Admin
+обязательно для запуска CMS; личная авторизация `~/.codex` не используется.
+Ограничения описаны в [архитектуре интеграции](../architecture/codex-integration.md).
 
 ## 3. База данных
 

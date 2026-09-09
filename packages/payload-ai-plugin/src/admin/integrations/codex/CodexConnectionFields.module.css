@@ -1,0 +1,80 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/codex/CodexConnectionFields.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Располагает выбор способа входа и пояснения доступа к Codex на общих поверхностях.
+ */
+
+.modeGroup {
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  border: 0;
+}
+.modeGroup legend {
+  margin-bottom: var(--ui-space-3);
+  padding: 0;
+  color: var(--ui-color-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.modeOptions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-3);
+}
+.modeOption {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  cursor: pointer;
+}
+.modeGroup:disabled .modeOption {
+  cursor: default;
+}
+.modeOption input {
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--ui-color-primary);
+}
+.modeOption span {
+  display: grid;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+.modeOption strong {
+  color: var(--ui-color-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.modeOption small,
+.accessCopy {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.accessContent {
+  display: grid;
+  gap: var(--ui-space-4);
+  align-content: start;
+  min-width: 0;
+}
+.accessCopy {
+  margin: 0;
+}
+.loginButton {
+  justify-self: start;
+  min-width: 220px;
+}
+@media (max-width: 640px) {
+  .modeOptions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .loginButton {
+    justify-self: stretch;
+    min-width: 0;
+  }
+}
