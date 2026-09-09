@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/git-delivery/src/repository.ts
- * @version 1.0.1
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Снимок связывает Git, байты индекса и разрешённые файлы без staging и чтения через symlink.
  */
@@ -22,29 +22,16 @@ const DIRECTORY_FLAGS =
 const FILE_FLAGS =
   constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK;
 
-/** Статус porcelain v1 сохраняется вместе с точным именем пути. */
-export type Change = { path: string; status: string };
-
-/** Hash включает байты файла или цели symlink; mode отражает Git executable mode. */
-export type FileState = {
-  path: string;
-  kind: "file" | "symlink" | "missing";
-  hash: string;
-  mode: number;
-};
-
-/** Fingerprint связывает Git-состояние, разрешённые изменения и входы проверок. */
-export type Snapshot = {
-  root: string;
-  gitDir: string;
-  commonDir: string;
-  head: string | null;
-  branch: string | null;
-  indexHash: string;
-  changes: Change[];
-  files: FileState[];
-  fingerprint: string;
-};
+export type { Change, FileState, Snapshot } from "./GitSnapshot.types.ts";
+import type {
+  Change,
+  FileState,
+  Snapshot,
+  GitContentValidator,
+  GitSnapshotReadBudget,
+} from "./GitSnapshot.types.ts";
+import { PolicyError } from "./Policy.error.ts";
+import type { Scope } from "./GitDelivery.types.ts";
 
 const hash = (value: string | Buffer): string =>
   createHash("sha256").update(value).digest("hex");
@@ -211,7 +198,8 @@ async function openParent(
 async function fileState(
   root: string,
   path: string,
-  budget: { remaining: number },
+  budget: GitSnapshotReadBudget,
+  validateContent?: GitContentValidator,
 ): Promise<FileState> {
   const missing: FileState = {
     path,
@@ -266,6 +254,7 @@ async function fileState(
         "Путь изменился во время чтения снимка.",
       );
     }
+    validateContent?.(bytes);
     budget.remaining -= bytes.length;
     return {
       path,
@@ -283,7 +272,7 @@ async function fileState(
 }
 
 function safeReadFailure(error: unknown): never {
-  if (error instanceof GitFailure) throw error;
+  if (error instanceof GitFailure || error instanceof PolicyError) throw error;
   if (filesystemCode(error) === "ELOOP") {
     throw new GitFailure(
       "repository_path_unsafe",
@@ -317,8 +306,9 @@ export async function stagedPaths(git: Git): Promise<string[]> {
 /** Читает точные файлы scope/checkInputs; не обновляет индекс и не следует по symlink. */
 export async function inspectRepository(
   git: Git,
-  scope: { mode: "all" } | { mode: "paths"; paths: string[] },
+  scope: Scope,
   checkInputs: string[],
+  validateContent?: GitContentValidator,
 ): Promise<Snapshot> {
   try {
     const scopePaths = scope.mode === "paths" ? scope.paths : [];
@@ -420,7 +410,8 @@ export async function inspectRepository(
     }
     const files: FileState[] = [];
     const budget = { remaining: MAX_TOTAL_BYTES };
-    for (const path of paths) files.push(await fileState(root, path, budget));
+    for (const path of paths)
+      files.push(await fileState(root, path, budget, validateContent));
     const fingerprint = hash(
       JSON.stringify({ root, head, branch, indexHash, files }),
     );

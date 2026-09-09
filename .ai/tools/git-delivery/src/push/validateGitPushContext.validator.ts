@@ -1,12 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/src/push/validateGitPushContext.validator.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Проверяет немодельное разрешение push и привязку проверок к разрешённым коммитам.
  */
 
 import { parseContext, PolicyError } from "../contracts.ts";
 import type { GitPushContext } from "./GitPush.types.ts";
+import { MAX_GIT_PUSH_RECOVERY_ATTEMPTS } from "./gitPush.constants.ts";
 
 function record(value: unknown, keys: string[]): Record<string, unknown> {
   if (
@@ -62,6 +63,7 @@ export function validateGitPushContext(input: unknown): GitPushContext {
     "authorization",
     "target",
     "verification",
+    "recovery",
   ]);
   const authorization = record(source.authorization, ["actions", "scope"]);
   const scope = record(authorization.scope, ["mode", "commits"]);
@@ -180,6 +182,21 @@ export function validateGitPushContext(input: unknown): GitPushContext {
       "Не все разрешённые коммиты имеют успешные проверки.",
     );
   }
+  let recovery: GitPushContext["recovery"];
+  if (source.recovery !== undefined) {
+    const entry = record(source.recovery, ["attempt"]);
+    if (
+      !Number.isSafeInteger(entry.attempt) ||
+      Number(entry.attempt) < 1 ||
+      Number(entry.attempt) > MAX_GIT_PUSH_RECOVERY_ATTEMPTS
+    ) {
+      throw new PolicyError(
+        "push_recovery_invalid",
+        "Некорректный номер разрешённой попытки восстановления.",
+      );
+    }
+    recovery = { attempt: Number(entry.attempt) };
+  }
   return {
     ...base,
     authorization: { actions: ["push"], scope: { mode: "commits", commits } },
@@ -196,5 +213,6 @@ export function validateGitPushContext(input: unknown): GitPushContext {
       remoteOid,
     },
     verification: { requiredChecks, results },
+    ...(recovery ? { recovery } : {}),
   };
 }

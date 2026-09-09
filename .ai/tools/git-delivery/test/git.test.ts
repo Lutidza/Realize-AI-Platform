@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/git-delivery/test/git.test.ts
- * @version 1.0.0
+ * @version 1.1.1
  * @date 2026-09-09
  * @description Проверяет executor и flock только в изолированных временных каталогах и Git fixtures.
  */
@@ -21,6 +21,7 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
+import { inspect } from "node:util";
 import { Git, GitFailure } from "../src/Git.adapter.ts";
 import { acquireLock } from "../src/state.ts";
 
@@ -144,10 +145,12 @@ for (const stream of ["stdout", "stderr"] as const) {
       `process.${stream}.write(Buffer.alloc(4096, 120));`,
     );
     const git = new Git(root, { command, maxOutputBytes: 64 });
-    await assert.rejects(
-      git.runBytes(["fixture"]),
-      failureCode("git_output_limit"),
-    );
+    await assert.rejects(git.runBytes(["fixture"]), (error) => {
+      assert.ok(error instanceof GitFailure);
+      assert.equal(error.code, "git_output_limit");
+      assert.equal(error.category, "output_limit");
+      return true;
+    });
   });
 }
 
@@ -162,7 +165,103 @@ test("ошибка сохраняет exitCode и не раскрывает stde
     assert.ok(error instanceof GitFailure);
     assert.equal(error.code, "git_command_failed");
     assert.equal(error.exitCode, 9);
+    assert.equal(error.category, "unknown");
     assert.equal(error.message.includes("private fixture diagnostic"), false);
+    return true;
+  });
+});
+
+test("nonzero классифицируется по stderr и сохраняет секреты внутри процесса", async (t) => {
+  const root = await temporaryRoot(t);
+  const fixtureUrl = new URL("https://fixture.invalid/private-branch");
+  fixtureUrl.username = "fixture-user";
+  fixtureUrl.password = "synthetic-secret";
+  const privateDiagnostic = fixtureUrl.href;
+  const command = await commandFixture(
+    root,
+    `process.stdout.write(${JSON.stringify(privateDiagnostic)});
+     process.stderr.write("fatal: Authentication ");
+     setImmediate(() => { process.stderr.write("failed for " + ${JSON.stringify(privateDiagnostic)}); process.exitCode = 128; });`,
+  );
+  const git = new Git(root, { command });
+  await assert.rejects(git.run(["fixture"]), (error) => {
+    assert.ok(error instanceof GitFailure);
+    assert.equal(error.code, "git_command_failed");
+    assert.equal(error.exitCode, 128);
+    assert.equal(error.category, "authentication_failed");
+    const serialized = `${JSON.stringify(error)}\n${inspect(error)}\n${error.stack}`;
+    for (const secret of [
+      privateDiagnostic,
+      "synthetic-secret",
+      "fixture-user",
+      "private-branch",
+    ]) {
+      assert.equal(serialized.includes(secret), false);
+    }
+    return true;
+  });
+});
+
+for (const beforeLimit of [true, false]) {
+  test(`диагностика ${beforeLimit ? "до" : "после"} предела 64 KiB при полностью дренированном stderr`, async (t) => {
+    const root = await temporaryRoot(t);
+    const source = beforeLimit
+      ? `process.stderr.write("fatal: Authentication failed\\n"); process.stderr.write(Buffer.alloc(96 * 1024, 120));`
+      : `process.stderr.write("я".repeat(32 * 1024)); process.stderr.write("\\nfatal: Authentication failed\\n");`;
+    const command = await commandFixture(
+      root,
+      `${source} process.exitCode = 9;`,
+    );
+    const git = new Git(root, { command, maxOutputBytes: 128 * 1024 });
+    await assert.rejects(git.run(["fixture"]), (error) => {
+      assert.ok(error instanceof GitFailure);
+      assert.equal(error.code, "git_command_failed");
+      assert.equal(error.exitCode, 9);
+      assert.equal(
+        error.category,
+        beforeLimit ? "authentication_failed" : "unknown",
+      );
+      return true;
+    });
+  });
+}
+
+test("лимит stderr важнее известной категории в его префиксе", async (t) => {
+  const root = await temporaryRoot(t);
+  const command = await commandFixture(
+    root,
+    `process.stderr.write("fatal: Authentication failed\\n"); process.stderr.write(Buffer.alloc(128 * 1024, 120)); process.exitCode = 9;`,
+  );
+  const git = new Git(root, { command, maxOutputBytes: 64 * 1024 });
+  await assert.rejects(git.runBytes(["fixture"]), (error) => {
+    assert.ok(error instanceof GitFailure);
+    assert.equal(error.code, "git_output_limit");
+    assert.equal(error.category, "output_limit");
+    assert.equal(error.exitCode, null);
+    return true;
+  });
+});
+
+test("успех не превращается в ошибку из-за диагностического stderr", async (t) => {
+  const root = await temporaryRoot(t);
+  const command = await commandFixture(
+    root,
+    `process.stderr.write("fatal: Authentication failed\\n"); process.stderr.write(Buffer.alloc(96 * 1024, 120)); process.stdout.write("ok");`,
+  );
+  assert.equal(await new Git(root, { command }).run(["fixture"]), "ok");
+});
+
+test("бинарный stderr не мешает возврату безопасного nonzero", async (t) => {
+  const root = await temporaryRoot(t);
+  const command = await commandFixture(
+    root,
+    `process.stderr.write(Buffer.from([255, 128, 0, 27])); process.exitCode = 2;`,
+  );
+  await assert.rejects(new Git(root, { command }).run(["fixture"]), (error) => {
+    assert.ok(error instanceof GitFailure);
+    assert.equal(error.code, "git_command_failed");
+    assert.equal(error.exitCode, 2);
+    assert.equal(error.category, "unknown");
     return true;
   });
 });
@@ -185,7 +284,12 @@ test("timeout завершает process group вместе с обычным д
   `,
   );
   const git = new Git(root, { command, timeoutMs: 700 });
-  await assert.rejects(git.runBytes(["fixture"]), failureCode("git_timeout"));
+  await assert.rejects(git.runBytes(["fixture"]), (error) => {
+    assert.ok(error instanceof GitFailure);
+    assert.equal(error.code, "git_timeout");
+    assert.equal(error.category, "timeout");
+    return true;
+  });
   assert.match(await readFile(ready, "utf8"), /^\d+$/u);
   await delay(1600);
   await assert.rejects(access(survived));

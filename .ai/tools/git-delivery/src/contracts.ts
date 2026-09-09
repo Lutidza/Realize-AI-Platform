@@ -1,59 +1,32 @@
 /**
  * @file .ai/tools/git-delivery/src/contracts.ts
- * @version 1.0.0
- * @date 2026-09-08
- * @description Локальный программный контракт ADR-0016; данные модели и контекст запуска разбираются отдельно.
+ * @version 1.1.0
+ * @date 2026-09-09
+ * @description Проверяет отдельные входы модели и вызывающей среды, сохраняя публичные экспорты Git-контракта.
  */
 import { isAbsolute } from "node:path";
 
-export type Action = "inspect" | "commit" | "push" | "commit_push";
-export type Scope = { mode: "all" } | { mode: "paths"; paths: string[] };
-export type Command = { action: Action; message?: string };
-export type CheckResult = {
-  id: string;
-  status: "passed" | "failed";
-  fingerprint: string;
-};
-export type Identity = { name: string; email: string };
-export type Context = {
-  version: 1;
-  requestId: string;
-  projectId: string;
-  taskId: string;
-  repositoryRoot: string;
-  authorization: { actions: Action[]; scope: Scope };
-  identity?: Identity;
-  verification?: {
-    inputPaths: string[];
-    requiredChecks: string[];
-    results: CheckResult[];
-  };
-};
-export type Result = {
-  version: 1;
-  requestId: string | null;
-  action: Action | null;
-  status: "succeeded" | "noop" | "partial" | "blocked" | "failed";
-  branch: string | null;
-  commit: string | null;
-  commitCreated: boolean | null;
-  pushStatus: "not_requested" | "not_attempted";
-  changes: { items: { path: string; status: string }[]; truncated: boolean };
-  fingerprint: string | null;
-  checks: { id: string; status: "passed" | "failed"; reused: boolean }[];
-  errorCode: string | null;
-  summary: string;
-  retryable: boolean;
-};
+import type {
+  Action,
+  CheckResult,
+  Command,
+  Context,
+  Scope,
+} from "./GitDelivery.types.ts";
+import { PolicyError } from "./Policy.error.ts";
+import { parseGitCommitRecovery } from "./parseGitCommitRecovery.validator.ts";
 
-export class PolicyError extends Error {
-  code: string;
-  constructor(code: string, message: string) {
-    super(message);
-    this.name = "PolicyError";
-    this.code = code;
-  }
-}
+export type {
+  Action,
+  CheckResult,
+  Command,
+  Context,
+  Identity,
+  Result,
+  Scope,
+} from "./GitDelivery.types.ts";
+export { PolicyError } from "./Policy.error.ts";
+export { emptyResult } from "./emptyResult.util.ts";
 
 function object(value: unknown, keys: string[]): Record<string, unknown> {
   if (
@@ -96,6 +69,7 @@ function identifier(value: unknown): string {
   return result;
 }
 
+/** Принимает точный относительный путь без обхода родителя и служебного каталога Git. */
 export function relativeFile(value: unknown): string {
   const file = text(value, 4096);
   if (
@@ -139,6 +113,7 @@ function action(value: unknown): Action {
   return value as Action;
 }
 
+/** Разбирает команду модели без разрешений, авторства и результатов проверок. */
 export function parseCommand(value: unknown): Command {
   const source = object(value, ["action", "message"]);
   const selected = action(source.action);
@@ -160,6 +135,7 @@ export function parseCommand(value: unknown): Command {
   };
 }
 
+/** Разбирает доверенный контекст отдельно от команды; порядок полей сохраняет binding старых журналов. */
 export function parseContext(value: unknown): Context {
   const source = object(value, [
     "version",
@@ -170,6 +146,7 @@ export function parseContext(value: unknown): Context {
     "authorization",
     "identity",
     "verification",
+    "recovery",
   ]);
   if (source.version !== 1)
     throw new PolicyError("invalid_context", "Нужен контекст версии 1.");
@@ -258,24 +235,15 @@ export function parseContext(value: unknown): Context {
       results,
     };
   }
+  if (source.recovery !== undefined) {
+    if (!context.authorization.actions.includes("commit")) {
+      throw new PolicyError(
+        "commit_recovery_invalid",
+        "Восстановление допустимо только при разрешённом commit.",
+      );
+    }
+    // Новое поле добавляется после legacy-полей, чтобы не менять их порядок сериализации.
+    context.recovery = parseGitCommitRecovery(source.recovery);
+  }
   return context;
-}
-
-export function emptyResult(): Result {
-  return {
-    version: 1,
-    requestId: null,
-    action: null,
-    status: "blocked",
-    branch: null,
-    commit: null,
-    commitCreated: false,
-    pushStatus: "not_requested",
-    changes: { items: [], truncated: false },
-    fingerprint: null,
-    checks: [],
-    errorCode: null,
-    summary: "",
-    retryable: false,
-  };
 }

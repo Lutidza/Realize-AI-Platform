@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/test/GitPush.service.test.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Проверяет разрешения, журналирование и восстановление push во временных Git-репозиториях с тестовой сетью.
  */
 
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -13,6 +14,8 @@ import { test } from "node:test";
 import type { TestContext } from "node:test";
 import { emptyResult, PolicyError } from "../src/contracts.ts";
 import { Git } from "../src/Git.adapter.ts";
+import { GitFailure } from "../src/GitFailure.error.ts";
+import { GIT_FAILURE_CATEGORIES } from "../src/gitFailureCategory.constants.ts";
 import { GitJournalRepository } from "../src/GitJournal.repository.ts";
 import type { GitNetworkConnection } from "../src/network/GitNetwork.types.ts";
 import type {
@@ -23,6 +26,7 @@ import type {
 } from "../src/push/GitPush.types.ts";
 import { runGitPush } from "../src/push/runGitPush.service.ts";
 import { validateGitPushContext } from "../src/push/validateGitPushContext.validator.ts";
+import { validateGitPushJournal } from "../src/push/validateGitPushJournal.validator.ts";
 import { GitWorkerCapabilityService } from "../src/worker/GitWorkerCapability.service.ts";
 
 function context(
@@ -502,6 +506,502 @@ test("другое разрешение с прежним requestId конфли
   blocked(await runGitPush(f.context, f.dependencies), "request_conflict");
   assert.deepEqual(f.calls, callsBefore);
   assert.deepEqual(await f.journal(), journalBefore);
+});
+
+test("recovery принимает только явный целый номер попытки от 1 до 16", async (t) => {
+  for (const attempt of [1, 16]) {
+    const assigned = { ...context(), recovery: { attempt } };
+    const validated = validateGitPushContext(assigned);
+    assert.deepEqual(validated.recovery, { attempt });
+    assigned.recovery.attempt = 2;
+    assert.deepEqual(validated.recovery, { attempt });
+  }
+  for (const recovery of [
+    null,
+    true,
+    [],
+    {},
+    { attempt: 0 },
+    { attempt: -1 },
+    { attempt: 17 },
+    { attempt: 1.5 },
+    { attempt: "1" },
+    { attempt: Number.NaN },
+    { attempt: Number.POSITIVE_INFINITY },
+    { attempt: 1, force: true },
+    { attempt: 1, diagnostic: "synthetic-private-detail" },
+  ]) {
+    await t.test(JSON.stringify(recovery), async () => {
+      const assigned = { ...context(), recovery };
+      assert.throws(() => validateGitPushContext(assigned), PolicyError);
+      const result = await runGitPush(assigned, {
+        async resolveConnection() {
+          assert.fail("Некорректное recovery не открывает подключение.");
+        },
+        async createNetwork() {
+          assert.fail("Некорректное recovery не открывает сеть.");
+        },
+      });
+      assert.equal(result.status, "blocked", JSON.stringify(result));
+      assert.equal(result.pushStatus, "not_attempted");
+    });
+  }
+});
+
+test("журнал version 1 совместим без новых полей и принимает конечную диагностику", () => {
+  const assigned = context();
+  const expected: GitPushJournal = {
+    version: 1,
+    kind: "push",
+    binding: "a".repeat(64),
+    target: assigned.target,
+    commits: assigned.authorization.scope.commits,
+    phase: "prepared",
+  };
+  for (const phase of [
+    "prepared",
+    "sending",
+    "succeeded",
+    "unknown",
+  ] as const) {
+    const legacy = { ...expected, phase };
+    assert.deepEqual(validateGitPushJournal(legacy, expected), legacy);
+    assert.equal("recoveryAttempts" in legacy, false);
+    assert.equal("diagnostic" in legacy, false);
+  }
+  for (const stage of [
+    "context",
+    "source",
+    "journal",
+    "connection",
+    "remote",
+    "prepare",
+    "push",
+    "confirm",
+    "cleanup",
+  ] as const) {
+    for (const category of GIT_FAILURE_CATEGORIES) {
+      for (const recoveryAttempts of [0, 16]) {
+        const journal = {
+          ...expected,
+          phase: "unknown" as const,
+          recoveryAttempts,
+          diagnostic: {
+            stage,
+            category,
+            exitCode: recoveryAttempts ? 128 : null,
+          },
+        };
+        assert.deepEqual(validateGitPushJournal(journal, expected), journal);
+      }
+    }
+  }
+});
+
+test("журнал отклоняет произвольную диагностику и недопустимые счётчики", () => {
+  const assigned = context();
+  const expected: GitPushJournal = {
+    version: 1,
+    kind: "push",
+    binding: "a".repeat(64),
+    target: assigned.target,
+    commits: assigned.authorization.scope.commits,
+    phase: "unknown",
+  };
+  const diagnostic = {
+    stage: "push",
+    category: "transport_failure",
+    exitCode: 128,
+  };
+  for (const recoveryAttempts of [
+    null,
+    -1,
+    17,
+    0.5,
+    "1",
+    true,
+    Number.NaN,
+    Infinity,
+  ]) {
+    assert.throws(
+      () => validateGitPushJournal({ ...expected, recoveryAttempts }, expected),
+      PolicyError,
+      `Недопустимый счётчик: ${String(recoveryAttempts)}`,
+    );
+  }
+  for (const value of [
+    null,
+    [],
+    "synthetic-private-detail",
+    {},
+    { stage: "push", category: "unknown" },
+    { ...diagnostic, stage: "arbitrary-stage" },
+    { ...diagnostic, category: "synthetic-private-detail" },
+    { ...diagnostic, exitCode: "128" },
+    { ...diagnostic, exitCode: Number.NaN },
+    { ...diagnostic, exitCode: Infinity },
+    { ...diagnostic, stderr: "synthetic-private-detail" },
+    { ...diagnostic, message: "synthetic-private-detail" },
+    { ...diagnostic, retryable: true },
+  ]) {
+    assert.throws(
+      () =>
+        validateGitPushJournal({ ...expected, diagnostic: value }, expected),
+      PolicyError,
+      `Недопустимая диагностика: ${JSON.stringify(value)}`,
+    );
+  }
+  assert.throws(
+    () =>
+      validateGitPushJournal(
+        { ...expected, recovery: { attempt: 1 } },
+        expected,
+      ),
+    PolicyError,
+  );
+});
+
+// Создаёт неизвестный исход через штатный handler; сеть и текст ошибки являются только fixture-данными.
+async function interruptPush(
+  f: Awaited<ReturnType<typeof fixture>>,
+): Promise<void> {
+  f.network.push = async () => {
+    f.calls.push += 1;
+    assert.equal((await f.journal())?.phase, "sending");
+    throw new GitFailure(
+      "git_failed",
+      "synthetic-private-detail",
+      128,
+      "transport_failure",
+    );
+  };
+  const result = await runGitPush(f.context, f.dependencies);
+  assert.equal(result.status, "partial", JSON.stringify(result));
+  assert.equal(result.pushStatus, "unknown");
+  assert.equal((await f.journal())?.phase, "unknown");
+}
+
+test("явная recovery отправляет sending/unknown один раз и сохраняет попытку до push", async (t) => {
+  for (const phase of ["sending", "unknown"] as const) {
+    await t.test(phase, async (child) => {
+      const f = await fixture(child);
+      const push = f.network.push;
+      await interruptPush(f);
+      const initial = await f.journal();
+      assert.ok(initial);
+      // Имитируется уже существующий журнал старой версии после аварийного завершения fixture-процесса.
+      initial.binding = createHash("sha256")
+        .update(JSON.stringify(validateGitPushContext(f.context)))
+        .digest("hex");
+      delete initial.recoveryAttempts;
+      delete initial.diagnostic;
+      initial.phase = phase;
+      await f.repository.save(initial);
+      blocked(
+        await runGitPush(f.context, f.dependencies),
+        "push_outcome_unknown",
+      );
+      assert.equal(f.calls.push, 1);
+      assert.deepEqual(await f.journal(), initial);
+
+      f.context.recovery = { attempt: 1 };
+      f.network.push = async () => {
+        const sending = await f.journal();
+        assert.equal(sending?.phase, "sending");
+        assert.equal(sending?.recoveryAttempts, 1);
+        assert.equal(sending?.binding, initial.binding);
+        assert.deepEqual(sending?.target, initial.target);
+        assert.deepEqual(sending?.commits, initial.commits);
+        await push();
+      };
+      const recovered = await runGitPush(f.context, f.dependencies);
+      assert.equal(recovered.status, "succeeded", JSON.stringify(recovered));
+      assert.equal(recovered.remoteCommit, f.source);
+      assert.equal((await f.journal())?.recoveryAttempts, 1);
+      assert.equal((await f.journal())?.phase, "succeeded");
+      assert.equal(f.calls.push, 2);
+      const replay = await runGitPush(f.context, f.dependencies);
+      assert.equal(replay.status, "noop", JSON.stringify(replay));
+      assert.equal(f.calls.push, 2);
+    });
+  }
+});
+
+test("сбой расходует recovery attempt и только следующий номер разрешает новую отправку", async (t) => {
+  const f = await fixture(t);
+  await interruptPush(f);
+  for (const attempt of [1, 2]) {
+    f.context.recovery = { attempt };
+    f.network.push = async () => {
+      f.calls.push += 1;
+      assert.equal((await f.journal())?.phase, "sending");
+      assert.equal((await f.journal())?.recoveryAttempts, attempt);
+      throw new GitFailure(
+        "git_failed",
+        "synthetic-private-detail",
+        128,
+        "transport_failure",
+      );
+    };
+    const failed = await runGitPush(f.context, f.dependencies);
+    assert.equal(failed.status, "partial", JSON.stringify(failed));
+    const consumed = await f.journal();
+    assert.equal(consumed?.recoveryAttempts, attempt);
+    assert.equal(consumed?.phase, "unknown");
+    assert.equal(f.calls.push, attempt + 1);
+    const replay = await runGitPush(f.context, f.dependencies);
+    assert.equal(replay.status, "blocked", JSON.stringify(replay));
+    assert.equal(replay.pushStatus, "unknown");
+    assert.equal(f.calls.push, attempt + 1);
+    assert.deepEqual(await f.journal(), consumed);
+    assert.deepEqual(replay.diagnostic, consumed?.diagnostic);
+
+    // Авария между долговременным sending и обработчиком ошибки не возвращает разрешение на попытку.
+    const interrupted = { ...consumed, phase: "sending" as const };
+    await f.repository.save(interrupted);
+    const interruptedReplay = await runGitPush(f.context, f.dependencies);
+    blocked(interruptedReplay, "push_recovery_invalid");
+    assert.equal(f.calls.push, attempt + 1);
+    assert.deepEqual(await f.journal(), interrupted);
+  }
+  f.context.recovery = { attempt: 4 };
+  const skipped = await runGitPush(f.context, f.dependencies);
+  assert.equal(skipped.status, "blocked", JSON.stringify(skipped));
+  assert.equal(f.calls.push, 3);
+  assert.equal((await f.journal())?.recoveryAttempts, 2);
+});
+
+test("recovery поддерживает исходно отсутствующую удалённую ветку", async (t) => {
+  const f = await fixture(t);
+  f.context.target.remoteOid = null;
+  f.context.authorization.scope.commits.push(f.remote);
+  f.network.remote = null;
+  attest(f.context);
+  const push = f.network.push;
+  await interruptPush(f);
+  f.context.recovery = { attempt: 1 };
+  f.network.push = push;
+  const result = await runGitPush(f.context, f.dependencies);
+  assert.equal(result.status, "succeeded", JSON.stringify(result));
+  assert.equal(result.remoteCommit, f.source);
+  assert.equal(f.calls.push, 2);
+  assert.equal((await f.journal())?.target.remoteOid, null);
+  assert.equal((await f.journal())?.recoveryAttempts, 1);
+});
+
+test("отказ повторной проверки перед recovery не расходует номер попытки", async (t) => {
+  const f = await fixture(t);
+  await interruptPush(f);
+  const before = await f.journal();
+  const resolve = f.dependencies.resolveConnection;
+  const resolvesBefore = f.calls.resolve;
+  f.context.recovery = { attempt: 1 };
+  f.dependencies.resolveConnection = async () => {
+    const connection = await resolve();
+    return f.calls.resolve === resolvesBefore + 2 &&
+      connection.state === "ready"
+      ? { ...connection, revision: connection.revision + 1 }
+      : connection;
+  };
+  blocked(await runGitPush(f.context, f.dependencies), "connection_changed");
+  assert.deepEqual(await f.journal(), before);
+  assert.equal(f.calls.push, 1);
+});
+
+test("новая recovery сохраняет ошибку confirm вместо диагностики прежнего сбоя", async (t) => {
+  const f = await fixture(t);
+  await interruptPush(f);
+  assert.equal((await f.journal())?.diagnostic?.category, "transport_failure");
+  f.context.recovery = { attempt: 1 };
+  f.network.push = async () => {
+    f.calls.push += 1;
+  };
+  const result = await runGitPush(f.context, f.dependencies);
+  const diagnostic = { stage: "confirm", category: "unknown", exitCode: null };
+  assert.equal(result.status, "partial", JSON.stringify(result));
+  assert.equal(result.errorCode, "push_outcome_unknown");
+  assert.deepEqual(result.diagnostic, diagnostic);
+  assert.deepEqual((await f.journal())?.diagnostic, diagnostic);
+  assert.equal((await f.journal())?.recoveryAttempts, 1);
+  assert.equal((await f.journal())?.phase, "unknown");
+  assert.equal(f.calls.push, 2);
+});
+
+test("последняя разрешённая попытка 16 расходуется и больше не отправляет", async (t) => {
+  const f = await fixture(t);
+  await interruptPush(f);
+  const journal = await f.journal();
+  assert.ok(journal);
+  await f.repository.save({ ...journal, recoveryAttempts: 15 });
+  f.context.recovery = { attempt: 16 };
+  const failed = await runGitPush(f.context, f.dependencies);
+  assert.equal(failed.status, "partial", JSON.stringify(failed));
+  assert.equal((await f.journal())?.recoveryAttempts, 16);
+  assert.equal(f.calls.push, 2);
+  const replay = await runGitPush(f.context, f.dependencies);
+  assert.equal(replay.status, "blocked", JSON.stringify(replay));
+  assert.equal((await f.journal())?.recoveryAttempts, 16);
+  assert.equal(f.calls.push, 2);
+});
+
+test("recovery без sending/unknown журнала не разрешает отправку", async (t) => {
+  for (const phase of ["absent", "prepared", "succeeded"] as const) {
+    await t.test(phase, async (child) => {
+      const f = await fixture(child);
+      if (phase !== "absent") {
+        await runGitPush(f.context, f.dependencies);
+        const journal = await f.journal();
+        assert.ok(journal);
+        await f.repository.save({ ...journal, phase });
+        f.network.remote = f.remote;
+      }
+      const before = await f.journal();
+      const pushesBefore = f.calls.push;
+      f.context.recovery = { attempt: 1 };
+      const result = await runGitPush(f.context, f.dependencies);
+      assert.equal(result.status, "blocked", JSON.stringify(result));
+      assert.equal(f.calls.push, pushesBefore);
+      assert.deepEqual(await f.journal(), before);
+    });
+  }
+});
+
+test("достигнутый sourceOid даёт noop даже после сбоя и повтора recovery", async (t) => {
+  const f = await fixture(t);
+  await interruptPush(f);
+  const push = async () => {
+    f.calls.push += 1;
+    f.network.remote = f.source;
+    throw new GitFailure(
+      "git_failed",
+      "synthetic-private-detail",
+      null,
+      "transport_failure",
+    );
+  };
+  f.network.push = push;
+  f.context.recovery = { attempt: 1 };
+  assert.equal((await runGitPush(f.context, f.dependencies)).status, "partial");
+  assert.equal(f.calls.push, 2);
+  const replay = await runGitPush(f.context, f.dependencies);
+  assert.equal(replay.status, "noop", JSON.stringify(replay));
+  assert.equal(replay.pushStatus, "succeeded");
+  assert.equal(replay.remoteCommit, f.source);
+  assert.equal((await f.journal())?.recoveryAttempts, 1);
+  assert.equal(f.calls.push, 2);
+});
+
+test("recovery сохраняет исходное назначение, область и проверки immutable", async (t) => {
+  for (const change of [
+    "project",
+    "slug",
+    "revision",
+    "transport",
+    "scope",
+    "checks",
+  ] as const) {
+    await t.test(change, async (child) => {
+      const f = await fixture(child);
+      await interruptPush(f);
+      const before = await f.journal();
+      const callsBefore = { ...f.calls };
+      f.context.recovery = { attempt: 1 };
+      if (change === "project") f.context.projectId = "foreign-project";
+      if (change === "slug")
+        f.context.target.repositorySlug = "fixture-owner/other-repository";
+      if (change === "revision") f.context.target.connectionRevision += 1;
+      if (change === "transport") f.context.target.transport = "ssh";
+      if (change === "scope") f.context.authorization.scope.commits.reverse();
+      if (change === "checks")
+        f.context.verification.requiredChecks.push("fixture-additional-check");
+      attest(f.context);
+      blocked(await runGitPush(f.context, f.dependencies), "request_conflict");
+      assert.deepEqual(f.calls, callsBefore);
+      assert.deepEqual(await f.journal(), before);
+    });
+  }
+});
+
+test("recovery не расходуется при изменении HEAD, ветки, подключения или remote", async (t) => {
+  for (const change of ["head", "branch", "connection", "remote"] as const) {
+    await t.test(change, async (child) => {
+      const f = await fixture(child);
+      await interruptPush(f);
+      const before = await f.journal();
+      f.context.recovery = { attempt: 1 };
+      if (change === "head")
+        await f.git.run(["update-ref", "refs/heads/main", f.earlier]);
+      if (change === "branch") {
+        await f.git.run(["update-ref", "refs/heads/other", f.source]);
+        await f.git.run(["symbolic-ref", "HEAD", "refs/heads/other"]);
+      }
+      if (change === "connection") {
+        const resolve = f.dependencies.resolveConnection;
+        f.dependencies.resolveConnection = async () => {
+          const connection = await resolve();
+          return connection.state === "ready"
+            ? { ...connection, revision: connection.revision + 1 }
+            : connection;
+        };
+      }
+      if (change === "remote") f.network.remote = f.earlier;
+      blocked(
+        await runGitPush(f.context, f.dependencies),
+        change === "connection"
+          ? "connection_changed"
+          : change === "remote"
+            ? "push_remote_changed"
+            : "push_source_changed",
+      );
+      assert.equal(f.calls.push, 1);
+      assert.deepEqual(await f.journal(), before);
+    });
+  }
+});
+
+test("сбой push/confirm сохраняет безопасную диагностику для следующего повтора без записи", async (t) => {
+  for (const stage of ["push", "confirm"] as const) {
+    await t.test(stage, async (child) => {
+      const f = await fixture(child);
+      const diagnostic = {
+        stage,
+        category: "transport_failure",
+        exitCode: 128,
+      };
+      const fail = () =>
+        new GitFailure(
+          "git_failed",
+          "synthetic-private-detail",
+          128,
+          "transport_failure",
+        );
+      const read = f.network.readRemoteHead;
+      f.network.push = async () => {
+        f.calls.push += 1;
+        if (stage === "push") throw fail();
+      };
+      f.network.readRemoteHead = async () => {
+        if (stage === "confirm" && f.calls.push) throw fail();
+        return read();
+      };
+      const failed = await runGitPush(f.context, f.dependencies);
+      assert.equal(failed.status, "partial", JSON.stringify(failed));
+      assert.deepEqual(failed.diagnostic, diagnostic);
+      const before = await f.journal();
+      assert.equal(before?.phase, "unknown");
+      assert.deepEqual(before?.diagnostic, diagnostic);
+      assert.equal(
+        JSON.stringify({ failed, before }).includes("synthetic-private-detail"),
+        false,
+      );
+      f.network.readRemoteHead = read;
+      const replay = await runGitPush(f.context, f.dependencies);
+      blocked(replay, "push_outcome_unknown");
+      assert.deepEqual(replay.diagnostic, diagnostic);
+      assert.deepEqual(await f.journal(), before);
+      assert.equal(f.calls.push, 1);
+    });
+  }
 });
 
 function capabilityResult(): GitPushResult {

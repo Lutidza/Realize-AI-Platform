@@ -1,10 +1,9 @@
 /**
  * @file .ai/tools/git-delivery/src/handler.ts
- * @version 1.0.1
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Локальные inspect/commit: доверенная область, привязанные проверки и повтор по журналу ADR-0016.
  */
-import { createHash } from "node:crypto";
 import { realpath, lstat } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -13,34 +12,26 @@ import {
   parseContext,
   PolicyError,
 } from "./contracts.ts";
-import type { Command, Context, Result } from "./contracts.ts";
+import type { Command, Context, Result } from "./GitDelivery.types.ts";
 import { Git, GitFailure } from "./Git.adapter.ts";
 import { inspectRepository } from "./repository.ts";
-import type { Snapshot } from "./repository.ts";
+import type { Snapshot } from "./GitSnapshot.types.ts";
 import {
   acquireLock,
   journalRelativePath,
   loadJournal,
   saveJournal,
 } from "./state.ts";
-import type { Journal } from "./state.ts";
+import type { Journal } from "./commit/GitCommitJournal.types.ts";
+import { hashGitCommitContext } from "./commit/hashGitCommitContext.util.ts";
+import { verifyEvidence } from "./commit/verifyGitCommitEvidence.validator.ts";
+import { resolveGitCommitSnapshot } from "./commit/resolveGitCommitSnapshot.util.ts";
+import { acceptGitCommitRecovery } from "./commit/acceptGitCommitRecovery.service.ts";
+import { assertNoGitSecrets } from "./commit/assertNoGitSecrets.validator.ts";
 import { assertIndexScope, validateChanges, verifyStaged } from "./safety.ts";
 
-const hash = (value: unknown): string =>
-  createHash("sha256").update(JSON.stringify(value)).digest("hex");
 const normalizedMessage = (value: string): string =>
   value.replace(/\n*$/, "") + "\n";
-
-function binding(command: Command, context: Context): string {
-  return hash({
-    command,
-    ...context,
-    verification: context.verification && {
-      inputPaths: context.verification.inputPaths,
-      requiredChecks: context.verification.requiredChecks,
-    },
-  });
-}
 
 function reportSnapshot(result: Result, snapshot: Snapshot): void {
   result.branch = snapshot.branch;
@@ -57,33 +48,6 @@ function reportSnapshot(result: Result, snapshot: Snapshot): void {
     items,
     truncated: items.length !== snapshot.changes.length,
   };
-}
-
-function verifyEvidence(
-  context: Context,
-  fingerprint: string,
-  result: Result,
-): void {
-  const verification = context.verification;
-  if (!verification?.requiredChecks.length)
-    throw new PolicyError(
-      "checks_required",
-      "Нужны выполненные проверки из доверенного контекста.",
-    );
-  for (const id of verification.requiredChecks) {
-    const check = verification.results.find((item) => item.id === id);
-    if (
-      !check ||
-      check.status !== "passed" ||
-      check.fingerprint !== fingerprint
-    ) {
-      throw new PolicyError(
-        "checks_stale_or_missing",
-        "Обязательная проверка отсутствует, не пройдена или относится к другому снимку.",
-      );
-    }
-    result.checks.push({ id, status: "passed", reused: true });
-  }
 }
 
 async function assertNoOperation(snapshot: Snapshot): Promise<void> {
@@ -115,16 +79,19 @@ async function frozenSnapshot(
   git: Git,
   context: Context,
   journal: Journal,
+  checkSecrets = false,
 ): Promise<Snapshot> {
+  const expected = resolveGitCommitSnapshot(journal);
   const current = await inspectRepository(
     git,
     context.authorization.scope,
-    journal.original.files.map((file) => file.path),
+    expected.files.map((file) => file.path),
+    checkSecrets ? assertNoGitSecrets : undefined,
   );
   if (
-    current.head !== journal.original.head ||
-    current.branch !== journal.original.branch ||
-    JSON.stringify(current.files) !== JSON.stringify(journal.original.files)
+    current.head !== expected.head ||
+    current.branch !== expected.branch ||
+    JSON.stringify(current.files) !== JSON.stringify(expected.files)
   ) {
     throw new PolicyError(
       "repository_changed",
@@ -194,6 +161,12 @@ export async function runDelivery(
       : "not_requested";
     context = parseContext(trustedContext);
     result.requestId = context.requestId;
+    if (context.recovery && command.action !== "commit") {
+      throw new PolicyError(
+        "commit_recovery_unavailable",
+        "Восстановление допустимо только для commit.",
+      );
+    }
     if (!context.authorization.actions.includes(command.action)) {
       throw new PolicyError(
         "action_not_authorized",
@@ -267,7 +240,7 @@ export async function runDelivery(
       );
     }
     journal = await loadJournal(context);
-    const operationBinding = binding(command, context);
+    const operationBinding = hashGitCommitContext(command, context);
     if (journal) {
       if (
         journal.binding !== operationBinding ||
@@ -283,14 +256,23 @@ export async function runDelivery(
       const scope = context.authorization.scope;
       if (
         scope.mode === "paths" &&
-        journal.paths.some((path) => !scope.paths.includes(path))
+        resolveGitCommitSnapshot(journal).changes.some(
+          (change) => !scope.paths.includes(change.path),
+        )
       ) {
         throw new PolicyError(
           "request_conflict",
           "Состав журнала выходит за разрешённую область.",
         );
       }
+      result.recoveryAttempts = journal.recovery?.attempt ?? 0;
       validateChanges(journal.original);
+      if (journal.noop && context.recovery) {
+        throw new PolicyError(
+          "commit_recovery_unavailable",
+          "У завершённого noop нет снимка для восстановления.",
+        );
+      }
       if (journal.noop) {
         reportSnapshot(result, journal.original);
         result.status = "noop";
@@ -313,7 +295,7 @@ export async function runDelivery(
         }
         await verifyCommit(git, candidate, command, context, journal);
         journal.commit = candidate;
-        reportSnapshot(result, journal.original);
+        reportSnapshot(result, resolveGitCommitSnapshot(journal));
         result.commit = candidate;
         result.commitCreated = true;
         result.status = "noop";
@@ -323,10 +305,32 @@ export async function runDelivery(
         await saveJournal(context, journal);
         return result;
       }
-      verifyEvidence(context, journal.original.fingerprint, result);
+      const previousAttempt = journal.recovery?.attempt ?? 0;
+      journal = await acceptGitCommitRecovery(
+        git,
+        context,
+        journal,
+        snapshot,
+        result,
+      );
+      if ((journal.recovery?.attempt ?? 0) !== previousAttempt) mutated = true;
       await frozenSnapshot(git, context, journal);
-      await assertIndexScope(git, journal.paths);
+      verifyEvidence(
+        context,
+        resolveGitCommitSnapshot(journal).fingerprint,
+        result,
+      );
+      await assertIndexScope(
+        git,
+        resolveGitCommitSnapshot(journal).changes.map((change) => change.path),
+      );
     } else {
+      if (context.recovery) {
+        throw new PolicyError(
+          "commit_recovery_unavailable",
+          "Восстановление требует существующего журнала commit.",
+        );
+      }
       const paths = validateChanges(snapshot);
       await assertIndexScope(git, paths);
       if (!paths.length) {
@@ -358,13 +362,16 @@ export async function runDelivery(
         );
       await saveJournal(context, journal);
     }
+    const activeSnapshot = resolveGitCommitSnapshot(journal);
+    const activePaths = activeSnapshot.changes.map((change) => change.path);
+    reportSnapshot(result, activeSnapshot);
     lock.assertHeld();
     if (!journal.preparedTree) {
-      const beforeStaging = await frozenSnapshot(git, context, journal);
+      const beforeStaging = await frozenSnapshot(git, context, journal, true);
       let alreadyStaged = false;
-      if (beforeStaging.indexHash !== journal.original.indexHash) {
+      if (beforeStaging.indexHash !== activeSnapshot.indexHash) {
         try {
-          await verifyStaged(git, journal.original, journal.paths);
+          await verifyStaged(git, activeSnapshot, activePaths);
           alreadyStaged = true;
         } catch {
           throw new PolicyError(
@@ -377,15 +384,15 @@ export async function runDelivery(
       if (!alreadyStaged) {
         await git.run(
           ["add", "-A", "--pathspec-from-file=-", "--pathspec-file-nul"],
-          { input: journal.paths.join("\0") + "\0" },
+          { input: activePaths.join("\0") + "\0" },
         );
       }
       await frozenSnapshot(git, context, journal);
-      await verifyStaged(git, journal.original, journal.paths);
+      await verifyStaged(git, activeSnapshot, activePaths);
       journal.preparedTree = (await git.run(["write-tree"])).trim();
       await saveJournal(context, journal);
     } else {
-      await verifyStaged(git, journal.original, journal.paths);
+      await verifyStaged(git, activeSnapshot, activePaths);
       if ((await git.run(["write-tree"])).trim() !== journal.preparedTree) {
         throw new PolicyError(
           "index_changed",
@@ -395,7 +402,7 @@ export async function runDelivery(
     }
     await frozenSnapshot(git, context, journal);
     await assertNoOperation(journal.original);
-    await assertIndexScope(git, journal.paths, true);
+    await assertIndexScope(git, activePaths, true);
     if ((await git.run(["write-tree"])).trim() !== journal.preparedTree) {
       throw new PolicyError(
         "index_changed",

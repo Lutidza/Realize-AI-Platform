@@ -1,12 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/push/GitPush.types.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Определяет разрешённое назначение push, проверки коммитов и результат сетевой записи.
  */
 
 import type { Context, Result } from "../contracts.ts";
 import type { Git } from "../Git.adapter.ts";
+import type { GitFailureCategory } from "../GitFailureCategory.types.ts";
+import type { GIT_PUSH_STAGES } from "./gitPush.constants.ts";
 import type {
   GitNetworkConnection,
   GitNetworkSession,
@@ -22,6 +24,18 @@ export type GitPushTarget = {
   remoteOid: string | null;
 };
 
+export type GitPushStage = (typeof GIT_PUSH_STAGES)[number];
+
+/** Только конечные значения: сообщения процессов и данные подключения сюда не входят. */
+export type GitPushDiagnostic = {
+  stage: GitPushStage;
+  category: GitFailureCategory;
+  exitCode: number | null;
+};
+
+/** Вызывающая среда отдельно разрешает одну следующую попытку прежней операции. */
+export type GitPushRecovery = { attempt: number };
+
 /** Полномочия и результаты проверок поступают от вызывающей среды, отдельно от модели. */
 export type GitPushContext = Pick<
   Context,
@@ -36,11 +50,14 @@ export type GitPushContext = Pick<
     requiredChecks: string[];
     results: { id: string; status: "passed" | "failed"; commit: string }[];
   };
+  recovery?: GitPushRecovery;
 };
 
 export type GitPushResult = Omit<Result, "pushStatus"> & {
   pushStatus: "not_attempted" | "succeeded" | "unknown";
   remoteCommit: string | null;
+  diagnostic?: GitPushDiagnostic;
+  recoveryAttempts?: number;
 };
 
 export type GitPushJournal = {
@@ -50,6 +67,8 @@ export type GitPushJournal = {
   target: GitPushTarget;
   commits: string[];
   phase: "prepared" | "sending" | "succeeded" | "unknown";
+  diagnostic?: GitPushDiagnostic;
+  recoveryAttempts?: number;
 };
 
 export type GitPushDependencies = {

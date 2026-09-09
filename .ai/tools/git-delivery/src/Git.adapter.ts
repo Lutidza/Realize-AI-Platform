@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/git-delivery/src/Git.adapter.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-09-09
  * @description Ограниченный запуск Git без shell; унаследованные GIT_* не меняют выбранную рабочую копию.
  */
@@ -8,6 +8,7 @@
 import { spawn } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
 import { GitFailure } from "./GitFailure.error.ts";
+import { classifyGitFailure } from "./classifyGitFailure.util.ts";
 import type { GitOptions, GitRunOptions } from "./Git.types.ts";
 
 export { GitFailure } from "./GitFailure.error.ts";
@@ -15,6 +16,7 @@ export { GitFailure } from "./GitFailure.error.ts";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
 const MAX_INPUT_BYTES = 1024 * 1024;
+const MAX_STDERR_DIAGNOSTIC_BYTES = 64 * 1024;
 const SYSTEM_ENVIRONMENT = [
   "PATH",
   "HOME",
@@ -202,6 +204,11 @@ export class Git {
         },
       );
       const chunks: Buffer[] = [];
+      // Копируем только префикс: subarray входного chunk удержал бы весь его backing buffer.
+      const stderrDiagnostic = Buffer.alloc(
+        Math.min(MAX_STDERR_DIAGNOSTIC_BYTES, this.maxOutputBytes),
+      );
+      let stderrDiagnosticBytes = 0;
       let stdoutBytes = 0;
       let stderrBytes = 0;
       let failure: GitFailure | null = null;
@@ -211,6 +218,7 @@ export class Git {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        stderrDiagnostic.fill(0);
         if (error) reject(error);
         else resolvePromise(value ?? Buffer.alloc(0));
       };
@@ -226,7 +234,14 @@ export class Git {
         }
       };
       const timer = setTimeout(() => {
-        stop(new GitFailure("git_timeout", "Истекло время выполнения Git."));
+        stop(
+          new GitFailure(
+            "git_timeout",
+            "Истекло время выполнения Git.",
+            null,
+            "timeout",
+          ),
+        );
       }, this.timeoutMs);
 
       child.stdout!.on("data", (chunk: Buffer) => {
@@ -237,6 +252,8 @@ export class Git {
             new GitFailure(
               "git_output_limit",
               "Вывод Git превышает допустимый размер.",
+              null,
+              "output_limit",
             ),
           );
         } else {
@@ -250,6 +267,19 @@ export class Git {
             new GitFailure(
               "git_output_limit",
               "Вывод Git превышает допустимый размер.",
+              null,
+              "output_limit",
+            ),
+          );
+        }
+        if (!failure && stderrDiagnosticBytes < stderrDiagnostic.length) {
+          stderrDiagnosticBytes += chunk.copy(
+            stderrDiagnostic,
+            stderrDiagnosticBytes,
+            0,
+            Math.min(
+              chunk.length,
+              stderrDiagnostic.length - stderrDiagnosticBytes,
             ),
           );
         }
@@ -277,6 +307,9 @@ export class Git {
               "git_command_failed",
               "Команда Git завершилась ошибкой.",
               code,
+              classifyGitFailure(
+                stderrDiagnostic.toString("utf8", 0, stderrDiagnosticBytes),
+              ),
             ),
           );
         }

@@ -1,12 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/push/validateGitPushJournal.validator.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Проверяет привязку и допустимый этап сохранённого журнала push без файловых операций.
  */
 
 import { PolicyError } from "../contracts.ts";
 import type { GitPushJournal } from "./GitPush.types.ts";
+import { MAX_GIT_PUSH_RECOVERY_ATTEMPTS } from "./gitPush.constants.ts";
+import { validateGitPushDiagnostic } from "./validateGitPushDiagnostic.validator.ts";
 
 /**
  * Возвращает журнал только для того же разрешения; занятый requestId не разрешает другую отправку.
@@ -23,9 +25,16 @@ export function validateGitPushJournal(
   if (
     Object.keys(journal).some(
       (key) =>
-        !["version", "kind", "binding", "target", "commits", "phase"].includes(
-          key,
-        ),
+        ![
+          "version",
+          "kind",
+          "binding",
+          "target",
+          "commits",
+          "phase",
+          "diagnostic",
+          "recoveryAttempts",
+        ].includes(key),
     ) ||
     journal.version !== 1 ||
     journal.kind !== "push" ||
@@ -43,5 +52,21 @@ export function validateGitPushJournal(
   ) {
     throw new PolicyError("invalid_journal", "Неизвестный этап журнала push.");
   }
-  return journal;
+  if (
+    journal.recoveryAttempts !== undefined &&
+    (!Number.isSafeInteger(journal.recoveryAttempts) ||
+      journal.recoveryAttempts < 0 ||
+      journal.recoveryAttempts > MAX_GIT_PUSH_RECOVERY_ATTEMPTS)
+  ) {
+    throw new PolicyError(
+      "invalid_journal",
+      "Некорректный счётчик повторов push.",
+    );
+  }
+  return {
+    ...journal,
+    ...(journal.diagnostic === undefined
+      ? {}
+      : { diagnostic: validateGitPushDiagnostic(journal.diagnostic) }),
+  };
 }
