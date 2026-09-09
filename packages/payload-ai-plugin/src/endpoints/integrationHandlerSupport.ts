@@ -1,9 +1,10 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationHandlerSupport.ts
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
- * @description Owns transaction, idempotency replay and credential helpers for integration handlers.
+ * @description Поддерживает транзакции, повторы и получение API credential обработчиками интеграций.
  */
 
 import type { GitHubIntegrationTestDTO } from "@realize/ai-contracts";
@@ -98,7 +99,11 @@ export const decryptGitHubCredential = (
   options: SanitizedRealizeAIPluginOptions,
 ): string => {
   if (typeof envelope !== "string" || !envelope) {
-    throw integrationVaultError();
+    throw new EndpointError(
+      "INVALID_REQUEST",
+      "A GitHub API token is required for the REST connection test; SSH access is not tested.",
+      400,
+    );
   }
   try {
     return decryptIntegrationCredential({

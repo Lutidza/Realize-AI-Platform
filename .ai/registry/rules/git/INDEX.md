@@ -16,10 +16,24 @@ entries:
     status: active
     primary_artifact: .ai/rules/git/RULE-GIT-DELIVERY.md
     owner_layer: .ai/rules/git/
-    owner_roles: [.ai/roles/process-tools-operations/scope-contour-owner/INDEX.md]
-    related_checks: [.ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md, .ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md]
+    owner_roles:
+      [.ai/roles/process-tools-operations/scope-contour-owner/INDEX.md]
+    related_checks:
+      [
+        .ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md,
+        .ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md,
+      ]
     related_workflows: [.ai/workflows/delivery/git/commit-push/WORKFLOW.md]
-    related_codex_artifacts: [.codex/skills/git-commit-push/SKILL.md]
+    related_codex_artifacts:
+      [
+        .codex/skills/git-commit-push/SKILL.md,
+        .codex/agents/delivery/git/inspect.json,
+        .codex/prompts/workflows/delivery/git/inspect.md,
+        .codex/agents/delivery/git/commit.json,
+        .codex/prompts/workflows/delivery/git/commit.md,
+        .codex/agents/delivery/git/push.json,
+        .codex/prompts/workflows/delivery/git/push.md,
+      ]
     related_tools: [git, ssh, github]
     routing_tags: [git, github, delivery, inspect, commit, push, https, ssh]
     trigger: "Чтение состояния Git, staging, commit или push рабочего слоя."

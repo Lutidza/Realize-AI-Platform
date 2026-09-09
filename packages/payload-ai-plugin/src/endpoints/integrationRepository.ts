@@ -1,12 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationRepository.ts
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
- * @description Owns server-only persistence for integration settings and redacted audit.
+ * @description Сохраняет настройки интеграций и события без раскрытия секретов через Payload API.
  */
 
 import type { Payload, PayloadRequest } from "payload";
+import type { GitHubIntegrationConfigurationDTO } from "@realize/ai-contracts";
 
 import { INTEGRATIONS_SLUG, INTEGRATION_EVENTS_SLUG } from "../constants";
 import { PRIMARY_GITHUB_CONNECTION_KEY } from "../integrations/providers";
@@ -79,9 +81,9 @@ export class IntegrationRepository {
 
   async saveGitHub(input: {
     actorID: number | string;
-    configuration: Record<string, string>;
-    credentialEnvelope: string;
-    credentialUpdatedAt: string;
+    configuration: GitHubIntegrationConfigurationDTO;
+    credentialEnvelope?: string;
+    credentialUpdatedAt?: string;
     displayName: string;
     enabled: boolean;
     existing?: AIDocument;

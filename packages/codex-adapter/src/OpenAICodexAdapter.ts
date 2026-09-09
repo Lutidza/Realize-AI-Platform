@@ -1,7 +1,8 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 2026-08-21
- * @description Implements isolated read-only and workspace-write Codex App Server turns.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
 import type {
@@ -11,7 +12,7 @@ import type {
   UsageSummary,
 } from "@realize/ai-contracts";
 
-import { JsonLineRPCClient } from "./JsonLineRPCClient";
+import { JsonLineRPCClient } from "./JsonLineRpcClient.adapter";
 import type {
   RPCMessage,
   ThreadStartResult,

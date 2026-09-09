@@ -1,4 +1,9 @@
-/** Снимок связывает Git, байты индекса и разрешённые файлы без staging и чтения через symlink. */
+/**
+ * @file .ai/tools/git-delivery/src/repository.ts
+ * @version 1.0.1
+ * @date 2026-09-09
+ * @description Снимок связывает Git, байты индекса и разрешённые файлы без staging и чтения через symlink.
+ */
 
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
@@ -6,7 +11,7 @@ import { lstat, open, readlink, realpath } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
-import { Git, GitFailure } from "./git.ts";
+import { Git, GitFailure } from "./Git.adapter.ts";
 
 const MAX_PATHS = 10_000;
 const MAX_FILE_BYTES = 32 * 1024 * 1024;

@@ -72,7 +72,7 @@ rollback_required
 - `code` - профильные role/rule checks, tests/typecheck/lint или runtime
   evidence по blast radius,
   [проверка комментариев](../../../checks/development/CHECK-CODE-COMMENT-DISCIPLINE.md)
-  в области, определённой соответствующим правилом;
+  с адресной командой для файлов в области, определённой соответствующим правилом;
 - `docs` - documentation sync, language gate для working artifacts, отсутствие
   historical noise и проверка ссылок/paths в пределах allowlist;
 - `schema` - migration/data contract review, PostgreSQL/PostGIS/read-only

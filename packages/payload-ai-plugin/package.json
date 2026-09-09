@@ -9,7 +9,7 @@
     "./integrations-rsc": "./src/admin/integrations/IntegrationsView.tsx",
     "./provider": "./src/admin/RealizeAIProvider.tsx",
     "./server/integration-vault": "./src/integrations/credentialVault.ts",
-    "./server/integration-runtime": "./src/integrations/runtimeRepository.ts",
+    "./server/integration-runtime": "./src/integrations/runtime/integrationRuntime.index.ts",
     "./rsc": "./src/admin/RealizeAIView.tsx"
   },
   "dependencies": {

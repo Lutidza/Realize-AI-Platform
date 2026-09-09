@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/IntegrationsClient.tsx
- * @version 2026-08-27
- * @description Composes the searchable integration catalog and provider detail surface.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Объединяет каталог интеграций с поиском и панелью выбранного подключения.
  */
 
 "use client";
@@ -13,12 +14,12 @@ import type {
 import { Blocks, RefreshCw, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 
-import { GitHubIntegrationPanel } from "./GitHubIntegrationPanel";
+import { GitHubIntegrationPanel } from "./GitHubIntegrationPanel.component";
 import { IntegrationCatalog } from "./IntegrationCatalog";
 import styles from "./IntegrationsPage.module.css";
 import { useIntegrations } from "./useIntegrations";
 
-/** Renders the full Admin settings surface from browser-safe DTO state. */
+/** Показывает настройки интеграций на основе безопасного DTO каталога. */
 export const IntegrationsClient = ({
   initialCatalog,
 }: {

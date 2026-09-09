@@ -55,7 +55,8 @@ runtime_sources:
 │   │   └── runtime/INDEX.md
 │   ├── agent-monitor/README.md
 │   ├── agent-search/README.md
-│   └── git-delivery/README.md
+│   ├── git-delivery/README.md
+│   └── source-headers/README.md
 ├── worker-profiles/
 │   └── INDEX.md
 ├── agents-evolution/
@@ -71,6 +72,8 @@ runtime_sources:
 - `rules/`, `checks/`, `roles/` и `workflows/` содержат действующие инструкции;
   связи и условия применения правил находятся в [реестре](registry/rules/INDEX.md).
 - `tools/` содержит исходники и документацию локальных инструментов агентов.
+- `tools/git-delivery/src/worker/` запускает Git-воркера для inspect, commit и push; настройки
+  находятся в `.codex/`, общий транспорт — в `packages/codex-adapter/`.
 - `worker-profiles/` предназначен для необязательных повторно используемых
   профилей делегирования. Сейчас содержит только индекс, готовых профилей нет.
 - `agents-evolution/` хранит наблюдения, предложения и результаты изменения

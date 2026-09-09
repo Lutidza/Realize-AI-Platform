@@ -1,29 +1,31 @@
-# Check: DTO contracts без raw Payload leakage
+# Проверка DTO и границ данных Payload
 
 ```yaml
 check_id: CHECK-DTO-CONTRACTS-NO-RAW-PAYLOAD
 owner_layer: .ai/checks/development/backend/
 related_rule:
   - .ai/rules/development/backend/RULE-DTO-CONTRACTS-NO-RAW-PAYLOAD.md
-required_output:
-  - changed_contract
-  - dto_owner
-  - mapper_owner
-  - raw_payload_leakage_scan
-  - affected_consumers
-  - response_shape
-  - decision
+report: shared_task_result
 ```
 
 ## Условия прохождения
 
-- Changed DTO/API/frontend data contract назван.
-- DTO owner выбран в `src/domain/contracts/<domain>/`.
-- Mapper owner выбран в `src/domain/mappers/<domain>/`.
-- Выполнен scan на raw Payload leakage по affected API/services/UI consumers.
-- Public response строится через mapper с allowlist полей.
-- `src/payload-types.ts` не используется как frontend-facing contract.
-- `PaginatedDocs<T>` не отдаётся напрямую во frontend; используется explicit
-  pagination DTO.
-- Остаточные raw Payload responses перечислены как existing debt или исправлены
-  в scope задачи.
+- Определены затронутый контракт, производитель, потребители и существующие
+  владельцы DTO и mapper в фактическом feature/package.
+- Generated Payload types не подменяют публичный DTO; их применение внутри
+  persistence/admin owner, включая admin UI, допустимо.
+- Ответ за trust boundary строится через mapper с явным allowlist полей.
+  В затронутых API, сервисах и UI нет выдачи raw Payload documents, spread
+  документа или `PaginatedDocs<T>` как публичного контракта. Секреты и
+  неразрешённые персональные или закрытые данные не передаются.
+- DTO соответствует контракту потребителя, включая nullability, relationship
+  depth, pagination и сериализацию. Рефакторинг сохраняет публичную форму
+  ответа, если её изменение не входит в задачу.
+- Общие и связанные с безопасностью контракты проверены целевыми позитивными
+  и негативными сценариями; затронутые потребители синхронизированы.
+- При изменении схемы Payload типы обновлены генератором; generated-файлы
+  не редактировались вручную. Одна правка DTO не требует генерации типов.
+
+Проверяй затронутый контракт без аудита всех imports проекта. В общий итог
+включай результат и существенные замечания; оставшееся нарушение с ограничением
+пользователя не выдавай за соответствие правилу.

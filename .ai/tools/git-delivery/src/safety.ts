@@ -1,7 +1,12 @@
-/** Проверяет весь индекс и фактические staged-объекты перед созданием commit. */
+/**
+ * @file .ai/tools/git-delivery/src/safety.ts
+ * @version 1.0.1
+ * @date 2026-09-09
+ * @description Проверяет весь индекс и фактические staged-объекты перед созданием commit.
+ */
 import { createHash } from "node:crypto";
 import { PolicyError } from "./contracts.ts";
-import { Git } from "./git.ts";
+import { Git } from "./Git.adapter.ts";
 import { stagedPaths } from "./repository.ts";
 import type { Snapshot } from "./repository.ts";
 

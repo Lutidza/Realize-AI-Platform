@@ -1,7 +1,16 @@
-/** Ограниченный запуск Git без shell; унаследованные GIT_* не меняют выбранную рабочую копию. */
+/**
+ * @file .ai/tools/git-delivery/src/Git.adapter.ts
+ * @version 1.1.0
+ * @date 2026-09-09
+ * @description Ограниченный запуск Git без shell; унаследованные GIT_* не меняют выбранную рабочую копию.
+ */
 
 import { spawn } from "node:child_process";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
+import { GitFailure } from "./GitFailure.error.ts";
+import type { GitOptions, GitRunOptions } from "./Git.types.ts";
+
+export { GitFailure } from "./GitFailure.error.ts";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -37,19 +46,6 @@ const IDENTITY_ENVIRONMENT = new Set([
   "GIT_COMMITTER_EMAIL",
 ]);
 
-/** Безопасная причина сбоя; exitCode нужен для ожидаемого отсутствия Git-ссылки. */
-export class GitFailure extends Error {
-  code: string;
-  exitCode: number | null;
-
-  constructor(code: string, message: string, exitCode: number | null = null) {
-    super(message);
-    this.name = "GitFailure";
-    this.code = code;
-    this.exitCode = exitCode;
-  }
-}
-
 /** Исполняет только программно составленные аргументы, сохраняя configured hooks/signing. */
 export class Git {
   root: string;
@@ -59,14 +55,7 @@ export class Git {
   private readonly timeoutMs: number;
   private readonly maxOutputBytes: number;
 
-  constructor(
-    root: string,
-    options: {
-      command?: string;
-      timeoutMs?: number;
-      maxOutputBytes?: number;
-    } = {},
-  ) {
+  constructor(root: string, options: GitOptions = {}) {
     this.root = resolve(root);
     this.command = options.command ?? "git";
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
@@ -89,10 +78,7 @@ export class Git {
   }
 
   /** Возвращает полный UTF-8 stdout либо ошибку, не выдавая stderr или содержимое аргументов. */
-  async run(
-    args: string[],
-    options: { input?: string; env?: Record<string, string> } = {},
-  ): Promise<string> {
+  async run(args: string[], options: GitRunOptions = {}): Promise<string> {
     const output = await this.runBytes(args, options);
     try {
       return new TextDecoder("utf-8", { fatal: true }).decode(output);
@@ -105,10 +91,7 @@ export class Git {
   }
 
   /** Возвращает точные байты stdout, включая бинарные blobs, с теми же пределами исполнения. */
-  async runBytes(
-    args: string[],
-    options: { input?: string; env?: Record<string, string> } = {},
-  ): Promise<Buffer> {
+  async runBytes(args: string[], options: GitRunOptions = {}): Promise<Buffer> {
     if (process.platform !== "linux") {
       throw new GitFailure(
         "unsupported_platform",
@@ -162,6 +145,44 @@ export class Git {
     }
     env.GIT_OPTIONAL_LOCKS = "0";
     env.GIT_TERMINAL_PROMPT = "0";
+    if (options.network !== undefined) {
+      const network = options.network;
+      const allowed =
+        network?.transport === "https"
+          ? ["transport", "askpassPath", "token"]
+          : ["transport", "sshPath"];
+      const executable =
+        network?.transport === "https" ? network.askpassPath : network?.sshPath;
+      if (
+        !network ||
+        !["https", "ssh"].includes(network.transport) ||
+        Object.keys(network).some((key) => !allowed.includes(key)) ||
+        typeof executable !== "string" ||
+        !isAbsolute(executable) ||
+        !/^\/[A-Za-z0-9_./-]+$/.test(executable) ||
+        (network.transport === "https" &&
+          (typeof network.token !== "string" ||
+            !network.token ||
+            Buffer.byteLength(network.token) > 32768 ||
+            /[\0\r\n]/.test(network.token)))
+      ) {
+        throw new GitFailure(
+          "git_environment_invalid",
+          "Недопустимое сетевое окружение Git.",
+        );
+      }
+      env.GIT_ALLOW_PROTOCOL = network.transport;
+      env.LC_ALL = "C";
+      delete env.SSH_AUTH_SOCK;
+      if (network.transport === "https") {
+        env.GIT_ASKPASS = network.askpassPath;
+        env.REALIZE_GIT_HTTP_TOKEN = network.token;
+      } else {
+        env.GIT_SSH = network.sshPath;
+        env.GIT_SSH_VARIANT = "ssh";
+        env.SSH_ASKPASS_REQUIRE = "never";
+      }
+    }
 
     return await new Promise<Buffer>((resolvePromise, reject) => {
       const child = spawn(

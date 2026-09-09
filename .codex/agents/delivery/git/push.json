@@ -1,0 +1,5 @@
+{
+  "model": "gpt-5.3-codex-spark",
+  "reasoningEffort": "low",
+  "timeoutMs": 120000
+}

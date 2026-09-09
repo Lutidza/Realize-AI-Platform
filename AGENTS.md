@@ -38,24 +38,30 @@
 протокол и [порядок Git-операций](.ai/workflows/delivery/git/commit-push/WORKFLOW.md)
 с правилом и проверками выбранного действия. Общее изучение архитектуры и
 профильные инструкции разработки нужны только при отдельной задаче на изменение.
+Исключение — подключённые ограниченные воркеры: они получают только инструкцию
+[inspect](.codex/prompts/workflows/delivery/git/inspect.md),
+[commit](.codex/prompts/workflows/delivery/git/commit.md) или
+[push](.codex/prompts/workflows/delivery/git/push.md), без загрузки этого
+протокола и общих документов. Основной агент читает Git-маршрут до запуска;
+границы исключения заданы [Git-правилом](.ai/rules/git/RULE-GIT-DELIVERY.md).
 
 ## Навигация и уточнение правил
 
-| Задача или вопрос | Куда обратиться |
-| --- | --- |
-| Назначение, настройка, запуск, сборка | [README.md](README.md) |
-| Расположение кода и фактические владельцы | [Структура проекта](documentation/architecture/project-structure.md) |
-| Разработка, зависимости, комментарии | [Общие правила разработки](.ai/registry/rules/development/INDEX.md) |
-| Интерфейс, React, маршруты, браузерная проверка | [Правила интерфейса](.ai/registry/rules/development/frontend/INDEX.md) |
-| Payload, API, DTO, миграции, поиск | [Правила серверной разработки](.ai/registry/rules/development/backend/INDEX.md) |
-| Документация и изменение инструкций | [Правила документации](.ai/registry/rules/documentation/INDEX.md), [синхронизация](.codex/skills/skill-documentation-sync/SKILL.md) |
-| Удаление, перенос, границы задачи | [Контроль области изменений](.ai/registry/rules/scope-control/INDEX.md) |
-| Материалы задач, референсы, скриншоты и логи | [Рабочая область агентов](.ai-workspace/README.md) |
-| Выбор ответственности | [Группы ролей](.ai/roles/role-groups.md) |
-| Делегирование, инструменты, специальный процесс | [Порядки выполнения задач](.ai/workflows/INDEX.md) |
-| Настройки и процедуры Codex | [Адаптер Codex](.codex/README.md) |
-| Git: чтение состояния, разрешённые commit и push | [Порядок работы через воркера](.ai/workflows/delivery/git/commit-push/WORKFLOW.md) |
-| Устройство операционного слоя | [Карта .ai](.ai/STRUCTURE.md), [карта .codex](.codex/STRUCTURE.md) |
+| Задача или вопрос                                | Куда обратиться                                                                                                                     |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Назначение, настройка, запуск, сборка            | [README.md](README.md)                                                                                                              |
+| Расположение кода и фактические владельцы        | [Структура проекта](documentation/architecture/project-structure.md)                                                                |
+| Разработка, зависимости, комментарии             | [Общие правила разработки](.ai/registry/rules/development/INDEX.md)                                                                 |
+| Интерфейс, React, маршруты, браузерная проверка  | [Правила интерфейса](.ai/registry/rules/development/frontend/INDEX.md)                                                              |
+| Payload, API, DTO, миграции, поиск               | [Правила серверной разработки](.ai/registry/rules/development/backend/INDEX.md)                                                     |
+| Документация и изменение инструкций              | [Правила документации](.ai/registry/rules/documentation/INDEX.md), [синхронизация](.codex/skills/skill-documentation-sync/SKILL.md) |
+| Удаление, перенос, границы задачи                | [Контроль области изменений](.ai/registry/rules/scope-control/INDEX.md)                                                             |
+| Материалы задач, референсы, скриншоты и логи     | [Рабочая область агентов](.ai-workspace/README.md)                                                                                  |
+| Выбор ответственности                            | [Группы ролей](.ai/roles/role-groups.md)                                                                                            |
+| Делегирование, инструменты, специальный процесс  | [Порядки выполнения задач](.ai/workflows/INDEX.md)                                                                                  |
+| Настройки и процедуры Codex                      | [Адаптер Codex](.codex/README.md)                                                                                                   |
+| Git: чтение состояния, разрешённые commit и push | [Порядок работы через воркера](.ai/workflows/delivery/git/commit-push/WORKFLOW.md)                                                  |
+| Устройство операционного слоя                    | [Карта .ai](.ai/STRUCTURE.md), [карта .codex](.codex/STRUCTURE.md)                                                                  |
 
 ## Обязательные ограничения
 

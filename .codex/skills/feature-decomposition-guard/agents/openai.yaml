@@ -1,7 +1,7 @@
 interface:
-  display_name: "Feature Decomposition Guard"
-  short_description: "Separates independent responsibilities"
-  default_prompt: "Use $feature-decomposition-guard to assess whether a targeted responsibility split improves this change."
+  display_name: "Структура и ответственность кода"
+  short_description: "Границы файлов, типов, компонентов и модулей"
+  default_prompt: "Примени $feature-decomposition-guard для выбора структуры и разделения ответственности кода по проектному правилу."
 
 policy:
   allow_implicit_invocation: true

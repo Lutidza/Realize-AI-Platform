@@ -1,4 +1,9 @@
-/** Локальный программный контракт ADR-0016; данные модели и контекст запуска разбираются отдельно. */
+/**
+ * @file .ai/tools/git-delivery/src/contracts.ts
+ * @version 1.0.0
+ * @date 2026-09-08
+ * @description Локальный программный контракт ADR-0016; данные модели и контекст запуска разбираются отдельно.
+ */
 import { isAbsolute } from "node:path";
 
 export type Action = "inspect" | "commit" | "push" | "commit_push";

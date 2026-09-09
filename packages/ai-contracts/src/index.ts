@@ -1,6 +1,7 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2026-09-01
+ * @version 1.1.0
+ * @date 2026-09-09
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
@@ -15,6 +16,13 @@ export * from "./dataOperationValidation";
 export * from "./events";
 export * from "./execution";
 export * from "./integrations";
+export type { GitIntegrationTransport } from "./GitIntegrationTransport.types";
+export type { GitCommitAuthor } from "./GitCommitAuthor.types";
+export { parseGitCommitAuthor } from "./parseGitCommitAuthor.validator";
+export {
+  parseGitHubIntegrationConfiguration,
+  parseGitIntegrationTransport,
+} from "./parseGitHubIntegrationConfiguration.validator";
 export * from "./preview";
 export * from "./release";
 export * from "./sourcePromotion";

@@ -2,11 +2,11 @@
 
 ## Status
 
-accepted
+accepted; уточнено 9 сентября 2026 года.
 
 ## Context
 
-GitHub/GHCR release adapter из ADR-0011 сейчас получает repository и token из
+Изначально GitHub/GHCR release adapter из ADR-0011 получал repository и token из
 environment execution worker-а. Такой способ годится для operator bootstrap,
 но не даёт администратору управляемого раздела подключений и плохо масштабируется
 на GitLab, storage, analytics, payments и другие будущие providers.
@@ -35,12 +35,43 @@ environment execution worker-а. Такой способ годится для o
   как fallback;
 - без master key создание, замена, проверка сохранённого credential и его
   runtime consumption запрещены. Ключ остаётся operator-owned secret и не
-  хранится в Git, Payload или Admin API;
+  хранится в Git, Payload или Admin API. SSH-подключение без API token может
+  сохраняться и разрешаться для Git без master key;
 - каждое save, connection test и disconnect создаёт отдельное redacted audit
   event без repository token и raw provider response;
-- GitHub adapter принимает canonical HTTPS repository URL, проверяет доступ
-  server-side через GitHub REST API и сохраняет только normalized repository
-  metadata. Test endpoint не раскрывает token и не сохраняет draft token;
+- GitHub adapter сохраняет canonical HTTPS repository URL как идентичность
+  репозитория при обоих Git-транспортах. В существующем `configuration` JSONB
+  находятся `transport: "https" | "ssh"` и, только для SSH, `sshProfileRef`.
+  Новые таблицы, поля Payload и отдельный vault не нужны. SSH-профиль —
+  идентификатор из 1–64 букв ASCII, цифр, `_` и `-`, начинающийся с буквы или
+  цифры; это ссылка на конфигурацию исполнителя, а не путь, команда или ключ;
+- старые записи без `transport` читаются как HTTPS. Save input без `transport`
+  сохраняет текущий транспорт и профиль существующей записи, поэтому старый
+  клиент не сбрасывает SSH. Явный SSH требует `sshProfileRef`; HTTPS с профилем
+  и неизвестный транспорт отклоняются. Проверка сочетаний общая для
+  [API и runtime](../../../packages/ai-contracts/src/parseGitHubIntegrationConfiguration.validator.ts);
+- Поля Admin «Имя автора коммитов» и «Email автора коммитов» сохраняются в
+  `configuration.commitAuthor: { name, email }`. Общий parser нормализует пробелы,
+  ограничивает длину (160/254) и отклоняет неполную пару, недопустимые символы
+  и email. Старые записи без автора допустимы: commit требует заполнения
+  настроек или явного автора в контексте запуска. В save input отсутствие поля
+  сохраняет прежнее значение, `null` очищает пару. Смена автора не меняет токен
+  и не сбрасывает результат проверки подключения. Test endpoint сохраняет
+  автора при обновлении ветки и статуса проверки. Поля входят в безопасный DTO;
+  они не доказывают права пользователя или авторство незакоммиченных изменений;
+- `GitCommitAuthorService` получает автора из включённой актуальной записи
+  через общий reader, без vault и расшифровки token. Состояния: `absent`,
+  `disabled`, `unconfigured` либо `ready` с author, connectionKey и revision.
+  Вызывающий Git-загрузчик фиксирует результат до модели; поведение описано в
+  [ADR-0016](ADR-0016-development-git-delivery-handler.md);
+- HTTPS требует сохранённого или нового token. Для SSH token необязателен и
+  может отдельно сохраняться для GitHub REST API; `hasCredential` сообщает
+  наличие этого API credential, а не готовность SSH. Поля транспорта доступны
+  через существующий API; текущая Admin-форма не предоставляет выбор HTTPS/SSH;
+- test endpoint проверяет repository и права token через GitHub REST API,
+  не раскрывает token и не сохраняет draft token. Он явно отклоняет отсутствие
+  API token. `lastTestStatus: "passed"` и результат теста не подтверждают
+  SSH-профиль или возможность SSH push;
 - worker-owned source/release consumers загружают включённое primary connection
   только перед GitHub side effect и расшифровывают credential в памяти. Source
   promotion использует credential только через `GIT_ASKPASS`/REST request, а
@@ -48,7 +79,7 @@ environment execution worker-а. Такой способ годится для o
   orchestrator process. Для release эти значения имеют приоритет над legacy
   `GH_TOKEN`/`REALIZE_AI_GITHUB_REPOSITORY` environment;
 - общее серверное чтение принадлежит
-  [IntegrationRuntimeRepository](../../../packages/payload-ai-plugin/src/integrations/runtimeRepository.ts),
+  [модулю интеграций](../../../packages/payload-ai-plugin/src/integrations/runtime/integrationRuntime.index.ts),
   экспорт `@realize/payload-ai-control/server/integration-runtime`. Модуль
   принимает существующий `Pool` и ключ, читает актуальную запись при каждом
   вызове и использует общий vault. Он не создаёт соединений с БД и не загружает
@@ -56,10 +87,19 @@ environment execution worker-а. Такой способ годится для o
   подключения сохранены; решение о допустимости отсутствующей записи остаётся
   у потребителя. Ошибки сохранённой конфигурации блокируют операцию, а сбой БД
   возвращает безопасную ошибку чтения без деталей драйвера;
-- legacy environment остаётся временным bootstrap fallback, если connection ещё
-  не создан. Остальные executable paths, workflow name, timeouts и provider
-  infrastructure остаются operator-owned environment, а не editable Admin
-  settings;
+- `GitHubConnectionService.resolvePrimaryGitHub()` сохраняет REST-контракт
+  с обязательным token для source/release. Отдельный
+  [GitRepositoryConnectionService](../../../packages/payload-ai-plugin/src/integrations/runtime/GitRepositoryConnection.service.ts)
+  возвращает `absent`, `disabled` либо `ready` с `connectionKey`, `revision`,
+  `repositorySlug`, canonical `repositoryURL` и HTTPS token или SSH profile.
+  SSH-ветка не расшифровывает credential и не требует vault. Закрытые данные
+  получает серверный обработчик; SSH destination и профиль разрешаются
+  исполнителем по [ADR-0016](ADR-0016-development-git-delivery-handler.md);
+- для release consumer legacy environment остаётся временным bootstrap
+  fallback, если connection ещё не создан. Сетевая Git-доставка рабочего слоя требует
+  включённого подключения из БД и не использует этот fallback. Остальные
+  executable paths, workflow name, timeouts и provider infrastructure остаются
+  конфигурацией исполнителя под управлением оператора;
 - доступ к UI и каждому endpoint проверяется отдельным installation-owned
   `canManageIntegrations`; page-level проверка не заменяет endpoint authorization.
 

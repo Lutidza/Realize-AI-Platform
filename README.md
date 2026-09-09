@@ -114,17 +114,18 @@ docker compose ps
 
 ## Основные команды
 
-| Команда                              | Назначение                                 |
-| ------------------------------------ | ------------------------------------------ |
-| `npm run lint`                       | Проверка кода ESLint                       |
-| `npm run typecheck`                  | Проверка типов TypeScript                  |
-| `npm run format:check`               | Проверка форматирования                    |
-| `npm run test:int`                   | Тесты Vitest                               |
-| `npm run test:e2e`                   | Браузерные тесты Playwright                |
-| `npm run payload:migrate:status`     | Состояние миграций                         |
-| `npm run payload:migrate:create`     | Создание миграции после изменения схемы    |
-| `npm run payload:generate-types`     | Генерация типов Payload                    |
-| `npm run payload:generate-importmap` | Генерация карты импортов панели управления |
+| Команда                              | Назначение                                                       |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| `npm run lint`                       | Проверка кода ESLint                                             |
+| `npm run typecheck`                  | Проверка типов TypeScript                                        |
+| `npm run check:headers -- <файлы>`   | [Шапки выбранных исходников](.ai/tools/source-headers/README.md) |
+| `npm run format:check`               | Проверка форматирования                                          |
+| `npm run test:int`                   | Тесты Vitest                                                     |
+| `npm run test:e2e`                   | Браузерные тесты Playwright                                      |
+| `npm run payload:migrate:status`     | Состояние миграций                                               |
+| `npm run payload:migrate:create`     | Создание миграции после изменения схемы                          |
+| `npm run payload:generate-types`     | Генерация типов Payload                                          |
+| `npm run payload:generate-importmap` | Генерация карты импортов панели управления                       |
 
 Для браузерных тестов нужен Chromium: `npx playwright install chromium`.
 Полный список команд находится в [package.json](package.json).

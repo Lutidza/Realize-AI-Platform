@@ -1,4 +1,9 @@
-/** Реальный Git запускается только в mkdtemp fixtures; проверки моделируют доверенные attestations launcher. */
+/**
+ * @file .ai/tools/git-delivery/test/handler.test.ts
+ * @version 1.0.1
+ * @date 2026-09-09
+ * @description Проверяет обработчик и CLI с реальным Git только во временных репозиториях.
+ */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import {
@@ -16,7 +21,7 @@ import type { TestContext } from "node:test";
 import { fileURLToPath } from "node:url";
 
 import type { Context, Result } from "../src/contracts.ts";
-import { Git } from "../src/git.ts";
+import { Git } from "../src/Git.adapter.ts";
 import { runDelivery } from "../src/handler.ts";
 import { journalRelativePath } from "../src/state.ts";
 import type { Journal } from "../src/state.ts";
@@ -628,7 +633,11 @@ async function cli(
   return await new Promise((resolve, reject) => {
     const child = spawn(
       process.execPath,
-      [fileURLToPath(new URL("../src/cli.ts", import.meta.url))],
+      [
+        fileURLToPath(
+          new URL("../src/runGitDelivery.controller.ts", import.meta.url),
+        ),
+      ],
       {
         cwd: root,
         shell: false,

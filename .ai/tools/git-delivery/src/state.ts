@@ -1,12 +1,17 @@
-/** Журнал ADR-0016 сохраняется до побочного эффекта; flock принадлежит времени жизни процесса. */
+/**
+ * @file .ai/tools/git-delivery/src/state.ts
+ * @version 1.0.1
+ * @date 2026-09-09
+ * @description Журнал ADR-0016 сохраняется до побочного эффекта; flock принадлежит времени жизни процесса.
+ */
 import { spawn } from "node:child_process";
 import { constants } from "node:fs";
-import { open, mkdir, rename, unlink, realpath, lstat } from "node:fs/promises";
-import { join } from "node:path";
-import { createHash, randomUUID } from "node:crypto";
+import { open, realpath } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { PolicyError, relativeFile } from "./contracts.ts";
 import type { Context, Result } from "./contracts.ts";
 import type { Snapshot } from "./repository.ts";
+import { GitJournalRepository } from "./GitJournal.repository.ts";
 
 export type Journal = {
   version: 1;
@@ -84,7 +89,7 @@ export async function acquireLock(commonDirectory: string): Promise<{
 }
 
 export function journalRelativePath(context: Context): string {
-  return `.ai-workspace/tasks/${context.taskId}/logs/git-delivery/${context.requestId}.json`;
+  return new GitJournalRepository(context).relativePath;
 }
 
 function isHash(value: unknown, length?: number): value is string {
@@ -185,146 +190,14 @@ function validateJournal(value: unknown): Journal {
   return source;
 }
 
-// Каждый каталог открывается отдельно, чтобы symlink не перенаправлял запись журнала.
-async function parentDirectory(
-  root: string,
-  relative: string,
-  create: boolean,
-) {
-  const parts = relative.split("/");
-  const filename = parts.pop()!;
-  let directory = await open(
-    root,
-    constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
-  );
-  try {
-    for (const part of parts) {
-      const candidate = `/proc/self/fd/${directory.fd}/${part}`;
-      if (create) {
-        await mkdir(candidate, { mode: 0o700 }).catch(
-          (error: NodeJS.ErrnoException) => {
-            if (error.code !== "EEXIST") throw error;
-          },
-        );
-        await directory.sync();
-      }
-      const next = await open(
-        candidate,
-        constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
-      );
-      await directory.close();
-      directory = next;
-    }
-    return { directory, filename };
-  } catch (error) {
-    await directory.close();
-    throw error;
-  }
-}
-
 export async function loadJournal(context: Context): Promise<Journal | null> {
-  let parent;
-  try {
-    parent = await parentDirectory(
-      context.repositoryRoot,
-      journalRelativePath(context),
-      false,
-    );
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw new PolicyError("journal_unavailable", "Недоступен каталог журнала.");
-  }
-  try {
-    let file;
-    try {
-      file = await open(
-        `/proc/self/fd/${parent.directory.fd}/${parent.filename}`,
-        constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
-      );
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-      throw error;
-    }
-    try {
-      const stat = await file.stat();
-      if (
-        !stat.isFile() ||
-        stat.size > 2 * 1024 * 1024 ||
-        stat.mode & 0o077 ||
-        stat.uid !== process.getuid?.()
-      ) {
-        throw new PolicyError(
-          "invalid_journal",
-          "Журнал должен быть личным файлом допустимого размера.",
-        );
-      }
-      const bytes = Buffer.alloc(2 * 1024 * 1024 + 1);
-      let size = 0;
-      while (size < bytes.length) {
-        const read = await file.read(bytes, size, bytes.length - size, null);
-        if (!read.bytesRead) break;
-        size += read.bytesRead;
-      }
-      if (size === bytes.length)
-        throw new PolicyError(
-          "invalid_journal",
-          "Журнал превышает допустимый размер.",
-        );
-      return validateJournal(
-        JSON.parse(
-          new TextDecoder("utf-8", { fatal: true }).decode(
-            bytes.subarray(0, size),
-          ),
-        ),
-      );
-    } finally {
-      await file.close();
-    }
-  } catch (error) {
-    if (error instanceof PolicyError) throw error;
-    throw new PolicyError(
-      "invalid_journal",
-      "Не удалось прочитать журнал операции.",
-    );
-  } finally {
-    await parent.directory.close();
-  }
+  const value = await new GitJournalRepository(context).load();
+  return value === null ? null : validateJournal(value);
 }
 
 export async function saveJournal(
   context: Context,
   journal: Journal,
 ): Promise<void> {
-  const parent = await parentDirectory(
-    context.repositoryRoot,
-    journalRelativePath(context),
-    true,
-  );
-  const base = `/proc/self/fd/${parent.directory.fd}`;
-  const temporary = join(base, `.${randomUUID()}.tmp`);
-  try {
-    const existing = await lstat(join(base, parent.filename)).catch(
-      (error: NodeJS.ErrnoException) => {
-        if (error.code === "ENOENT") return null;
-        throw error;
-      },
-    );
-    if (existing && !existing.isFile())
-      throw new PolicyError(
-        "invalid_journal",
-        "Путь журнала не является обычным файлом.",
-      );
-    const file = await open(temporary, "wx", 0o600);
-    try {
-      await file.writeFile(JSON.stringify(journal) + "\n");
-      await file.sync();
-    } finally {
-      await file.close();
-    }
-    await rename(temporary, join(base, parent.filename));
-    await parent.directory.sync();
-  } finally {
-    await unlink(temporary).catch(() => {});
-    await parent.directory.close();
-  }
+  await new GitJournalRepository(context).save(journal);
 }

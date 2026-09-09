@@ -1,6 +1,7 @@
 /**
  * @file packages/ai-contracts/src/validation.ts
- * @version 2026-08-28
+ * @version 1.1.0
+ * @date 2026-09-09
  * @description Проверяет недоверенный ввод на public API boundary без runtime-зависимостей.
  */
 
@@ -32,8 +33,10 @@ import type {
   RejectReleaseInput,
 } from "./release";
 import type { PublishPullRequestInput } from "./sourcePromotion";
+import { parseGitIntegrationTransport } from "./parseGitHubIntegrationConfiguration.validator";
+import { parseGitCommitAuthor } from "./parseGitCommitAuthor.validator";
 
-/** Expected validation failure safe to translate into an API error. */
+/** Ожидаемая ошибка проверки, безопасная для ответа API. */
 export class ContractValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -49,7 +52,7 @@ const asObject = (value: unknown): Record<string, unknown> => {
   return value as Record<string, unknown>;
 };
 
-/** Validates and normalizes a conversation-create body. */
+/** Проверяет и нормализует запрос создания диалога. */
 export const parseCreateConversationInput = (
   value: unknown,
 ): CreateConversationInput => {
@@ -70,7 +73,7 @@ export const parseCreateConversationInput = (
   return { title };
 };
 
-/** Validates, trims and bounds a user message body. */
+/** Проверяет текст сообщения, удаляет внешние пробелы и ограничивает длину. */
 export const parseCreateMessageInput = (value: unknown): CreateMessageInput => {
   const input = asObject(value);
 
@@ -88,7 +91,7 @@ export const parseCreateMessageInput = (value: unknown): CreateMessageInput => {
   return { content };
 };
 
-/** Validates the assistant message selected as the immutable plan source. */
+/** Проверяет сообщение ассистента, выбранное неизменяемым источником плана. */
 export const parseCreateChangeRequestInput = (
   value: unknown,
 ): CreateChangeRequestInput => {
@@ -136,7 +139,7 @@ const parseGitHubToken = (value: unknown): string => {
   return token;
 };
 
-/** Normalizes one HTTPS GitHub repository URL without preserving credentials. */
+/** Нормализует HTTPS-адрес репозитория GitHub без сохранения credentials. */
 export const parseGitHubRepositoryURL = (
   value: unknown,
 ): { repositorySlug: string; repositoryURL: string } => {
@@ -210,7 +213,7 @@ const optionalDisplayName = (value: unknown): string | undefined => {
   return displayName;
 };
 
-/** Validates a GitHub connection upsert while keeping token optional on update. */
+/** Проверяет сохранение GitHub: token необязателен при обновлении, null удаляет автора. */
 export const parseSaveGitHubIntegrationInput = (
   value: unknown,
 ): SaveGitHubIntegrationInput => {
@@ -219,18 +222,37 @@ export const parseSaveGitHubIntegrationInput = (
     throw new ContractValidationError("enabled must be a boolean.");
   }
   const repository = parseGitHubRepositoryURL(input.repositoryURL);
+  // Не подставляем HTTPS во вход обновления: старый клиент не должен сбрасывать SSH.
+  const transport =
+    input.transport === undefined
+      ? undefined
+      : parseGitIntegrationTransport(input);
+  if (input.transport === undefined && input.sshProfileRef !== undefined) {
+    throw new ContractValidationError(
+      "sshProfileRef requires an explicit SSH transport.",
+    );
+  }
   return {
     displayName: optionalDisplayName(input.displayName),
     enabled: input.enabled,
     expectedRevision: parseExpectedRevision(input.expectedRevision, true),
     repositoryURL: repository.repositoryURL,
+    ...transport,
+    ...(input.commitAuthor === undefined
+      ? {}
+      : {
+          commitAuthor:
+            input.commitAuthor === null
+              ? null
+              : parseGitCommitAuthor(input.commitAuthor),
+        }),
     ...(input.token === undefined
       ? {}
       : { token: parseGitHubToken(input.token) }),
   };
 };
 
-/** Validates optional draft values for a non-persisting GitHub test. */
+/** Проверяет необязательные черновые значения для GitHub-проверки без сохранения. */
 export const parseTestGitHubIntegrationInput = (
   value: unknown,
 ): TestGitHubIntegrationInput => {
@@ -248,7 +270,7 @@ export const parseTestGitHubIntegrationInput = (
   };
 };
 
-/** Validates optimistic removal of one persisted integration. */
+/** Проверяет запрос удаления интеграции с optimistic revision. */
 export const parseDisconnectIntegrationInput = (
   value: unknown,
 ): DisconnectIntegrationInput => {
@@ -299,7 +321,7 @@ const parseComment = (
   return comment || undefined;
 };
 
-/** Validates an approval and its optimistic-lock version. */
+/** Проверяет подтверждение и версию optimistic lock. */
 export const parseApprovePlanInput = (value: unknown): ApprovePlanInput => {
   const input = asObject(value);
   return {
@@ -308,7 +330,7 @@ export const parseApprovePlanInput = (value: unknown): ApprovePlanInput => {
   };
 };
 
-/** Validates a rejection; an auditable reason is mandatory. */
+/** Проверяет отклонение с обязательной причиной для аудита. */
 export const parseRejectPlanInput = (value: unknown): RejectPlanInput => {
   const input = asObject(value);
   const comment = parseComment(input.comment, true);
@@ -323,13 +345,13 @@ export const parseRejectPlanInput = (value: unknown): RejectPlanInput => {
   };
 };
 
-/** Validates a request to queue one approved plan version. */
+/** Проверяет запрос постановки утверждённой версии плана в очередь. */
 export const parseExecuteChangeInput = (value: unknown): ExecuteChangeInput => {
   const input = asObject(value);
   return { expectedVersion: parseExpectedVersion(input.expectedVersion) };
 };
 
-/** Validates acceptance of one exact produced diff. */
+/** Проверяет принятие конкретного полученного diff. */
 export const parseAcceptImplementationInput = (
   value: unknown,
 ): AcceptImplementationInput => {
@@ -341,7 +363,7 @@ export const parseAcceptImplementationInput = (
   };
 };
 
-/** Validates rejection of one exact produced diff. */
+/** Проверяет отклонение конкретного полученного diff. */
 export const parseRejectImplementationInput = (
   value: unknown,
 ): RejectImplementationInput => {
@@ -359,7 +381,7 @@ export const parseRejectImplementationInput = (
   };
 };
 
-/** Validates promotion of one exact human-accepted diff. */
+/** Проверяет продвижение конкретного diff, принятого пользователем. */
 export const parseDeployPreviewInput = (value: unknown): DeployPreviewInput => {
   const input = asObject(value);
   return {
@@ -368,7 +390,7 @@ export const parseDeployPreviewInput = (value: unknown): DeployPreviewInput => {
   };
 };
 
-/** Validates acceptance of one exact preview artifact. */
+/** Проверяет принятие конкретного preview artifact. */
 export const parseAcceptPreviewInput = (value: unknown): AcceptPreviewInput => {
   const input = asObject(value);
   return {
@@ -381,7 +403,7 @@ export const parseAcceptPreviewInput = (value: unknown): AcceptPreviewInput => {
   };
 };
 
-/** Validates preview rejection and its mandatory audit comment. */
+/** Проверяет отклонение preview с обязательным комментарием для аудита. */
 export const parseRejectPreviewInput = (value: unknown): RejectPreviewInput => {
   const input = asObject(value);
   const comment = parseComment(input.comment, true);
@@ -469,7 +491,7 @@ export const parseApproveReleaseInput = (value: unknown): ApproveReleaseInput =>
 export const parseRejectReleaseInput = (value: unknown): RejectReleaseInput =>
   parseReleaseDecision(value, true) as RejectReleaseInput;
 
-/** Validates route identifiers before they reach Payload queries. */
+/** Проверяет идентификаторы маршрута до передачи в запросы Payload. */
 export const parseIdentifier = (value: unknown, name: string): string => {
   if (typeof value !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(value)) {
     throw new ContractValidationError(`${name} is invalid.`);

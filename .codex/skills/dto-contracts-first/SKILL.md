@@ -1,149 +1,26 @@
 ---
 name: dto-contracts-first
 description: >-
-  Используй, когда задача меняет или создаёт DTO, public API response shape,
-  frontend/backend data contract, mapper, serializer, catalog/customer/media
-  public shape или устраняет raw Payload document leakage во frontend/API.
+  Применяй при создании или изменении DTO, публичного ответа API, mapper или
+  serializer и при устранении выдачи raw Payload documents за границу данных.
 ---
 
-# DTO contracts first
+# DTO и границы данных
 
-Skill применяется, когда нужно безопасно связать Payload/backend и frontend без
-выдачи raw Payload documents наружу.
+Источник требований —
+[правило DTO](../../../.ai/rules/development/backend/RULE-DTO-CONTRACTS-NO-RAW-PAYLOAD.md).
+Навык описывает процедуру и не задаёт собственные пути или форму ответа API.
 
-## Что открыть
-
-1. `AGENTS.md`
-2. `documentation/project-context.md`
-3. `.ai/roles/developer/backend/INDEX.md`
-4. `.ai/roles/developer/frontend/INDEX.md`, если меняется consumer UI.
-5. `.ai/registry/rules/development/backend/INDEX.md`
-6. `.ai/rules/development/backend/RULE-DTO-CONTRACTS-NO-RAW-PAYLOAD.md`
-7. `.ai/checks/development/backend/CHECK-DTO-CONTRACTS-NO-RAW-PAYLOAD.md`
-8. `.codex/skills/payload-next-contracts-first/SKILL.md`
-9. Ближайшее доменное ТЗ в `documentation/**`, если оно есть.
-
-## Owner layout
-
-DTO types are contracts. Mappers are backend implementation.
-
-```text
-src/domain/contracts/
-  api/
-  catalog/
-  customers/
-  media/
-
-src/domain/mappers/
-  catalog/
-  customers/
-  media/
-```
-
-Правильные примеры:
-
-- `src/domain/contracts/media/PublicMedia.ts`
-- `src/domain/contracts/catalog/ProductPublic.ts`
-- `src/domain/contracts/customers/CustomerProfilePublic.ts`
-- `src/domain/contracts/catalog/CatalogListItem.ts`
-- `src/domain/mappers/media/mapMediaToPublicMedia.ts`
-- `src/domain/mappers/catalog/mapProductToProductPublic.ts`
-- `src/domain/mappers/customers/mapCustomerProfile.ts`
-
-Неправильные owners:
-
-- `src/domain/catalog/mappers/**`
-- `src/domain/media/mappers/**` (if `media` DTOs live in domain-level mappers)
-- DTO files inside `src/app/api/**`
-- frontend-local copies of backend response contracts.
-
-## Contract rules
-
-1. Payload generated types are persistence/admin types, not public API
-   contracts.
-2. Public API must not return raw Payload documents.
-3. Frontend must import DTO contracts from `src/domain/contracts/**`, not
-   from `src/payload-types.ts`.
-4. API routes should return explicit DTOs through mappers, not local ad hoc
-   object stripping.
-5. Create separate DTOs per context: self, public, list item, detail, admin,
-   search hit, media variant.
-6. Mappers must allowlist output fields. Do not use object spread from Payload
-   docs into public responses.
-7. Sensitive fields, auth fields, internal state, ownership metadata and
-   moderation data stay out of public DTOs unless explicitly required by the
-   contract.
-8. Paginated Payload results must be mapped to project pagination contracts; do
-   not return `PaginatedDocs<T>` to frontend.
-
-## API response shape
-
-Use a consistent envelope for new or refactored public APIs:
-
-```ts
-export type ApiSuccess<T> = {
-  ok: true
-  data: T
-  meta?: Record<string, unknown>
-}
-
-export type ApiFailure = {
-  ok: false
-  error: {
-    code: string
-    message: string
-    details?: unknown
-  }
-}
-```
-
-For lists:
-
-```ts
-export type PaginatedResponse<T> = {
-  items: T[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-    hasNextPage: boolean
-    hasPrevPage: boolean
-  }
-}
-```
-
-If an existing endpoint still uses another shape, either keep compatibility with
-a documented migration step or explicitly refactor its consumers in the same
-scope.
-
-## Workflow
-
-1. Identify changed contract: API response, server resolver result, search hit,
-   profile DTO, route DTO, media DTO или catalog/customer DTO.
-2. Find current producers and consumers with `rg`.
-3. Define DTO type in `src/domain/contracts/<domain>/`.
-4. Define mapper in `src/domain/mappers/<domain>/`.
-5. Update backend producer to call the mapper.
-6. Update frontend/import consumers to use DTO contract, not Payload type.
-7. Add or update tests for mapper behavior when the data is sensitive,
-   security-facing, shared or reused.
-8. Run checks appropriate to scope.
-
-## Checks
-
-- `npx tsc --noEmit --pretty false`
-- `npm run lint` when source changes require lint.
-- Targeted Vitest for shared mappers or security-sensitive DTOs.
-- `npm run payload:generate-types` только при изменении схемы Payload.
-- Browser/runtime evidence only when rendered UI behavior changes.
-
-## Handoff
-
-Report:
-
-- DTO contracts created or changed;
-- mappers created or changed;
-- raw Payload leakage removed or still remaining;
-- affected API routes/services/UI consumers;
-- checks run or skipped with reason.
+1. Найди производителя, потребителей и существующие владельцы типов и mapper.
+   Определи trust boundary по правилу DTO и контракту потребителя.
+2. Выбери подходящий существующий тип. Для собственных типов, mapper и
+   переносимости следуй
+   [правилу структуры](../../../.ai/rules/development/RULE-CODE-STRUCTURE.md)
+   и [правилу именования](../../../.ai/rules/development/RULE-CODE-NAMING.md).
+3. Измени DTO и mapper у выбранного владельца, затем синхронизируй затронутых
+   потребителей. Сохрани публичный контракт, если его изменение не входит в задачу.
+4. Выполни [проверку DTO](../../../.ai/checks/development/backend/CHECK-DTO-CONTRACTS-NO-RAW-PAYLOAD.md).
+   Выбери целевые проверки по изменённому контракту и риску; генерацию типов
+   запускай только при изменении схемы Payload.
+5. Сообщи изменённый контракт, выполненные проверки и существенные ограничения
+   в общем итоге задачи.

@@ -104,15 +104,18 @@ analysis -> plan -> pre_edit_gate -> task_fixation -> implementation
 Запрещено:
 
 - начинать реализацию до плана и pre-edit gate;
-- расширять allowlist во время реализации без нового gate;
+- изменять список файлов без актуализации плана или выходить за разрешённую область без решения;
 - фиксировать задачу так, будто архитектурное решение уже принято, если owner
   или source of truth не доказаны;
 - использовать Dialog Assistant-only переходы как обязательный workflow для
   всех worker-ов.
 
-Если корректный план требует нового owner-layer, нового top-level path,
-нового runtime/tooling/data контура, изменения contract-level документации или
-расширения allowlist, агент останавливается до подтверждения scope.
+Область и необходимость подтверждения определяются
+[правилом работы с артефактами](../scope-control/RULE-ARTIFACT-DISPOSITION.md).
+Новый owner-layer, top-level path, runtime/tooling/data контур или изменение
+контрактной документации требуют решения пользователя, если не входят в
+разрешённое задание. Уточнение собственного списка файлов внутри него не
+является расширением области.
 
 ### 2.1. Приоритет active AI-layer при исполнении
 
@@ -330,6 +333,6 @@ approval_reference:
 - `passed` - существующий owner-layer проверен, дублирования нет, lifecycle
   понятен, approval не требуется или уже получен.
 - `stop-for-approval` - нужен новый owner-layer, top-level path, контур,
-  временный bridge или расширение allowlist.
+  временный bridge или выход за область, на которые ещё нет разрешения.
 - `blocked` - owner-layer, source of truth, lifecycle или отсутствие
   дублирования не доказаны.

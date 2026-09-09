@@ -15,8 +15,8 @@
 - `payload-next-contracts-first` - Payload/Next API and data contract work.
 - `codex-external-worker-session` - external Codex worker session lifecycle.
 - `code-comment-discipline` - TSDoc/comment discipline.
-- `dto-contracts-first` - safe backend/frontend DTO contracts and mappers.
-- `feature-decomposition-guard` - decomposition of large or mixed files.
+- `dto-contracts-first` — публичные DTO и мапперы у фактического владельца.
+- `feature-decomposition-guard` — структура кода и разделение ответственности.
 - `frontend-guardrail-audit` - read-only audit of frontend guardrails.
 - `frontend-runtime-evidence` - choose static/build/browser evidence tier.
 - `git-commit-push` — Git-операции через отдельного воркера, HTTPS/SSH.

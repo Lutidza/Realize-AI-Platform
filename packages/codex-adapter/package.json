@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./rpc": "./src/JsonLineRpcClient.adapter.ts",
+    "./environment": "./src/environment.ts"
   },
   "dependencies": {
     "@realize/ai-contracts": "0.1.0"

@@ -102,18 +102,22 @@ Payload Admin также содержит provider-neutral раздел `/admin/
 Первый adapter настраивает GitHub repository и write-only token. Browser получает
 только redacted DTO; credential хранится в installation-local AES-256-GCM vault
 с отдельным operator-owned `REALIZE_INTEGRATIONS_ENCRYPTION_KEY`. Включённое
-GitHub connection передаётся только worker-owned source promotion и release
-orchestrator subprocess; browser и Payload DTO credential не получают. Для
+GitHub connection передаётся серверным исполнителям source promotion, release
+orchestrator и отдельного Git push; browser и Payload DTO credential не получают. Для
 release adapter connection имеет приоритет над legacy repository/token
 environment. Provider infrastructure (CLI paths, workflow и timeouts) остаётся
 server-owned configuration.
 
 Общее серверное чтение подключения находится в
-`packages/payload-ai-plugin/src/integrations/runtimeRepository.ts`
-(`@realize/payload-ai-control/server/integration-runtime`). Execution worker
-передаёт ему существующий Pool и ключ; SQL и расшифровка не дублируются в
-операционном слое. Подключение этого модуля к Git-обработчику и настройка
-HTTPS/SSH по ADR-0016 остаются следующими этапами.
+`packages/payload-ai-plugin/src/integrations/runtime/`
+(`@realize/payload-ai-control/server/integration-runtime`). `IntegrationRuntimeRepository`
+читает PostgreSQL, валидатор проверяет запись, `GitHubConnectionService` получает
+credential через существующий vault. Execution worker создаёт репозиторий со
+своим Pool и передаёт его вместе с ключом сервису; SQL и расшифровка не дублируются
+в операционном слое. Для отдельного push Git-обработчик использует
+`GitRepositoryConnectionService`: HTTPS-токен или SSH-профиль выбирается по
+настройкам интеграции. Выбор транспорта в Admin UI и объединённый `commit_push`
+по ADR-0016 остаются следующими этапами.
 
 Production authorization handoff, deploy/rollback controller и commercial
 enforcement в текущий slice не входят. `RELEASE_APPROVAL` по-прежнему не даёт

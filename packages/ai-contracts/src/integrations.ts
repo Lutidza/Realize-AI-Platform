@@ -1,25 +1,30 @@
 /**
  * @file packages/ai-contracts/src/integrations.ts
- * @version 2026-08-27
+ * @version 1.1.0
+ * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
  * @description Задаёт browser-safe контракты каталога интеграций без secret material.
  */
 
-/** Stable provider identifiers with implemented server adapters. */
+import type { GitIntegrationTransport } from "./GitIntegrationTransport.types";
+import type { GitCommitAuthor } from "./GitCommitAuthor.types";
+
+/** Стабильные идентификаторы провайдеров с реализованными серверными адаптерами. */
 export type IntegrationProviderID = "github";
 
-/** Groups a growing provider catalog without coupling UI to persistence. */
+/** Группирует каталог провайдеров без зависимости UI от persistence. */
 export type IntegrationCategory = "development";
 
-/** Safe GitHub configuration returned to an authorized Admin browser. */
-export type GitHubIntegrationConfigurationDTO = {
+/** Безопасная конфигурация GitHub для авторизованного Admin browser. */
+export type GitHubIntegrationConfigurationDTO = GitIntegrationTransport & {
+  commitAuthor?: GitCommitAuthor;
   defaultBranch?: string;
   repositorySlug: string;
   repositoryURL: string;
 };
 
-/** Shared metadata for one configured provider connection. */
+/** Общие метаданные настроенного подключения провайдера. */
 export type IntegrationConnectionBaseDTO = {
   connectionKey: string;
   credentialUpdatedAt?: string;
@@ -34,16 +39,16 @@ export type IntegrationConnectionBaseDTO = {
   updatedAt: string;
 };
 
-/** Discriminated browser projection for the current GitHub adapter. */
+/** Browser-проекция текущего GitHub-адаптера с явным provider. */
 export type GitHubIntegrationConnectionDTO = IntegrationConnectionBaseDTO & {
   configuration: GitHubIntegrationConfigurationDTO;
   provider: "github";
 };
 
-/** Union extended by each provider-specific safe configuration. */
+/** Объединение безопасных конфигураций поддерживаемых провайдеров. */
 export type IntegrationConnectionDTO = GitHubIntegrationConnectionDTO;
 
-/** Client-safe provider metadata used to render a scalable catalog. */
+/** Безопасные метаданные провайдера для отображения каталога. */
 export type IntegrationProviderDescriptorDTO = {
   capabilities: string[];
   category: IntegrationCategory;
@@ -52,29 +57,34 @@ export type IntegrationProviderDescriptorDTO = {
   name: string;
 };
 
-/** Aggregate returned by the Admin integrations root view. */
+/** Данные корневого раздела интеграций в Admin. */
 export type IntegrationCatalogDTO = {
   connections: IntegrationConnectionDTO[];
   providers: IntegrationProviderDescriptorDTO[];
   vaultConfigured: boolean;
 };
 
-/** Optimistic upsert of the primary GitHub connection. */
+/** Сохранение основного GitHub-подключения с optimistic revision. */
 export type SaveGitHubIntegrationInput = {
+  // Отсутствие сохраняет прежнего автора; null явно удаляет настройку.
+  commitAuthor?: GitCommitAuthor | null;
   displayName?: string;
   enabled: boolean;
   expectedRevision: number;
   repositoryURL: string;
   token?: string;
+  // Отсутствующий transport сохраняет выбор существующей записи при обновлении.
+  transport?: GitIntegrationTransport["transport"];
+  sshProfileRef?: string;
 };
 
-/** Draft values optionally used by a non-persisting connection test. */
+/** Необязательные черновые значения для проверки подключения без сохранения. */
 export type TestGitHubIntegrationInput = {
   repositoryURL?: string;
   token?: string;
 };
 
-/** Safe result of one server-side provider connection check. */
+/** Безопасный результат серверной проверки подключения провайдера. */
 export type GitHubIntegrationTestDTO = {
   checkedAt: string;
   defaultBranch?: string;
@@ -83,12 +93,12 @@ export type GitHubIntegrationTestDTO = {
   status: "failed" | "passed";
 };
 
-/** Optimistic request to remove one configured connection and its credential. */
+/** Удаление подключения и credential с проверкой optimistic revision. */
 export type DisconnectIntegrationInput = {
   expectedRevision: number;
 };
 
-/** Explicit disconnect result without returning the removed record. */
+/** Результат отключения без выдачи удалённой записи. */
 export type DisconnectIntegrationDTO = {
   disconnected: true;
   provider: IntegrationProviderID;

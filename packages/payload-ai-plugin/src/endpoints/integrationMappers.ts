@@ -1,15 +1,17 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationMappers.ts
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
- * @description Maps hidden integration documents to explicit browser-safe DTOs.
+ * @description Преобразует скрытые записи интеграций в явные DTO без секретов.
  */
 
 import type {
   GitHubIntegrationConfigurationDTO,
   GitHubIntegrationConnectionDTO,
 } from "@realize/ai-contracts";
+import { parseGitHubIntegrationConfiguration } from "@realize/ai-contracts";
 
 import type { AIDocument } from "./repository";
 
@@ -20,28 +22,11 @@ const requiredString = (value: unknown, name: string): string => {
   return value;
 };
 
-/** Narrows provider-specific JSON without exposing unknown stored keys. */
+/** Проверяет provider JSON и оставляет только безопасные поля общей конфигурации. */
 export const githubConfigurationOf = (
   value: unknown,
-): GitHubIntegrationConfigurationDTO => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("Stored GitHub configuration is invalid.");
-  }
-  const configuration = value as Record<string, unknown>;
-  const defaultBranch =
-    typeof configuration.defaultBranch === "string" &&
-    configuration.defaultBranch
-      ? configuration.defaultBranch
-      : undefined;
-  return {
-    ...(defaultBranch ? { defaultBranch } : {}),
-    repositorySlug: requiredString(
-      configuration.repositorySlug,
-      "repositorySlug",
-    ),
-    repositoryURL: requiredString(configuration.repositoryURL, "repositoryURL"),
-  };
-};
+): GitHubIntegrationConfigurationDTO =>
+  parseGitHubIntegrationConfiguration(value);
 
 /** Returns only safe GitHub metadata and a credential-presence marker. */
 export const toGitHubIntegrationDTO = (

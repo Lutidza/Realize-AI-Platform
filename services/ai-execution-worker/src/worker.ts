@@ -1,12 +1,16 @@
 /**
  * @file services/ai-execution-worker/src/worker.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-08
  * @description Обрабатывает execution, preview, source/release durable queues и integrations.
  */
 
 import { Pool } from "pg";
 import { config as loadEnvironment } from "dotenv";
-import { IntegrationRuntimeRepository } from "@realize/payload-ai-control/server/integration-runtime";
+import {
+  GitHubConnectionService,
+  IntegrationRuntimeRepository,
+} from "@realize/payload-ai-control/server/integration-runtime";
 
 import { readExecutionWorkerConfig } from "./config";
 import { executeClaimedJob } from "./executor";
@@ -21,7 +25,7 @@ import { ReleaseWorkerRepository } from "./releaseRepository";
 import { executeClaimedSourcePromotion } from "./sourcePromotionExecutor";
 import { SourcePromotionWorkerRepository } from "./sourcePromotionRepository";
 
-// Match Next local precedence without overriding operator-injected process env.
+// Приоритет локального окружения Next сохраняется без замены переменных оператора.
 loadEnvironment({ path: ".env.local", quiet: true });
 loadEnvironment({ quiet: true });
 
@@ -31,8 +35,8 @@ const repository = new ExecutionJobRepository(pool);
 const promotionRepository = new PromotionRepository(pool);
 const releaseRepository = new ReleaseWorkerRepository(pool);
 const sourcePromotionRepository = new SourcePromotionWorkerRepository(pool);
-const integrationRepository = new IntegrationRuntimeRepository(
-  pool,
+const integrations = new GitHubConnectionService(
+  new IntegrationRuntimeRepository(pool),
   config.integrationEncryptionKey,
 );
 let stopping = false;
@@ -82,7 +86,7 @@ const run = async (): Promise<void> => {
       );
       await executeClaimedSourcePromotion({
         config,
-        integrations: integrationRepository,
+        integrations,
         job: sourcePromotion,
         repository: sourcePromotionRepository,
       });
@@ -97,7 +101,7 @@ const run = async (): Promise<void> => {
       );
       await executeClaimedRelease({
         config,
-        integrations: integrationRepository,
+        integrations,
         job: release,
         repository: releaseRepository,
       });

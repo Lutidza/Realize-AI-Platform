@@ -30,7 +30,7 @@ pass_condition:
   - application contour was checked first when applicable
   - every hit was classified
   - active consumers were moved to the new owner directly instead of leaving compatibility bridges, proxy wrappers, re-export wrappers, alias entrypoints or fallback adapters
-  - active stale artifacts were removed or synced inside the approved allowlist
+  - устаревшие действующие артефакты удалены или синхронизированы в разрешённой пользователем области
   - out-of-scope cleanup was stopped for approval or explicitly deferred by the user
 fail_condition:
   - scan evidence is missing
@@ -38,7 +38,7 @@ fail_condition:
   - compatibility bridge, proxy wrapper, re-export wrapper, alias entrypoint or fallback adapter remains after refactor without a separate user-approved migration contract
   - old path/name hits are unclassified
   - historical evidence was deleted without artifact-disposition approval
-  - cleanup requires allowlist expansion but no approval was requested
+  - очистка вышла за разрешённую пользователем область без разрешения
 related_rule:
   - .ai/rules/scope-control/RULE-STALE-ARTIFACT-CLEANUP-AFTER-REFACTOR.md
 related_tools:
@@ -57,6 +57,10 @@ related_tools:
 - переносит workflow, skill, agent, prompt, registry, template или MCP/tooling
   artifact;
 - синхронизирует canonical documentation после contract-level изменения.
+
+Область определяй по правилу: уточнение собственного списка файлов внутри
+разрешённого рефакторинга не является выходом за границы задачи. Явные
+пользовательские ограничения сохраняются.
 
 ## Минимальный scan
 
@@ -87,8 +91,8 @@ handoff:
 
 - `passed` — scan выполнен, все hits классифицированы, active stale artifacts
   очищены или имеют explicit user-approved deferral.
-- `stop-for-cleanup` — active stale artifacts найдены в allowlist и должны быть
-  очищены до handoff.
-- `stop-for-scope-approval` — cleanup требует расширения allowlist.
+- `stop-for-cleanup` — active stale artifacts требуют исправления внутри
+  разрешённой области до handoff.
+- `stop-for-scope-approval` — очистка требует выхода за разрешённую пользователем область.
 - `failed` — нет evidence, есть unclassified hits или active stale code artifact
   оставлен без решения.

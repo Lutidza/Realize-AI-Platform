@@ -41,9 +41,12 @@ storefront.
   полноэкранный UI, включая отдельные `DataOperation`, `SourcePromotion` и
   `ReleaseCandidate` aggregates, provider-neutral integration registry и
   installation Config API с redacted/audited DTO boundaries.
-- `packages/payload-ai-plugin/src/integrations/runtimeRepository.ts` — общее
-  серверное чтение primary GitHub connection и расшифровка через существующий
-  vault; экспорт `@realize/payload-ai-control/server/integration-runtime`.
+- `packages/payload-ai-plugin/src/integrations/runtime/` — серверное разрешение
+  подключения GitHub: SQL в `IntegrationRuntime.repository.ts`, проверка записи
+  в `validateRuntimeGitHubIntegration.validator.ts`, получение credential через
+  vault в `GitHubConnection.service.ts`; типы и ошибка вынесены отдельно.
+  `integrationRuntime.index.ts` задаёт экспорт
+  `@realize/payload-ai-control/server/integration-runtime`.
   Source promotion и release используют этот модуль через узкий контракт
   `GitHubConnectionResolver`.
 - `services/ai-control-plane/**` — loopback development control plane и bounded

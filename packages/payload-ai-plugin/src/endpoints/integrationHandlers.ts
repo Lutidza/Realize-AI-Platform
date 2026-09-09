@@ -1,14 +1,16 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationHandlers.ts
- * @version 2026-08-27
+ * @version 1.1.0
+ * @date 2026-09-09
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
- * @description Handles authorized catalog, GitHub save/test and disconnect operations.
+ * @description Обрабатывает разрешённые чтение, сохранение, REST-проверку и отключение GitHub.
  */
 
 import {
   parseDisconnectIntegrationInput,
   parseGitHubRepositoryURL,
+  parseGitIntegrationTransport,
   parseSaveGitHubIntegrationInput,
   parseTestGitHubIntegrationInput,
 } from "@realize/ai-contracts";
@@ -41,7 +43,7 @@ import {
 import { IntegrationRepository } from "./integrationRepository";
 import { idempotencyKeyFor, readBody, withHandler } from "./request";
 
-/** Creates the provider-neutral Admin integration API surface. */
+/** Создаёт API управления интеграциями в Admin независимо от провайдера. */
 export const createIntegrationHandlers = (
   options: SanitizedRealizeAIPluginOptions,
 ): {
@@ -69,9 +71,6 @@ export const createIntegrationHandlers = (
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const input = parseSaveGitHubIntegrationInput(await readBody(req));
-    if (!isIntegrationVaultConfigured(options.integrations.encryptionKeyEnv)) {
-      throw integrationVaultError();
-    }
     const repository = new IntegrationRepository(req.payload, req);
     const saved = await runIntegrationTransaction(req, async () => {
       const replay = await repository.findEvent(idempotencyKey);
@@ -100,10 +99,29 @@ export const createIntegrationHandlers = (
       const previousConfiguration = existing
         ? githubConfigurationOf(existing.configuration)
         : undefined;
+      const transport = parseGitIntegrationTransport(
+        input.transport === undefined ? previousConfiguration || {} : input,
+      );
+      const commitAuthor =
+        input.commitAuthor === undefined
+          ? previousConfiguration?.commitAuthor
+          : (input.commitAuthor ?? undefined);
+      if (
+        (transport.transport === "https" || input.token) &&
+        !isIntegrationVaultConfigured(options.integrations.encryptionKeyEnv)
+      ) {
+        throw integrationVaultError();
+      }
       const repositoryChanged =
         previousConfiguration?.repositorySlug !== normalized.repositorySlug;
-      let credentialEnvelope = existing?.credentialEnvelope;
-      let credentialUpdatedAt = existing?.credentialUpdatedAt;
+      let credentialEnvelope =
+        typeof existing?.credentialEnvelope === "string"
+          ? existing.credentialEnvelope
+          : undefined;
+      let credentialUpdatedAt =
+        typeof existing?.credentialUpdatedAt === "string"
+          ? existing.credentialUpdatedAt
+          : undefined;
       if (input.token) {
         credentialEnvelope = encryptIntegrationCredential({
           binding: {
@@ -115,20 +133,23 @@ export const createIntegrationHandlers = (
         });
         credentialUpdatedAt = new Date().toISOString();
       }
-      if (
-        typeof credentialEnvelope !== "string" ||
-        typeof credentialUpdatedAt !== "string"
-      ) {
+      if (transport.transport === "https" && !credentialEnvelope) {
         throw new EndpointError(
           "INVALID_REQUEST",
-          "A GitHub token is required for the first connection.",
+          "A GitHub token is required for an HTTPS connection.",
           400,
         );
       }
-      const resetTest = repositoryChanged || Boolean(input.token);
+      const transportChanged =
+        previousConfiguration?.transport !== transport.transport ||
+        previousConfiguration?.sshProfileRef !== transport.sshProfileRef;
+      const resetTest =
+        repositoryChanged || transportChanged || Boolean(input.token);
       const document = await repository.saveGitHub({
         actorID: user.id,
         configuration: {
+          ...transport,
+          ...(commitAuthor ? { commitAuthor } : {}),
           ...(repositoryChanged || !previousConfiguration?.defaultBranch
             ? {}
             : { defaultBranch: previousConfiguration.defaultBranch }),
@@ -153,6 +174,7 @@ export const createIntegrationHandlers = (
           enabled: input.enabled,
           repositorySlug: normalized.repositorySlug,
           revision: currentRevision + 1,
+          ...transport,
           tokenRotated: Boolean(input.token),
         },
         status: "passed",
@@ -191,10 +213,15 @@ export const createIntegrationHandlers = (
     const token =
       input.token ||
       decryptGitHubCredential(existing?.credentialEnvelope, options);
-    const result = await testGitHubConnection({
+    const providerResult = await testGitHubConnection({
       repositorySlug: normalized.repositorySlug,
       token,
     });
+    // REST permissions не свидетельствуют о наличии SSH-профиля у Git-исполнителя.
+    const result = {
+      ...providerResult,
+      message: `${providerResult.message} Проверка GitHub API не проверяет SSH-профиль.`,
+    };
     await runIntegrationTransaction(req, async () => {
       const latestReplay = await repository.findEvent(idempotencyKey);
       if (latestReplay) {

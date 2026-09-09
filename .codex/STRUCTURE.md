@@ -17,12 +17,18 @@ runtime_sources:
 ├── STRUCTURE.md
 ├── config.toml
 ├── agents/
+│   └── delivery/git/{inspect,commit,push}.json
 ├── prompts/
+│   └── workflows/delivery/git/{inspect,commit,push}.md
 └── skills/
 ```
 
 `.codex/` содержит только Codex adapters. Project rules/checks/workflows
 остаются в `.ai/**`.
+
+`agents/delivery/git/{inspect,commit,push}.json` — профили запуска локальных Git-воркеров.
+Их читает `.ai/tools/git-delivery`; это не встроенный формат Codex agent.
+Вход и доступные действия описаны в [Git-навыке](skills/git-commit-push/SKILL.md).
 
 ## Project-specific MCP
 

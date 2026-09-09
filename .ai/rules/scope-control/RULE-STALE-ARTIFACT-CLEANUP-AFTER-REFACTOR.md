@@ -25,8 +25,8 @@ requirement:
   - классифицировать каждый найденный hit как active artifact, historical evidence или unrelated false positive
   - считать временные compatibility-предохранители, bridge/proxy/re-export wrappers, alias entrypoints и fallback adapters active stale artifacts, если они оставлены только для поддержки старого owner path или старого contract
   - после refactor/decomposition/rename обновить всех active consumers на новый owner напрямую вместо сохранения старой прослойки совместимости
-  - удалить или синхронизировать active stale artifacts в рамках согласованного allowlist
-  - остановиться и запросить новый scoped step, если cleanup требует расширения allowlist
+  - удалить или синхронизировать active stale artifacts в разрешённой пользователем области
+  - запросить решение, если очистка выходит за разрешённую область; продолжать независимую работу внутри неё
   - явно зафиксировать residual risk, если пользователь подтверждает deferral
 forbidden:
   - завершать refactor/migration/rename step с неклассифицированными hits по старым именам или путям
@@ -49,11 +49,14 @@ related_tools:
   - rg --files
   - git diff --name-status
 escalation:
-  - blocked: active stale code artifact найден вне allowlist
-  - stop-for-approval: требуется delete, archive, replace или deferral
+  - stop-for-scope-approval: очистка требует выхода за разрешённую пользователем область
+  - stop-for-approval: разрешение на действие отсутствует по RULE-ARTIFACT-DISPOSITION или требуется deferral
 ```
 
 ## Контракт выполнения
+
+Разрешённая область, удаление и сохранение истории определяются
+[правилом работы с артефактами](RULE-ARTIFACT-DISPOSITION.md).
 
 После любого refactor/migration/rename/decomposition шага агент обязан
 доказать, что старые active artifacts не остались в рабочем пути выполнения,
@@ -130,20 +133,20 @@ Stale artifact cleanup:
 
 ## Условия остановки
 
-Агент останавливается, если:
+Не завершай шаг, пока:
 
 - old name/path scan не выполнен;
-- найден active stale code artifact в `application contour`;
-- найден active stale artifact вне текущего allowlist;
 - hit не классифицирован;
-- cleanup требует delete/archive/replace без `RULE-ARTIFACT-DISPOSITION`;
-- пользователь не подтвердил deferral, а cleanup не может быть выполнен в
-  текущем scope.
+- найденный active stale artifact не исправлен и не имеет согласованного deferral.
+
+В разрешённой области продолжай исправление. При необходимости выхода за её
+границы или отсутствии разрешения по `RULE-ARTIFACT-DISPOSITION` запроси решение
+только для зависимого действия; независимую работу продолжай.
 
 ## Результаты
 
 - `proceed-with-handoff` — scan выполнен, active stale artifacts очищены или
   явно подтверждены пользователем как deferred debt.
-- `stop-for-cleanup` — найдены active stale artifacts в allowlist.
-- `stop-for-scope-approval` — cleanup требует расширить allowlist.
+- `stop-for-cleanup` — active stale artifacts требуют исправления внутри разрешённой области до завершения шага.
+- `stop-for-scope-approval` — очистка требует выхода за разрешённую пользователем область.
 - `blocked` — stale hits не классифицированы или есть риск потерять историю.

@@ -24,14 +24,48 @@ entries:
         .ai/roles/developer/backend/INDEX.md,
       ]
     enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
-    related_rules: []
+    related_rules: [.ai/rules/development/RULE-CODE-STRUCTURE.md]
     related_checks:
       [.ai/checks/development/CHECK-DEVELOPMENT-STRICT-PRINCIPLES.md]
     related_workflows: [.ai/workflows/core/main-delivery/WORKFLOW.md]
     related_codex_artifacts: []
     related_tools: []
     routing_tags: [development, strict-principles, work-task]
-    trigger: "Any work_task after direct pre-edit gate and before choosing profile workflow, skill, worker or implementation."
+    trigger: "Подготовка и проверка проектной рабочей задачи; обычный диалог не требует этого правила."
+  - entry_id: code-structure
+    entry_type: active_rule
+    status: active
+    primary_artifact: .ai/rules/development/RULE-CODE-STRUCTURE.md
+    owner_layer: .ai/rules/development/
+    owner_roles:
+      [
+        .ai/roles/developer/frontend/INDEX.md,
+        .ai/roles/developer/backend/INDEX.md,
+      ]
+    enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
+    related_rules:
+      [
+        .ai/rules/development/RULE-CODE-NAMING.md,
+        .ai/rules/development/RULE-CODE-COMMENT-DISCIPLINE.md,
+        .ai/rules/development/backend/RULE-DTO-CONTRACTS-NO-RAW-PAYLOAD.md,
+        .ai/rules/scope-control/RULE-STALE-ARTIFACT-CLEANUP-AFTER-REFACTOR.md,
+      ]
+    related_checks: [.ai/checks/development/CHECK-CODE-STRUCTURE.md]
+    related_workflows: []
+    related_codex_artifacts:
+      [.codex/skills/feature-decomposition-guard/SKILL.md]
+    related_tools: []
+    routing_tags:
+      [
+        development,
+        structure,
+        responsibility,
+        decomposition,
+        types,
+        hooks,
+        portability,
+      ]
+    trigger: "Создание или рефакторинг собственных исходников, выбор границ файлов и модулей, размещение типов, хуков и компонентов."
   - entry_id: code-naming
     entry_type: active_rule
     status: active
@@ -73,7 +107,7 @@ entries:
     related_checks: [.ai/checks/development/CHECK-CODE-COMMENT-DISCIPLINE.md]
     related_workflows: []
     related_codex_artifacts: [.codex/skills/code-comment-discipline/SKILL.md]
-    related_tools: []
+    related_tools: [.ai/tools/source-headers/README.md]
     routing_tags: [development, comments, docref, code]
     trigger: "Создание, изменение или рефакторинг собственных исходников, исполняемой конфигурации, шапок файлов или комментариев к контрактам."
   - entry_id: dependency-version-evidence-before-install

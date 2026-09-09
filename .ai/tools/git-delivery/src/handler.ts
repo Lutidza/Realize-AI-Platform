@@ -1,4 +1,9 @@
-/** Локальные inspect/commit: доверенная область, привязанные проверки и повтор по журналу ADR-0016. */
+/**
+ * @file .ai/tools/git-delivery/src/handler.ts
+ * @version 1.0.1
+ * @date 2026-09-09
+ * @description Локальные inspect/commit: доверенная область, привязанные проверки и повтор по журналу ADR-0016.
+ */
 import { createHash } from "node:crypto";
 import { realpath, lstat } from "node:fs/promises";
 import { join } from "node:path";
@@ -9,7 +14,7 @@ import {
   PolicyError,
 } from "./contracts.ts";
 import type { Command, Context, Result } from "./contracts.ts";
-import { Git, GitFailure } from "./git.ts";
+import { Git, GitFailure } from "./Git.adapter.ts";
 import { inspectRepository } from "./repository.ts";
 import type { Snapshot } from "./repository.ts";
 import {

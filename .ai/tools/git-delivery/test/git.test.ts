@@ -1,4 +1,9 @@
-/** Executor и flock проверяются только в изолированных временных каталогах и Git fixtures. */
+/**
+ * @file .ai/tools/git-delivery/test/git.test.ts
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Проверяет executor и flock только в изолированных временных каталогах и Git fixtures.
+ */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -16,7 +21,7 @@ import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
-import { Git, GitFailure } from "../src/git.ts";
+import { Git, GitFailure } from "../src/Git.adapter.ts";
 import { acquireLock } from "../src/state.ts";
 
 async function temporaryRoot(t: TestContext): Promise<string> {
@@ -266,7 +271,7 @@ test("Git удерживает унаследованный lock после см
     setTimeout(() => process.exit(91), 5000);
   `,
   );
-  const gitModule = new URL("../src/git.ts", import.meta.url).href;
+  const gitModule = new URL("../src/Git.adapter.ts", import.meta.url).href;
   const stateModule = new URL("../src/state.ts", import.meta.url).href;
   const parent = spawn(
     process.execPath,
