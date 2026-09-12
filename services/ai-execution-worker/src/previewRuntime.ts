@@ -1,5 +1,8 @@
 /**
  * @file services/ai-execution-worker/src/previewRuntime.ts
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Запускает изолированный loopback preview с копией БД и запретом AI runtime.
  * @owner services/ai-execution-worker
  * @purpose Starts and safely stops an exact-build loopback preview with a sanitized DB clone.
  */
@@ -101,9 +104,7 @@ const previewEnvironment = (input: {
   PORT: String(input.port),
   POSTGRES_SSL: process.env.POSTGRES_SSL || "false",
   PREVIEW_SECRET: randomBytes(32).toString("base64url"),
-  REALIZE_AI_ENABLED: "false",
-  REALIZE_AI_EXECUTION_ENABLED: "false",
-  REALIZE_AI_PREVIEW_ENABLED: "false",
+  REALIZE_AI_RUNTIME_ISOLATED: "true",
   RELEASE_ID: `preview-${input.commit.commitSHA.slice(0, 12)}`,
 });
 

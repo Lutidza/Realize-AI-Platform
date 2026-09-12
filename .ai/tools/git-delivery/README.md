@@ -12,13 +12,29 @@ Push получает подключение из БД интеграций и �
 
 ## Git-воркер
 
-Из корня проекта после установки зависимостей:
+Из корня проекта после установки зависимостей и подготовки профиля:
 
 ```sh
-npm run --silent git:worker -- inspect
+REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile npm run --silent git:worker -- inspect
 ```
 
-Нужен установленный и авторизованный Codex CLI. Запуск проверен с `0.153.4`
+Для всех действий (`inspect`, `commit`, `push`) вызывающая среда обязана явно
+назначить `REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL к каталогу
+development-профиля Codex CLI. `/absolute/authorized-codex-profile` в примерах —
+placeholder; оператор заменяет его на существующий каталог с заранее
+настроенной авторизацией. Adapter не проверяет существование каталога и не
+читает содержимое credentials.
+
+[Git environment adapter](src/worker/createGitWorkerEnvironment.adapter.ts)
+формирует `{ ...createCodexEnvironment(source), CODEX_HOME: source.REALIZE_GIT_CODEX_HOME }`.
+Если значение отсутствует, пустое, относительное или содержит NUL, запуск
+блокируется до создания процесса с `PolicyError` / `worker_profile_invalid`.
+Профиль не выбирается из унаследованных `HOME`, `CODEX_HOME` или API keys;
+`CODEX_HOME` и ключи не наследуются общим фильтром окружения. Профиль относится
+к development Git worker; авторизация продуктовой интеграции остаётся у её
+владельца и не меняется этим adapter.
+
+Нужен установленный Codex CLI. Запуск проверен с `0.153.4`
 и `gpt-5.3-codex-spark`. Используется существующий `tsx` и общий транспорт
 `@realize/codex-adapter/rpc`, без нового SDK или установки зависимостей.
 [Профили inspect](../../../.codex/agents/delivery/git/inspect.json),
@@ -88,7 +104,9 @@ fingerprint. Затем передай результаты в контекст�
 Старую проверку без такой привязки нельзя объявлять выполненной для снимка.
 
 ```sh
-REALIZE_GIT_CONTEXT_FILE=/absolute/context.json npm run --silent git:worker -- commit 'docs: уточнить правила'
+REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
+  REALIZE_GIT_CONTEXT_FILE=/absolute/context.json \
+  npm run --silent git:worker -- commit 'docs: уточнить правила'
 ```
 
 С заданным сообщением воркер вызывает только `git_commit` с `{}`; текст закреплён
@@ -147,7 +165,9 @@ HEAD, ветка и рабочая копия остаются прежними.
 ## Контекст push
 
 ```sh
-REALIZE_GIT_CONTEXT_FILE=/absolute/push-context.json npm run --silent git:worker -- push
+REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
+  REALIZE_GIT_CONTEXT_FILE=/absolute/push-context.json \
+  npm run --silent git:worker -- push
 ```
 
 Файл имеет те же ограничения доступа, что контекст commit. Общие поля:

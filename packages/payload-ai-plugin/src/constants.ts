@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/constants.ts
- * @version 2026-09-02
+ * @version 1.1.0
+ * @date 2026-09-09
  * @description Хранит стабильные runtime/config collection и route identifiers plugin.
  */
 
@@ -11,6 +12,7 @@ export const MESSAGES_SLUG = "realize-ai-messages" as const;
 export const RUNS_SLUG = "realize-ai-runs" as const;
 export const RUN_EVENTS_SLUG = "realize-ai-run-events" as const;
 export const EXECUTION_JOBS_SLUG = "realize-ai-execution-jobs" as const;
+export const WORKER_PRESENCE_SLUG = "realize-ai-worker-presence" as const;
 export const CHECK_RESULTS_SLUG = "realize-ai-check-results" as const;
 export const DEPLOYMENTS_SLUG = "realize-ai-deployments" as const;
 export const RELEASE_CANDIDATES_SLUG = "realize-ai-release-candidates" as const;
@@ -36,6 +38,7 @@ export const AI_COLLECTION_SLUGS = [
   RUNS_SLUG,
   RUN_EVENTS_SLUG,
   EXECUTION_JOBS_SLUG,
+  WORKER_PRESENCE_SLUG,
   CHECK_RESULTS_SLUG,
   DEPLOYMENTS_SLUG,
   RELEASE_CANDIDATES_SLUG,
@@ -55,3 +58,5 @@ export const DEFAULT_ADMIN_ROUTE = "/ai";
 export const DEFAULT_INTEGRATIONS_ROUTE = "/integrations";
 export const DEFAULT_API_ROUTE = "/realize-ai";
 export const REALIZE_AI_SERVER_RUNTIME_KEY = "realizeAIControl" as const;
+
+export const CHAT_ATTACHMENTS_SLUG = "realize-ai-chat-attachments" as const;

@@ -1,24 +1,23 @@
 /**
  * @file packages/codex-adapter/src/environment.ts
- * @version 2026-08-21
- * @description Builds the minimal server-side environment inherited by Codex subprocesses.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Формирует минимальное окружение Codex без наследования авторизации хоста.
  */
 
 const INHERITED_NAMES = [
-  "CODEX_HOME",
   "HOME",
   "HTTPS_PROXY",
   "HTTP_PROXY",
   "LANG",
   "LC_ALL",
   "NO_PROXY",
-  "OPENAI_API_KEY",
   "PATH",
   "SSL_CERT_DIR",
   "SSL_CERT_FILE",
 ] as const;
 
-/** Copies only runtime/auth variables required by a local Codex process. */
+/** Авторизация и CODEX_HOME добавляются только владельцем профиля интеграции. */
 export const createCodexEnvironment = (
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv => {

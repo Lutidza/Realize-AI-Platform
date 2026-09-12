@@ -1,28 +1,28 @@
 /**
  * @file src/app/(app)/[slug]/page.tsx
- * @version 2026-08-17
- * @description Renders CMS pages and gates database-backed build-time generation.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Отображает CMS-страницу и metadata через защищённое чтение документа.
  */
 
-import type { Metadata } from 'next'
+import type { Metadata } from "next";
 
-import { RenderBlocks } from '@/blocks/RenderBlocks'
-import { RenderHero } from '@/heros/RenderHero'
-import { generateMeta } from '@/utilities/generateMeta'
-import configPromise from '@payload-config'
-import { getPayload } from 'payload'
-import { draftMode } from 'next/headers'
-import React from 'react'
+import { RenderBlocks } from "@/blocks/RenderBlocks";
+import { RenderHero } from "@/heros/RenderHero";
+import { generateMeta } from "@/utilities/generateMeta";
+import configPromise from "@payload-config";
+import { getPayload } from "payload";
+import { findPreviewDocumentBySlug } from "@/utilities/preview/findPreviewDocumentBySlug.service";
+import React from "react";
 
-import type { Page } from '@/payload-types'
-import { notFound } from 'next/navigation'
+import { notFound } from "next/navigation";
 
 export async function generateStaticParams() {
-  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === 'true') return []
+  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === "true") return [];
 
-  const payload = await getPayload({ config: configPromise })
+  const payload = await getPayload({ config: configPromise });
   const pages = await payload.find({
-    collection: 'pages',
+    collection: "pages",
     draft: false,
     limit: 1000,
     overrideAccess: false,
@@ -30,80 +30,56 @@ export async function generateStaticParams() {
     select: {
       slug: true,
     },
-  })
+  });
 
   const params = pages.docs
     ?.filter((doc) => {
-      return doc.slug !== 'home'
+      return doc.slug !== "home";
     })
     .map(({ slug }) => {
-      return { slug }
-    })
+      return { slug };
+    });
 
-  return params
+  return params;
 }
 
 type Args = {
   params: Promise<{
-    slug?: string
-  }>
-}
+    slug?: string;
+  }>;
+};
 
 export default async function Page({ params }: Args) {
-  const { slug = 'home' } = await params
+  const { slug = "home" } = await params;
 
-  const page = await queryPageBySlug({
+  const page = await findPreviewDocumentBySlug({
+    collection: "pages",
     slug,
-  })
+  });
 
   if (!page) {
-    return notFound()
+    return notFound();
   }
 
-  const { hero, layout } = page
+  const { hero, layout } = page;
 
   return (
     <article className="pt-16 pb-24">
       <RenderHero {...hero} />
       <RenderBlocks blocks={layout} />
     </article>
-  )
+  );
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {
-  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === 'true') return {}
+  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === "true") return {};
 
-  const { slug = 'home' } = await params
+  const { slug = "home" } = await params;
 
-  const page = await queryPageBySlug({
+  const page = await findPreviewDocumentBySlug({
+    collection: "pages",
     slug,
-  })
+  });
 
-  return generateMeta({ doc: page })
-}
-
-const queryPageBySlug = async ({ slug }: { slug: string }) => {
-  const { isEnabled: draft } = await draftMode()
-
-  const payload = await getPayload({ config: configPromise })
-
-  const result = await payload.find({
-    collection: 'pages',
-    draft,
-    limit: 1,
-    overrideAccess: draft,
-    pagination: false,
-    where: {
-      and: [
-        {
-          slug: {
-            equals: slug,
-          },
-        },
-        ...(draft ? [] : [{ _status: { equals: 'published' } }]),
-      ],
-    },
-  })
-
-  return result.docs?.[0] || null
+  return generateMeta({ doc: page });
 }

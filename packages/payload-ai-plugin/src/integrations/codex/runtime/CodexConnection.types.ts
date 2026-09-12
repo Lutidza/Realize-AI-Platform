@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnection.types.ts
- * @version 1.0.1
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-11
  * @description Задаёт серверный lifecycle аренды авторизации Codex из integration registry.
  */
 
@@ -24,6 +24,10 @@ export type CodexConnectionLease = {
   authMode: CodexAuthMode;
   environment: NodeJS.ProcessEnv;
   home: string;
+  /** Текущая модель интеграции; undefined использует штатную модель провайдера. */
+  model?: string;
+  /** Отдельная модель reviewer с fallback на основную модель этой интеграции. */
+  reviewModel?: string;
   revision: number;
   signal: AbortSignal;
   dispose: () => Promise<void>;

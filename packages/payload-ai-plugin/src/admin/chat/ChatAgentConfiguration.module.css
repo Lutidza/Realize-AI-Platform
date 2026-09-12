@@ -1,0 +1,111 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/chat/ChatAgentConfiguration.module.css
+ * @version 1.0.0
+ * @date 2026-09-10
+ * @description Размещает компактный выбор профиля с ограниченным прокручиваемым списком.
+ */
+.picker {
+  min-width: 0;
+  margin-bottom: var(--ui-space-3);
+  font-size: 12px;
+}
+.picker > details > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  cursor: pointer;
+  list-style: none;
+}
+.picker > details > summary::-webkit-details-marker {
+  display: none;
+}
+.picker > details > summary > span:first-child {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.picker strong {
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.picker small {
+  color: var(--ui-color-muted);
+  font-size: 10px;
+}
+.picker > details > summary:focus-visible,
+.rows:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 3px;
+}
+.content {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding-block: var(--ui-space-3);
+}
+.toolbar,
+.pagination,
+.pagination > div {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+.toolbar p,
+.system p,
+.empty {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.toolbar p {
+  flex: 1;
+}
+.pagination {
+  justify-content: space-between;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+}
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(220px, 25dvh);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.rows button {
+  width: 100%;
+  height: auto;
+  min-height: 42px;
+  justify-content: space-between;
+  text-align: left;
+  white-space: normal;
+}
+.rows button > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.rows button small {
+  overflow-wrap: anywhere;
+  line-height: 1.4;
+}
+.rows button[aria-pressed="true"] {
+  background: var(--ui-color-glow-primary);
+  color: var(--ui-color-primary);
+}
+.rows svg {
+  flex-shrink: 0;
+}
+.system {
+  display: grid;
+  gap: var(--ui-space-3);
+}
+.status {
+  margin: var(--ui-space-2) 0 0;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}

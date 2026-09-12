@@ -1,18 +1,20 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RealizeAIView.tsx
- * @version 2026-08-17
- * @description Enforces the secure server boundary for the custom Admin AI root view.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Проверяет доступ и формирует серверную оболочку страницы или окна чата.
  */
 
 import { DefaultTemplate } from "@payloadcms/next/templates";
 import { redirect } from "next/navigation.js";
-import type { AdminViewServerProps } from "payload";
+import { SetStepNav } from "@payloadcms/ui";
 import { formatAdminURL } from "payload/shared";
 
 import { RealizeAIClient } from "./RealizeAIClient";
+import type { RealizeAIViewProps } from "./RealizeAIView.types";
 
-/** Enforces server-side access before rendering the client chat surface. */
-export const RealizeAIView = (props: AdminViewServerProps) => {
+/** Отдельное окно использует ту же авторизацию и provider без навигации DefaultTemplate. */
+export const RealizeAIView = (props: RealizeAIViewProps) => {
   const user = props.initPageResult.req.user as { roles?: string[] } | null;
   const adminRoute = props.payload.config.routes.admin;
 
@@ -33,6 +35,11 @@ export const RealizeAIView = (props: AdminViewServerProps) => {
     );
   }
 
+  if (props.presentation === "window")
+    return <RealizeAIClient presentation="window" />;
+
+  const { locale, permissions, req } = props.initPageResult;
+
   const visibleEntities = {
     collections: props.initPageResult.visibleEntities.collections,
     globals: props.initPageResult.visibleEntities.globals,
@@ -41,10 +48,16 @@ export const RealizeAIView = (props: AdminViewServerProps) => {
   return (
     <DefaultTemplate
       {...props}
+      i18n={req.i18n}
+      locale={locale}
+      permissions={permissions}
+      req={req}
+      user={req.user ?? undefined}
       viewType="realize-ai"
       visibleEntities={visibleEntities}
     >
-      <RealizeAIClient />
+      <SetStepNav nav={[{ label: "AI-ассистент" }]} />
+      <RealizeAIClient presentation="page" />
     </DefaultTemplate>
   );
 };

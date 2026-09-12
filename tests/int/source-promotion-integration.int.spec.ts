@@ -2,8 +2,8 @@
 
 /**
  * @file tests/int/source-promotion-integration.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-08
+ * @version 1.0.1
+ * @date 2026-09-11
  * @description Проверка отказов интеграции перед публикацией с подменой Git и GitHub REST.
  */
 import {
@@ -26,21 +26,18 @@ import type { ClaimedSourcePromotion } from "../../services/ai-execution-worker/
 const config: ExecutionWorkerConfig = {
   databaseURL: "postgres://unused",
   pollIntervalMs: 1_000,
-  previewEnabled: false,
   previewHost: "127.0.0.1",
   previewPortMax: 3_299,
   previewPortMin: 3_200,
   previewRoot: "/fixture/unused-preview",
   previewStartupTimeoutMs: 120_000,
   promotionWorkspaceRoot: "/fixture/unused-promotion",
-  releaseEnabled: false,
   releaseOrchestratorArgs: [],
   releaseOrchestratorEnvironment: { NODE_ENV: "test" },
   releaseTimeoutMs: 60_000,
   repositoryRoot: "/fixture/unused-repository",
   reviewTimeoutMs: 60_000,
   signingSecret: "x".repeat(32),
-  sourcePromotionEnabled: true,
   sourcePromotionGitCommand: "/fixture/unused-git",
   sourcePromotionTimeoutMs: 120_000,
   turnTimeoutMs: 60_000,

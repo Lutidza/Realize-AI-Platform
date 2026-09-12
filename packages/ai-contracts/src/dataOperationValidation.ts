@@ -1,6 +1,7 @@
 /**
  * @file packages/ai-contracts/src/dataOperationValidation.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Проверяет недоверенный assistant protocol и HTTP input Data Lane.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -11,9 +12,11 @@ import type {
   AssignProductCategoryIntent,
   CreateDataOperationInput,
   DataEntitySelector,
+  DataOperationIntent,
   DataRollbackInput,
   DecideDataOperationInput,
 } from "./dataOperations";
+import { parseCreatePageDraftIntent } from "./parseCreatePageDraftIntent.validator";
 import { ContractValidationError, parseIdentifier } from "./validation";
 
 const asObject = (value: unknown, name: string): Record<string, unknown> => {
@@ -103,7 +106,7 @@ const parseComment = (
   return comment || undefined;
 };
 
-/** Parses the only executable declarative intent supported in the first slice. */
+/** Проверяет совместимый intent назначения существующей категории одному товару. */
 export const parseAssignProductCategoryIntent = (
   value: unknown,
 ): AssignProductCategoryIntent => {
@@ -129,7 +132,18 @@ export const parseAssignProductCategoryIntent = (
   };
 };
 
-/** Validates selection of the persisted assistant source message. */
+/** Принимает только реализованные версии Data Lane и сохраняет discriminant результата. */
+export const parseDataOperationIntent = (
+  value: unknown,
+): DataOperationIntent => {
+  const input = asObject(value, "data operation");
+  if (input.kind === "pages.createDraft.v1") {
+    return parseCreatePageDraftIntent(input);
+  }
+  return parseAssignProductCategoryIntent(input);
+};
+
+/** Проверяет выбор сохранённого сообщения ассистента. */
 export const parseCreateDataOperationInput = (
   value: unknown,
 ): CreateDataOperationInput => {
@@ -143,7 +157,7 @@ export const parseCreateDataOperationInput = (
   };
 };
 
-/** Validates one exact main-operation approval or rejection. */
+/** Проверяет подтверждение или отклонение точной версии операции. */
 export const parseDecideDataOperationInput = (
   value: unknown,
   commentRequired = false,
@@ -165,7 +179,7 @@ export const parseDecideDataOperationInput = (
   };
 };
 
-/** Validates execution of one exact approved operation. */
+/** Проверяет запрос применения точной подтверждённой операции. */
 export const parseApplyDataOperationInput = (
   value: unknown,
 ): ApplyDataOperationInput => {
@@ -184,7 +198,7 @@ export const parseApplyDataOperationInput = (
   };
 };
 
-/** Validates rollback approval or execution against an exact snapshot hash. */
+/** Проверяет подтверждение или выполнение отката точного snapshot hash. */
 export const parseDataRollbackInput = (value: unknown): DataRollbackInput => {
   const input = asObject(value, "request body");
   requireExactKeys(

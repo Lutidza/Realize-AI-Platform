@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/surface/UiSurface.component.tsx
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-10
  * @description Отображает поверхность UI-кита с необязательным градиентом и свечением.
  */
 
@@ -14,6 +14,7 @@ import styles from "./UiSurface.module.css";
 /** asChild сохраняет семантику и обработчики переданной ссылки или контейнера. */
 export const UiSurface = ({
   asChild = false,
+  appearance = "card",
   className = "",
   interactive = false,
   tone = "default",
@@ -23,7 +24,7 @@ export const UiSurface = ({
   return (
     <Component
       {...props}
-      className={`${styles.surface} ${tone !== "default" ? styles[tone] : ""} ${interactive ? styles.interactive : ""} ${className}`}
+      className={`${styles.surface} ${tone !== "default" ? styles[tone] : ""} ${appearance === "flush" ? styles.flush : ""} ${interactive ? styles.interactive : ""} ${className}`}
     />
   );
 };

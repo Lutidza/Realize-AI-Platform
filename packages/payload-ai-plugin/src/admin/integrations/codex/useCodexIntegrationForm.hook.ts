@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/useCodexIntegrationForm.hook.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-11
  * @description Ведёт черновик подключения Codex и допустимые действия выбранного способа входа.
  */
 
@@ -37,7 +37,6 @@ export const useCodexIntegrationForm = ({
       (connection ? "deviceCode" : "browser"),
     authMode: connection?.configuration.authMode ?? "chatgpt",
     displayName: connection?.displayName ?? "Основной Codex",
-    enabled: connection?.enabled ?? true,
     sourceKey,
   });
 
@@ -50,7 +49,6 @@ export const useCodexIntegrationForm = ({
         (connection ? "deviceCode" : "browser"),
       authMode: connection?.configuration.authMode ?? "chatgpt",
       displayName: connection?.displayName ?? "Основной Codex",
-      enabled: connection?.enabled ?? true,
       sourceKey,
     });
   }
@@ -88,6 +86,12 @@ export const useCodexIntegrationForm = ({
     Boolean(draft.apiKey.trim()) ||
     Boolean(draft.accessToken.trim()) ||
     Boolean(connection && connection.configuration.authMode !== draft.authMode);
+  const hasUnsavedChanges =
+    hasUnsavedAccess ||
+    draft.displayName !== (connection?.displayName ?? "Основной Codex") ||
+    draft.loginMethod !==
+      (connection?.configuration.loginMethod ??
+        (connection ? "deviceCode" : "browser"));
   const canTest =
     canStoreAccess &&
     Boolean(
@@ -107,7 +111,7 @@ export const useCodexIntegrationForm = ({
     const saved = await operations.save({
       authMode: draft.authMode,
       displayName: draft.displayName,
-      enabled: draft.enabled,
+      enabled: connection?.enabled ?? false,
       expectedRevision: connection?.revision ?? 0,
       ...(draft.apiKey.trim() ? { apiKey: draft.apiKey.trim() } : {}),
       ...(draft.accessToken.trim()
@@ -127,7 +131,7 @@ export const useCodexIntegrationForm = ({
     await operations.login.start({
       loginMethod: draft.loginMethod,
       displayName: draft.displayName,
-      enabled: draft.enabled,
+      enabled: connection?.enabled ?? false,
       expectedRevision: connection?.revision ?? 0,
     });
   };
@@ -149,6 +153,7 @@ export const useCodexIntegrationForm = ({
     groupName,
     hasMatchingCredential,
     hasUnsavedAccess,
+    hasUnsavedChanges,
     isBusy,
     isDisabled,
     onApiKeyChange: (apiKey: string) => update({ apiKey }),
@@ -164,7 +169,6 @@ export const useCodexIntegrationForm = ({
         ...(loginMethod ? { loginMethod } : {}),
       }),
     onDisplayNameChange: (displayName: string) => update({ displayName }),
-    onEnabledChange: (enabled: boolean) => update({ enabled }),
     operations,
     serverAuth,
     save,

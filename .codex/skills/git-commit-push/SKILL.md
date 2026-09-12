@@ -12,6 +12,20 @@ description: >-
 
 ## Передача задания
 
+- Для любого `inspect`, `commit` или `push` явно назначь в окружении запуска
+  `REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL. Каталог должен
+  существовать и быть заранее авторизован оператором для Codex CLI. Например,
+  из корня проекта, заменив placeholder на подготовленный путь:
+
+  ```sh
+  export REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile
+  ```
+
+  Adapter проверяет строку пути, но не существование каталога и не содержимое
+  credentials. Некорректное значение блокирует запуск с `worker_profile_invalid`.
+  Унаследованные `HOME`, `CODEX_HOME` и API keys не заменяют явный выбор.
+  Это профиль development Git worker; контракт окружения и границы продуктовой
+  авторизации описаны в [README обработчика](../../../.ai/tools/git-delivery/README.md#git-воркер).
 - Для обычного `inspect` выполни из корня проекта `npm run --silent git:worker -- inspect`.
   Этот вход запускает отдельного воркера через Codex App Server; сам вызов
   основным агентом является передачей задания, Git выполняет обработчик по

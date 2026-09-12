@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/stream.ts
- * @version 2026-08-17
- * @description Bridges authenticated SSE with persisted replay and control-plane validation.
+ * @version 1.1.0
+ * @date 2026-09-11
+ * @description Передаёт SSE с durable replay и атомарным checkpoint workflow-сегмента.
  */
 
 import { randomUUID } from "node:crypto";
@@ -19,6 +20,8 @@ import { correlationIDFor, failure } from "./http";
 import { toStreamEvent } from "./mappers";
 import { AIRepository } from "./repository";
 import { getControlPlaneClient } from "../runtime/getControlPlaneClient";
+import { persistWorkflowAgentEvent } from "../chat-context/persistWorkflowAgentEvent.service";
+import { ControlPlaneUnavailableError } from "../runtime/ControlPlaneUnavailable.error";
 
 const terminalTypes = new Set<AIStreamEvent["type"]>([
   "assistant.completed",
@@ -45,6 +48,16 @@ export const createRunEventsHandler = (
       const runID = String(req.routeParams?.id || "");
       const repository = new AIRepository(req.payload, req);
       const run = await repository.getRun(runID, user.id);
+      const isWorkflow = !!(
+        run.turnContext &&
+        typeof run.turnContext === "object" &&
+        "workflow" in run.turnContext &&
+        run.turnContext.workflow
+      );
+      const persist = (event: AIStreamEvent) =>
+        isWorkflow
+          ? persistWorkflowAgentEvent(req, user.id, event)
+          : persistAndApplyEvent(repository, event);
       const lastEventID = req.headers.get("last-event-id");
       let afterSequence = lastEventID
         ? await repository.findEventSequence(lastEventID, runID)
@@ -60,6 +73,18 @@ export const createRunEventsHandler = (
       const stream = new ReadableStream<Uint8Array>({
         cancel: () => abortController.abort(),
         start: async (controller) => {
+          const publish = async (event: AIStreamEvent): Promise<boolean> => {
+            if ((await persist(event)) === false) {
+              // Отмена могла победить provider event или локальный run.failed.
+              for (const storedEvent of (
+                await repository.listEvents(runID, afterSequence)
+              ).map(toStreamEvent))
+                controller.enqueue(encoder.encode(encodeSSE(storedEvent)));
+              return false;
+            }
+            controller.enqueue(encoder.encode(encodeSSE(event)));
+            return true;
+          };
           try {
             for (const event of stored)
               controller.enqueue(encoder.encode(encodeSSE(event)));
@@ -69,22 +94,7 @@ export const createRunEventsHandler = (
               return;
             }
 
-            if (!options.enabled) {
-              const event: AIStreamEvent = {
-                createdAt: new Date().toISOString(),
-                id: randomUUID(),
-                payload: { message: "AI feature is disabled." },
-                runID,
-                sequence: afterSequence + 1,
-                type: "run.failed",
-                visibility: "user-visible",
-              };
-              await persistAndApplyEvent(repository, event);
-              controller.enqueue(encoder.encode(encodeSSE(event)));
-              controller.close();
-              return;
-            }
-
+            // Переключатель запрещает новые dispatch, но уже принятый run сохраняет события и завершение.
             const response = await getControlPlaneClient(options).streamRun(
               runID,
               afterSequence,
@@ -115,8 +125,11 @@ export const createRunEventsHandler = (
                     runID,
                   );
                   if (event.sequence > afterSequence) {
-                    await persistAndApplyEvent(repository, event);
-                    controller.enqueue(encoder.encode(encodeSSE(event)));
+                    if (!(await publish(event))) {
+                      await reader.cancel();
+                      controller.close();
+                      return;
+                    }
                     afterSequence = event.sequence;
                     terminalReceived = terminalTypes.has(event.type);
                   }
@@ -138,12 +151,33 @@ export const createRunEventsHandler = (
                 type: "run.failed",
                 visibility: "user-visible",
               };
-              await persistAndApplyEvent(repository, event);
-              controller.enqueue(encoder.encode(encodeSSE(event)));
+              await publish(event);
             }
             controller.close();
           } catch (error) {
             if (abortController.signal.aborted) return;
+            if (
+              isWorkflow &&
+              run.status === "running" &&
+              error instanceof ControlPlaneUnavailableError &&
+              error.status === 404
+            ) {
+              const event: AIStreamEvent = {
+                id: `workflow:${runID}:runtime-lost`,
+                runID,
+                sequence: afterSequence + 1,
+                createdAt: new Date().toISOString(),
+                type: "run.failed",
+                visibility: "user-visible",
+                payload: {
+                  message:
+                    "Runtime перезапущен и потерял незавершённый ответ модели. Процесс остановлен; сохранённые результаты и подготовленные изменения доступны в диалоге.",
+                },
+              };
+              await publish(event);
+              controller.close();
+              return;
+            }
             req.payload.logger.error({
               correlationID,
               err: error,

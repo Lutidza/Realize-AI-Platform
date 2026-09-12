@@ -1,7 +1,15 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/RunInspector.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Оформляет доступную на любой ширине активность запуска токенами UI-кита.
+ */
+
 .inspector {
-  background: var(--theme-elevation-50);
-  border-left: 1px solid var(--theme-elevation-150);
-  padding: 0.9rem;
+  background: var(--ui-color-bg);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  padding: var(--ui-space-4);
 }
 
 .inspector h2,
@@ -20,12 +28,12 @@
 }
 
 .inspector dl div {
-  border-bottom: 1px solid var(--theme-elevation-150);
+  border-bottom: 1px solid var(--ui-color-border);
   padding-bottom: 0.45rem;
 }
 
 .inspector dt {
-  color: var(--theme-elevation-500);
+  color: var(--ui-color-muted);
   font-size: 0.62rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -42,14 +50,8 @@
 }
 
 .guardrails ul {
-  color: var(--theme-elevation-600);
+  color: var(--ui-color-muted);
   font-size: 0.7rem;
   line-height: 1.55;
   padding-left: 1rem;
-}
-
-@media (max-width: 1120px) {
-  .inspector {
-    display: none;
-  }
 }

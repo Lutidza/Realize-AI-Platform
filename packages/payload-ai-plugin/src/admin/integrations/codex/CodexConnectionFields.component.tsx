@@ -1,11 +1,11 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/CodexConnectionFields.component.tsx
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-11
  * @description Собирает параметры Codex и поля выбранного способа авторизации.
  */
 
-import { UiInput, UiSurface, UiSwitch } from "@realize/ui-kit";
+import { UiInput } from "@realize/ui-kit";
 import { KeyRound, Settings2 } from "lucide-react";
 import { IntegrationFormSection } from "../IntegrationFormSection.component";
 import fieldStyles from "../IntegrationConnectionForm.module.css";
@@ -42,19 +42,6 @@ export const CodexConnectionFields = ({ form }: CodexConnectionFieldsProps) => (
         isDisabled={form.isBusy}
         onChange={form.onAuthModeChange}
       />
-      <UiSurface asChild tone="raised">
-        <label className={fieldStyles.toggleField}>
-          <span className={fieldStyles.toggleCopy}>
-            <strong>Использовать подключение</strong>
-            <small>Разрешить использование сохранённого доступа к Codex.</small>
-          </span>
-          <UiSwitch
-            checked={form.draft.enabled}
-            disabled={form.isDisabled}
-            onChange={(event) => form.onEnabledChange(event.target.checked)}
-          />
-        </label>
-      </UiSurface>
     </IntegrationFormSection>
     <IntegrationFormSection
       description="Настройте выбранный источник доступа к GPT — Codex."

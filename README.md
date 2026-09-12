@@ -79,9 +79,26 @@ npm run payload:migrate
 
 ### 4. Запуск приложения
 
+Для локального окружения в `.env.example` выбран
+`REALIZE_AI_RUNTIME_MODE=local-development`. Заполните также
+`REALIZE_AI_CONTROL_PLANE_TOKEN`, `REALIZE_AI_EXECUTION_SIGNING_SECRET` и
+общий `REALIZE_INTEGRATIONS_ENCRYPTION_KEY` по
+[руководству по локальному ИИ](documentation/delivery/01-local-admin-ai.md#2-конфигурация).
+
 ```bash
 npm run dev
 ```
+
+Команда запускает Next, локальный control plane и execution worker одним
+процессом управления. Исполнитель начинает получать задания только при
+разрешении соответствующего этапа в админке. `Ctrl+C` останавливает окружение,
+дожидаясь завершения уже полученного задания. Повторный совместный запуск
+того же checkout и конфликты портов отклоняются.
+
+Для запуска только Next используйте `npm run dev:web`. В режимах
+`central-control-plane` и `REALIZE_AI_RUNTIME_ISOLATED=true` общая команда
+также запускает только приложение. `npm start` и Compose не запускают
+локальные AI-сервисы; серверный запуск использует отдельную инфраструктуру.
 
 - Сайт: [localhost:3000](http://localhost:3000).
 - Панель управления: [localhost:3000/admin](http://localhost:3000/admin).
@@ -116,6 +133,8 @@ docker compose ps
 
 | Команда                              | Назначение                                                       |
 | ------------------------------------ | ---------------------------------------------------------------- |
+| `npm run dev`                        | Совместный запуск локального приложения и AI-сервисов              |
+| `npm run dev:web`                    | Запуск только Next.js                                           |
 | `npm run lint`                       | Проверка кода ESLint                                             |
 | `npm run typecheck`                  | Проверка типов TypeScript                                        |
 | `npm run check:headers -- <файлы>`   | [Шапки выбранных исходников](.ai/tools/source-headers/README.md) |
@@ -132,8 +151,10 @@ docker compose ps
 
 ## Дополнительные возможности
 
-- **ИИ в панели управления.** По умолчанию отключён. Настройка чата и отдельных
-  процессов `ai:control-plane` и `ai:execution-worker` описана в
+- **ИИ в панели управления.** Включается на вкладке «Агент» в
+  `/admin/integrations/codex` после подключения аккаунта. Там же задаются модели,
+  разрешения выполнения и сроки, отображается состояние исполнителя.
+  Совместный запуск и отдельные команды обслуживания описаны в
   [руководстве по локальному ИИ](documentation/delivery/01-local-admin-ai.md).
 - **Подключения сервисов.** В `/admin/integrations` доступны GitHub и
   [GPT — Codex](documentation/architecture/codex-integration.md): вход через

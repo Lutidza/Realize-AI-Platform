@@ -1,9 +1,11 @@
 /**
  * @file packages/ai-contracts/src/validation.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-09-09
  * @description Проверяет недоверенный ввод на public API boundary без runtime-зависимостей.
  */
+
+import { parseChatMessageContext } from "./parseChatMessageContext.validator";
 
 import type {
   ApprovePlanInput,
@@ -82,13 +84,19 @@ export const parseCreateMessageInput = (value: unknown): CreateMessageInput => {
   }
 
   const content = input.content.trim();
-  if (content.length === 0 || content.length > 8_000) {
+  const context = parseChatMessageContext(input);
+  if (
+    (content.length === 0 &&
+      !context.attachmentIDs?.length &&
+      !context.projectFiles?.length) ||
+    content.length > 8_000
+  ) {
     throw new ContractValidationError(
       "content must contain between 1 and 8000 characters.",
     );
   }
 
-  return { content };
+  return { content, ...context };
 };
 
 /** Проверяет сообщение ассистента, выбранное неизменяемым источником плана. */

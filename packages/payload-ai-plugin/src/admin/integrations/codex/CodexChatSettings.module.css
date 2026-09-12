@@ -1,0 +1,203 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/codex/CodexChatSettings.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Размещает настройки чата и схематические варианты его расположения.
+ */
+.settings {
+  display: grid;
+  gap: var(--ui-space-6);
+  min-width: 0;
+}
+.modeGroup {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.legend {
+  font-size: 13px;
+  color: var(--ui-color-muted);
+  margin-bottom: var(--ui-space-3);
+}
+.modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--ui-space-4);
+}
+.mode {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  cursor: pointer;
+  min-width: 0;
+}
+.mode:has(:focus-visible) {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 3px;
+}
+.modeTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  font-size: 14px;
+}
+.modeTitle strong {
+  flex: 1;
+}
+.mode input {
+  margin: 0;
+  accent-color: var(--ui-color-primary);
+}
+.mode small,
+.option small,
+.hint {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.preview {
+  display: grid;
+  grid-template-columns: 18% 1fr;
+  position: relative;
+  height: 136px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-bg);
+  overflow: hidden;
+}
+.previewNav {
+  background: var(--ui-color-surface-raised);
+  border-right: 1px solid var(--ui-color-border);
+}
+.previewContent {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  padding: 18px;
+}
+.previewContent i {
+  height: 7px;
+  width: 75%;
+  background: var(--ui-color-border);
+  border-radius: 4px;
+}
+.previewContent i:nth-child(2) {
+  width: 100%;
+}
+.previewChat {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  color: var(--ui-color-primary);
+  border: 1px solid color-mix(in srgb, var(--ui-color-primary) 30%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 8%,
+    var(--ui-color-surface)
+  );
+  box-shadow: var(--ui-shadow-glow);
+}
+.previewChat i {
+  display: block;
+  width: 72%;
+  height: 14px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 5px;
+  background: var(--ui-color-surface);
+}
+.preview[data-mode="panel"] .previewChat {
+  inset: 0 0 0 56%;
+}
+.preview[data-mode="window"] .previewChat {
+  inset: 18px 20% 12px 28%;
+  border-radius: 8px;
+  box-shadow: var(--ui-shadow-surface);
+}
+.preview[data-mode="page"] .previewChat {
+  inset: 9px 9px 9px 23%;
+  border-radius: 8px;
+}
+.options {
+  display: grid;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-4);
+  padding: var(--ui-space-4) 0;
+  cursor: pointer;
+}
+.option + .option {
+  border-top: 1px solid var(--ui-color-border);
+}
+.optionText {
+  flex: 1;
+  display: grid;
+  gap: var(--ui-space-1);
+}
+.option strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.toolIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  color: var(--ui-color-primary);
+}
+.hint {
+  margin: var(--ui-space-3) 0 0;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  flex-wrap: wrap;
+  padding-block: var(--ui-space-2);
+}
+.open {
+  margin-left: auto;
+}
+@media (max-width: 760px) {
+  .modes {
+    grid-template-columns: 1fr;
+  }
+  .mode {
+    grid-template-columns: 68px minmax(0, 1fr);
+    gap: var(--ui-space-2) var(--ui-space-3);
+    padding: var(--ui-space-3);
+  }
+  .preview {
+    height: 88px;
+    grid-row: span 2;
+  }
+  .previewContent {
+    padding: 10px;
+  }
+  .modeTitle {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+  .modeTitle > svg {
+    display: none;
+  }
+  .modeTitle input {
+    margin-top: 3px;
+  }
+  .mode small {
+    grid-column: 2;
+  }
+  .open {
+    margin-left: 0;
+  }
+  .actions > button {
+    flex-grow: 1;
+  }
+}

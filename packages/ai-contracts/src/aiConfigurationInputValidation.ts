@@ -1,12 +1,14 @@
 /**
  * @file packages/ai-contracts/src/aiConfigurationInputValidation.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Проверяет strict mutation bodies installation configuration API.
  * @docref Realize AI Commerce v1.0 — API и streaming contracts
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
  */
 
 import type {
+  ActivateAIConfigReleaseInput,
   AIConfigBaseReleaseDTO,
   CreateAIConfigDraftInput,
   CreateAIConfigReleaseInput,
@@ -170,3 +172,42 @@ export const parseCreateAIConfigReleaseInput = (
 };
 
 export { parseAIConfigArtifact, parseAIConfigArtifacts };
+
+/** Принимает только hash-bound выбор выпуска; identity actor и новая версия принадлежат серверу. */
+export const parseActivateAIConfigReleaseInput = (
+  value: unknown,
+): ActivateAIConfigReleaseInput => {
+  const input = strictObject(value, "request body");
+  const keys = [
+    "action",
+    "expectedPointerVersion",
+    "expectedReleaseManifestHash",
+    "expectedSystemManifestHash",
+    "releaseID",
+    "schemaVersion",
+  ];
+  requireExactKeys(input, keys, keys, "request body");
+  return {
+    action: parseEnum(
+      input.action,
+      ["activate", "rollback"] as const,
+      "action",
+    ),
+    expectedPointerVersion: parseInteger(
+      input.expectedPointerVersion,
+      "expectedPointerVersion",
+      0,
+      Number.MAX_SAFE_INTEGER - 1,
+    ),
+    expectedReleaseManifestHash: parseSHA256(
+      input.expectedReleaseManifestHash,
+      "expectedReleaseManifestHash",
+    ),
+    expectedSystemManifestHash: parseSHA256(
+      input.expectedSystemManifestHash,
+      "expectedSystemManifestHash",
+    ),
+    releaseID: parseStableKey(input.releaseID, "releaseID"),
+    schemaVersion: parseSchemaVersion(input.schemaVersion, "schemaVersion"),
+  };
+};

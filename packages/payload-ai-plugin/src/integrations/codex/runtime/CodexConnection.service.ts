@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnection.service.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-11
  * @description Предоставляет изолированную авторизацию Codex с DB lock и сохранением token refresh.
  */
 
@@ -156,6 +156,11 @@ export class CodexConnectionService implements CodexConnectionResolver {
         authMode: configuration.authMode,
         environment,
         home: activeHome,
+        model: configuration.agent.model || undefined,
+        reviewModel:
+          configuration.agent.reviewModel ||
+          configuration.agent.model ||
+          undefined,
         revision,
         signal,
         dispose,

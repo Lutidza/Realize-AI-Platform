@@ -9,6 +9,10 @@ import * as migration_20260827_070003_admin_integration_registry from './2026082
 import * as migration_20260828_022809_github_pull_request_source_promotion from './20260828_022809_github_pull_request_source_promotion';
 import * as migration_20260828_044410_data_operation_lane from './20260828_044410_data_operation_lane';
 import * as migration_20260901_163832_ai_config_persistence from './20260901_163832_ai_config_persistence';
+import * as migration_20260909_190959_chat_message_context from './20260909_190959_chat_message_context';
+import * as migration_20260910_122259_ai_config_activation from './20260910_122259_ai_config_activation';
+import * as migration_20260911_132139_worker_presence from './20260911_132139_worker_presence';
+import * as migration_20260911_155718_page_draft_data_operation from './20260911_155718_page_draft_data_operation';
 
 export const migrations = [
   {
@@ -64,6 +68,26 @@ export const migrations = [
   {
     up: migration_20260901_163832_ai_config_persistence.up,
     down: migration_20260901_163832_ai_config_persistence.down,
-    name: '20260901_163832_ai_config_persistence'
+    name: '20260901_163832_ai_config_persistence',
+  },
+  {
+    up: migration_20260909_190959_chat_message_context.up,
+    down: migration_20260909_190959_chat_message_context.down,
+    name: '20260909_190959_chat_message_context',
+  },
+  {
+    up: migration_20260910_122259_ai_config_activation.up,
+    down: migration_20260910_122259_ai_config_activation.down,
+    name: '20260910_122259_ai_config_activation',
+  },
+  {
+    up: migration_20260911_132139_worker_presence.up,
+    down: migration_20260911_132139_worker_presence.down,
+    name: '20260911_132139_worker_presence',
+  },
+  {
+    up: migration_20260911_155718_page_draft_data_operation.up,
+    down: migration_20260911_155718_page_draft_data_operation.down,
+    name: '20260911_155718_page_draft_data_operation'
   },
 ];

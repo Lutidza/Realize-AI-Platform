@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/codex/persistCodexConnection.service.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-09-11
  * @description Сохраняет подключение Codex через общий vault, optimistic revision и audit.
  */
 
@@ -132,6 +132,8 @@ export const persistCodexConnection = async (
       const account = material ?? previous?.configuration;
       const configuration = parseCodexIntegrationConfiguration({
         authMode: operation.input.authMode,
+        chat: previous?.configuration.chat,
+        agent: previous?.configuration.agent,
         ...(operation.input.authMode === "chatgpt"
           ? {
               loginMethod:

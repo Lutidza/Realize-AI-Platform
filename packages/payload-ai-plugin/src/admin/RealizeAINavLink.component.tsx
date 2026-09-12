@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RealizeAINavLink.component.tsx
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-10
  * @description Связывает доступ и маршруты с навигацией AI и интеграций.
  */
 
@@ -13,6 +13,6 @@ import { useRealizeAINavigation } from "./useRealizeAINavigation.hook";
 
 /** Выделяет раздел на дочерней странице и сохраняет ссылку возврата в каталог. */
 export const RealizeAINavLink = (props: RealizeAINavLinkProps) => {
-  const links = useRealizeAINavigation(props);
-  return <RealizeAINavLinkView group={props.group} links={links} />;
+  const groups = useRealizeAINavigation(props);
+  return <RealizeAINavLinkView groups={groups} />;
 };

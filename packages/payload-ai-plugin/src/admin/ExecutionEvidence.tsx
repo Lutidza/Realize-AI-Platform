@@ -1,18 +1,17 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/ExecutionEvidence.tsx
- * @version 2026-08-21
- * @description Renders isolated job progress, diff/check evidence and acceptance actions.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Показывает ожидание исполнителя, результат изолированного изменения и его приёмку.
  */
 
 "use client";
 
-import type {
-  ExecutionJobDTO,
-  ImplementationAcceptanceDTO,
-} from "@realize/ai-contracts";
+import type { ExecutionJobDTO } from "@realize/ai-contracts";
 import {
   CheckCircle2,
   ChevronDown,
+  Clock3,
   FileDiff,
   GitBranch,
   Loader2,
@@ -21,14 +20,7 @@ import {
 import { useState } from "react";
 
 import styles from "./ExecutionEvidence.module.css";
-
-type ExecutionEvidenceProps = {
-  acceptance?: ImplementationAcceptanceDTO;
-  job: ExecutionJobDTO;
-  onAccept: () => void;
-  onReject: (comment: string) => void;
-  pending: boolean;
-};
+import type { ExecutionEvidenceProps } from "./ExecutionEvidence.types";
 
 const statusLabel: Record<ExecutionJobDTO["status"], string> = {
   blocked: "Заблокировано",
@@ -48,24 +40,31 @@ const activeStatuses = new Set<ExecutionJobDTO["status"]>([
   "validating",
 ]);
 
-/** Keeps execution evidence visually separate from plan approval. */
+/** Приёмка результата отделена от утверждения плана; очередь показывает живую причину ожидания. */
 export const ExecutionEvidence = ({
   acceptance,
   job,
   onAccept,
   onReject,
   pending,
+  reason: executionReason,
+  worker,
 }: ExecutionEvidenceProps) => {
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState("");
   const active = activeStatuses.has(job.status);
+  const workerUnavailable = active && worker?.state === "unavailable";
   const canDecide = job.status === "completed" && !acceptance;
 
   return (
     <section className={styles.evidence} data-testid="execution-evidence">
       <header className={styles.header}>
         <span className={styles.icon} aria-hidden="true">
-          {active ? (
+          {job.status === "queued" ? (
+            <Clock3 size={16} />
+          ) : workerUnavailable ? (
+            <XCircle size={16} />
+          ) : active ? (
             <Loader2 className={styles.spin} size={16} />
           ) : job.status === "completed" ? (
             <CheckCircle2 size={16} />
@@ -74,7 +73,13 @@ export const ExecutionEvidence = ({
           )}
         </span>
         <div>
-          <strong>{statusLabel[job.status]}</strong>
+          <strong>
+            {job.status === "queued" && workerUnavailable
+              ? "Ожидаем исполнителя"
+              : workerUnavailable
+                ? "Выполнение не подтверждено"
+                : statusLabel[job.status]}
+          </strong>
           <span>
             {active ? "Основной checkout не изменяется" : job.errorSummary}
           </span>
@@ -88,7 +93,25 @@ export const ExecutionEvidence = ({
         <code title={job.baseCommit}>{job.baseCommit.slice(0, 12)}</code>
       </div>
 
-      {job.workerSummary ? (
+      {job.status === "queued" ? (
+        <p className={styles.summary} role="status">
+          {executionReason || worker?.reason || "Задание ожидает исполнителя."}
+          {" План уже утверждён. Повторное подтверждение не требуется."}
+        </p>
+      ) : workerUnavailable ? (
+        <p className={styles.summary} role="status">
+          {worker.reason}
+          {worker.lastSeenAt ? (
+            <>
+              {" Последний сигнал: "}
+              <time dateTime={worker.lastSeenAt}>
+                {new Date(worker.lastSeenAt).toLocaleString("ru-RU")}
+              </time>
+              .
+            </>
+          ) : null}
+        </p>
+      ) : job.workerSummary ? (
         <p className={styles.summary}>{job.workerSummary}</p>
       ) : null}
 

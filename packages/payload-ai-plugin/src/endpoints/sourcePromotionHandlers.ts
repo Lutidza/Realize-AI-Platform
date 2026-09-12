@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/sourcePromotionHandlers.ts
- * @version 2026-08-28
+ * @version 1.1.0
+ * @date 2026-09-11
  * @docref ADR-0013
  * @see documentation/architecture/decisions/ADR-0013-github-pull-request-source-promotion.md
  * @description Создаёт accepted-preview source promotion и отдаёт redacted PR evidence.
@@ -17,6 +18,7 @@ import {
 } from "@realize/change-engine";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
+import { requireCodexChatTool } from "./requireCodexChatTool.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { consumeRateLimit, requireChatUser } from "./access";
 import { ChangeRepository } from "./changeRepository";
@@ -117,6 +119,7 @@ export const createSourcePromotionHandlers = (
   }),
 
   publish: withHandler(async (req, correlationID) => {
+    const user = await requireChatUser(req, options);
     if (!options.sourcePromotion.enabled) {
       throw new EndpointError(
         "AI_DISABLED",
@@ -124,7 +127,7 @@ export const createSourcePromotionHandlers = (
         409,
       );
     }
-    const user = await requireChatUser(req, options);
+    await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(

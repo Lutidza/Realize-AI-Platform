@@ -1,20 +1,34 @@
 /**
  * @file services/ai-control-plane/src/runStore.ts
- * @version 2026-08-17
- * @description Stores local-development runs and ordered resumable events in process memory.
+ * @version 1.2.0
+ * @date 2026-09-11
+ * @description Хранит runtime runs и повторяемые события с проверкой полного запроса.
  */
 
 import { randomUUID } from "node:crypto";
 
-import type { AIStreamEvent, AIStreamEventType } from "@realize/ai-contracts";
+import type {
+  ChatAssetReference,
+  ProjectFileReference,
+  AIStreamEvent,
+  AIStreamEventType,
+  AIChatConfigurationSnapshot,
+  WorkflowCheckpoint,
+} from "@realize/ai-contracts";
 
 /** Internal mutable run state owned by the loopback development service. */
 export type ControlPlaneRun = {
+  agentConfiguration?: AIChatConfigurationSnapshot;
+  workflow?: WorkflowCheckpoint;
+  conversationHistory?: string;
   cancelRequested: boolean;
   events: AIStreamEvent[];
   id: string;
   model?: string;
   prompt: string;
+  attachments?: ChatAssetReference[];
+  projectFiles?: ProjectFileReference[];
+  webSearch?: boolean;
   status: "cancelled" | "completed" | "failed" | "queued" | "running";
   threadID?: string;
 };
@@ -24,6 +38,7 @@ type Subscriber = (event: AIStreamEvent) => void;
 /** In-memory run registry with ordered replay and subscriber notification. */
 export class RunStore {
   private readonly runs = new Map<string, ControlPlaneRun>();
+  private readonly fingerprints = new Map<string, string>();
   private readonly subscribers = new Map<string, Set<Subscriber>>();
 
   append(
@@ -52,7 +67,13 @@ export class RunStore {
   create(
     input: Omit<ControlPlaneRun, "cancelRequested" | "events" | "status">,
   ): ControlPlaneRun {
-    if (this.runs.has(input.id)) return this.require(input.id);
+    const fingerprint = JSON.stringify(input);
+    if (this.runs.has(input.id)) {
+      if (this.fingerprints.get(input.id) !== fingerprint)
+        throw new Error("Run ID is already bound to a different request.");
+      return this.require(input.id);
+    }
+    this.fingerprints.set(input.id, fingerprint);
     const run: ControlPlaneRun = {
       ...input,
       cancelRequested: false,

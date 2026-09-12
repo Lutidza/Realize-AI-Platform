@@ -1,14 +1,14 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 2.0.0
+ * @date 2026-09-11
  * @description Ограниченный JSONL RPC и завершение изолированного процесса Codex App Server.
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { isAbsolute } from "node:path";
 
 import { AsyncQueue } from "./AsyncQueue";
-import { createCodexEnvironment } from "./environment";
 import { JsonLineRpcError } from "./JsonLineRpc.error";
 import type {
   JsonLineRPCClientOptions,
@@ -61,7 +61,14 @@ export class JsonLineRPCClient {
       this.complete = resolve;
     });
     if (
+      !options.environment ||
+      typeof options.environment.CODEX_HOME !== "string" ||
+      !isAbsolute(options.environment.CODEX_HOME) ||
+      options.environment.CODEX_HOME.includes("\0") ||
       !options.workingDirectory ||
+      (options.webSearch !== undefined &&
+        options.webSearch !== "disabled" &&
+        options.webSearch !== "live") ||
       options.workingDirectory.includes("\0") ||
       (options.codexBinary !== undefined &&
         (!options.codexBinary || options.codexBinary.includes("\0"))) ||
@@ -73,7 +80,7 @@ export class JsonLineRPCClient {
     }
   }
 
-  /** Запускает процесс без shell и с явным либо штатным allowlisted environment. */
+  /** Запускает процесс без shell только с явным окружением профиля интеграции. */
   start(): void {
     if (this.failure) throw this.failure;
     if (this.child) throw new JsonLineRpcError("codex_already_started");
@@ -84,10 +91,17 @@ export class JsonLineRPCClient {
     try {
       this.child = spawn(
         this.options.codexBinary ?? "codex",
-        [...(this.options.args ?? DEFAULT_ARGUMENTS)],
+        [
+          ...(this.options.args ??
+            DEFAULT_ARGUMENTS.map((argument) =>
+              argument === 'web_search="disabled"'
+                ? `web_search="${this.options.webSearch ?? "disabled"}"`
+                : argument,
+            )),
+        ],
         {
           cwd: this.options.workingDirectory,
-          env: this.options.environment ?? createCodexEnvironment(),
+          env: this.options.environment,
           shell: false,
           detached: process.platform !== "win32",
           stdio: ["pipe", "pipe", "pipe"],

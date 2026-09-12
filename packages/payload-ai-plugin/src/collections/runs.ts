@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/runs.ts
- * @version 2026-08-17
- * @description Defines the auditable site projection of read-only agent runs.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Хранит проверяемый снимок запроса и состояние read-only запуска.
  */
 
 import type { CollectionConfig, CollectionSlug } from "payload";
@@ -39,6 +40,8 @@ export const createRunsCollection = (
         type: "text",
       },
       { name: "model", type: "text" },
+      { name: "requestHash", type: "text" },
+      { name: "turnContext", type: "json" },
       { index: true, name: "threadID", type: "text" },
       {
         defaultValue: "queued",

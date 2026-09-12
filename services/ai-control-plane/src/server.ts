@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/server.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.2.1
+ * @date 2026-09-11
  * @description Предоставляет loopback control plane для read-only запуска выбранной интеграции Codex.
  */
 
@@ -13,38 +13,40 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http";
-import { resolve } from "node:path";
 
 import type { AgentEvent, AIStreamEvent } from "@realize/ai-contracts";
 import { encodeSSE } from "@realize/ai-contracts";
-import { buildReadOnlyDeveloperInstructions } from "@realize/change-engine";
+import { buildConfiguredChatTurn } from "./buildConfiguredChatTurn.service";
 import { OpenAICodexAdapter } from "@realize/codex-adapter";
 import type { CodexConnectionLease } from "@realize/payload-ai-control/server/integration-runtime";
+
+import { materializeChatAttachments } from "./materializeChatAttachments.service";
+import { ChatAssetStore } from "./ChatAssetStore.repository";
+import { handleChatContextRoute } from "./chatContextRoutes.controller";
+import { parseChatRun } from "./parseChatRun.validator";
+import { readControlPlaneJSON } from "./readControlPlaneJSON.service";
 
 import { createContextSnapshot } from "./contextSnapshot";
 import { createCodexRuntime } from "./createCodexRuntime.config";
 import { RunStore, type ControlPlaneRun } from "./runStore";
+import { readControlPlaneConfig } from "./readControlPlaneConfig.config";
 
 loadEnvironment({ path: ".env.local", quiet: true });
 loadEnvironment({ quiet: true });
 
-const host = process.env.REALIZE_AI_CONTROL_PLANE_HOST || "127.0.0.1";
-const port = Number(process.env.REALIZE_AI_CONTROL_PLANE_PORT || 3100);
-const token = process.env.REALIZE_AI_CONTROL_PLANE_TOKEN || "";
-const workspaceRoot = resolve(
-  process.env.REALIZE_AI_WORKSPACE_ROOT || process.cwd(),
+const { host, port, token, workspaceRoot } = readControlPlaneConfig();
+
+const assets = new ChatAssetStore(
+  process.env.REALIZE_AI_CHAT_ASSET_ROOT,
+  workspaceRoot,
 );
-
-if (host !== "127.0.0.1" && host !== "::1") {
-  throw new Error("The development control plane may only bind to loopback.");
-}
-if (!Number.isInteger(port) || port < 1 || port > 65_535)
-  throw new Error("Invalid control-plane port.");
-if (token.length < 32)
-  throw new Error(
-    "REALIZE_AI_CONTROL_PLANE_TOKEN must contain at least 32 characters.",
-  );
-
+const cleanupAssets = setInterval(
+  () => {
+    void assets.cleanup().catch(() => undefined);
+  },
+  60 * 60 * 1000,
+);
+cleanupAssets.unref();
 const runtime = createCodexRuntime();
 const activeAdapters = new Map<string, OpenAICodexAdapter>();
 const executions = new Map<string, Promise<void>>();
@@ -72,28 +74,9 @@ const json = (
   response.end(JSON.stringify(body));
 };
 
-const readJSON = async (
-  request: IncomingMessage,
-): Promise<Record<string, unknown>> => {
-  const chunks: Buffer[] = [];
-  let bytes = 0;
-  for await (const chunk of request) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    bytes += buffer.byteLength;
-    if (bytes > 16_384) throw new Error("Request body is too large.");
-    chunks.push(buffer);
-  }
-
-  const parsed = JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Request body must be an object.");
-  }
-  return parsed as Record<string, unknown>;
-};
-
 const publicRun = (
   run: ControlPlaneRun,
-): Omit<ControlPlaneRun, "cancelRequested" | "events" | "prompt"> => ({
+): Pick<ControlPlaneRun, "id" | "model" | "status" | "threadID"> => ({
   id: run.id,
   model: run.model,
   status: run.status,
@@ -116,18 +99,36 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
     const adapter = new OpenAICodexAdapter({
       codexBinary: process.env.REALIZE_CODEX_BINARY || undefined,
       environment: lease.environment,
+      privateReadDenyPaths: process.env.REALIZE_AI_CHAT_ASSET_ROOT
+        ? [process.env.REALIZE_AI_CHAT_ASSET_ROOT]
+        : [],
       signal: lease.signal,
     });
     activeAdapters.set(run.id, adapter);
-    snapshot = await createContextSnapshot(workspaceRoot);
+    snapshot = await createContextSnapshot(workspaceRoot, run.projectFiles);
+    const context = await materializeChatAttachments(
+      assets,
+      run.attachments ?? [],
+      run.id,
+      snapshot.root,
+    );
     if (run.cancelRequested) return;
-    const instructions = `${buildReadOnlyDeveloperInstructions()}\nContext Pack contains ${snapshot.fileCount} files (${snapshot.totalBytes} bytes).`;
+    const turn = buildConfiguredChatTurn({
+      run,
+      fileCount: snapshot.fileCount,
+      totalBytes: snapshot.totalBytes,
+      selectedFiles: snapshot.selectedFiles,
+      attachmentInstructions: context.instructions,
+    });
 
     for await (const event of adapter.runTurn({
       cwd: snapshot.root,
-      developerInstructions: instructions,
+      sandboxProfile: "analysis-readonly",
+      images: context.images,
+      webSearch: run.webSearch,
+      developerInstructions: turn.developerInstructions,
       model: run.model,
-      prompt: run.prompt,
+      prompt: turn.prompt,
       runID: run.id,
       threadID: run.threadID,
     })) {
@@ -173,7 +174,10 @@ const applyAgentEvent = (run: ControlPlaneRun, event: AgentEvent): void => {
       break;
     case "assistant.completed":
       run.status = "completed";
-      store.append(run.id, event.type, { content: event.content });
+      store.append(run.id, event.type, {
+        content: event.content,
+        sources: event.sources ?? [],
+      });
       break;
     case "tool.started":
       store.append(
@@ -273,6 +277,17 @@ const server = createServer(async (request, response) => {
       return;
     }
 
+    if (
+      await handleChatContextRoute(
+        request,
+        response,
+        url,
+        assets,
+        workspaceRoot,
+      )
+    )
+      return;
+
     if (request.method === "GET" && url.pathname === "/v1/status") {
       json(response, 200, {
         service: "realize-ai-control-plane",
@@ -282,39 +297,17 @@ const server = createServer(async (request, response) => {
     }
 
     if (request.method === "POST" && url.pathname === "/v1/runs") {
-      const body = await readJSON(request);
-      if (
-        typeof body.runID !== "string" ||
-        !/^[A-Za-z0-9_-]{1,128}$/.test(body.runID)
-      ) {
-        throw new Error("runID is invalid.");
-      }
-      if (
-        typeof body.prompt !== "string" ||
-        body.prompt.trim().length < 1 ||
-        body.prompt.length > 8_000
-      ) {
-        throw new Error("prompt is invalid.");
-      }
-      if (body.threadID !== undefined && typeof body.threadID !== "string") {
-        throw new Error("threadID is invalid.");
-      }
-      if (body.model !== undefined && typeof body.model !== "string") {
-        throw new Error("model is invalid.");
-      }
-
-      const existing = store.get(body.runID);
+      const input = parseChatRun(
+        await readControlPlaneJSON(request, 8 * 1024 * 1024 + 64 * 1024),
+      );
+      const existing = store.get(input.id);
       if (existing) {
+        store.create(input);
         json(response, 200, { run: publicRun(existing) });
         return;
       }
 
-      const run = store.create({
-        id: body.runID,
-        model: body.model,
-        prompt: body.prompt.trim(),
-        threadID: body.threadID,
-      });
+      const run = store.create(input);
       const execution = executeRun(run).finally(() =>
         executions.delete(run.id),
       );
@@ -376,6 +369,7 @@ server.listen(port, host, () => {
 });
 
 const shutdown = (): void => {
+  clearInterval(cleanupAssets);
   server.close();
   void Promise.allSettled(
     [...activeAdapters].map(([runID, adapter]) => adapter.cancelRun(runID)),

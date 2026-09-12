@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/realizeAIPlugin.plugin.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.4.0
+ * @date 2026-09-11
  * @description Подключает коллекции, endpoints и Admin views плагина Payload.
  */
 
@@ -13,6 +13,7 @@ import {
 } from "./constants";
 import { createAICollections } from "./collections";
 import { createAIEndpoints } from "./endpoints";
+import { lockPageDraftWrites } from "./endpoints/lockPageDraftWrites.hook";
 import { sanitizeOptions } from "./options";
 import type { RealizeAIPluginOptions } from "./types";
 
@@ -43,25 +44,49 @@ export const realizeAIPlugin = (
 
     const components = incomingConfig.admin?.components || {};
     const views = components.views || {};
+    const conflictingView = [
+      "realizeAgentLayerSettings",
+      "realizeWorkflowRuns",
+      "realizeWorkflowRun",
+    ].find((key) => key in views);
+    if (conflictingView) {
+      throw new Error(`Realize Admin view key collision: ${conflictingView}`);
+    }
     const integrationsRoute = options.admin.integrationsRoute;
     const integrationSettingsRoute =
       `${integrationsRoute.replace(/\/$/, "")}/:provider` as `/${string}`;
+    const chatWindowRoute =
+      `${options.admin.route.replace(/\/$/, "")}/window` as `/${string}`;
+    const agentLayerRoute =
+      `${options.admin.route.replace(/\/$/, "")}/settings` as `/${string}`;
+    const workflowRunsRoute =
+      `${options.admin.route.replace(/\/$/, "")}/runs` as `/${string}`;
+    const workflowRunRoute = `${workflowRunsRoute}/:rootRunID` as `/${string}`;
+    const registeredRoutes = new Set<string>();
     for (const route of [
       options.admin.route,
+      chatWindowRoute,
+      agentLayerRoute,
+      workflowRunsRoute,
+      workflowRunRoute,
       integrationsRoute,
       integrationSettingsRoute,
     ]) {
+      const normalizedRoute = route.replace(/\/$/, "");
       if (
+        registeredRoutes.has(normalizedRoute) ||
         Object.values(views).some(
           (view) =>
             view &&
             typeof view === "object" &&
             "path" in view &&
-            view.path === route,
+            typeof view.path === "string" &&
+            view.path.replace(/\/$/, "") === normalizedRoute,
         )
       ) {
         throw new Error(`Realize Admin route collision: ${route}`);
       }
+      registeredRoutes.add(normalizedRoute);
     }
 
     const endpoints = createAIEndpoints(options);
@@ -86,7 +111,7 @@ export const realizeAIPlugin = (
           providers: [
             ...(components.providers || []),
             {
-              clientProps: { route: options.admin.route },
+              clientProps: { route: options.admin.route, integrationsRoute },
               path: "@realize/payload-ai-control/provider#RealizeAIProvider",
             },
           ],
@@ -108,6 +133,40 @@ export const realizeAIPlugin = (
               exact: true,
               path: options.admin.route,
             },
+            realizeAIWindow: {
+              Component: {
+                path: "@realize/payload-ai-control/rsc#RealizeAIView",
+                serverProps: { presentation: "window" },
+              },
+              exact: true,
+              path: chatWindowRoute,
+            },
+            realizeWorkflowRuns: {
+              Component: {
+                path: "@realize/payload-ai-control/workflow-runs-rsc#WorkflowRunsView",
+                serverProps: {
+                  runsRoute: workflowRunsRoute,
+                  chatRoute: options.admin.route,
+                  settingsRoute: agentLayerRoute,
+                  mode: "list",
+                },
+              },
+              exact: true,
+              path: workflowRunsRoute,
+            },
+            realizeWorkflowRun: {
+              Component: {
+                path: "@realize/payload-ai-control/workflow-runs-rsc#WorkflowRunsView",
+                serverProps: {
+                  runsRoute: workflowRunsRoute,
+                  chatRoute: options.admin.route,
+                  settingsRoute: agentLayerRoute,
+                  mode: "detail",
+                },
+              },
+              exact: true,
+              path: workflowRunRoute,
+            },
             realizeIntegrations: {
               Component: {
                 path: "@realize/payload-ai-control/integrations-rsc#IntegrationsView",
@@ -115,6 +174,14 @@ export const realizeAIPlugin = (
               },
               exact: true,
               path: integrationsRoute,
+            },
+            realizeAgentLayerSettings: {
+              Component: {
+                path: "@realize/payload-ai-control/agent-layer-rsc#AgentLayerView",
+                serverProps: { settingsRoute: agentLayerRoute },
+              },
+              exact: true,
+              path: agentLayerRoute,
             },
             realizeIntegrationSettings: {
               Component: {
@@ -127,10 +194,27 @@ export const realizeAIPlugin = (
           },
         },
       },
-      collections: [...existingCollections, ...createAICollections(options)],
+      collections: [
+        ...existingCollections.map((collection) =>
+          collection.slug === "pages" && options.pageDraft
+            ? {
+                ...collection,
+                hooks: {
+                  ...collection.hooks,
+                  beforeOperation: [
+                    lockPageDraftWrites,
+                    ...(collection.hooks?.beforeOperation || []),
+                  ],
+                },
+              }
+            : collection,
+        ),
+        ...createAICollections(options),
+      ],
       custom: {
         ...(incomingConfig.custom || {}),
         [REALIZE_AI_SERVER_RUNTIME_KEY]: {
+          pageDraft: options.pageDraft,
           canManageAIConfiguration: options.access.canManageAIConfiguration,
           canManageIntegrations: options.access.canManageIntegrations,
           integrationEncryptionKeyEnv: options.integrations.encryptionKeyEnv,

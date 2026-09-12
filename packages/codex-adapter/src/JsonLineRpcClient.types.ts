@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 2.0.0
+ * @date 2026-09-11
  * @description Контракты ограниченного транспорта Codex App Server и его безопасных ошибок.
  */
 
@@ -9,7 +9,10 @@
 export type JsonLineRPCClientOptions = {
   codexBinary?: string;
   args?: readonly string[];
-  environment?: NodeJS.ProcessEnv;
+  /** Явный override штатного web_search; без настройки веб-поиск отключён. */
+  webSearch?: "disabled" | "live";
+  /** Явное окружение профиля интеграции с абсолютным CODEX_HOME. */
+  environment: NodeJS.ProcessEnv;
   workingDirectory: string;
   signal?: AbortSignal;
   onRequest?: (method: string, params: unknown) => Promise<unknown>;

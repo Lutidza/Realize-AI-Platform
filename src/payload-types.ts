@@ -88,6 +88,7 @@ export interface Config {
     transactions: Transaction;
     'realize-ai-conversations': RealizeAiConversation;
     'realize-ai-messages': RealizeAiMessage;
+    'realize-ai-chat-attachments': RealizeAiChatAttachment;
     'realize-ai-change-requests': RealizeAiChangeRequest;
     'realize-ai-approvals': RealizeAiApproval;
     'realize-ai-data-operations': RealizeAiDataOperation;
@@ -98,6 +99,7 @@ export interface Config {
     'realize-ai-active-config-pointers': RealizeAiActiveConfigPointer;
     'realize-ai-config-events': RealizeAiConfigEvent;
     'realize-ai-execution-jobs': RealizeAiExecutionJob;
+    'realize-ai-worker-presence': RealizeAiWorkerPresence;
     'realize-ai-deployments': RealizeAiDeployment;
     'realize-ai-release-candidates': RealizeAiReleaseCandidate;
     'realize-ai-source-promotions': RealizeAiSourcePromotion;
@@ -141,6 +143,7 @@ export interface Config {
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
     'realize-ai-conversations': RealizeAiConversationsSelect<false> | RealizeAiConversationsSelect<true>;
     'realize-ai-messages': RealizeAiMessagesSelect<false> | RealizeAiMessagesSelect<true>;
+    'realize-ai-chat-attachments': RealizeAiChatAttachmentsSelect<false> | RealizeAiChatAttachmentsSelect<true>;
     'realize-ai-change-requests': RealizeAiChangeRequestsSelect<false> | RealizeAiChangeRequestsSelect<true>;
     'realize-ai-approvals': RealizeAiApprovalsSelect<false> | RealizeAiApprovalsSelect<true>;
     'realize-ai-data-operations': RealizeAiDataOperationsSelect<false> | RealizeAiDataOperationsSelect<true>;
@@ -151,6 +154,7 @@ export interface Config {
     'realize-ai-active-config-pointers': RealizeAiActiveConfigPointersSelect<false> | RealizeAiActiveConfigPointersSelect<true>;
     'realize-ai-config-events': RealizeAiConfigEventsSelect<false> | RealizeAiConfigEventsSelect<true>;
     'realize-ai-execution-jobs': RealizeAiExecutionJobsSelect<false> | RealizeAiExecutionJobsSelect<true>;
+    'realize-ai-worker-presence': RealizeAiWorkerPresenceSelect<false> | RealizeAiWorkerPresenceSelect<true>;
     'realize-ai-deployments': RealizeAiDeploymentsSelect<false> | RealizeAiDeploymentsSelect<true>;
     'realize-ai-release-candidates': RealizeAiReleaseCandidatesSelect<false> | RealizeAiReleaseCandidatesSelect<true>;
     'realize-ai-source-promotions': RealizeAiSourcePromotionsSelect<false> | RealizeAiSourcePromotionsSelect<true>;
@@ -1074,7 +1078,25 @@ export interface RealizeAiMessage {
   conversation: number | RealizeAiConversation;
   role: 'user' | 'assistant' | 'system';
   kind: 'user_message' | 'assistant_message' | 'usage_notice' | 'system_error';
-  content: string;
+  content?: string | null;
+  turnContext?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sources?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   runID?: string | null;
   sequence: number;
   usageSummary?:
@@ -1087,6 +1109,24 @@ export interface RealizeAiMessage {
     | boolean
     | null;
   idempotencyKey: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-chat-attachments".
+ */
+export interface RealizeAiChatAttachment {
+  id: number;
+  assetID: string;
+  createdBy: number | User;
+  name: string;
+  mimeType: string;
+  size: number;
+  kind: 'image' | 'text';
+  sha256: string;
+  expiresAt: string;
+  runID?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1437,7 +1477,7 @@ export interface RealizeAiExecutionJob {
 export interface RealizeAiDataOperation {
   id: number;
   title: string;
-  kind: 'catalog.assignCategory.v1';
+  kind: 'catalog.assignCategory.v1' | 'pages.createDraft.v1';
   state:
     | 'awaiting_approval'
     | 'approved'
@@ -1450,13 +1490,13 @@ export interface RealizeAiDataOperation {
   version: number;
   riskLevel: 'R1';
   approvalPolicy: 'WRITE_CONFIRMATION';
-  rollbackStrategy: 'before-snapshot';
+  rollbackStrategy: 'before-snapshot' | 'delete-created-draft';
   estimatedCount: number;
   requestedBy: number | User;
   conversation: number | RealizeAiConversation;
   sourceMessage: number | RealizeAiMessage;
-  product: number | Product;
-  category: number | Category;
+  product?: (number | null) | Product;
+  category?: (number | null) | Category;
   originalRequest: string;
   intent:
     | {
@@ -1467,7 +1507,7 @@ export interface RealizeAiDataOperation {
     | number
     | boolean
     | null;
-  productSnapshot:
+  productSnapshot?:
     | {
         [k: string]: unknown;
       }
@@ -1476,7 +1516,7 @@ export interface RealizeAiDataOperation {
     | number
     | boolean
     | null;
-  categorySnapshot:
+  categorySnapshot?:
     | {
         [k: string]: unknown;
       }
@@ -1503,8 +1543,17 @@ export interface RealizeAiDataOperation {
     | number
     | boolean
     | null;
-  expectedTargetUpdatedAt: string;
+  expectedTargetUpdatedAt?: string | null;
   appliedTargetUpdatedAt?: string | null;
+  appliedSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   operationHash: string;
   rollbackHash: string;
   errorSummary?: string | null;
@@ -1659,7 +1708,13 @@ export interface RealizeAiActiveConfigPointer {
 export interface RealizeAiConfigEvent {
   id: number;
   idempotencyKey: string;
-  action: 'draft_created' | 'draft_updated' | 'draft_validated' | 'release_created';
+  action:
+    | 'draft_created'
+    | 'draft_updated'
+    | 'draft_validated'
+    | 'release_created'
+    | 'config_activated'
+    | 'config_rolled_back';
   actor: number | User;
   requestHash: string;
   resourceKind: 'draft' | 'release';
@@ -1674,6 +1729,29 @@ export interface RealizeAiConfigEvent {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-worker-presence".
+ */
+export interface RealizeAiWorkerPresence {
+  id: number;
+  instanceKey: string;
+  state: 'idle' | 'busy' | 'draining' | 'stopped' | 'error';
+  lastSeenAt: string;
+  capabilities:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  currentKind?: ('execution' | 'preview' | 'sourcePromotion' | 'release') | null;
+  currentChangeRequest?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1798,6 +1876,16 @@ export interface RealizeAiRun {
   conversation: number | RealizeAiConversation;
   provider: string;
   model?: string | null;
+  requestHash?: string | null;
+  turnContext?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   threadID?: string | null;
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   sandboxProfile: string;
@@ -1930,6 +2018,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'realize-ai-messages';
         value: number | RealizeAiMessage;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-chat-attachments';
+        value: number | RealizeAiChatAttachment;
       } | null)
     | ({
         relationTo: 'realize-ai-change-requests';
@@ -2644,10 +2736,29 @@ export interface RealizeAiMessagesSelect<T extends boolean = true> {
   role?: T;
   kind?: T;
   content?: T;
+  turnContext?: T;
+  sources?: T;
   runID?: T;
   sequence?: T;
   usageSummary?: T;
   idempotencyKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-chat-attachments_select".
+ */
+export interface RealizeAiChatAttachmentsSelect<T extends boolean = true> {
+  assetID?: T;
+  createdBy?: T;
+  name?: T;
+  mimeType?: T;
+  size?: T;
+  kind?: T;
+  sha256?: T;
+  expiresAt?: T;
+  runID?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -2729,6 +2840,7 @@ export interface RealizeAiDataOperationsSelect<T extends boolean = true> {
   afterSnapshot?: T;
   expectedTargetUpdatedAt?: T;
   appliedTargetUpdatedAt?: T;
+  appliedSnapshot?: T;
   operationHash?: T;
   rollbackHash?: T;
   errorSummary?: T;
@@ -2883,6 +2995,20 @@ export interface RealizeAiExecutionJobsSelect<T extends boolean = true> {
   startedAt?: T;
   finishedAt?: T;
   artifactsExpireAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-worker-presence_select".
+ */
+export interface RealizeAiWorkerPresenceSelect<T extends boolean = true> {
+  instanceKey?: T;
+  state?: T;
+  lastSeenAt?: T;
+  capabilities?: T;
+  currentKind?: T;
+  currentChangeRequest?: T;
   updatedAt?: T;
   createdAt?: T;
 }
@@ -3075,6 +3201,8 @@ export interface RealizeAiRunsSelect<T extends boolean = true> {
   conversation?: T;
   provider?: T;
   model?: T;
+  requestHash?: T;
+  turnContext?: T;
   threadID?: T;
   status?: T;
   sandboxProfile?: T;

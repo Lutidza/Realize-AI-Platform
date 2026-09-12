@@ -51,8 +51,10 @@ Pull Request. Token существует только в worker memory/`GIT_ASKP
 response и credential в Payload/DTO не сохраняются. `main`, основной checkout,
 merge и production при этом не изменяются.
 
+Разрешение «Публикация Pull Request» включается в Admin → Интеграции →
+GPT — Codex → Агент. Ниже остаются только параметры серверного исполнителя:
+
 ```dotenv
-REALIZE_AI_SOURCE_PROMOTION_ENABLED=true
 REALIZE_AI_GITHUB_GIT_COMMAND=/usr/bin/git
 REALIZE_AI_SOURCE_PROMOTION_TIMEOUT_MS=120000
 ```

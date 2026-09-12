@@ -2,6 +2,7 @@
 
 - **Статус:** target specification
 - **Провайдер V1:** OpenAI Codex
+- **Дата сверки реализации:** 10 сентября 2026 года
 
 ## 19.1. Adapter boundary
 
@@ -35,6 +36,22 @@ Realize; текстовая уверенность модели не являе�
 Thread/session IDs являются operational references, не authority. Resume
 допустим только с теми же installation, actor policy, config hash и aggregate
 version либо через новый run.
+
+В текущем чате Payload сохраняет закрытый snapshot выбранного профиля
+в `runs.turnContext.agentConfiguration` и передаёт его control plane.
+`runtimeContextHash` учитывает compiled config hash, модель, server developer
+instructions с web-search policy и версию политики контекста. Совпадение
+fingerprint с последним завершённым run позволяет использовать его thread;
+при смене конфигурации или политики создаётся новый thread. В него передаются
+только сохранённые реплики пользователя и ассистента как недоверенная история
+до 32 КиБ UTF-8; старые developer instructions не переносятся.
+
+Renderer профиля ограничен 128 КиБ UTF-8, а собранный JSON с
+`developerInstructions` и `prompt` — 256 КиБ UTF-8. Превышение отклоняет запуск.
+Профиль дополняет инструкции внутри текущей read-only policy, не выдаёт tools
+или write authority и не запускает декларативный workflow. Точный состав
+поддержанных шаблонов и переменных описан в
+[контракте AI-layer](../01-architecture/10-ai-codex-layer-integration.md#107-текущий-chat-runtime).
 
 ## 19.4. Security
 

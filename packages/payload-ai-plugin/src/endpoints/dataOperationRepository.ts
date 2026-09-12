@@ -1,14 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationRepository.ts
- * @version 2026-08-28
- * @description Сохраняет DataOperation aggregate, approvals и transactional outbox.
+ * @version 1.1.0
+ * @date 2026-09-11
+ * @description Сохраняет DataOperation aggregate и защищает переходы состояния.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 
 import type { Payload, PayloadRequest } from "payload";
 
-import { DATA_OPERATIONS_SLUG } from "../constants";
+import { DATA_OPERATIONS_SLUG, MESSAGES_SLUG } from "../constants";
 import { EndpointError } from "./http";
 import { relationID } from "./mappers";
 import { AIRepository, type AIDocument } from "./repository";
@@ -29,7 +30,7 @@ export type DataOperationRecords = {
   rollbackApproval?: AIDocument;
 };
 
-/** Narrow Local API repository for the governed Payload data lane. */
+/** Хранит управляемые операции данных и обеспечивает их переходы состояния. */
 export class DataOperationRepository {
   private readonly api: UntypedLocalAPI;
   private readonly conversations: AIRepository;
@@ -47,27 +48,31 @@ export class DataOperationRepository {
   async createOperation(input: {
     afterSnapshot: unknown;
     beforeSnapshot: unknown;
-    categoryID: string;
-    categorySnapshot: unknown;
+    categoryID?: string;
+    categorySnapshot?: unknown;
     conversationID: string;
-    expectedTargetUpdatedAt: string;
+    expectedTargetUpdatedAt?: string;
     expiresAt: string;
     idempotencyKey: string;
     intent: unknown;
     operationHash: string;
     originalRequest: string;
-    productID: string;
-    productSnapshot: unknown;
+    productID?: string;
+    productSnapshot?: unknown;
     requestedBy: number | string;
     rollbackHash: string;
     sourceMessageID: string;
+    sourceMessageKey?: string;
     title: string;
+    kind?: "catalog.assignCategory.v1" | "pages.createDraft.v1";
   }): Promise<AIDocument> {
     return await this.create(DATA_OPERATIONS_SLUG, {
       afterSnapshot: input.afterSnapshot,
       approvalPolicy: "WRITE_CONFIRMATION",
       beforeSnapshot: input.beforeSnapshot,
-      category: this.documentID(input.categoryID),
+      category: input.categoryID
+        ? this.documentID(input.categoryID)
+        : undefined,
       categorySnapshot: input.categorySnapshot,
       conversation: this.documentID(input.conversationID),
       estimatedCount: 1,
@@ -75,17 +80,23 @@ export class DataOperationRepository {
       expiresAt: input.expiresAt,
       idempotencyKey: input.idempotencyKey,
       intent: input.intent,
-      kind: "catalog.assignCategory.v1",
+      kind: input.kind ?? "catalog.assignCategory.v1",
       operationHash: input.operationHash,
       originalRequest: input.originalRequest,
-      product: this.documentID(input.productID),
+      product: input.productID ? this.documentID(input.productID) : undefined,
       productSnapshot: input.productSnapshot,
       requestedBy: input.requestedBy,
       riskLevel: "R1",
       rollbackHash: input.rollbackHash,
-      rollbackStrategy: "before-snapshot",
+      rollbackStrategy:
+        input.kind === "pages.createDraft.v1"
+          ? "delete-created-draft"
+          : "before-snapshot",
       sourceMessage: this.documentID(input.sourceMessageID),
-      sourceMessageKey: `${input.conversationID}:${input.sourceMessageID}`,
+      // Workflow identity формируется сервером для одного root run и шага.
+      sourceMessageKey:
+        input.sourceMessageKey ??
+        `${input.conversationID}:${input.sourceMessageID}`,
       state: "awaiting_approval",
       title: input.title,
       version: 1,
@@ -113,6 +124,35 @@ export class DataOperationRepository {
       sourceMessageKey: { equals: `${conversationID}:${sourceMessageID}` },
     });
     return result.docs[0];
+  }
+
+  /** Читает exact исходный запрос без ограничения общей истории диалога. */
+  async requireWorkflowSourceMessage(input: {
+    conversationID: string;
+    sourceMessageID: string;
+    rootRunID: string;
+    userID: number | string;
+  }): Promise<AIDocument> {
+    await this.conversations.requireOwnedConversation(
+      input.conversationID,
+      input.userID,
+    );
+    const result = await this.find(MESSAGES_SLUG, {
+      and: [
+        { id: { equals: this.documentID(input.sourceMessageID) } },
+        { conversation: { equals: this.documentID(input.conversationID) } },
+        { role: { equals: "user" } },
+        { runID: { equals: input.rootRunID } },
+      ],
+    });
+    const message = result.docs[0];
+    if (!message)
+      throw new EndpointError(
+        "CONFLICT",
+        "Сохранённый источник операции не относится к исходному запуску процесса.",
+        409,
+      );
+    return message;
   }
 
   async getOwnedOperation(

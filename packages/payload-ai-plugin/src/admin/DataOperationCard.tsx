@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/DataOperationCard.tsx
- * @version 2026-08-28
- * @description Показывает DataOperation dry-run, approval, apply и rollback gates.
+ * @version 1.1.0
+ * @date 2026-09-11
+ * @description Показывает подтверждение, результат и безопасный откат изменений данных.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -9,23 +10,26 @@
 "use client";
 
 import type { DataOperationDTO } from "@realize/ai-contracts";
-import { Check, Clock3, Database, Play, RotateCcw, X } from "lucide-react";
-import { useState } from "react";
+import { getUiButtonClassName } from "@realize/ui-kit";
+import {
+  Check,
+  Clock3,
+  Database,
+  FileText,
+  Play,
+  RotateCcw,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 import styles from "./ChangeRequestCard.module.css";
 import { DataOperationPreview } from "./DataOperationPreview";
+import type { DataOperationCardProps } from "./DataOperationCard.types";
 
-type DataOperationCardProps = {
-  onApply: () => void;
-  onApprove: () => void;
-  onApproveRollback: () => void;
-  onReject: (comment: string) => void;
-  onRollback: () => void;
-  operation: DataOperationDTO;
-  pending: boolean;
-};
-
-const stateLabel = (state: DataOperationDTO["state"]): string => {
+const stateLabel = (
+  state: DataOperationDTO["state"],
+  pageDraft: boolean,
+): string => {
   switch (state) {
     case "awaiting_approval":
       return "Ожидает подтверждения";
@@ -34,13 +38,13 @@ const stateLabel = (state: DataOperationDTO["state"]): string => {
     case "rejected":
       return "Отклонено";
     case "applied":
-      return "Применено";
+      return pageDraft ? "Черновик создан" : "Применено";
     case "apply_failed":
       return "Не применено";
     case "rollback_approved":
       return "Откат подтверждён";
     case "rolled_back":
-      return "Откат выполнен";
+      return pageDraft ? "Черновик удалён" : "Откат выполнен";
     default:
       return "Откат не выполнен";
   }
@@ -54,8 +58,9 @@ const stateTone = (state: DataOperationDTO["state"]): string => {
   return styles.state_plan_approved;
 };
 
-/** Renders the first typed Data Lane without exposing generic mutation input. */
+/** Сохраняет отдельные подтверждения записи и отката для каждой версии операции. */
 export const DataOperationCard = ({
+  onDraftChange,
   onApply,
   onApprove,
   onApproveRollback,
@@ -68,26 +73,38 @@ export const DataOperationCard = ({
   const [rejectionReason, setRejectionReason] = useState("");
   const [approvalNow] = useState(() => Date.now());
   const expired = Date.parse(operation.expiresAt) <= approvalNow;
+  const pageDraft = operation.kind === "pages.createDraft.v1";
+  useEffect(() => {
+    onDraftChange?.(
+      operation.state === "awaiting_approval" &&
+        rejecting &&
+        Boolean(rejectionReason),
+    );
+  }, [onDraftChange, operation.state, rejecting, rejectionReason]);
 
   return (
     <section className={styles.card} data-testid="data-operation-card">
-      <header className={styles.header}>
+      <header
+        className={`${styles.header} ${pageDraft ? styles.pageDraftHeader : ""}`}
+      >
         <span className={styles.icon} aria-hidden="true">
-          <Database size={17} />
+          {pageDraft ? <FileText size={17} /> : <Database size={17} />}
         </span>
         <div>
-          <span>Payload Data Operation · v{operation.version}</span>
+          <span>Изменение данных · версия {operation.version}</span>
           <strong>{operation.title}</strong>
         </div>
         <span className={`${styles.state} ${stateTone(operation.state)}`}>
-          {stateLabel(operation.state)}
+          {stateLabel(operation.state, pageDraft)}
         </span>
       </header>
 
       <div className={styles.summaryGrid}>
         <div>
           <span>Операция</span>
-          <strong>Назначить категорию</strong>
+          <strong>
+            {pageDraft ? "Создать страницу" : "Назначить категорию"}
+          </strong>
         </div>
         <div>
           <span>Риск</span>
@@ -99,7 +116,9 @@ export const DataOperationCard = ({
         </div>
         <div>
           <span>Откат</span>
-          <strong>Before snapshot</strong>
+          <strong>
+            {pageDraft ? "Удаление черновика" : "Восстановление категорий"}
+          </strong>
         </div>
       </div>
 
@@ -109,7 +128,7 @@ export const DataOperationCard = ({
         <div className={styles.expiry}>
           <Clock3 size={14} />
           {expired
-            ? "Срок dry-run истёк"
+            ? "Срок подтверждения истёк"
             : `Действует до ${new Date(operation.expiresAt).toLocaleString("ru-RU")}`}
         </div>
       ) : null}
@@ -128,10 +147,10 @@ export const DataOperationCard = ({
             <X size={16} />
           )}
           <span>
-            Write{" "}
+            Изменение{" "}
             {operation.approval.decision === "approved"
-              ? "подтверждён"
-              : "отклонён"}
+              ? "подтверждено"
+              : "отклонено"}
             {` ролью ${operation.approval.actorRole}.`}
           </span>
         </div>
@@ -141,8 +160,10 @@ export const DataOperationCard = ({
         <div className={styles.decision}>
           <RotateCcw size={16} />
           <span>
-            Rollback hash подтверждён ролью{" "}
-            {operation.rollbackApproval.actorRole}.
+            {pageDraft
+              ? "Удаление черновика подтверждено"
+              : "Откат подтверждён"}{" "}
+            ролью {operation.rollbackApproval.actorRole}.
           </span>
         </div>
       ) : null}
@@ -150,31 +171,71 @@ export const DataOperationCard = ({
       {operation.state === "approved" ? (
         <div className={styles.executeAction}>
           <div>
-            <strong>Применить через Payload Local API</strong>
+            <strong>
+              {pageDraft
+                ? "Создать черновик страницы"
+                : "Применить изменение категорий"}
+            </strong>
             <span>
-              Access, optimistic lock, hooks, audit и outbox выполнятся в одной
-              транзакции.
+              {pageDraft
+                ? "Страница появится в разделе «Страницы». Опубликовать её можно после проверки в редакторе."
+                : "Перед записью повторно проверим права и убедимся, что товар не изменился."}
             </span>
           </div>
           <button disabled={pending} onClick={onApply} type="button">
             <Play size={15} fill="currentColor" />
-            {pending ? "Применяем…" : "Шаг 3 · Применить"}
+            {pending
+              ? pageDraft
+                ? "Создаём…"
+                : "Применяем…"
+              : pageDraft
+                ? "Создать черновик"
+                : "Шаг 3 · Применить"}
           </button>
+        </div>
+      ) : null}
+
+      {pageDraft && operation.result && operation.state !== "rolled_back" ? (
+        <div className={styles.executeAction}>
+          <div>
+            <strong>Черновик «{operation.result.page.title}» создан</strong>
+            <span>
+              Страница сохранена без публикации. Проверьте её в редакторе.
+            </span>
+          </div>
+          <a
+            className={getUiButtonClassName({
+              size: "small",
+              variant: "secondary",
+            })}
+            href={operation.result.adminUrl}
+          >
+            Открыть черновик
+          </a>
         </div>
       ) : null}
 
       {operation.state === "applied" ? (
         <div className={styles.executeAction}>
           <div>
-            <strong>Подготовлен compensating rollback</strong>
+            <strong>
+              {pageDraft
+                ? "Удалить созданный черновик"
+                : "Отменить изменение категорий"}
+            </strong>
             <span>
-              Откат восстановит exact before-snapshot, если товар не менялся
-              после apply.
+              {pageDraft
+                ? "Удаление возможно, только если страницу не изменяли и не публиковали после создания."
+                : "Откат восстановит прежние категории, если товар не менялся после применения."}
             </span>
           </div>
           <button disabled={pending} onClick={onApproveRollback} type="button">
             <RotateCcw size={15} />
-            {pending ? "Подтверждаем…" : "Подтвердить откат"}
+            {pending
+              ? "Подтверждаем…"
+              : pageDraft
+                ? "Подтвердить удаление"
+                : "Подтвердить откат"}
           </button>
         </div>
       ) : null}
@@ -182,14 +243,24 @@ export const DataOperationCard = ({
       {operation.state === "rollback_approved" ? (
         <div className={styles.executeAction}>
           <div>
-            <strong>Rollback разрешён</strong>
+            <strong>
+              {pageDraft ? "Удаление черновика разрешено" : "Откат разрешён"}
+            </strong>
             <span>
-              Перед записью Payload повторно проверит applied version товара.
+              {pageDraft
+                ? "Перед удалением повторно проверим, что черновик не изменён и не опубликован."
+                : "Перед откатом повторно проверим, что товар не изменился после применения."}
             </span>
           </div>
           <button disabled={pending} onClick={onRollback} type="button">
             <RotateCcw size={15} />
-            {pending ? "Откатываем…" : "Выполнить откат"}
+            {pending
+              ? pageDraft
+                ? "Удаляем…"
+                : "Откатываем…"
+              : pageDraft
+                ? "Удалить черновик"
+                : "Выполнить откат"}
           </button>
         </div>
       ) : null}
@@ -204,6 +275,7 @@ export const DataOperationCard = ({
             <label>
               Причина отклонения
               <textarea
+                disabled={pending}
                 maxLength={1_000}
                 onChange={(event) => setRejectionReason(event.target.value)}
                 rows={3}
@@ -211,7 +283,14 @@ export const DataOperationCard = ({
               />
             </label>
             <div>
-              <button onClick={() => setRejecting(false)} type="button">
+              <button
+                disabled={pending}
+                onClick={() => {
+                  setRejecting(false);
+                  setRejectionReason("");
+                }}
+                type="button"
+              >
                 Отмена
               </button>
               <button
@@ -242,7 +321,9 @@ export const DataOperationCard = ({
               <Check size={15} />
               {pending
                 ? "Сохраняем…"
-                : `Шаг 2 · Подтвердить v${operation.version}`}
+                : pageDraft
+                  ? "Подтвердить создание"
+                  : `Шаг 2 · Подтвердить v${operation.version}`}
             </button>
           </div>
         )

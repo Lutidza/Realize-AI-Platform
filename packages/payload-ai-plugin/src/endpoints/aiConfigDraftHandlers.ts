@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/aiConfigDraftHandlers.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Создаёт и optimistic-replaces editable configuration drafts.
  * @docref Realize AI Commerce v1.0 — API и streaming contracts
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
@@ -107,6 +108,13 @@ export const createAIConfigDraftHandlers = (
       operation: async () => {
         const current = toAIConfigDraft(await repository.requireDraft(draftID));
         requireDraftRevision(current, input.expectedRevision);
+        if (current.state !== "editing" && current.state !== "ready") {
+          throw new EndpointError(
+            "CONFLICT",
+            "Only an editing or ready AI configuration draft can be changed.",
+            409,
+          );
+        }
         await requireBaseRelease(repository, input.baseRelease);
         requireArtifactRevisions({
           artifacts: input.artifacts,
@@ -118,6 +126,7 @@ export const createAIConfigDraftHandlers = (
           baseRelease: input.baseRelease,
           draftID,
           expectedRevision: input.expectedRevision,
+          expectedState: current.state,
         });
         const summary = toAIConfigDraftSummaryDTO(draft);
         await repository.recordEvent({

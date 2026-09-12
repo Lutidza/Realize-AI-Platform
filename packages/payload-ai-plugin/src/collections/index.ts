@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/index.ts
- * @version 2026-09-02
+ * @version 1.1.0
+ * @date 2026-09-09
  * @description Компонует runtime, integration и installation config collections.
  */
 
@@ -19,11 +20,13 @@ import { createDeploymentsCollection } from "./deployments";
 import { createDataOperationApprovalsCollection } from "./dataOperationApprovals";
 import { createDataOperationEventsCollection } from "./dataOperationEvents";
 import { createDataOperationsCollection } from "./dataOperations";
+import { createChatAttachmentsCollection } from "./chatAttachments.collection";
 import { createMessagesCollection } from "./messages";
 import { createExecutionJobsCollection } from "./executionJobs";
 import { createIntegrationEventsCollection } from "./integrationEvents";
 import { createIntegrationsCollection } from "./integrations";
 import { createRunEventsCollection } from "./runEvents";
+import { createWorkerPresenceCollection } from "./workerPresence.collection";
 import { createRunsCollection } from "./runs";
 import { createReleaseCandidatesCollection } from "./releaseCandidates";
 import { createSourcePromotionsCollection } from "./sourcePromotions";
@@ -33,6 +36,7 @@ export const createAICollections = (
 ): CollectionConfig[] => [
   createConversationsCollection(options),
   createMessagesCollection(options),
+  createChatAttachmentsCollection(options),
   createChangeRequestsCollection(options),
   createApprovalsCollection(options),
   createDataOperationsCollection(options),
@@ -43,6 +47,7 @@ export const createAICollections = (
   createActiveAIConfigPointersCollection(options),
   createAIConfigEventsCollection(options),
   createExecutionJobsCollection(options),
+  createWorkerPresenceCollection(options),
   createDeploymentsCollection(options),
   createReleaseCandidatesCollection(options),
   createSourcePromotionsCollection(options),

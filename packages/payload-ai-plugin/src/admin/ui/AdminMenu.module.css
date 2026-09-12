@@ -1,0 +1,33 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/ui/AdminMenu.module.css
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Ограничивает меню размерами viewport; поверхности и кнопки принадлежат UI-киту.
+ */
+
+.portal {
+  z-index: 10000;
+  max-width: calc(100vw - 20px);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+}
+.portal :global(.popup__scroll-container) {
+  padding: 0;
+  max-height: min(560px, calc(100dvh - 40px));
+}
+.menu,
+.wide {
+  display: grid;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-2);
+  width: 244px;
+  max-width: calc(100vw - 20px);
+}
+.wide {
+  width: 420px;
+}
+.menu > button {
+  justify-content: flex-start;
+}

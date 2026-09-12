@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 2.0.0
+ * @date 2026-09-11
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
@@ -9,11 +9,21 @@ import type {
   AgentEvent,
   CodingAgentAdapter,
   RunTurnInput,
+  ChatSourceDto,
   UsageSummary,
 } from "@realize/ai-contracts";
 
 import { JsonLineRPCClient } from "./JsonLineRpcClient.adapter";
-import type { ActiveRun, OpenAICodexAdapterOptions } from "./OpenAICodex.types";
+import type {
+  ActiveRun,
+  CodexChatPermissions,
+  CodexLocalImageInput,
+  OpenAICodexAdapterOptions,
+} from "./OpenAICodex.types";
+import { codexRecord as asRecord } from "./codexRecord.util";
+import { collectCodexChatSources } from "./collectCodexChatSources.mapper";
+import { validateCodexImageInputs } from "./validateCodexImageInputs.validator";
+import { createCodexChatPermissions } from "./createCodexChatPermissions.config";
 import type {
   RPCMessage,
   ThreadStartResult,
@@ -22,12 +32,6 @@ import type {
 } from "./protocol";
 
 export type { OpenAICodexAdapterOptions } from "./OpenAICodex.types";
-
-const asRecord = (value: unknown): Record<string, unknown> | undefined => {
-  return value && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : undefined;
-};
 
 const readTokenUsage = (message: RPCMessage): UsageSummary | undefined => {
   const params = message.params;
@@ -59,7 +63,7 @@ const finalMessageFromTurn = (turn: Record<string, unknown>): string => {
 export class OpenAICodexAdapter implements CodingAgentAdapter {
   private readonly activeRuns = new Map<string, ActiveRun>();
 
-  constructor(private readonly options: OpenAICodexAdapterOptions = {}) {}
+  constructor(private readonly options: OpenAICodexAdapterOptions) {}
 
   async cancelRun(runID: string): Promise<void> {
     const active = this.activeRuns.get(runID);
@@ -79,16 +83,45 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     if (this.activeRuns.has(input.runID))
       throw new Error("Run is already active.");
 
+    const webSearch =
+      input.webSearch === true && input.sandboxProfile === "analysis-readonly";
+    if (input.webSearch === true && !webSearch) {
+      yield {
+        type: "run.failed",
+        message: "Веб-поиск разрешён только для аналитического чата.",
+      };
+      return;
+    }
+    let images: CodexLocalImageInput[];
+    let chatPermissions: CodexChatPermissions | undefined;
+    try {
+      images = await validateCodexImageInputs(input.cwd, input.images);
+      if (input.sandboxProfile === "analysis-readonly")
+        chatPermissions = await createCodexChatPermissions(
+          input.cwd,
+          this.options,
+        );
+    } catch {
+      yield {
+        type: "run.failed",
+        message:
+          "Файловый контекст чата недоступен или не соответствует политике изоляции.",
+      };
+      return;
+    }
+
     const client = new JsonLineRPCClient({
-      codexBinary: this.options.codexBinary,
+      codexBinary: chatPermissions?.binaryPath ?? this.options.codexBinary,
       environment: this.options.environment,
       signal: this.options.signal,
       workingDirectory: input.cwd,
+      webSearch: webSearch ? "live" : "disabled",
     });
     client.start();
 
     let active: ActiveRun | undefined;
     let accumulatedMessage = "";
+    let sources: ChatSourceDto[] = [];
     const writable = input.sandboxProfile === "code-workspace-write";
     const sandbox = writable ? "workspace-write" : "read-only";
     const machineCredential = Boolean(
@@ -96,15 +129,24 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       this.options.environment?.OPENAI_FEDERATION_RULE_ID,
     );
     // WIF использует профиль с запретом чтения каталога assertion для любого инструмента.
-    const permissions = this.options.environment?.OPENAI_FEDERATION_RULE_ID
+    const permissions = chatPermissions
       ? {
           config: {
-            default_permissions: writable
-              ? "realize_wif_workspace"
-              : "realize_wif_readonly",
+            web_search: webSearch ? "live" : "disabled",
+            default_permissions: "realize_chat_snapshot",
+            permissions: { realize_chat_snapshot: chatPermissions.profile },
           },
         }
-      : { sandbox };
+      : this.options.environment?.OPENAI_FEDERATION_RULE_ID
+        ? {
+            config: {
+              web_search: webSearch ? "live" : "disabled",
+              default_permissions: writable
+                ? "realize_wif_workspace"
+                : "realize_wif_readonly",
+            },
+          }
+        : { sandbox, config: { web_search: webSearch ? "live" : "disabled" } };
 
     try {
       await client.request("initialize", {
@@ -138,7 +180,10 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
 
       const turn = await client.request<TurnStartResult>("turn/start", {
         approvalPolicy: "never",
-        input: [{ text: input.prompt, text_elements: [], type: "text" }],
+        input: [
+          { text: input.prompt, text_elements: [], type: "text" },
+          ...images,
+        ],
         threadId: thread.thread.id,
       });
 
@@ -182,6 +227,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           const item = asRecord(params.item);
           if (
             (!writable && item?.type === "fileChange") ||
+            (!webSearch && item?.type === "webSearch") ||
             item?.type === "mcpToolCall" ||
             item?.type === "dynamicToolCall"
           ) {
@@ -200,6 +246,12 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               type: "tool.started",
             };
           }
+          if (item?.type === "webSearch") {
+            yield {
+              summary: "Поиск источников в интернете начат.",
+              type: "tool.started",
+            };
+          }
           continue;
         }
 
@@ -207,6 +259,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           const item = asRecord(params.item);
           if (
             (!writable && item?.type === "fileChange") ||
+            (!webSearch && item?.type === "webSearch") ||
             item?.type === "mcpToolCall" ||
             item?.type === "dynamicToolCall"
           ) {
@@ -230,6 +283,14 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               type: "tool.completed",
             };
           }
+          if (webSearch) sources = collectCodexChatSources([item], sources);
+          if (item?.type === "webSearch") {
+            yield {
+              summary: "Обращение к интернет-источникам завершено.",
+              status: "completed",
+              type: "tool.completed",
+            };
+          }
           continue;
         }
 
@@ -238,9 +299,28 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           const status = turnResult.status;
 
           if (status === "completed") {
+            const items = Array.isArray(turnResult.items)
+              ? turnResult.items
+              : [];
+            if (
+              !webSearch &&
+              items.some((item) => asRecord(item)?.type === "webSearch")
+            ) {
+              yield {
+                type: "run.failed",
+                message:
+                  "Codex попытался использовать веб-поиск вне разрешённого режима.",
+              };
+              break;
+            }
             const content =
               finalMessageFromTurn(turnResult) || accumulatedMessage;
-            yield { content, type: "assistant.completed" };
+            if (webSearch) sources = collectCodexChatSources(items, sources);
+            yield {
+              content,
+              ...(sources.length ? { sources } : {}),
+              type: "assistant.completed",
+            };
           } else if (status === "interrupted") {
             yield { type: "run.cancelled" };
           } else {

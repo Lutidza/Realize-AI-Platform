@@ -1,7 +1,7 @@
 /**
  * @file tests/int/CodexConnection.service.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-09-11
  * @description Проверяет блокировку, refresh CAS и cleanup серверной интеграции Codex без сети.
  */
 
@@ -19,7 +19,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Pool, PoolClient } from "pg";
-import type { CodexAuthMode } from "@realize/ai-contracts";
+import {
+  CODEX_AGENT_SETTINGS_DEFAULTS,
+  type CodexAuthMode,
+} from "@realize/ai-contracts";
 import { createCodexAccessTokenCredential } from "@realize/codex-adapter/profile";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -154,6 +157,40 @@ const fixture = async (
 };
 
 describe("CodexConnectionService", () => {
+  it("получает модели только из текущей интеграции и обновляет их между арендами", async () => {
+    const test = await fixture("apiKey", {
+      REALIZE_AI_MODEL: "fixture-unselected-host-model",
+      REALIZE_AI_REVIEW_MODEL: "fixture-unselected-host-review",
+    });
+    const legacy = await test.service.acquire();
+    expect(legacy.model).toBeUndefined();
+    expect(legacy.reviewModel).toBeUndefined();
+    await legacy.dispose();
+    test.getRow()!.configuration = {
+      authMode: "apiKey",
+      agent: {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        model: "fixture-selected-model",
+      },
+    };
+    const selected = await test.service.acquire();
+    expect(selected.model).toBe("fixture-selected-model");
+    expect(selected.reviewModel).toBe("fixture-selected-model");
+    await selected.dispose();
+    test.getRow()!.configuration = {
+      authMode: "apiKey",
+      agent: {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        model: "fixture-next-model",
+        reviewModel: "fixture-independent-review-model",
+      },
+    };
+    const next = await test.service.acquire();
+    expect(next.model).toBe("fixture-next-model");
+    expect(next.reviewModel).toBe("fixture-independent-review-model");
+    await next.dispose();
+  });
+
   it("арендует PAT без native auth и не обновляет vault при dispose", async () => {
     const test = await fixture("accessToken");
     const envelope = test.getRow()?.credential_envelope;

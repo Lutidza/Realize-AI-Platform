@@ -1,23 +1,24 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/handlers.ts
- * @version 2026-08-22
+ * @version 1.2.1
+ * @date 2026-09-11
  * @description Реализует conversation, run, cancellation и runtime-status handlers.
  */
 
-import { randomUUID } from "node:crypto";
+import { createChatMessage } from "../chat-context/createChatMessage.service";
+import { cancelWorkflowRun } from "../chat-context/cancelWorkflowRun.service";
 
 import {
   parseCreateConversationInput,
   parseCreateMessageInput,
   parseIdentifier,
-  type AIStreamEvent,
   type ConversationDetailDTO,
-  type RuntimeStatusDTO,
 } from "@realize/ai-contracts";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { getControlPlaneClient } from "../runtime/getControlPlaneClient";
+import { resolveRuntimeStatus } from "../runtime/resolveRuntimeStatus.service";
 import { consumeRateLimit, requireChatUser } from "./access";
 import { ChangeRepository } from "./changeRepository";
 import { projectChangeRequest } from "./changeProjection";
@@ -25,7 +26,6 @@ import { projectDataOperation } from "./dataOperationProjection";
 import { DataOperationRepository } from "./dataOperationRepository";
 import { DeploymentRepository } from "./deploymentRepository";
 import { ExecutionRepository } from "./executionRepository";
-import { persistAndApplyEvent } from "./eventPersistence";
 import { EndpointError, success } from "./http";
 import { toConversationDTO, toMessageDTO, toRunDTO } from "./mappers";
 import { redactText } from "./redaction";
@@ -56,9 +56,13 @@ export const createConversationHandlers = (
   }),
 
   create: withHandler(async (req, correlationID) => {
-    if (!options.enabled)
-      throw new EndpointError("AI_DISABLED", "AI feature is disabled.", 409);
     const user = await requireChatUser(req, options);
+    if (!options.enabled)
+      throw new EndpointError(
+        "AI_DISABLED",
+        options.runtimeStatus?.reason ?? "Административный агент выключен.",
+        409,
+      );
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const input = parseCreateConversationInput(await readBody(req));
@@ -151,9 +155,13 @@ export const createConversationHandlers = (
   }),
 
   message: withHandler(async (req, correlationID) => {
-    if (!options.enabled)
-      throw new EndpointError("AI_DISABLED", "AI feature is disabled.", 409);
     const user = await requireChatUser(req, options);
+    if (!options.enabled)
+      throw new EndpointError(
+        "AI_DISABLED",
+        options.runtimeStatus?.reason ?? "Административный агент выключен.",
+        409,
+      );
     consumeRateLimit(user.id);
     const conversationID = parseIdentifier(
       req.routeParams?.id,
@@ -161,84 +169,15 @@ export const createConversationHandlers = (
     );
     const idempotencyKey = idempotencyKeyFor(req);
     const input = parseCreateMessageInput(await readBody(req));
-    const content = redactText(input.content);
-    const repository = new AIRepository(req.payload, req);
-    const detail = await repository.getConversationDetail(
-      conversationID,
+    const result = await createChatMessage(
+      req,
+      options,
       user.id,
-    );
-    if (detail.conversation.status === "archived") {
-      throw new EndpointError(
-        "CONFLICT",
-        "Archived conversations are read-only.",
-        409,
-      );
-    }
-
-    const existing = await repository.findRunByIdempotencyKey(
       conversationID,
       idempotencyKey,
+      input,
     );
-    if (existing) return success({ run: toRunDTO(existing) }, correlationID);
-
-    const threadID = await repository.getLatestThreadID(conversationID);
-    let run;
-    try {
-      run = await repository.createRun({
-        conversationID,
-        idempotencyKey,
-        model: options.runtime.model,
-        requestedBy: user.id,
-        threadID,
-      });
-    } catch (error) {
-      const concurrent = await repository.findRunByIdempotencyKey(
-        conversationID,
-        idempotencyKey,
-      );
-      if (concurrent)
-        return success({ run: toRunDTO(concurrent) }, correlationID);
-      throw error;
-    }
-    const runID = String(run.id);
-    const message = await repository.createUserMessage({
-      content,
-      conversationID,
-      idempotencyKey,
-      runID,
-    });
-    await repository.touchConversation(conversationID);
-
-    try {
-      await getControlPlaneClient(options).startRun({
-        model: options.runtime.model,
-        prompt: content,
-        runID,
-        threadID,
-      });
-    } catch (error) {
-      const event: AIStreamEvent = {
-        createdAt: new Date().toISOString(),
-        id: randomUUID(),
-        payload: {
-          message:
-            error instanceof Error
-              ? error.message
-              : "AI control plane is unavailable.",
-        },
-        runID,
-        sequence: 1,
-        type: "run.failed",
-        visibility: "user-visible",
-      };
-      await persistAndApplyEvent(repository, event);
-    }
-
-    return success(
-      { message: toMessageDTO(message), run: toRunDTO(run) },
-      correlationID,
-      202,
-    );
+    return success(result, correlationID, result.message ? 202 : 200);
   }),
 });
 
@@ -265,7 +204,16 @@ export const createRunHandlers = (
         409,
       );
     }
-    await getControlPlaneClient(options).cancelRun(id);
+    if (
+      run.turnContext &&
+      typeof run.turnContext === "object" &&
+      "workflow" in run.turnContext &&
+      run.turnContext.workflow
+    ) {
+      await cancelWorkflowRun(req, options, user.id, id);
+    } else {
+      await getControlPlaneClient(options).cancelRun(id);
+    }
     return success({ accepted: true, runID: id }, correlationID, 202);
   }),
 
@@ -283,24 +231,6 @@ export const createStatusHandler = (
   return withHandler(async (req, correlationID) => {
     await requireChatUser(req, options);
 
-    let status: RuntimeStatusDTO;
-    if (!options.enabled) {
-      status = {
-        enabled: false,
-        mode: options.runtime.mode,
-        reason: "Feature flag REALIZE_AI_ENABLED is disabled.",
-        state: "disabled",
-      };
-    } else if (await getControlPlaneClient(options).health()) {
-      status = { enabled: true, mode: options.runtime.mode, state: "ready" };
-    } else {
-      status = {
-        enabled: true,
-        mode: options.runtime.mode,
-        reason: "Configured control plane is unavailable.",
-        state: "unavailable",
-      };
-    }
-    return success(status, correlationID);
+    return success(await resolveRuntimeStatus(options), correlationID);
   });
 };

@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/releaseHandlers.ts
- * @version 2026-08-22
+ * @version 1.1.0
+ * @date 2026-09-11
  * @description Ставит accepted preview в OCI-очередь и хранит отдельное release approval.
  */
 
@@ -18,6 +19,7 @@ import {
 } from "@realize/change-engine";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
+import { requireCodexChatTool } from "./requireCodexChatTool.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import {
   consumeRateLimit,
@@ -129,6 +131,8 @@ const releaseDecisionHandler = (
 ): PayloadEndpointHandler =>
   withHandler(async (req, correlationID) => {
     const user = await requireReleaseApprover(req, options);
+    if (decision === "approved")
+      await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(
@@ -417,6 +421,7 @@ export const createReleaseHandlers = (
   }),
 
   prepare: withHandler(async (req, correlationID) => {
+    const user = await requireChatUser(req, options);
     if (!options.release.enabled) {
       throw new EndpointError(
         "AI_DISABLED",
@@ -424,7 +429,7 @@ export const createReleaseHandlers = (
         409,
       );
     }
-    const user = await requireChatUser(req, options);
+    await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(

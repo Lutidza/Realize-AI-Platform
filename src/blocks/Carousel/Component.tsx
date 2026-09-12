@@ -1,32 +1,44 @@
-import type { Product, CarouselBlock as CarouselBlockProps } from '@/payload-types'
+/**
+ * @file src/blocks/Carousel/Component.tsx
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Отображает карусель опубликованных товаров в блоке страницы.
+ */
 
-import configPromise from '@payload-config'
-import { DefaultDocumentIDType, getPayload } from 'payload'
-import React from 'react'
+import type {
+  Product,
+  CarouselBlock as CarouselBlockProps,
+} from "@/payload-types";
 
-import { CarouselClient } from './Component.client'
+import configPromise from "@payload-config";
+import { DefaultDocumentIDType, getPayload } from "payload";
+import React from "react";
+
+import { CarouselClient } from "./Component.client";
 
 export const CarouselBlock: React.FC<
   CarouselBlockProps & {
-    id?: DefaultDocumentIDType
+    id?: DefaultDocumentIDType;
   }
 > = async (props) => {
-  const { id, categories, limit = 3, populateBy, selectedDocs } = props
+  const { categories, limit = 3, populateBy, selectedDocs } = props;
 
-  let products: Product[] = []
+  let products: Product[] = [];
 
-  if (populateBy === 'collection') {
-    const payload = await getPayload({ config: configPromise })
+  if (populateBy === "collection") {
+    const payload = await getPayload({ config: configPromise });
 
     const flattenedCategories = categories?.length
       ? categories.map((category) => {
-          if (typeof category === 'object') return category.id
-          else return category
+          if (typeof category === "object") return category.id;
+          else return category;
         })
-      : null
+      : null;
 
     const fetchedProducts = await payload.find({
-      collection: 'products',
+      collection: "products",
+      draft: false,
+      overrideAccess: false,
       depth: 1,
       limit: limit || undefined,
       ...(flattenedCategories && flattenedCategories.length > 0
@@ -38,20 +50,20 @@ export const CarouselBlock: React.FC<
             },
           }
         : {}),
-    })
+    });
 
-    products = fetchedProducts.docs
+    products = fetchedProducts.docs;
   } else if (selectedDocs?.length) {
     products = selectedDocs.map((post) => {
-      if (typeof post.value !== 'string') return post.value
-    }) as Product[]
+      if (typeof post.value !== "string") return post.value;
+    }) as Product[];
   }
 
-  if (!products?.length) return null
+  if (!products?.length) return null;
 
   return (
     <div className=" w-full pb-6 pt-1">
       <CarouselClient products={products} />
     </div>
-  )
-}
+  );
+};

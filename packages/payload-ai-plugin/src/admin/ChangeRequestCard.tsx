@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/ChangeRequestCard.tsx
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Отображает plan, implementation, preview, source promotion и release gates.
  */
 
@@ -16,39 +17,19 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 
 import styles from "./ChangeRequestCard.module.css";
+import type {
+  ChangeRequestCardProps,
+  CompletedStageProps,
+} from "./ChangeRequestCard.types";
 import { ExecutionEvidence } from "./ExecutionEvidence";
 import { PreviewEvidence } from "./PreviewEvidence";
 import { ReleaseEvidence } from "./ReleaseEvidence";
 import { SourcePromotionSection } from "./SourcePromotionSection";
 
-type ChangeRequestCardProps = {
-  change: ChangeRequestDTO;
-  onApprove: () => void;
-  onAcceptImplementation: () => void;
-  onAcceptPreview: () => void;
-  onApproveRelease: () => void;
-  onDeployPreview: () => void;
-  onExecute: () => void;
-  onPrepareRelease: () => void;
-  onPublishPullRequest: () => void;
-  onReject: (comment: string) => void;
-  onRejectImplementation: (comment: string) => void;
-  onRejectPreview: (comment: string) => void;
-  onRejectRelease: (comment: string) => void;
-  pending: boolean;
-};
-
-type CompletedStageProps = {
-  approved: boolean;
-  children: ReactNode;
-  description: string;
-  title: string;
-};
-
-/** Keeps terminal evidence auditable without turning the conversation into a log view. */
+/** Завершённый этап сохраняет подробности для просмотра внутри свёрнутого блока. */
 const CompletedStage = ({
   approved,
   children,
@@ -260,6 +241,8 @@ export const ChangeRequestCard = ({
               onAccept={onAcceptImplementation}
               onReject={onRejectImplementation}
               pending={pending}
+              reason={change.execution.reason}
+              worker={change.execution.worker}
             />
           </CompletedStage>
         ) : (
@@ -269,6 +252,8 @@ export const ChangeRequestCard = ({
             onAccept={onAcceptImplementation}
             onReject={onRejectImplementation}
             pending={pending}
+            reason={change.execution.reason}
+            worker={change.execution.worker}
           />
         )
       ) : null}
@@ -446,7 +431,9 @@ export const ChangeRequestCard = ({
         )
       ) : null}
 
-      {change.execution.reason && !change.acceptance ? (
+      {change.execution.reason &&
+      !change.execution.job &&
+      !change.acceptance ? (
         <footer className={styles.executionNotice}>
           <LockKeyhole size={14} />
           {change.execution.reason}
@@ -464,7 +451,9 @@ export const ChangeRequestCard = ({
           {change.release.reason}
         </footer>
       ) : null}
-      {change.sourcePromotion.reason && !change.sourcePromotion.promotion ? (
+      {change.sourcePromotion.reason &&
+      (!change.sourcePromotion.promotion ||
+        change.sourcePromotion.promotion.status === "queued") ? (
         <footer className={styles.executionNotice}>
           <LockKeyhole size={14} />
           {change.sourcePromotion.reason}

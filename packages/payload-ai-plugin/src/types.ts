@@ -1,9 +1,12 @@
 /**
  * @file packages/payload-ai-plugin/src/types.ts
- * @version 2026-09-02
+ * @version 1.1.0
+ * @date 2026-09-11
  * @description Задаёт public plugin options для AI config, delivery и integrations.
  */
 
+import type { PageDraftAdapter } from "./endpoints/PageDraft.types";
+import type { RuntimeStatusDTO } from "@realize/ai-contracts";
 import type { CollectionSlug, PayloadRequest } from "payload";
 
 /** Installation-owned authorization callback на основе Payload request. */
@@ -27,6 +30,7 @@ export type RealizeAIPluginOptions = {
     route?: `/${string}`;
   };
   enabled?: boolean;
+  pageDraft?: PageDraftAdapter;
   execution?: {
     artifactsTTLSeconds?: number;
     capabilityTTLSeconds?: number;
@@ -49,6 +53,8 @@ export type RealizeAIPluginOptions = {
     enabled?: boolean;
   };
   runtime: {
+    /** Техническая изоляция проверок и preview запрещает новый runtime независимо от интеграции. */
+    isolated?: boolean;
     controlPlaneTokenEnv: string;
     controlPlaneURL?: string;
     mode: "central-control-plane" | "local-development";
@@ -66,6 +72,8 @@ export type SanitizedRealizeAIPluginOptions = {
     route: `/${string}`;
   };
   enabled: boolean;
+  pageDraft?: PageDraftAdapter;
+  runtimeStatus?: RuntimeStatusDTO;
   execution: {
     artifactsTTLSeconds: number;
     capabilityTTLSeconds: number;
@@ -91,8 +99,9 @@ export type SanitizedRealizeAIPluginOptions = {
   userCollection: CollectionSlug;
 };
 
-/** Server-only plugin state exposed to custom Payload views through config.custom. */
+/** Server-only состояние плагина для Payload views и адаптеров через config.custom. */
 export type RealizeAIServerRuntime = {
+  pageDraft?: PageDraftAdapter;
   canManageAIConfiguration: RealizeAIAccessResolver;
   canManageIntegrations: RealizeAIAccessResolver;
   integrationEncryptionKeyEnv: string;

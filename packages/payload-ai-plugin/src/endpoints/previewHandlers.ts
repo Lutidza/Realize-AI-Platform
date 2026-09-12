@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/previewHandlers.ts
- * @version 2026-08-22
+ * @version 1.1.0
+ * @date 2026-09-11
  * @description Ставит accepted diffs в local preview и фиксирует preview decisions.
  */
 
@@ -19,6 +20,7 @@ import {
 } from "@realize/change-engine";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
+import { requireCodexChatTool } from "./requireCodexChatTool.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { consumeRateLimit, requireChatUser } from "./access";
 import { ChangeRepository } from "./changeRepository";
@@ -127,6 +129,8 @@ const previewDecisionHandler = (
 ): PayloadEndpointHandler =>
   withHandler(async (req, correlationID) => {
     const user = await requireChatUser(req, options);
+    if (decision === "approved")
+      await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(
@@ -272,6 +276,7 @@ export const createPreviewHandlers = (
   accept: previewDecisionHandler(options, "approved"),
 
   deploy: withHandler(async (req, correlationID) => {
+    const user = await requireChatUser(req, options);
     if (!options.execution.enabled || !options.preview.enabled) {
       throw new EndpointError(
         "AI_DISABLED",
@@ -279,7 +284,7 @@ export const createPreviewHandlers = (
         409,
       );
     }
-    const user = await requireChatUser(req, options);
+    await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(

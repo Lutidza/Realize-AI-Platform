@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RunInspector.tsx
- * @version 2026-08-21
- * @description Renders auditable runtime, connection and usage state for Admin chat.
+ * @version 1.0.0
+ * @date 2026-09-10
+ * @description Показывает фактическую конфигурацию запуска, соединение и использование ресурсов.
  */
 
 import type { RunDTO, RuntimeStatusDTO } from "@realize/ai-contracts";
@@ -25,6 +26,16 @@ export const RunInspector = ({ run, runtime, stream }: RunInspectorProps) => (
       Текущий запуск
     </h2>
     <dl>
+      {run?.agentConfiguration && (
+        <div>
+          <dt>Профиль</dt>
+          <dd>
+            {run.agentConfiguration.profileTitle ||
+              run.agentConfiguration.profileKey}{" "}
+            · выпуск {run.agentConfiguration.releaseVersion}
+          </dd>
+        </div>
+      )}
       <div>
         <dt>Режим</dt>
         <dd>{runtime?.mode || "—"}</dd>

@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/messages.ts
- * @version 2026-08-17
- * @description Defines redacted user-visible message history for AI conversations.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Хранит текст, вложения, выбранный контекст и источники истории диалога.
  */
 
 import type { CollectionConfig, CollectionSlug } from "payload";
@@ -49,7 +50,9 @@ export const createMessagesCollection = (
         required: true,
         type: "select",
       },
-      { name: "content", required: true, type: "textarea" },
+      { name: "content", type: "textarea" },
+      { name: "turnContext", type: "json" },
+      { name: "sources", type: "json" },
       { index: true, name: "runID", type: "text" },
       { index: true, min: 1, name: "sequence", required: true, type: "number" },
       { name: "usageSummary", type: "json" },

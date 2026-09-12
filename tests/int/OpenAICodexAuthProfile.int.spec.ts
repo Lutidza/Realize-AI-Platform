@@ -1,7 +1,7 @@
 /**
  * @file tests/int/OpenAICodexAuthProfile.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-09-11
  * @description Проверяет сохранение WIF read-deny при запуске и возобновлении сессий и безопасные ошибки авторизации.
  */
 
@@ -60,7 +60,7 @@ const input: RunTurnInput = {
 
 describe("OpenAICodexAdapter auth profiles", () => {
   it.each([
-    ["analysis-readonly", undefined, "realize_wif_readonly"],
+    ["review-readonly", undefined, "realize_wif_readonly"],
     ["review-readonly", "fixture-existing", "realize_wif_readonly"],
     ["code-workspace-write", undefined, "realize_wif_workspace"],
     ["code-workspace-write", "fixture-existing", "realize_wif_workspace"],
@@ -70,6 +70,7 @@ describe("OpenAICodexAdapter auth profiles", () => {
       const adapter = new OpenAICodexAdapter({
         environment: {
           NODE_ENV: "test",
+          CODEX_HOME: "/fixture-selected-profile",
           OPENAI_FEDERATION_RULE_ID: "idpm_fixture",
           OPENAI_IDENTITY_TOKEN_FILE: "/fixture-protected/identity",
         },
@@ -100,6 +101,7 @@ describe("OpenAICodexAdapter auth profiles", () => {
       const adapter = new OpenAICodexAdapter({
         environment: {
           NODE_ENV: "test",
+          CODEX_HOME: "/fixture-selected-profile",
           ...(mode === "accessToken"
             ? { CODEX_ACCESS_TOKEN: "fixture-token" }
             : { OPENAI_FEDERATION_RULE_ID: "idpm_fixture" }),

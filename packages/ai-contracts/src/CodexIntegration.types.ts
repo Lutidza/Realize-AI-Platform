@@ -1,11 +1,13 @@
 /**
  * @file packages/ai-contracts/src/CodexIntegration.types.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-09-11
  * @description Задаёт безопасные контракты подключения Codex и входа через ChatGPT.
  */
 
 import type { IntegrationConnectionBaseDTO } from "./integrations";
+import type { CodexAgentSettingsDTO } from "./CodexAgentSettings.types";
+import type { CodexChatSettingsDto } from "./CodexChatSettings.types";
 
 /** Официальные способы авторизации; workload identity настраивается сервером. */
 export type CodexAuthMode =
@@ -17,6 +19,8 @@ export type CodexLoginMethod = "deviceCode" | "browser";
 /** Разрешённая проекция аккаунта без credential и локальных путей Codex. */
 export type CodexIntegrationConfigurationDTO = {
   authMode: CodexAuthMode;
+  chat: CodexChatSettingsDto;
+  agent: CodexAgentSettingsDTO;
   loginMethod?: CodexLoginMethod;
   accountEmail?: string;
   planType?: string;

@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/executionHandlers.ts
- * @version 2026-08-22
+ * @version 1.1.0
+ * @date 2026-09-11
  * @description Ставит approved code jobs в очередь и фиксирует human acceptance.
  */
 
@@ -21,6 +22,7 @@ import {
 } from "@realize/change-engine";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
+import { requireCodexChatTool } from "./requireCodexChatTool.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { consumeRateLimit, requireChatUser } from "./access";
 import { projectChangeRequest } from "./changeProjection";
@@ -90,6 +92,8 @@ const acceptanceHandler = (
 ): PayloadEndpointHandler =>
   withHandler(async (req, correlationID) => {
     const user = await requireChatUser(req, options);
+    if (decision === "approved")
+      await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(
@@ -246,6 +250,7 @@ export const createExecutionHandlers = (
   accept: acceptanceHandler(options, "approved"),
 
   execute: withHandler(async (req, correlationID) => {
+    const user = await requireChatUser(req, options);
     if (!options.execution.enabled) {
       throw new EndpointError(
         "AI_DISABLED",
@@ -253,7 +258,7 @@ export const createExecutionHandlers = (
         409,
       );
     }
-    const user = await requireChatUser(req, options);
+    await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(

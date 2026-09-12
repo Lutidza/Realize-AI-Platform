@@ -1,0 +1,23 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/agent-layer-settings/AgentLayerInstructionEditor.module.css
+ * @version 1.0.0
+ * @date 2026-09-10
+ * @description Задаёт размеры текстовых областей инструкций и списков в общей форме редактора.
+ */
+
+.textEditor,
+.lineList {
+  resize: vertical;
+  font-weight: 400;
+  line-height: 1.7;
+}
+.textEditor {
+  min-height: 240px;
+}
+.lineList {
+  min-height: 128px;
+}
+.template {
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}

@@ -1,6 +1,7 @@
 /**
  * @file tests/int/support/aiConfigAPITestHarness.ts
- * @version 2026-09-02
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Имитирует Payload Local API для black-box config endpoint tests.
  * @docref Realize AI Commerce v1.0 — API и streaming contracts
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
@@ -10,6 +11,7 @@ import type { APIResponse } from "@realize/ai-contracts";
 import { realizeAIPlugin } from "@realize/payload-ai-control";
 import type { Config, Endpoint, PayloadRequest } from "payload";
 import { vi } from "vitest";
+import { createAIConfigTransactionTestDouble } from "./aiConfigTransactionTestDouble";
 
 type Document = Record<string, unknown> & {
   createdAt: string;
@@ -68,12 +70,19 @@ const sorted = (documents: Document[], sort: unknown): Document[] => {
 };
 
 /** Public endpoint harness with deterministic timestamps and unique constraints. */
-export const createAIConfigAPITestHarness = async () => {
-  const collections = new Map<string, Document[]>();
+export const createAIConfigAPITestHarness = async (
+  options: { actorID?: number; canManage?: boolean } = {},
+) => {
+  const transactions = createAIConfigTransactionTestDouble<Document>();
+  let failedWriteCollection: string | undefined;
   let sequence = 0;
   const timestamp = (): string =>
     new Date(Date.UTC(2026, 8, 1, 12, 0, sequence++)).toISOString();
-  const records = (slug: string): Document[] => {
+  const records = async (
+    slug: string,
+    req?: PayloadRequest,
+  ): Promise<Document[]> => {
+    const collections = await transactions.storeFor(req);
     const current = collections.get(slug) || [];
     collections.set(slug, current);
     return current;
@@ -86,7 +95,11 @@ export const createAIConfigAPITestHarness = async () => {
       for (const field of nullableFields[slug] || []) {
         if (data[field] === undefined) data[field] = null;
       }
-      const documents = records(slug);
+      if (failedWriteCollection === slug) {
+        failedWriteCollection = undefined;
+        throw new Error("Injected configuration write failure");
+      }
+      const documents = await records(slug, args.req as PayloadRequest);
       for (const field of uniqueFields[slug] || []) {
         if (documents.some((document) => document[field] === data[field])) {
           throw new Error(`duplicate ${slug}.${field}`);
@@ -102,18 +115,21 @@ export const createAIConfigAPITestHarness = async () => {
       documents.push(document);
       return structuredClone(document);
     },
-    db: { defaultIDType: "number" as const },
+    db: transactions.db,
     find: async (args: Record<string, unknown>) => {
-      const documents = records(String(args.collection)).filter((document) =>
-        matches(document, args.where),
-      );
+      const documents = (
+        await records(String(args.collection), args.req as PayloadRequest)
+      ).filter((document) => matches(document, args.where));
       const limit = Number(args.limit || documents.length);
       const docs = sorted(documents, args.sort).slice(0, limit);
       return { docs: structuredClone(docs), totalDocs: documents.length };
     },
     logger: { error: vi.fn() },
     update: async (args: Record<string, unknown>) => {
-      const documents = records(String(args.collection));
+      const documents = await records(
+        String(args.collection),
+        args.req as PayloadRequest,
+      );
       const data = args.data as Record<string, unknown>;
       const limit = Number(args.limit || documents.length);
       const matching = documents.filter((document) =>
@@ -132,7 +148,7 @@ export const createAIConfigAPITestHarness = async () => {
   const transformed = await realizeAIPlugin({
     access: {
       canApproveRelease: () => true,
-      canManageAIConfiguration: () => true,
+      canManageAIConfiguration: () => options.canManage ?? true,
       canManageData: () => true,
       canManageIntegrations: () => true,
       canUseChat: () => true,
@@ -155,7 +171,23 @@ export const createAIConfigAPITestHarness = async () => {
   };
 
   return {
-    count: (slug: string): number => records(slug).length,
+    count: (slug: string): number =>
+      transactions.committed().get(slug)?.length ?? 0,
+    documents: (slug: string): Document[] =>
+      structuredClone(transactions.committed().get(slug) ?? []),
+    patchStored: (
+      slug: string,
+      index: number,
+      patch: Record<string, unknown>,
+    ): void => {
+      const document = transactions.committed().get(slug)?.[index];
+      if (!document) throw new Error("Missing configuration fixture");
+      Object.assign(document, structuredClone(patch));
+    },
+    failNextWrite: (slug: string): void => {
+      failedWriteCollection = slug;
+    },
+    lockQueries: transactions.lockQueries,
     invoke: async <T>(
       method: Endpoint["method"],
       path: string,
@@ -163,6 +195,7 @@ export const createAIConfigAPITestHarness = async () => {
         body?: unknown;
         idempotencyKey?: string;
         routeParams?: Record<string, string>;
+        actorID?: number | null;
       } = {},
     ): Promise<{ body: APIResponse<T>; status: number }> => {
       const headers = new Headers();
@@ -174,7 +207,10 @@ export const createAIConfigAPITestHarness = async () => {
         json: async () => input.body,
         payload,
         routeParams: input.routeParams,
-        user: { id: 42 },
+        user:
+          input.actorID === null
+            ? null
+            : { id: input.actorID ?? options.actorID ?? 42 },
       } as unknown as PayloadRequest;
       const response = await endpoint(method, path).handler(req);
       return {

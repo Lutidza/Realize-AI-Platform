@@ -1,7 +1,8 @@
 /**
  * @file services/ai-execution-worker/src/checkRunner.ts
- * @version 2026-08-22
- * @description Runs only server-owned verification commands after scope validation.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Запускает разрешённые проверки с запретом runtime агентов в дочернем окружении.
  */
 
 import { spawn } from "node:child_process";
@@ -68,15 +69,12 @@ const createCheckEnvironment = (
     CI: "true",
     NEXT_TELEMETRY_DISABLED: "1",
     NODE_ENV: "test",
-    REALIZE_AI_ENABLED: "false",
-    REALIZE_AI_EXECUTION_ENABLED: "false",
-    REALIZE_AI_PREVIEW_ENABLED: "false",
     REALIZE_BUILD_WITHOUT_DATABASE: "true",
   };
   for (const name of SAFE_ENVIRONMENT_NAMES) {
     if (process.env[name]) environment[name] = process.env[name];
   }
-  return { ...environment, ...overrides };
+  return { ...environment, ...overrides, REALIZE_AI_RUNTIME_ISOLATED: "true" };
 };
 
 /** Executes one allowlisted argv tuple without shell interpolation. */

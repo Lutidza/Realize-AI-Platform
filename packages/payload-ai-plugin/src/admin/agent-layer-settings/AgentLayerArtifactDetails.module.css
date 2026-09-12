@@ -1,0 +1,218 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/agent-layer-settings/AgentLayerArtifactDetails.module.css
+ * @version 1.1.0
+ * @date 2026-09-10
+ * @description Размещает содержимое записи и компактную колонку переходов по связям.
+ */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+  align-items: start;
+  gap: var(--ui-space-6);
+  min-width: 0;
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-6);
+  min-width: 0;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+.field h3,
+.relationSection h3 {
+  margin: 0;
+  color: var(--ui-color-text);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.text {
+  margin: 0;
+  color: var(--ui-color-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.muted,
+.relationHint {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-5);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.tags li,
+.tags [data-ui="badge"] {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.relations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-5);
+  min-width: 0;
+  border-left: 1px solid var(--ui-color-border);
+  padding-left: var(--ui-space-5);
+}
+.relationSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+.relations.usage {
+  border-left: 0;
+  border-top: 1px solid var(--ui-color-border);
+  padding-left: 0;
+  padding-top: var(--ui-space-5);
+}
+.relationSection h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+.relationList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--ui-space-1);
+  margin: calc(-1 * var(--ui-space-1));
+  list-style: none;
+}
+.relationButton {
+  width: 100%;
+  min-height: auto;
+  height: auto;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2);
+  white-space: normal;
+  text-align: left;
+}
+.relationButton > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: var(--ui-color-muted);
+}
+.relationLabel,
+.missingReference,
+.systemReference {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: var(--ui-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.relationLabel strong,
+.missingReference strong,
+.systemReference strong {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.missingReference {
+  padding: var(--ui-space-2);
+}
+.layout code {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.steps > li {
+  display: grid;
+  gap: var(--ui-space-3);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  padding: var(--ui-space-4);
+  min-width: 0;
+}
+.stepKey {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  color: var(--ui-color-muted);
+}
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.stepBody strong {
+  font-weight: 500;
+}
+.stepBody p {
+  margin: 0;
+}
+.stepInputs {
+  display: grid;
+  gap: var(--ui-space-2);
+  margin: 0;
+}
+.stepInputs > div {
+  display: grid;
+  grid-template-columns: minmax(80px, 1fr) minmax(0, 2fr);
+  gap: var(--ui-space-3);
+}
+.stepInputs dt {
+  color: var(--ui-color-muted);
+}
+.stepInputs dd {
+  margin: 0;
+}
+@media (max-width: 1200px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .relations {
+    border-left: 0;
+    border-top: 1px solid var(--ui-color-border);
+    padding-left: 0;
+    padding-top: var(--ui-space-5);
+  }
+}
+@media (max-width: 600px) {
+  .fields,
+  .stepInputs > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

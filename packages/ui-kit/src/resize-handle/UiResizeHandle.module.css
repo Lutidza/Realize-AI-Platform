@@ -1,0 +1,35 @@
+/**
+ * @file packages/ui-kit/src/resize-handle/UiResizeHandle.module.css
+ * @version 1.0.0
+ * @date 2026-09-10
+ * @description Оформляет область захвата края и видимый focus общими токенами UI-кита.
+ */
+
+.handle {
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+  outline: none;
+}
+.handle::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  left: calc(50% - 1px);
+  width: 2px;
+  background: transparent;
+  transition:
+    background var(--ui-duration) ease,
+    box-shadow var(--ui-duration) ease;
+}
+.handle:hover::after,
+.handle:active::after,
+.handle:focus-visible::after {
+  background: var(--ui-color-primary);
+  box-shadow: var(--ui-focus-ring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .handle::after {
+    transition: none;
+  }
+}

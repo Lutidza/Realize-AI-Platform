@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-09-11
  * @description Выполняет разрешённую реализацию через выбранную интеграцию Codex и проверяет результат.
  */
 
@@ -69,7 +69,7 @@ const runAgent = async (input: {
         checks: input.job.checks,
       }),
       ephemeral: true,
-      model: input.config.model,
+      model: lease.model,
       prompt: `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
       runID: input.job.executionKey,
       sandboxProfile: "code-workspace-write",
@@ -92,7 +92,7 @@ const runAgent = async (input: {
   return finalSummary || "Codex completed the isolated implementation turn.";
 };
 
-/** Executes one already-claimed job and persists every terminal transition. */
+/** Исполняет уже арендованное задание и сохраняет каждый итоговый переход. */
 export const executeClaimedJob = async (input: {
   config: ExecutionWorkerConfig;
   codex: CodexConnectionResolver;

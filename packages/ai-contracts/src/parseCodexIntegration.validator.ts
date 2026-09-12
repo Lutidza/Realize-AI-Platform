@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/parseCodexIntegration.validator.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-09-11
  * @description Проверяет недоверенные запросы подключения Codex и безопасную конфигурацию.
  */
 
@@ -15,6 +15,10 @@ import type {
   TestCodexIntegrationInput,
 } from "./CodexIntegration.types";
 import { ContractValidationError } from "./validation";
+import { CODEX_AGENT_SETTINGS_DEFAULTS } from "./codexAgentSettings.config";
+import { parseCodexAgentSettings } from "./parseCodexAgentSettings.validator";
+import { CODEX_CHAT_SETTINGS_DEFAULTS } from "./codexChatSettings.config";
+import { parseCodexChatSettings } from "./parseCodexChatSettings.validator";
 
 const objectOf = (
   value: unknown,
@@ -237,6 +241,8 @@ export const parseCodexIntegrationConfiguration = (
     "loginMethod",
     "accountEmail",
     "planType",
+    "chat",
+    "agent",
   ]);
   const authMode = authModeOf(input.authMode);
   if (
@@ -260,6 +266,12 @@ export const parseCodexIntegrationConfiguration = (
   }
   return {
     authMode,
+    agent: parseCodexAgentSettings(
+      input.agent === undefined ? CODEX_AGENT_SETTINGS_DEFAULTS : input.agent,
+    ),
+    chat: parseCodexChatSettings(
+      input.chat === undefined ? CODEX_CHAT_SETTINGS_DEFAULTS : input.chat,
+    ),
     ...(input.loginMethod === "browser" || input.loginMethod === "deviceCode"
       ? { loginMethod: input.loginMethod }
       : {}),

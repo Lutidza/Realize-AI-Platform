@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/aiConfigReplay.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Обеспечивает actor/action/hash-bound durable replay config mutations.
  * @docref Realize AI Commerce v1.0 — API и streaming contracts
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
@@ -15,6 +16,7 @@ import {
 import { EndpointError } from "./http";
 import { relationID } from "./mappers";
 import { withPayloadTransaction } from "./payloadTransaction";
+import { lockAIConfigMutation } from "./lockAIConfigMutation.util";
 
 type ReplayScope<T> = {
   action: AIConfigEventAction;
@@ -71,6 +73,7 @@ export const withAIConfigMutationReplay = async <T>(input: {
 
   try {
     return await withPayloadTransaction(input.req, async () => {
+      await lockAIConfigMutation(input.req);
       const concurrentReplay = await findReplay(
         input.repository,
         input.idempotencyKey,

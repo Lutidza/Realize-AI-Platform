@@ -1,6 +1,7 @@
 /**
  * @file tests/e2e/support/adminAIChatScenario.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Предоставляет deterministic chat, execution, preview, source и release fixtures.
  */
 
@@ -41,6 +42,7 @@ const conversation: ConversationDTO = {
 };
 
 const userMessage: MessageDTO = {
+  changePlan: { status: "unavailable", reason: "not_assistant" },
   content: ADMIN_AI_USER_MESSAGE,
   conversationID,
   createdAt,
@@ -53,6 +55,7 @@ const userMessage: MessageDTO = {
 };
 
 const assistantMessage: MessageDTO = {
+  changePlan: { status: "ready" },
   content: ADMIN_AI_FINAL_ANSWER,
   conversationID,
   createdAt,

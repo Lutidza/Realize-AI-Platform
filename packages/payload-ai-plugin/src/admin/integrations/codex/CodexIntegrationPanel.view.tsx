@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/CodexIntegrationPanel.view.tsx
- * @version 1.0.1
- * @date 2026-09-09
+ * @version 1.0.2
+ * @date 2026-09-11
  * @description Собирает настройки Codex, сохранённую сводку и результаты операций.
  */
 
@@ -13,6 +13,7 @@ import { CodexConnectionSummary } from "./CodexConnectionSummary.component";
 import { CodexDisconnectAction } from "./CodexDisconnectAction.component";
 import type { CodexIntegrationPanelViewProps } from "./CodexIntegrationPanel.types";
 import { CodexSettingsActions } from "./CodexSettingsActions.component";
+import { CodexAccessTestResult } from "./CodexAccessTestResult.component";
 
 export const CodexIntegrationPanelView = ({
   connection,
@@ -42,30 +43,7 @@ export const CodexIntegrationPanelView = ({
           {form.operations.login.error || form.operations.error}
         </UiNotice>
       ) : null}
-      {form.operations.testResult ? (
-        <UiNotice
-          icon={
-            form.operations.testResult.status === "passed" ? (
-              <CheckCircle2 size={20} />
-            ) : (
-              <CircleAlert size={20} />
-            )
-          }
-          role="status"
-          title={
-            form.operations.testResult.status === "passed"
-              ? "Доступ подтверждён"
-              : "Проверка не пройдена"
-          }
-          tone={
-            form.operations.testResult.status === "passed"
-              ? "positive"
-              : "danger"
-          }
-        >
-          {form.operations.testResult.message}
-        </UiNotice>
-      ) : null}
+      <CodexAccessTestResult result={form.operations.testResult} />
       {form.operations.hasSavedNotice ? (
         <UiNotice
           icon={<CheckCircle2 size={20} />}

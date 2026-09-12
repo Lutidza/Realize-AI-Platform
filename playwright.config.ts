@@ -1,7 +1,8 @@
 /**
  * @file playwright.config.ts
- * @version 2026-08-17
- * @description Configures browser smoke tests against the active Next.js contour.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Настраивает браузерные проверки без запуска исполнителей рабочих очередей.
  */
 
 import { defineConfig, devices } from "@playwright/test";
@@ -45,7 +46,8 @@ export default defineConfig({
   webServer: skipWebServer
     ? undefined
     : {
-        command: "npm run dev",
+        command: "npm run dev:web",
+        env: { REALIZE_AI_RUNTIME_ISOLATED: "true" },
         reuseExistingServer: true,
         url: "http://localhost:3000/api/health/live",
       },

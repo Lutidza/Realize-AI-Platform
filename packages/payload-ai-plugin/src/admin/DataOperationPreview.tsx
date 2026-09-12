@@ -1,20 +1,23 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/DataOperationPreview.tsx
- * @version 2026-08-28
- * @description Показывает resolved before/after snapshot и hashes DataOperation.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Выбирает предпросмотр страницы или изменения категории по типу операции.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 
 "use client";
 
-import type { DataOperationDTO } from "@realize/ai-contracts";
+import type { CategoryAssignmentPreviewDTO } from "@realize/ai-contracts";
 import { ChevronDown } from "lucide-react";
 
 import styles from "./ChangeRequestCard.module.css";
+import type { DataOperationPreviewProps } from "./DataOperationCard.types";
+import { PageDraftPreview } from "./PageDraftPreview";
 
 const categoryList = (
-  categories: DataOperationDTO["preview"]["beforeCategories"],
+  categories: CategoryAssignmentPreviewDTO["beforeCategories"],
 ) =>
   categories.length ? (
     <ul>
@@ -29,52 +32,55 @@ const categoryList = (
     <p>Без категорий</p>
   );
 
-/** Renders the server-resolved dry-run without accepting generic mutation input. */
+/** Отображает проверенное сервером содержание без универсальной формы изменения данных. */
 export const DataOperationPreview = ({
   operation,
-}: {
-  operation: DataOperationDTO;
-}) => (
-  <details
-    className={styles.details}
-    open={operation.state === "awaiting_approval"}
-  >
-    <summary>
-      <span>Проверить dry-run</span>
-      <ChevronDown size={16} />
-    </summary>
-    <div className={styles.detailsBody}>
-      <div>
-        <h3>Товар</h3>
-        <p>
-          {operation.preview.product.title}
-          {operation.preview.product.slug
-            ? ` · ${operation.preview.product.slug}`
-            : ""}
-        </p>
-      </div>
-      <div>
-        <h3>До</h3>
-        {categoryList(operation.preview.beforeCategories)}
-      </div>
-      <div>
-        <h3>После</h3>
-        {categoryList(operation.preview.afterCategories)}
-      </div>
-      <dl className={styles.hashes}>
+}: DataOperationPreviewProps) => {
+  if (operation.kind === "pages.createDraft.v1") {
+    return <PageDraftPreview operation={operation} />;
+  }
+  return (
+    <details
+      className={styles.details}
+      open={operation.state === "awaiting_approval"}
+    >
+      <summary>
+        <span>Проверить dry-run</span>
+        <ChevronDown size={16} />
+      </summary>
+      <div className={styles.detailsBody}>
         <div>
-          <dt>Operation</dt>
-          <dd title={operation.operationHash}>
-            {operation.operationHash.slice(0, 16)}…
-          </dd>
+          <h3>Товар</h3>
+          <p>
+            {operation.preview.product.title}
+            {operation.preview.product.slug
+              ? ` · ${operation.preview.product.slug}`
+              : ""}
+          </p>
         </div>
         <div>
-          <dt>Rollback</dt>
-          <dd title={operation.rollbackHash}>
-            {operation.rollbackHash.slice(0, 16)}…
-          </dd>
+          <h3>До</h3>
+          {categoryList(operation.preview.beforeCategories)}
         </div>
-      </dl>
-    </div>
-  </details>
-);
+        <div>
+          <h3>После</h3>
+          {categoryList(operation.preview.afterCategories)}
+        </div>
+        <dl className={styles.hashes}>
+          <div>
+            <dt>Operation</dt>
+            <dd title={operation.operationHash}>
+              {operation.operationHash.slice(0, 16)}…
+            </dd>
+          </div>
+          <div>
+            <dt>Rollback</dt>
+            <dd title={operation.rollbackHash}>
+              {operation.rollbackHash.slice(0, 16)}…
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </details>
+  );
+};

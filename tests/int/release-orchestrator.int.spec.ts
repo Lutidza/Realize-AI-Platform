@@ -1,6 +1,7 @@
 /**
  * @file tests/int/release-orchestrator.int.spec.ts
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Проверяет shell-free OCI port и per-call integration environment.
  */
 
@@ -36,14 +37,12 @@ const result = {
 const config = (script: string): ExecutionWorkerConfig => ({
   databaseURL: "postgres://unused",
   pollIntervalMs: 1_000,
-  previewEnabled: false,
   previewHost: "127.0.0.1",
   previewPortMax: 3_299,
   previewPortMin: 3_200,
   previewRoot: "/tmp/unused-preview",
   previewStartupTimeoutMs: 120_000,
   promotionWorkspaceRoot: "/tmp/unused-promotion",
-  releaseEnabled: true,
   releaseOrchestratorArgs: ["--input-type=module", "--eval", script],
   releaseOrchestratorCommand: process.execPath,
   releaseOrchestratorEnvironment: { NODE_ENV: "test" },
@@ -51,7 +50,6 @@ const config = (script: string): ExecutionWorkerConfig => ({
   repositoryRoot: process.cwd(),
   reviewTimeoutMs: 60_000,
   signingSecret: "x".repeat(32),
-  sourcePromotionEnabled: false,
   sourcePromotionTimeoutMs: 120_000,
   turnTimeoutMs: 60_000,
   workerID: "test-worker",

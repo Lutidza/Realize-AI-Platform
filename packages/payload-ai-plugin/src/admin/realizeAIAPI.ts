@@ -1,15 +1,18 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/realizeAIAPI.ts
- * @version 2026-08-18
- * @description Owns browser transport for the Realize AI Admin DTO endpoints.
+ * @version 1.0.0
+ * @date 2026-09-10
+ * @description Передаёт запросы Admin DTO и сохраняет безопасные признаки HTTP-ошибок.
  */
+
+import { RealizeAIRequestError } from "./RealizeAIRequest.error";
 
 import type { APIResponse } from "@realize/ai-contracts";
 
-/** Stable browser-relative namespace exposed by the Payload AI plugin. */
+/** Относительный API namespace браузерного клиента Payload AI plugin. */
 export const REALIZE_AI_API_ROOT = "/api/realize-ai";
 
-/** Requests one typed DTO and unwraps the shared API response envelope. */
+/** Возвращает DTO успешного ответа, сохраняя HTTP-признаки отказа для retry и CAS. */
 export const requestRealizeAI = async <T>(
   path: string,
   init?: RequestInit,
@@ -22,7 +25,35 @@ export const requestRealizeAI = async <T>(
       ...init?.headers,
     },
   });
-  const envelope = (await response.json()) as APIResponse<T>;
-  if (!envelope.ok) throw new Error(envelope.error.message);
+  let envelope: APIResponse<T>;
+  try {
+    envelope = (await response.json()) as APIResponse<T>;
+  } catch {
+    throw new RealizeAIRequestError("Сервер вернул некорректный ответ.", {
+      status: response.status,
+    });
+  }
+  if (
+    !envelope ||
+    typeof envelope !== "object" ||
+    typeof envelope.ok !== "boolean"
+  )
+    throw new RealizeAIRequestError("Сервер вернул некорректный ответ.", {
+      status: response.status,
+    });
+  if (!envelope.ok)
+    throw new RealizeAIRequestError(
+      envelope.error?.message ?? "Запрос отклонён сервером.",
+      {
+        status: response.status,
+        code: envelope.error?.code,
+        details: envelope.error?.details,
+      },
+    );
+  if (!response.ok)
+    throw new RealizeAIRequestError(
+      "Сервер не подтвердил выполнение запроса.",
+      { status: response.status },
+    );
   return envelope.data;
 };

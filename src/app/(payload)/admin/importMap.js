@@ -24,7 +24,9 @@ import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f
 import { RealizeAINavLink as RealizeAINavLink_c0de6dd10a76d905b2d0d9d1e483910e } from '@realize/payload-ai-control/client'
 import { RealizeAIProvider as RealizeAIProvider_f78fda7deadf19d3f93d8152a70184c7 } from '@realize/payload-ai-control/provider'
 import { RealizeAIView as RealizeAIView_563a26ae627e0a74181782f56c77bca6 } from '@realize/payload-ai-control/rsc'
+import { WorkflowRunsView as WorkflowRunsView_75e0466335d79cef58c623fb4b6bb42d } from '@realize/payload-ai-control/workflow-runs-rsc'
 import { IntegrationsView as IntegrationsView_94b752525e74ec598d2db78bb140505a } from '@realize/payload-ai-control/integrations-rsc'
+import { AgentLayerView as AgentLayerView_87fb9c4f23d71c447fe1f74b1d43b236 } from '@realize/payload-ai-control/agent-layer-rsc'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
 
 /** @type import('payload').ImportMap */
@@ -55,6 +57,8 @@ export const importMap = {
   "@realize/payload-ai-control/client#RealizeAINavLink": RealizeAINavLink_c0de6dd10a76d905b2d0d9d1e483910e,
   "@realize/payload-ai-control/provider#RealizeAIProvider": RealizeAIProvider_f78fda7deadf19d3f93d8152a70184c7,
   "@realize/payload-ai-control/rsc#RealizeAIView": RealizeAIView_563a26ae627e0a74181782f56c77bca6,
+  "@realize/payload-ai-control/workflow-runs-rsc#WorkflowRunsView": WorkflowRunsView_75e0466335d79cef58c623fb4b6bb42d,
   "@realize/payload-ai-control/integrations-rsc#IntegrationsView": IntegrationsView_94b752525e74ec598d2db78bb140505a,
+  "@realize/payload-ai-control/agent-layer-rsc#AgentLayerView": AgentLayerView_87fb9c4f23d71c447fe1f74b1d43b236,
   "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
 }

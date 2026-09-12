@@ -1,12 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/executionRepository.ts
- * @version 2026-08-21
- * @description Persists durable execution jobs and reads their redacted check evidence.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Сохраняет очередь выполнения и читает проверки и состояние фонового исполнителя.
  */
 
 import type { Payload, PayloadRequest } from "payload";
 
 import { CHECK_RESULTS_SLUG, EXECUTION_JOBS_SLUG } from "../constants";
+import { readWorkerPresence } from "../integrations/runtime/readWorkerPresence.service";
+import type { WorkerPresenceSnapshot } from "../integrations/runtime/WorkerPresence.types";
 import type { AIDocument } from "./repository";
 
 type FindResult = { docs: AIDocument[]; totalDocs: number };
@@ -26,6 +29,13 @@ export class ExecutionRepository {
   ) {
     this.api = payload as unknown as UntypedLocalAPI;
     this.defaultIDType = payload.db.defaultIDType;
+  }
+
+  /** Снимок обслуживающего процесса читается независимо от durable состояния задания. */
+  async readWorkerPresence(
+    assignedInstanceKey?: string,
+  ): Promise<WorkerPresenceSnapshot> {
+    return readWorkerPresence(this.req, assignedInstanceKey);
   }
 
   async createJob(input: {

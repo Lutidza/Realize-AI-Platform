@@ -1,0 +1,98 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/chat/ChatWorkspace.module.css
+ * @version 1.1.0
+ * @date 2026-09-09
+ * @description Размещает чат без внешней прокрутки и сохраняет компактную навигацию.
+ */
+
+.workspace {
+  container-name: chat;
+  container-type: inline-size;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  padding: var(--ui-space-3);
+  border-bottom: 1px solid var(--ui-color-border);
+  --ui-control-height: 34px;
+}
+.identity,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+.identity {
+  flex: 1;
+}
+.logo {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+}
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--ui-space-3);
+  min-width: 0;
+  line-height: 1.4;
+}
+.title strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.title span {
+  overflow: hidden;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.actions {
+  flex-shrink: 0;
+  gap: 2px;
+}
+.notice {
+  flex: 0 0 auto;
+  margin: var(--ui-space-2) var(--ui-space-3) 0;
+  overflow-wrap: anywhere;
+}
+.layout {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+@container chat (max-width: 700px) {
+  .title span {
+    display: none;
+  }
+}
+@container chat (max-width: 450px) {
+  .toolbar {
+    gap: var(--ui-space-1);
+    padding: var(--ui-space-2);
+    --ui-control-height: 30px;
+  }
+  .actions {
+    gap: 0;
+  }
+  .logo {
+    width: 20px;
+    height: 20px;
+  }
+}

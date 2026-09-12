@@ -1,24 +1,22 @@
 /**
  * @file packages/payload-ai-plugin/src/runtime/controlPlaneClient.ts
- * @version 2026-08-17
- * @description Implements the bounded server-only HTTP client for the configured AI control plane.
+ * @version 1.0.0
+ * @date 2026-09-09
+ * @description Передаёт серверные запросы и бинарные потоки авторизованному control plane.
  */
 
-/** Validated request sent from the site boundary to the control plane. */
-export type StartControlPlaneRunInput = {
-  model?: string;
-  prompt: string;
-  runID: string;
-  threadID?: string;
-};
-
-/** Stable local error used when the remote execution boundary is unavailable. */
-export class ControlPlaneUnavailableError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "ControlPlaneUnavailableError";
-  }
-}
+import type {
+  ChatAssetMetadata,
+  ChatCapabilitiesDto,
+  ProjectContextFilesDto,
+  ProjectContextFileDto,
+  ProjectFileReference,
+  ChatAssetReference,
+} from "@realize/ai-contracts";
+import type { StartControlPlaneRunInput } from "./ControlPlaneChat.types";
+import { ControlPlaneUnavailableError } from "./ControlPlaneUnavailable.error";
+export type { StartControlPlaneRunInput } from "./ControlPlaneChat.types";
+export { ControlPlaneUnavailableError } from "./ControlPlaneUnavailable.error";
 
 /** Server-only authenticated client for run creation, cancellation and streaming. */
 export class ControlPlaneClient {
@@ -26,6 +24,84 @@ export class ControlPlaneClient {
     private readonly baseURL: string,
     private readonly token: string,
   ) {}
+
+  async chatCapabilities(signal?: AbortSignal): Promise<ChatCapabilitiesDto> {
+    return (
+      await this.fetch("/v1/chat/capabilities", { method: "GET", signal })
+    ).json();
+  }
+  async projectFiles(
+    query: string,
+    signal?: AbortSignal,
+  ): Promise<ProjectContextFilesDto> {
+    return (
+      await this.fetch(
+        `/v1/chat/project-files?q=${encodeURIComponent(query)}`,
+        { method: "GET", signal },
+      )
+    ).json();
+  }
+  async resolveProjectFiles(
+    files: ProjectFileReference[],
+  ): Promise<ProjectContextFileDto[]> {
+    const response = await this.fetch("/v1/chat/project-files/resolve", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ files }),
+    });
+    return ((await response.json()) as { files: ProjectContextFileDto[] })
+      .files;
+  }
+  async uploadChatAsset(
+    file: File,
+    signal?: AbortSignal,
+  ): Promise<ChatAssetMetadata> {
+    return (
+      await this.fetch("/v1/chat/assets", {
+        method: "POST",
+        headers: {
+          "Content-Type": file.type,
+          "X-Attachment-Name": encodeURIComponent(file.name),
+        },
+        body: file.stream(),
+        duplex: "half",
+        signal: signal
+          ? AbortSignal.any([signal, AbortSignal.timeout(30_000)])
+          : AbortSignal.timeout(30_000),
+      })
+    ).json();
+  }
+  async chatAssetMetadata(id: string): Promise<ChatAssetMetadata> {
+    return (
+      await this.fetch(`/v1/chat/assets/${encodeURIComponent(id)}`, {
+        method: "GET",
+      })
+    ).json();
+  }
+  async downloadChatAsset(id: string, signal?: AbortSignal): Promise<Response> {
+    return this.fetch(`/v1/chat/assets/${encodeURIComponent(id)}/file`, {
+      method: "GET",
+      signal,
+    });
+  }
+  async deleteChatAsset(id: string): Promise<void> {
+    await this.fetch(`/v1/chat/assets/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  }
+  async claimChatAsset(
+    reference: ChatAssetReference,
+    runID: string,
+  ): Promise<void> {
+    await this.fetch(
+      `/v1/chat/assets/${encodeURIComponent(reference.id)}/claim`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sha256: reference.sha256, runID }),
+      },
+    );
+  }
 
   async cancelRun(runID: string): Promise<void> {
     await this.fetch(`/v1/runs/${encodeURIComponent(runID)}/cancel`, {
@@ -68,7 +144,10 @@ export class ControlPlaneClient {
     );
   }
 
-  private async fetch(path: string, init: RequestInit): Promise<Response> {
+  private async fetch(
+    path: string,
+    init: RequestInit & { duplex?: "half" },
+  ): Promise<Response> {
     if (!this.baseURL || !this.token) {
       throw new ControlPlaneUnavailableError(
         "Control plane is not configured.",
@@ -93,6 +172,7 @@ export class ControlPlaneClient {
     if (!response.ok) {
       throw new ControlPlaneUnavailableError(
         `Control plane returned HTTP ${response.status}.`,
+        response.status,
       );
     }
     return response;

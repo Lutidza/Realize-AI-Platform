@@ -2,8 +2,8 @@
 
 /**
  * @file tests/int/codex-integration-api.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-09-11
  * @description Проверяет изоляцию Codex DTO, vault, optimistic revision и управляющих API без сети.
  */
 
@@ -11,6 +11,12 @@ import { randomBytes, randomUUID } from "node:crypto";
 import type { PayloadRequest } from "payload";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  CODEX_CHAT_SETTINGS_DEFAULTS,
+  CODEX_AGENT_SETTINGS_DEFAULTS,
+  parseCodexAgentSettings,
+  parseSaveCodexAgentSettingsInput,
+  parseCodexChatSettings,
+  parseSaveCodexChatSettingsInput,
   parseCodexIntegrationConfiguration,
   parseCompleteCodexBrowserLoginInput,
   parseCodexLoginSessionInput,
@@ -19,6 +25,8 @@ import {
   parseTestCodexIntegrationInput,
 } from "@realize/ai-contracts";
 import { createCodexIntegrationHandlers } from "../../packages/payload-ai-plugin/src/endpoints/codexIntegrationHandlers";
+import { createCodexAgentSettingsHandlers } from "../../packages/payload-ai-plugin/src/endpoints/codexAgentSettingsHandlers";
+import { createCodexChatSettingsHandlers } from "../../packages/payload-ai-plugin/src/endpoints/codexChatSettingsHandlers";
 import { createCodexLoginEndpoints } from "../../packages/payload-ai-plugin/src/endpoints/codexLoginEndpoints.config";
 import { createIntegrationHandlers } from "../../packages/payload-ai-plugin/src/endpoints/integrationHandlers";
 import { toCodexIntegrationDTO } from "../../packages/payload-ai-plugin/src/endpoints/integrationMappers";
@@ -91,7 +99,7 @@ const TOKEN_JSON = JSON.stringify({
   accessToken: ACCESS_TOKEN,
 });
 const options = {
-  access: { canManageIntegrations: () => true },
+  access: { canManageIntegrations: () => true, canUseChat: () => true },
   integrations: { encryptionKeyEnv: KEY_ENV },
 } as unknown as SanitizedRealizeAIPluginOptions;
 const binding = { connectionKey: "codex:primary", provider: "codex" };
@@ -245,6 +253,411 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("Codex integration API", () => {
+  it("параметры агента сохраняются без авторизации и меняют единственный переключатель подключения", async () => {
+    vi.stubEnv(KEY_ENV, "");
+    const state = fixture();
+    const settings = {
+      ...CODEX_AGENT_SETTINGS_DEFAULTS,
+      model: "model-synthetic",
+      reviewModel: "review-synthetic",
+    };
+    const input = { expectedRevision: 0, enabled: true, settings };
+    const handler = createCodexAgentSettingsHandlers(options).save;
+    const key = randomUUID();
+    const response = await handler(state.request(input, { key }));
+    expect(response.status).toBe(200);
+    expect((await response.json()).data).toMatchObject({
+      enabled: true,
+      hasCredential: false,
+      revision: 1,
+      configuration: { agent: settings, chat: CODEX_CHAT_SETTINGS_DEFAULTS },
+    });
+    expect(state.stored()?.credentialEnvelope).toBeNull();
+    expect(state.events[0].metadata).toMatchObject({
+      operation: "agent-settings",
+      settings,
+      enabled: true,
+    });
+    expect((await handler(state.request(input, { key }))).status).toBe(200);
+    expect(state.events).toHaveLength(1);
+    expect(
+      (await handler(state.request({ ...input, enabled: false }, { key })))
+        .status,
+    ).toBe(409);
+    expect((await handler(state.request(input))).status).toBe(409);
+    expect(mocks.acquire).not.toHaveBeenCalled();
+    expect(mocks.createCredential).not.toHaveBeenCalled();
+  });
+
+  it("сохранение агента сохраняет credential и настройки чата, auth/chat/disconnect сохраняют параметры агента", async () => {
+    const initial = connection({
+      lastTestStatus: "passed",
+      configuration: {
+        authMode: "apiKey",
+        chat: { ...CODEX_CHAT_SETTINGS_DEFAULTS, sendOnEnter: false },
+      },
+    });
+    const state = fixture(initial);
+    const settings = {
+      ...CODEX_AGENT_SETTINGS_DEFAULTS,
+      model: "saved-model",
+      reviewModel: "saved-review",
+      execution: { ...CODEX_AGENT_SETTINGS_DEFAULTS.execution, enabled: true },
+    };
+    const saved = await createCodexAgentSettingsHandlers(options).save(
+      state.request({ expectedRevision: 2, enabled: false, settings }),
+    );
+    expect(saved.status).toBe(200);
+    expect((await saved.json()).data).toMatchObject({
+      enabled: false,
+      revision: 3,
+      lastTestStatus: "passed",
+      configuration: { agent: settings, chat: { sendOnEnter: false } },
+    });
+    expect(state.stored()?.credentialEnvelope).toBe(initial.credentialEnvelope);
+    const auth = createCodexIntegrationHandlers(options);
+    expect(
+      (
+        await auth.save(
+          state.request({
+            authMode: "apiKey",
+            enabled: true,
+            expectedRevision: 3,
+          }),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (state.stored()?.configuration as Record<string, unknown>).agent,
+    ).toEqual(settings);
+    expect(
+      (
+        await createCodexChatSettingsHandlers(options).save(
+          state.request({
+            expectedRevision: 4,
+            settings: CODEX_CHAT_SETTINGS_DEFAULTS,
+          }),
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (state.stored()?.configuration as Record<string, unknown>).agent,
+    ).toEqual(settings);
+    expect(
+      (await auth.disconnect(state.request({ expectedRevision: 5 }))).status,
+    ).toBe(200);
+    expect(
+      (state.stored()?.configuration as Record<string, unknown>).agent,
+    ).toEqual(settings);
+    expect(state.stored()?.enabled).toBe(false);
+    expect(state.stored()?.credentialEnvelope).toBeNull();
+  });
+
+  it("изменение параметров агента требует integration permission и корректный idempotency key", async () => {
+    const state = fixture();
+    const input = {
+      expectedRevision: 0,
+      enabled: false,
+      settings: CODEX_AGENT_SETTINGS_DEFAULTS,
+    };
+    const handler = createCodexAgentSettingsHandlers(options).save;
+    expect(
+      (await handler(state.request(input, { authenticated: false }))).status,
+    ).toBe(401);
+    const denied = createCodexAgentSettingsHandlers({
+      ...options,
+      access: { ...options.access, canManageIntegrations: () => false },
+    }).save;
+    expect((await denied(state.request(input))).status).toBe(403);
+    expect((await handler(state.request(input, { key: "bad" }))).status).toBe(
+      400,
+    );
+    expect(state.payload.create).not.toHaveBeenCalled();
+  });
+
+  it("legacy JSON получает defaults агента, а сохранение требует полный строгий контракт", () => {
+    expect(
+      parseCodexIntegrationConfiguration({ authMode: "apiKey" }).agent,
+    ).toEqual(CODEX_AGENT_SETTINGS_DEFAULTS);
+    expect(
+      parseCodexAgentSettings({
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        model: "  model-v1  ",
+      }).model,
+    ).toBe("model-v1");
+    expect(
+      parseSaveCodexAgentSettingsInput({
+        expectedRevision: 0,
+        enabled: false,
+        settings: CODEX_AGENT_SETTINGS_DEFAULTS,
+      }),
+    ).toMatchObject({ enabled: false });
+    const invalid = [
+      { ...CODEX_AGENT_SETTINGS_DEFAULTS, model: null },
+      { ...CODEX_AGENT_SETTINGS_DEFAULTS, model: "model;command" },
+      { ...CODEX_AGENT_SETTINGS_DEFAULTS, model: "x".repeat(129) },
+      { ...CODEX_AGENT_SETTINGS_DEFAULTS, reviewModel: "unsafe model" },
+      {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        execution: {
+          ...CODEX_AGENT_SETTINGS_DEFAULTS.execution,
+          capabilityTTLSeconds: 59,
+        },
+      },
+      {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        execution: {
+          ...CODEX_AGENT_SETTINGS_DEFAULTS.execution,
+          artifactsTTLSeconds: 3599,
+        },
+      },
+      {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        preview: { enabled: true, ttlSeconds: 899 },
+      },
+      {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        release: { enabled: true, ttlSeconds: 604801 },
+      },
+      {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        sourcePromotion: { enabled: "true" },
+      },
+      { ...CODEX_AGENT_SETTINGS_DEFAULTS, execution: { enabled: false } },
+      { ...CODEX_AGENT_SETTINGS_DEFAULTS, credential: "never-accepted" },
+      {
+        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+        execution: {
+          ...CODEX_AGENT_SETTINGS_DEFAULTS.execution,
+          shell: "unsafe",
+        },
+      },
+    ];
+    for (const settings of invalid)
+      expect(() => parseCodexAgentSettings(settings)).toThrow();
+    for (const input of [
+      { settings: CODEX_AGENT_SETTINGS_DEFAULTS },
+      {
+        expectedRevision: -1,
+        enabled: false,
+        settings: CODEX_AGENT_SETTINGS_DEFAULTS,
+      },
+      {
+        expectedRevision: 0,
+        enabled: false,
+        settings: CODEX_AGENT_SETTINGS_DEFAULTS,
+        apiKey: "never-accepted",
+      },
+    ])
+      expect(() => parseSaveCodexAgentSettingsInput(input)).toThrow();
+  });
+
+  it("настройки чата сохраняются до авторизации без vault и возвращаются отдельным безопасным DTO", async () => {
+    vi.stubEnv(KEY_ENV, "");
+    const state = fixture();
+    const settings = {
+      ...CODEX_CHAT_SETTINGS_DEFAULTS,
+      displayMode: "page" as const,
+      tools: { codeChanges: false, dataOperations: false },
+    };
+    const handlers = createCodexChatSettingsHandlers(options);
+    const input = { expectedRevision: 0, settings };
+    const key = randomUUID();
+    const saved = await handlers.save(state.request(input, { key }));
+    expect(saved.status).toBe(200);
+    expect((await saved.json()).data).toMatchObject({
+      enabled: false,
+      hasCredential: false,
+      revision: 1,
+      configuration: { authMode: "chatgpt", chat: settings },
+    });
+    expect(state.stored()?.credentialEnvelope).toBeNull();
+    const read = await handlers.read(state.request({}));
+    expect((await read.json()).data).toEqual(settings);
+    expect(mocks.createCredential).not.toHaveBeenCalled();
+    expect(mocks.acquire).not.toHaveBeenCalled();
+    expect(state.events[0].metadata).toMatchObject({
+      operation: "chat-settings",
+      settings,
+    });
+    expect((await handlers.save(state.request(input, { key }))).status).toBe(
+      200,
+    );
+    expect(state.events).toHaveLength(1);
+    expect(
+      (
+        await handlers.save(
+          state.request(
+            { ...input, settings: CODEX_CHAT_SETTINGS_DEFAULTS },
+            { key },
+          ),
+        )
+      ).status,
+    ).toBe(409);
+    expect((await handlers.save(state.request(input))).status).toBe(409);
+  });
+
+  it("defaults старой установки не разрешают передать произвольные инструменты или неполные настройки", async () => {
+    const state = fixture();
+    const response = await createCodexChatSettingsHandlers(options).read(
+      state.request({}),
+    );
+    expect((await response.json()).data).toEqual(CODEX_CHAT_SETTINGS_DEFAULTS);
+    expect(
+      parseCodexIntegrationConfiguration({ authMode: "chatgpt" }).chat,
+    ).toEqual(CODEX_CHAT_SETTINGS_DEFAULTS);
+    for (const settings of [
+      {
+        ...CODEX_CHAT_SETTINGS_DEFAULTS,
+        tools: { codeChanges: true, dataOperations: true, mcp: true },
+      },
+      { ...CODEX_CHAT_SETTINGS_DEFAULTS, tools: { codeChanges: true } },
+      { ...CODEX_CHAT_SETTINGS_DEFAULTS, displayMode: "invalid" },
+      { ...CODEX_CHAT_SETTINGS_DEFAULTS, showActivity: "true" },
+      { ...CODEX_CHAT_SETTINGS_DEFAULTS, sandbox: "danger-full-access" },
+      null,
+    ])
+      expect(() => parseCodexChatSettings(settings)).toThrow();
+    expect(() =>
+      parseSaveCodexChatSettingsInput({
+        expectedRevision: -1,
+        settings: CODEX_CHAT_SETTINGS_DEFAULTS,
+      }),
+    ).toThrow();
+    expect(() =>
+      parseSaveCodexChatSettingsInput({
+        expectedRevision: 0,
+        settings: CODEX_CHAT_SETTINGS_DEFAULTS,
+        apiKey: API_KEY,
+      }),
+    ).toThrow();
+  });
+
+  it("сохранение чата сохраняет credential и результат проверки без ротации", async () => {
+    const original = connection({ lastTestStatus: "passed" });
+    const state = fixture(original);
+    const settings = { ...CODEX_CHAT_SETTINGS_DEFAULTS, showActivity: true };
+    const response = await createCodexChatSettingsHandlers(options).save(
+      state.request({ expectedRevision: 2, settings }),
+    );
+    expect(response.status).toBe(200);
+    expect(state.stored()).toMatchObject({
+      credentialEnvelope: original.credentialEnvelope,
+      lastTestStatus: "passed",
+      enabled: true,
+      revision: 3,
+    });
+    expect(mocks.createCredential).not.toHaveBeenCalled();
+  });
+
+  it("смена авторизации и disconnect сохраняют настройки чата", async () => {
+    const settings = {
+      ...CODEX_CHAT_SETTINGS_DEFAULTS,
+      showHistory: false,
+      tools: { codeChanges: false, dataOperations: true },
+    };
+    const state = fixture(
+      connection({ configuration: { authMode: "apiKey", chat: settings } }),
+    );
+    const handlers = createCodexIntegrationHandlers(options);
+    const save = await handlers.save(
+      state.request({
+        authMode: "accessToken",
+        accessToken: ACCESS_TOKEN,
+        enabled: true,
+        expectedRevision: 2,
+      }),
+    );
+    expect(save.status).toBe(200);
+    expect((await save.json()).data.configuration.chat).toEqual(settings);
+    const disconnected = await handlers.disconnect(
+      state.request({ expectedRevision: 3 }),
+    );
+    expect(disconnected.status).toBe(200);
+    expect(state.stored()).toMatchObject({
+      enabled: false,
+      credentialEnvelope: null,
+      revision: 4,
+      configuration: { chat: settings },
+    });
+    expect(
+      (state.stored()?.configuration as Record<string, unknown>).accountEmail,
+    ).toBeUndefined();
+  });
+
+  it("OAuth login и проверка подключения сохраняют ранее заданные настройки", async () => {
+    const settings = {
+      ...CODEX_CHAT_SETTINGS_DEFAULTS,
+      displayMode: "window" as const,
+    };
+    const state = fixture(
+      connection({
+        configuration: { authMode: "chatgpt", chat: settings },
+        enabled: false,
+        credentialEnvelope: null,
+      }),
+    );
+    const authJSON = JSON.stringify({
+      auth_mode: "chatgpt",
+      tokens: {
+        id_token: "synthetic-id",
+        access_token: "synthetic-access",
+        refresh_token: "synthetic-refresh",
+      },
+    });
+    const dto = await saveCompletedCodexLogin(state.request({}), options, {
+      actorID: state.actorID,
+      idempotencyKey: randomUUID(),
+      input: { enabled: true, expectedRevision: 2 },
+      authJSON,
+    });
+    expect(dto.configuration.chat).toEqual(settings);
+    mocks.acquire.mockResolvedValue({
+      authMode: "chatgpt",
+      environment: {},
+      home: "/synthetic/codex",
+      revision: 3,
+      signal: new AbortController().signal,
+      dispose: mocks.dispose,
+    });
+    mocks.readAuth.mockResolvedValue(authJSON);
+    const tested = await createCodexIntegrationHandlers(options).test(
+      state.request({ expectedRevision: 3 }),
+    );
+    expect(tested.status).toBe(200);
+    expect(
+      (state.stored()?.configuration as Record<string, unknown>).chat,
+    ).toEqual(settings);
+  });
+
+  it("read требует canUseChat, а write — отдельное canManageIntegrations", async () => {
+    const state = fixture();
+    const handlers = createCodexChatSettingsHandlers({
+      ...options,
+      access: { ...options.access, canManageIntegrations: () => false },
+    });
+    expect((await handlers.read(state.request({}))).status).toBe(200);
+    expect(
+      (
+        await handlers.save(
+          state.request({
+            expectedRevision: 0,
+            settings: CODEX_CHAT_SETTINGS_DEFAULTS,
+          }),
+        )
+      ).status,
+    ).toBe(403);
+    const denied = createCodexChatSettingsHandlers({
+      ...options,
+      access: { ...options.access, canUseChat: () => false },
+    });
+    expect((await denied.read(state.request({}))).status).toBe(403);
+    expect(
+      (await handlers.read(state.request({}, { authenticated: false }))).status,
+    ).toBe(401);
+    expect(state.payload.create).not.toHaveBeenCalled();
+  });
+
   it("сохраняет API key только зашифрованным native auth JSON и выдаёт allowlisted DTO", async () => {
     const state = fixture();
     const response = await createCodexIntegrationHandlers(options).save(
@@ -392,6 +805,8 @@ describe("Codex integration API", () => {
     });
     expect(dto.configuration).toEqual({
       authMode: "chatgpt",
+      agent: CODEX_AGENT_SETTINGS_DEFAULTS,
+      chat: CODEX_CHAT_SETTINGS_DEFAULTS,
       loginMethod: "deviceCode",
       accountEmail: "admin@example.test",
       planType: "plus",
@@ -513,7 +928,13 @@ describe("Codex integration API", () => {
       state.request({ expectedRevision: 2 }),
     );
     expect(response.status).toBe(200);
-    expect(state.stored()).toBeUndefined();
+    expect(state.stored()).toMatchObject({
+      credentialEnvelope: null,
+      credentialUpdatedAt: null,
+      enabled: false,
+      revision: 3,
+      configuration: { chat: CODEX_CHAT_SETTINGS_DEFAULTS },
+    });
     expect(state.events[0]).toMatchObject({
       provider: "codex",
       action: "disconnected",

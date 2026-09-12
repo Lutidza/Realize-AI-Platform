@@ -1,8 +1,11 @@
 /**
  * @file packages/ai-contracts/src/execution.ts
- * @version 2026-08-21
- * @description Defines browser-safe code execution, evidence and acceptance contracts.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Задаёт безопасные контракты выполнения, состояния исполнителя и принятия результата.
  */
+
+import type { WorkerAvailabilityDTO } from "./WorkerAvailability.types";
 
 /** Durable lifecycle of one isolated code implementation job. */
 export type ExecutionJobStatus =
@@ -81,6 +84,7 @@ export type ImplementationAcceptanceDTO = {
 /** Effective execution availability and the current durable job, if any. */
 export type ChangeExecutionDTO = {
   enabled: boolean;
+  worker?: WorkerAvailabilityDTO;
   job?: ExecutionJobDTO;
   reason?: string;
 };

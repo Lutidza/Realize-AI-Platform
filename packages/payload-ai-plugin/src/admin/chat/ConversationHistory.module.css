@@ -1,0 +1,119 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/chat/ConversationHistory.module.css
+ * @version 1.1.0
+ * @date 2026-09-09
+ * @description Оформляет компактные строки истории с отдельной прокруткой и полноценным узким представлением.
+ */
+
+.history {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 260px;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-height: 0;
+  padding: var(--ui-space-3);
+  border-right: 1px solid var(--ui-color-border);
+  background: var(--ui-color-bg);
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: var(--ui-space-2);
+  font-size: 14px;
+  --ui-control-height: 30px;
+}
+.newChat {
+  justify-content: flex-start;
+  font-size: 13px;
+}
+.search {
+  position: relative;
+  display: block;
+  margin-block: var(--ui-space-2);
+}
+.search > svg {
+  position: absolute;
+  top: 14px;
+  left: var(--ui-space-3);
+  color: var(--ui-color-muted);
+  pointer-events: none;
+}
+.search input {
+  padding-left: 36px;
+}
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.list h3 {
+  padding: var(--ui-space-3) var(--ui-space-2) var(--ui-space-1);
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  border-radius: var(--ui-radius-sm);
+  --ui-control-height: 30px;
+}
+.row[data-selected="true"] {
+  background: var(--ui-color-surface-raised);
+}
+.conversation {
+  flex: 1;
+  justify-content: flex-start;
+  min-width: 0;
+  padding-inline: var(--ui-space-2);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 400;
+}
+.conversation span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.empty {
+  margin: var(--ui-space-6) var(--ui-space-2);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+}
+.archiveLink {
+  justify-content: flex-start;
+}
+.confirm {
+  display: grid;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  font-size: 12px;
+}
+.confirm p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--ui-color-muted);
+}
+.confirm > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-1);
+  justify-content: flex-end;
+}
+@container chat (max-width: 760px) {
+  .history {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    width: 100%;
+    border-right: 0;
+    padding: var(--ui-space-4);
+  }
+}

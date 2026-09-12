@@ -1,0 +1,278 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/agent-layer-settings/AgentLayerProfileEditor.module.css
+ * @version 1.1.0
+ * @date 2026-09-10
+ * @description Оформляет форму профиля и компактный выбор связей в общих токенах интерфейса.
+ */
+
+.form,
+.section,
+.field,
+.referenceGroups,
+.picker {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.form {
+  gap: var(--ui-space-8);
+}
+.section {
+  gap: var(--ui-space-5);
+}
+.sectionHeader {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3);
+}
+.sectionHeader > div {
+  display: grid;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+.sectionHeader h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.muted,
+.fieldWarning {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.fieldWarning {
+  color: var(--ui-color-danger);
+}
+.field {
+  gap: var(--ui-space-2);
+  font-size: 13px;
+  font-weight: 500;
+}
+.fieldGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr);
+  gap: var(--ui-space-5);
+}
+.description {
+  min-height: 108px;
+  resize: vertical;
+  font-weight: 400;
+}
+.switchRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+}
+.switchRow > span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+}
+.switchRow strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.referenceGroups {
+  gap: var(--ui-space-2);
+}
+.referenceGroup {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  min-width: 0;
+}
+.groupSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  color: var(--ui-color-text);
+  cursor: pointer;
+  list-style: none;
+}
+.groupSummary::-webkit-details-marker {
+  display: none;
+}
+.groupSummary > svg {
+  flex-shrink: 0;
+  color: var(--ui-color-muted);
+  transform: rotate(-90deg);
+}
+.referenceGroup[open] > .groupSummary > svg {
+  transform: none;
+}
+.groupSummary strong {
+  font-size: 13px;
+  font-weight: 500;
+}
+.groupSummary:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 3px;
+  border-radius: var(--ui-radius-sm);
+}
+.groupCounts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: var(--ui-space-2);
+  margin-left: auto;
+}
+.picker {
+  gap: var(--ui-space-4);
+  padding: 0 var(--ui-space-4) var(--ui-space-4);
+}
+.noticeText {
+  margin: 0;
+}
+.noticeText + .noticeText {
+  margin-top: var(--ui-space-2);
+}
+.pickerToolbar,
+.pickerPagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+.pickerToolbar > input {
+  min-width: 0;
+  flex: 1;
+}
+.pickerModes,
+.pickerPages,
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+}
+.pickerModes,
+.pickerPages {
+  flex-shrink: 0;
+}
+.pickerPages > span {
+  min-width: 42px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+.referenceRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--ui-space-1);
+  margin: calc(-1 * var(--ui-space-1));
+  list-style: none;
+}
+.referenceRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  min-width: 0;
+}
+.referenceRows:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 2px;
+  border-radius: var(--ui-radius-sm);
+}
+.referenceChoice {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  justify-content: start;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3);
+  white-space: normal;
+  text-align: left;
+}
+.referencePreview {
+  display: flex;
+}
+.referenceLabel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.referenceLabel strong {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.referenceLabel code {
+  color: var(--ui-color-muted);
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.referenceChoice > [data-ui="badge"] {
+  flex-shrink: 0;
+}
+.pickerEmpty {
+  margin: 0;
+  padding: var(--ui-space-6) var(--ui-space-3);
+  color: var(--ui-color-muted);
+  text-align: center;
+  font-size: 13px;
+}
+.formActions {
+  flex-wrap: wrap;
+  border-top: 1px solid var(--ui-color-border);
+  padding-top: var(--ui-space-5);
+}
+@media (max-width: 640px) {
+  .fieldGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pickerToolbar,
+  .pickerPagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .pickerModes {
+    align-self: start;
+  }
+  .pickerPages {
+    justify-content: space-between;
+  }
+  .groupSummary {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--ui-space-2);
+    padding: var(--ui-space-3);
+  }
+  .groupCounts {
+    grid-column: 2;
+    justify-content: start;
+    margin-left: 0;
+  }
+  .picker {
+    padding-inline: var(--ui-space-3);
+  }
+  .referenceChoice {
+    flex-wrap: wrap;
+    gap: var(--ui-space-2);
+    padding: var(--ui-space-2);
+  }
+  .referenceLabel {
+    flex-basis: calc(100% - 26px);
+  }
+  .referenceChoice > [data-ui="badge"] {
+    margin-left: 25px;
+  }
+  .formActions > button {
+    flex: 1 1 auto;
+  }
+}

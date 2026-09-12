@@ -1,11 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationMapper.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Проецирует DataOperation persistence в allowlisted browser DTO.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 
+import { parseCreatePageDraftIntent } from "@realize/ai-contracts";
+import type { AppliedPageDraftSnapshot } from "./PageDraft.types";
 import type {
   DataDocumentRefDTO,
   DataOperationApprovalDTO,
@@ -39,7 +42,7 @@ const documentRef = (value: unknown): DataDocumentRefDTO => {
 const documentRefs = (value: unknown): DataDocumentRefDTO[] =>
   Array.isArray(value) ? value.map(documentRef).filter((item) => item.id) : [];
 
-/** Maps an append-only decision without exposing its raw actor relationship. */
+/** Преобразует неизменяемое решение без выдачи raw actor relationship. */
 export const toDataOperationApprovalDTO = (
   document: AIDocument,
 ): DataOperationApprovalDTO => ({
@@ -58,7 +61,7 @@ export const toDataOperationApprovalDTO = (
       : "WRITE_CONFIRMATION",
 });
 
-/** Maps one durable data operation and its independent decisions. */
+/** Преобразует операцию и отдельные решения в типизированный browser DTO. */
 export const toDataOperationDTO = (input: {
   approval?: AIDocument;
   operation: AIDocument;
@@ -68,7 +71,7 @@ export const toDataOperationDTO = (input: {
   const afterCategories = documentRefs(input.operation.afterSnapshot);
   const beforeIDs = new Set(beforeCategories.map((category) => category.id));
 
-  return {
+  const base = {
     approval: input.approval
       ? toDataOperationApprovalDTO(input.approval)
       : undefined,
@@ -82,28 +85,14 @@ export const toDataOperationDTO = (input: {
       typeof input.operation.errorSummary === "string"
         ? input.operation.errorSummary
         : undefined,
-    estimatedCount: 1,
-    expectedTargetUpdatedAt:
-      typeof input.operation.expectedTargetUpdatedAt === "string"
-        ? input.operation.expectedTargetUpdatedAt
-        : "",
+    estimatedCount: 1 as const,
     expiresAt: iso(input.operation.expiresAt),
     id: String(input.operation.id),
-    kind: "catalog.assignCategory.v1",
     operationHash:
       typeof input.operation.operationHash === "string"
         ? input.operation.operationHash
         : "",
-    preview: {
-      addedCategories: afterCategories.filter(
-        (category) => !beforeIDs.has(category.id),
-      ),
-      afterCategories,
-      beforeCategories,
-      category: documentRef(input.operation.categorySnapshot),
-      product: documentRef(input.operation.productSnapshot),
-    },
-    riskLevel: "R1",
+    riskLevel: "R1" as const,
     rollbackApproval: input.rollbackApproval
       ? toDataOperationApprovalDTO(input.rollbackApproval)
       : undefined,
@@ -111,7 +100,6 @@ export const toDataOperationDTO = (input: {
       typeof input.operation.rollbackHash === "string"
         ? input.operation.rollbackHash
         : "",
-    rollbackStrategy: "before-snapshot",
     rolledBackAt:
       typeof input.operation.rolledBackAt === "string"
         ? input.operation.rolledBackAt
@@ -124,5 +112,55 @@ export const toDataOperationDTO = (input: {
         : "Data Operation",
     updatedAt: iso(input.operation.updatedAt),
     version: Number(input.operation.version || 1),
+  };
+  if (input.operation.kind === "pages.createDraft.v1") {
+    const intent = parseCreatePageDraftIntent(input.operation.intent);
+    const applied = input.operation.appliedSnapshot as
+      AppliedPageDraftSnapshot | undefined;
+    return {
+      ...base,
+      kind: "pages.createDraft.v1",
+      rollbackStrategy: "delete-created-draft",
+      preview: {
+        title: intent.title,
+        slug: intent.slug,
+        sections: intent.sections,
+        ...(intent.description ? { description: intent.description } : {}),
+        status: "draft",
+      },
+      ...(applied?.pageID &&
+      ["applied", "rollback_approved", "rollback_failed"].includes(
+        String(input.operation.state),
+      )
+        ? {
+            result: {
+              page: {
+                id: applied.pageID,
+                title: applied.title,
+                slug: applied.slug,
+              },
+              adminUrl: applied.adminUrl,
+            },
+          }
+        : {}),
+    };
+  }
+  return {
+    ...base,
+    kind: "catalog.assignCategory.v1",
+    rollbackStrategy: "before-snapshot",
+    expectedTargetUpdatedAt:
+      typeof input.operation.expectedTargetUpdatedAt === "string"
+        ? input.operation.expectedTargetUpdatedAt
+        : "",
+    preview: {
+      addedCategories: afterCategories.filter(
+        (category) => !beforeIDs.has(category.id),
+      ),
+      afterCategories,
+      beforeCategories,
+      category: documentRef(input.operation.categorySnapshot),
+      product: documentRef(input.operation.productSnapshot),
+    },
   };
 };

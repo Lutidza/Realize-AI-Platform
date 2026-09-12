@@ -1,9 +1,11 @@
 /**
  * @file src/plugins/index.ts
- * @version 2026-09-02
- * @description Компонует Payload plugins и AI config/source/release/integration gates.
+ * @version 1.1.0
+ * @date 2026-09-11
+ * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
 
+import { mapAIPageDraftContent } from "@/collections/Pages/mapAIPageDraft.mapper";
 import { formBuilderPlugin } from "@payloadcms/plugin-form-builder";
 import { seoPlugin } from "@payloadcms/plugin-seo";
 import { Plugin } from "payload";
@@ -33,6 +35,7 @@ const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOKS_SIGNING_SECRET;
 
 const realizeAI = realizeAIPlugin({
+  pageDraft: { version: "1.0", mapContent: mapAIPageDraftContent },
   access: {
     canApproveRelease: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
@@ -52,25 +55,12 @@ const realizeAI = realizeAIPlugin({
     integrationsRoute: "/integrations",
     route: "/ai",
   },
-  enabled: process.env.REALIZE_AI_ENABLED === "true",
   execution: {
-    enabled: process.env.REALIZE_AI_EXECUTION_ENABLED === "true",
     repositoryRoot: process.env.REALIZE_AI_WORKSPACE_ROOT || process.cwd(),
     signingSecretEnv: "REALIZE_AI_EXECUTION_SIGNING_SECRET",
   },
   integrations: {
     encryptionKeyEnv: "REALIZE_INTEGRATIONS_ENCRYPTION_KEY",
-  },
-  preview: {
-    enabled: process.env.REALIZE_AI_PREVIEW_ENABLED === "true",
-    ttlSeconds: Number(process.env.REALIZE_AI_PREVIEW_TTL_SECONDS || 21_600),
-  },
-  release: {
-    enabled: process.env.REALIZE_AI_RELEASE_ENABLED === "true",
-    ttlSeconds: Number(process.env.REALIZE_AI_RELEASE_TTL_SECONDS || 86_400),
-  },
-  sourcePromotion: {
-    enabled: process.env.REALIZE_AI_SOURCE_PROMOTION_ENABLED === "true",
   },
   runtime: {
     controlPlaneTokenEnv: "REALIZE_AI_CONTROL_PLANE_TOKEN",
@@ -79,7 +69,8 @@ const realizeAI = realizeAIPlugin({
       process.env.REALIZE_AI_RUNTIME_MODE === "local-development"
         ? "local-development"
         : "central-control-plane",
-    model: process.env.REALIZE_AI_MODEL || undefined,
+    // Preview и проверки не могут запускать агентов из скопированной БД.
+    isolated: process.env.REALIZE_AI_RUNTIME_ISOLATED === "true",
   },
   userCollection: "users",
 });

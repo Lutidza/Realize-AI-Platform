@@ -1,0 +1,147 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/chat/ChatMessage.module.css
+ * @version 1.2.1
+ * @date 2026-09-11
+ * @description Задаёт семантическую компоновку сообщений пользователя и ассистента.
+ */
+
+.assistantRow,
+.userRow {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--ui-space-3);
+  width: 100%;
+  max-width: 760px;
+  min-width: 0;
+  margin-inline: auto;
+}
+
+.userRow {
+  justify-content: flex-end;
+}
+
+.avatar {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  margin-top: var(--ui-space-1);
+}
+
+.stack {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+
+.userRow .stack {
+  flex: 0 1 auto;
+  max-width: 88%;
+  align-items: flex-end;
+}
+
+.assistantMessage,
+.userMessage {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.userMessage {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border: 0;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-bg);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-bottom: var(--ui-space-1);
+  font-size: 11px;
+}
+
+.meta strong {
+  font-weight: 600;
+}
+
+.meta time {
+  color: var(--ui-color-muted);
+  font-size: 10px;
+}
+
+.content {
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+.configuration {
+  margin: var(--ui-space-2) 0 0;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.planAction {
+  max-width: 100%;
+  text-align: left;
+  white-space: normal;
+}
+
+.planHint {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-3);
+}
+.file {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  max-width: 100%;
+  color: var(--ui-color-text);
+  font-size: 12px;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: min(260px, 100%);
+  max-height: 220px;
+  border-radius: var(--ui-radius-sm);
+  object-fit: contain;
+}
+.project {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  max-width: 100%;
+  color: var(--ui-color-muted);
+  font-family: monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-3);
+  font-size: 12px;
+}
+.sources a {
+  color: var(--ui-color-primary);
+  overflow-wrap: anywhere;
+}

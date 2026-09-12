@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeHandlers.ts
- * @version 2026-08-22
+ * @version 1.1.0
+ * @date 2026-09-11
  * @description Реализует создание Change Request и immutable plan decisions.
  */
 
@@ -17,6 +18,7 @@ import {
 } from "@realize/change-engine";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
+import { requireCodexChatTool } from "./requireCodexChatTool.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { consumeRateLimit, requireChatUser } from "./access";
 import { ChangeRepository } from "./changeRepository";
@@ -42,6 +44,8 @@ const decisionHandler = (
 ): PayloadEndpointHandler =>
   withHandler(async (req, correlationID) => {
     const user = await requireChatUser(req, options);
+    if (decision === "approved")
+      await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const changeRequestID = parseIdentifier(
@@ -202,6 +206,7 @@ export const createChangeHandlers = (
 
   create: withHandler(async (req, correlationID) => {
     const user = await requireChatUser(req, options);
+    await requireCodexChatTool(req, "codeChanges", options);
     consumeRateLimit(user.id);
     const idempotencyKey = idempotencyKeyFor(req);
     const conversationID = parseIdentifier(

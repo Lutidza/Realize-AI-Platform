@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/createGitWorkerTransport.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-09-12
  * @description Подключает общий транспорт Codex с ограничениями возможностей Git-воркера.
  */
 
 import { JsonLineRPCClient } from "@realize/codex-adapter/rpc";
-import { createCodexEnvironment } from "@realize/codex-adapter/environment";
+import { createGitWorkerEnvironment } from "./createGitWorkerEnvironment.adapter.ts";
 import { GIT_WORKER_CONFIG } from "./gitWorker.config.ts";
 import type {
   GitWorkerDependencies,
@@ -16,10 +16,11 @@ import type {
 export function createGitWorkerTransport(
   workingDirectory: string,
   options: Parameters<GitWorkerDependencies["createTransport"]>[0],
+  sourceEnvironment: NodeJS.ProcessEnv = process.env,
 ): GitWorkerTransport {
   return new JsonLineRPCClient({
     workingDirectory,
-    environment: createCodexEnvironment(),
+    environment: createGitWorkerEnvironment(sourceEnvironment),
     args: [
       "app-server",
       "--listen",

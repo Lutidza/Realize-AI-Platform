@@ -1,0 +1,58 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/integrations/codex/CodexAgentDiagnostics.module.css
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Располагает параметры подключения и разрешения в адаптивной секции диагностики.
+ */
+
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-5);
+  margin: var(--ui-space-5) 0;
+}
+.metadata dt {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.metadata dd {
+  margin: var(--ui-space-1) 0 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.testTime {
+  display: block;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.operations {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--ui-space-6);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.operation {
+  padding-block: var(--ui-space-4);
+  border-top: 1px solid var(--ui-color-border);
+  min-width: 0;
+}
+.operationHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .metadata,
+  .operations {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/aiConfigPersistence.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Адаптирует минимальный Payload Local API для config repository.
  * @docref Realize AI Commerce v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
@@ -85,15 +86,13 @@ export class AIConfigPersistence {
     data: Record<string, unknown>;
     draftID: string;
     expectedRevision: number;
-    expectedState?: string;
+    expectedState: "editing" | "ready";
   }): Promise<AIDocument> {
     const conditions: Record<string, unknown>[] = [
       { draftID: { equals: input.draftID } },
       { revision: { equals: input.expectedRevision } },
+      { state: { equals: input.expectedState } },
     ];
-    if (input.expectedState) {
-      conditions.push({ state: { equals: input.expectedState } });
-    }
     return oneBulkDocument(
       await this.api.update({
         collection: input.collection,

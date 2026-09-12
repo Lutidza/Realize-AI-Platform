@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/CodexConnectionFields.types.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-11
  * @description Определяет редактируемые значения формы Codex и выбор способа входа.
  */
 
@@ -14,7 +14,6 @@ export type CodexIntegrationDraft = {
   loginMethod: CodexLoginMethod;
   authMode: CodexAuthMode;
   displayName: string;
-  enabled: boolean;
   sourceKey: string;
 };
 

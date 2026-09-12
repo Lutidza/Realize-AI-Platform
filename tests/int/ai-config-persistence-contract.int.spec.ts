@@ -1,6 +1,7 @@
 /**
  * @file tests/int/ai-config-persistence-contract.int.spec.ts
- * @version 2026-09-02
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Проверяет hidden Payload schema и закрытый generic CRUD config storage.
  * @docref Realize AI Commerce v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
@@ -104,6 +105,7 @@ describe("AI config Payload persistence contract", () => {
       baseRelease: null,
       draftID: "admin-config",
       expectedRevision: 3,
+      expectedState: "ready",
     });
 
     expect(update).toHaveBeenCalledWith(
@@ -112,6 +114,13 @@ describe("AI config Payload persistence contract", () => {
           baseReleaseID: null,
           baseReleaseManifestHash: null,
         }),
+        where: {
+          and: [
+            { draftID: { equals: "admin-config" } },
+            { revision: { equals: 3 } },
+            { state: { equals: "ready" } },
+          ],
+        },
       }),
     );
   });

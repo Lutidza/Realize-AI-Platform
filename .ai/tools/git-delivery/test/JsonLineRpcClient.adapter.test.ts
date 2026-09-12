@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/JsonLineRpcClient.adapter.test.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-09-12
  * @description Проверяет RPC, пределы вывода и завершение транспорта тестовыми Node-процессами.
  */
 
@@ -60,7 +60,7 @@ function startServer(
     codexBinary: process.execPath,
     args: ["-e", `${serverPrelude}\n${script}`],
     workingDirectory: process.cwd(),
-    environment: {},
+    environment: { CODEX_HOME: process.cwd() },
     ...options,
   });
   context.after(async () => client.close());
@@ -406,7 +406,12 @@ test(
       result: { value: process.env.RPC_FIXTURE_VALUE, hasHome: 'HOME' in process.env },
     }));
   `,
-      { environment: { RPC_FIXTURE_VALUE: "test-value" } },
+      {
+        environment: {
+          CODEX_HOME: process.cwd(),
+          RPC_FIXTURE_VALUE: "test-value",
+        },
+      },
     );
     assert.deepEqual(await client.request("environment"), {
       value: "test-value",
@@ -447,7 +452,8 @@ test(
       if (
         !(error instanceof Error) ||
         !("code" in error) ||
-        error.code !== "ENOENT"
+        // Потомок может исчезнуть между открытием /proc/stat и чтением.
+        (error.code !== "ENOENT" && error.code !== "ESRCH")
       )
         throw error;
     }

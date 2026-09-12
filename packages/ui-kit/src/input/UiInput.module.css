@@ -1,6 +1,6 @@
 /**
  * @file packages/ui-kit/src/input/UiInput.module.css
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Оформляет поля ввода, фокус, ошибки и недоступность через токены UI-кита.
  */
@@ -54,4 +54,13 @@
   .input {
     transition: none;
   }
+}
+
+/* Поле внутри составного composer получает общий фокус на окружающей поверхности. */
+.input[data-appearance="plain"] {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }

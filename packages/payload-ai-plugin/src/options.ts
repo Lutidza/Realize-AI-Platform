@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/options.ts
- * @version 2026-08-28
+ * @version 1.1.0
+ * @date 2026-09-11
  * @description Проверяет plugin options, включая source, release и integration security gates.
  */
 
@@ -86,6 +87,7 @@ export const sanitizeOptions = (
 
   return {
     access: options.access,
+    pageDraft: options.pageDraft,
     admin: {
       group: options.admin?.group || "AI & Delivery",
       integrationsRoute,
@@ -115,7 +117,10 @@ export const sanitizeOptions = (
     sourcePromotion: {
       enabled: options.sourcePromotion?.enabled ?? false,
     },
-    runtime: options.runtime,
+    runtime: {
+      ...options.runtime,
+      isolated: options.runtime.isolated ?? false,
+    },
     userCollection: options.userCollection || "users",
   };
 };

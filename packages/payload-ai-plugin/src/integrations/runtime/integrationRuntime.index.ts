@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/runtime/integrationRuntime.index.ts
- * @version 1.3.0
- * @date 2026-09-09
+ * @version 1.4.0
+ * @date 2026-09-11
  * @description Объявляет публичные серверные экспорты модуля разрешения интеграций.
  */
 
@@ -31,3 +31,14 @@ export type {
   RuntimeGitHubIntegration,
   RuntimeGitRepositoryConnection,
 } from "./IntegrationRuntime.types";
+
+export {
+  WorkerPresenceRepository,
+  WORKER_HEARTBEAT_INTERVAL_MS,
+  WORKER_HEARTBEAT_STALE_MS,
+} from "./WorkerPresence.repository";
+export type {
+  WorkerCapabilities,
+  WorkerPresenceState,
+  WorkerPresenceUpdate,
+} from "./WorkerPresence.types";

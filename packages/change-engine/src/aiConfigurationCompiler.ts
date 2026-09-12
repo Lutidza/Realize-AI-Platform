@@ -1,6 +1,7 @@
 /**
  * @file packages/change-engine/src/aiConfigurationCompiler.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Компилирует exact agent profile как пересечение system и installation policy.
  * @docref Realize AI Commerce v1.0 — Интеграция системного и installation AI-layer
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
@@ -20,7 +21,7 @@ import type {
 import { AIConfigurationPolicyError } from "./aiConfigurationError";
 import { verifyAIConfigRelease } from "./aiConfigurationRelease";
 import { createCapabilityRegistry } from "./capabilityRegistry";
-import { hashCanonicalJSON } from "./canonicalJson";
+import { hashCompiledAgentConfiguration } from "./hashCompiledAgentConfiguration.util";
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const STABLE_ID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
@@ -249,12 +250,12 @@ export const compileAgentConfiguration = (input: {
   const selectedArtifactHashes = selectedArtifacts
     .map((snapshot) => snapshot.contentHash)
     .sort();
-  const compiledContextHash = hashCanonicalJSON({
+  const compiledContextHash = hashCompiledAgentConfiguration({
     capabilities,
     checkIDs,
     configManifestHash: input.release.manifestHash,
     configReleaseID: input.release.id,
-    profile: { key: profile.key, revision: profile.revision },
+    profile,
     projectProfile: input.system.projectProfile,
     selectedArtifactHashes,
     systemManifestHash: input.system.manifestHash,
@@ -270,6 +271,7 @@ export const compileAgentConfiguration = (input: {
       configManifestHash: input.release.manifestHash,
       configReleaseID: input.release.id,
       profile,
+      projectProfile: input.system.projectProfile,
       selectedArtifacts,
       selectedArtifactHashes,
       systemManifestHash: input.system.manifestHash,

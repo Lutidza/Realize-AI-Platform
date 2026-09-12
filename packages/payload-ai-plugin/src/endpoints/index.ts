@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.7.0
+ * @date 2026-09-11
  * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
@@ -9,12 +9,20 @@ import type { Endpoint } from "payload";
 
 import { DEFAULT_API_ROUTE } from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
+import { createChatContextEndpoints } from "../chat-context/chatContextEndpoints.controller";
 import { createAIConfigEndpoints } from "./aiConfigEndpoints";
 import { createChangeHandlers } from "./changeHandlers";
 import { createDataOperationHandlers } from "./dataOperationHandlers";
 import { createExecutionHandlers } from "./executionHandlers";
 import { createIntegrationHandlers } from "./integrationHandlers";
 import { createCodexIntegrationHandlers } from "./codexIntegrationHandlers";
+import { createCodexAgentSettingsHandlers } from "./codexAgentSettingsHandlers";
+import { createCodexAgentDiagnosticsHandler } from "./codexAgentDiagnosticsHandler";
+import {
+  createCodexRuntimeHandlers,
+  withCodexRuntime,
+} from "./withCodexRuntime.controller";
+import { createCodexChatSettingsHandlers } from "./codexChatSettingsHandlers";
 import { createCodexLoginEndpoints } from "./codexLoginEndpoints.config";
 import { createPreviewHandlers } from "./previewHandlers";
 import { createReleaseHandlers } from "./releaseHandlers";
@@ -25,30 +33,73 @@ import {
   createStatusHandler,
 } from "./handlers";
 import { createRunEventsHandler } from "./stream";
+import { createWorkflowContinueHandler } from "../chat-context/workflowContinueHandler.controller";
+import { createWorkflowRunEndpoints } from "./workflowRunEndpoints.controller";
 
 export const createAIEndpoints = (
   options: SanitizedRealizeAIPluginOptions,
 ): Endpoint[] => {
-  const conversations = createConversationHandlers(options);
+  const conversations = createCodexRuntimeHandlers(
+    options,
+    createConversationHandlers,
+  );
   const config = createAIConfigEndpoints(options);
-  const changes = createChangeHandlers(options);
-  const dataOperations = createDataOperationHandlers(options);
-  const runs = createRunHandlers(options);
-  const execution = createExecutionHandlers(options);
+  const changes = createCodexRuntimeHandlers(options, createChangeHandlers);
+  const dataOperations = createCodexRuntimeHandlers(
+    options,
+    createDataOperationHandlers,
+  );
+  const runs = createCodexRuntimeHandlers(options, createRunHandlers);
+  const execution = createCodexRuntimeHandlers(
+    options,
+    createExecutionHandlers,
+  );
   const integrations = createIntegrationHandlers(options);
   const codex = createCodexIntegrationHandlers(options);
-  const preview = createPreviewHandlers(options);
-  const release = createReleaseHandlers(options);
-  const sourcePromotion = createSourcePromotionHandlers(options);
+  const agentSettings = createCodexAgentSettingsHandlers(options);
+  const chatSettings = createCodexChatSettingsHandlers(options);
+  const preview = createCodexRuntimeHandlers(options, createPreviewHandlers);
+  const release = createCodexRuntimeHandlers(options, createReleaseHandlers);
+  const sourcePromotion = createCodexRuntimeHandlers(
+    options,
+    createSourcePromotionHandlers,
+  );
 
   return [
+    ...createWorkflowRunEndpoints(options),
     {
-      handler: createStatusHandler(options),
+      handler: withCodexRuntime(options, createWorkflowContinueHandler),
+      method: "post",
+      path: `${DEFAULT_API_ROUTE}/runs/:id/workflow/continue`,
+    },
+    ...createChatContextEndpoints(options),
+    {
+      handler: withCodexRuntime(options, createStatusHandler),
       method: "get",
       path: `${DEFAULT_API_ROUTE}/status`,
     },
     ...config,
     ...createCodexLoginEndpoints(options),
+    {
+      handler: createCodexAgentDiagnosticsHandler(options),
+      method: "get",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex/diagnostics`,
+    },
+    {
+      handler: agentSettings.save,
+      method: "put",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex/agent-settings`,
+    },
+    {
+      handler: chatSettings.read,
+      method: "get",
+      path: `${DEFAULT_API_ROUTE}/chat/settings`,
+    },
+    {
+      handler: chatSettings.save,
+      method: "put",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex/chat-settings`,
+    },
     {
       handler: codex.environment,
       method: "get",

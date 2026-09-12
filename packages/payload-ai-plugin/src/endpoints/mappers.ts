@@ -1,9 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/mappers.ts
- * @version 2026-08-28
+ * @version 1.4.0
+ * @date 2026-09-11
  * @description Преобразует внутренние Payload records в явные публичные DTO.
  */
 
+import { parseChatSources } from "@realize/ai-contracts";
+import { toChatMessageContext } from "../chat-context/chatMessageContext.mapper";
+import { toStoredChatConfigurationSummary } from "../chat-context/toStoredChatConfigurationSummary.mapper";
+import { toStoredWorkflowSummary } from "../chat-context/toStoredWorkflowSummary.mapper";
 import type {
   AIStreamEvent,
   ChangeRequestDTO,
@@ -34,13 +39,16 @@ import type {
   ReleaseCandidateStatus,
   ReleaseMigrationDTO,
   UsageSummary,
+  WorkerAvailabilityDTO,
 } from "@realize/ai-contracts";
 import {
+  assessChangePlanReadiness,
   hasDataOperationIntent,
   stripDataOperationProtocol,
 } from "@realize/change-engine";
 
 import { toSourcePromotionDTO } from "./sourcePromotionMapper";
+import { redactText } from "./redaction";
 
 type Document = Record<string, unknown> & {
   createdAt?: string;
@@ -359,6 +367,7 @@ export const toChangeRequestDTO = (
     executionEnabled?: boolean;
     executionJob?: Document;
     executionReason?: string;
+    executionWorker?: WorkerAvailabilityDTO;
     checkResults?: Document[];
     deployment?: Document;
     deploymentChecks?: Document[];
@@ -393,6 +402,7 @@ export const toChangeRequestDTO = (
         )
       : undefined,
     reason: projection.executionReason,
+    worker: projection.executionWorker,
   },
   expiresAt: iso(doc.expiresAt),
   id: String(doc.id),
@@ -451,11 +461,19 @@ export const toConversationDTO = (doc: Document): ConversationDTO => ({
   updatedAt: iso(doc.updatedAt),
 });
 
+/** Готовность проверяется по сохранённому ответу с той же redaction, что при оформлении плана. */
 export const toMessageDTO = (doc: Document): MessageDTO => {
+  const context = toChatMessageContext(doc.turnContext);
   const rawContent = typeof doc.content === "string" ? doc.content : "";
   const dataOperationIntentAvailable =
     doc.role === "assistant" && hasDataOperationIntent(rawContent);
   return {
+    ...context,
+    changePlan:
+      doc.role === "assistant"
+        ? assessChangePlanReadiness(redactText(rawContent))
+        : { status: "unavailable", reason: "not_assistant" },
+    sources: parseChatSources(doc.sources),
     content: dataOperationIntentAvailable
       ? stripDataOperationProtocol(rawContent)
       : rawContent,
@@ -472,6 +490,8 @@ export const toMessageDTO = (doc: Document): MessageDTO => {
 };
 
 export const toRunDTO = (doc: Document): RunDTO => ({
+  workflow: toStoredWorkflowSummary(doc.turnContext),
+  agentConfiguration: toStoredChatConfigurationSummary(doc.turnContext),
   conversationID: relationID(doc.conversation),
   createdAt: iso(doc.createdAt),
   errorSummary:

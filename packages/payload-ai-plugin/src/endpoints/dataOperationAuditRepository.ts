@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationAuditRepository.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Сохраняет append-only DataOperation approvals и audit/outbox events.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -103,6 +104,28 @@ export class DataOperationAuditRepository {
         and: [
           { dataOperation: { equals: this.documentID(dataOperationID) } },
           { type: { equals: type } },
+        ],
+      },
+    });
+    return result.docs[0];
+  }
+
+  /** Читает фактическое свидетельство подготовки exact immutable preview. */
+  async getPreviewEvent(
+    dataOperationID: string,
+  ): Promise<AIDocument | undefined> {
+    const result = await this.api.find({
+      collection: DATA_OPERATION_EVENTS_SLUG,
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      pagination: false,
+      req: this.req,
+      where: {
+        and: [
+          { dataOperation: { equals: this.documentID(dataOperationID) } },
+          { idempotencyKey: { equals: `preview:${dataOperationID}` } },
+          { type: { equals: "preview_created" } },
         ],
       },
     });

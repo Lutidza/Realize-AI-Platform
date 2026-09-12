@@ -1,0 +1,90 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/chat-presentation/ChatHost.module.css
+ * @version 1.1.0
+ * @date 2026-09-10
+ * @description Размещает общий UI-kit чата через собственную оболочку без переопределений Payload.
+ */
+
+.root {
+  --realize-chat-width: clamp(
+    360px,
+    var(--realize-chat-preferred-width, min(32rem, 42vw)),
+    min(960px, calc(100vw - 360px))
+  );
+  min-width: 0;
+}
+.docked {
+  padding-inline-end: var(--realize-chat-width);
+}
+.panel {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: var(--realize-chat-width);
+  min-width: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  border-inline-start: 1px solid var(--ui-color-border);
+  z-index: 99;
+}
+.resizeHandle {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -5px;
+  width: 10px;
+  z-index: 2;
+}
+.launcher {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 98;
+}
+.notice {
+  position: fixed;
+  inset-inline-end: 20px;
+  bottom: 78px;
+  max-width: min(28rem, calc(100vw - 40px));
+  display: flex;
+  align-items: center;
+  z-index: 101;
+}
+.page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 110px);
+  min-height: 0;
+  padding: 0 24px 24px;
+}
+.window {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+}
+.content {
+  min-height: 0;
+  flex: 1;
+}
+.loading {
+  display: grid;
+  place-content: center;
+  gap: var(--ui-space-4);
+  min-height: 240px;
+}
+@media (max-width: 900px) {
+  .docked {
+    padding-inline-end: 0;
+  }
+  .panel {
+    width: 100vw;
+    border-inline-start: 0;
+  }
+  .resizeHandle {
+    display: none;
+  }
+  .page {
+    padding: 0 12px 12px;
+    height: calc(100dvh - 90px);
+  }
+}

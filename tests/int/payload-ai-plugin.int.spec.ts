@@ -1,14 +1,16 @@
 /**
  * @file tests/int/payload-ai-plugin.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-09
- * @description Проверяет AI config, source/release и integration Payload transformer.
+ * @version 1.4.0
+ * @date 2026-09-11
+ * @description Проверяет регистрацию и доступ к разделам конфигурации и интеграций Payload.
  */
 
 import type { Config, PayloadRequest } from "payload";
 import { describe, expect, it, vi } from "vitest";
 
 import { realizeAIPlugin } from "@realize/payload-ai-control";
+import type { AgentLayerViewProps } from "../../packages/payload-ai-plugin/src/admin/agent-layer-settings/AgentLayerView.types";
+import { loadAgentLayerView } from "../../packages/payload-ai-plugin/src/admin/agent-layer-settings/loadAgentLayerView.service";
 import type { IntegrationsViewProps } from "../../packages/payload-ai-plugin/src/admin/integrations/IntegrationsView.types";
 import { loadIntegrationsView } from "../../packages/payload-ai-plugin/src/admin/integrations/loadIntegrationsView.service";
 import {
@@ -17,6 +19,8 @@ import {
   requireIntegrationManager,
   requireReleaseApprover,
 } from "../../packages/payload-ai-plugin/src/endpoints/access";
+import { loadWorkflowRunsView } from "../../packages/payload-ai-plugin/src/admin/workflow-runs/loadWorkflowRunsView.service";
+import type { WorkflowRunsViewProps } from "../../packages/payload-ai-plugin/src/admin/workflow-runs/WorkflowRunsView.types";
 import { sanitizeOptions } from "../../packages/payload-ai-plugin/src/options";
 
 vi.mock("next/navigation.js", () => ({
@@ -102,7 +106,14 @@ describe("integration Admin views", () => {
     expect(result.catalogURL).toBe("/control/tools/connections");
     expect(result.providerID).toBe("github");
     expect(result.initialCatalog.connections).toEqual([]);
-    expect(props.payload.find).toHaveBeenCalledOnce();
+    for (const connectionKey of ["github:primary", "codex:primary"]) {
+      expect(props.payload.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          collection: "realize-ai-integrations",
+          where: { connectionKey: { equals: connectionKey } },
+        }),
+      );
+    }
   });
 
   it("renders the catalog without selecting a provider", async () => {
@@ -150,6 +161,78 @@ describe("integration Admin views", () => {
   );
 });
 
+describe("agent layer Admin view", () => {
+  it("uses the configuration permission and the configured Admin base route", async () => {
+    const props = {
+      ...integrationViewProps("catalog"),
+      settingsRoute: "/tools/agents/settings",
+    } as unknown as AgentLayerViewProps;
+    const permission = vi.fn().mockResolvedValue(true);
+    props.payload.config.custom!.realizeAIControl = {
+      canManageAIConfiguration: permission,
+      canManageIntegrations: () => false,
+    };
+
+    await expect(loadAgentLayerView(props)).resolves.toEqual({
+      settingsURL: "/control/tools/agents/settings",
+    });
+    expect(permission).toHaveBeenCalledWith({ req: props.initPageResult.req });
+
+    permission.mockResolvedValue(false);
+    await expect(loadAgentLayerView(props)).rejects.toThrow(
+      "NEXT_REDIRECT;/control/unauthorized",
+    );
+
+    props.initPageResult.req.user = null;
+    permission.mockClear();
+    await expect(loadAgentLayerView(props)).rejects.toThrow(
+      "NEXT_REDIRECT;/control/login",
+    );
+    expect(permission).not.toHaveBeenCalled();
+    expect(props.payload.find).not.toHaveBeenCalled();
+  });
+
+  it("derives its exact route from the plugin route", async () => {
+    const transformed = await realizeAIPlugin({
+      ...options,
+      admin: { route: "/tools/agents" },
+    })(baseConfig());
+
+    expect(transformed.admin?.components?.views).toMatchObject({
+      realizeAgentLayerSettings: {
+        Component: { serverProps: { settingsRoute: "/tools/agents/settings" } },
+        exact: true,
+        path: "/tools/agents/settings",
+      },
+    });
+  });
+
+  it.each(["/tools/settings", "/tools/settings/"] as const)(
+    "rejects an integration catalog shadowing settings at %s",
+    (integrationsRoute) => {
+      expect(() =>
+        realizeAIPlugin({
+          ...options,
+          admin: { integrationsRoute, route: "/tools" },
+        })(baseConfig()),
+      ).toThrow("Realize Admin route collision");
+    },
+  );
+
+  it("does not overwrite an incoming view using the new reserved key", () => {
+    const config = baseConfig();
+    config.admin!.components!.views = {
+      realizeAgentLayerSettings: {
+        Component: "./custom-settings",
+        path: "/custom-settings",
+      },
+    };
+    expect(() => realizeAIPlugin(options)(config)).toThrow(
+      "Realize Admin view key collision: realizeAgentLayerSettings",
+    );
+  });
+});
+
 describe("realizeAIPlugin", () => {
   it("preserves incoming config and installs the disabled schema", async () => {
     const transformed = await realizeAIPlugin(options)(baseConfig());
@@ -162,6 +245,7 @@ describe("realizeAIPlugin", () => {
       "existing",
       "realize-ai-conversations",
       "realize-ai-messages",
+      "realize-ai-chat-attachments",
       "realize-ai-change-requests",
       "realize-ai-approvals",
       "realize-ai-data-operations",
@@ -172,6 +256,7 @@ describe("realizeAIPlugin", () => {
       "realize-ai-active-config-pointers",
       "realize-ai-config-events",
       "realize-ai-execution-jobs",
+      "realize-ai-worker-presence",
       "realize-ai-deployments",
       "realize-ai-release-candidates",
       "realize-ai-source-promotions",
@@ -191,6 +276,7 @@ describe("realizeAIPlugin", () => {
     );
     expect(views?.existing?.path).toBe("/existing");
     expect(views?.realizeAI?.path).toBe("/ai");
+    expect(views?.realizeAgentLayerSettings?.path).toBe("/ai/settings");
     expect(views?.realizeIntegrations?.path).toBe("/integrations");
     expect(views?.realizeIntegrationSettings?.path).toBe(
       "/integrations/:provider",
@@ -202,7 +288,22 @@ describe("realizeAIPlugin", () => {
       integrationEncryptionKeyEnv: "REALIZE_INTEGRATIONS_ENCRYPTION_KEY",
     });
     expect(transformed.endpoints?.[0]?.path).toBe("/existing");
-    expect(transformed.endpoints).toHaveLength(45);
+    expect(transformed.endpoints).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          method: "get",
+          path: "/realize-ai/chat/settings",
+        }),
+        expect.objectContaining({
+          method: "put",
+          path: "/realize-ai/integrations/codex/chat-settings",
+        }),
+      ]),
+    );
+    const endpointKeys = transformed.endpoints?.map(
+      ({ method, path }) => `${method}:${path}`,
+    );
+    expect(new Set(endpointKeys).size).toBe(endpointKeys?.length);
     const conversations = transformed.collections?.find(
       (collection) => collection.slug === "realize-ai-conversations",
     );
@@ -416,6 +517,14 @@ describe("realizeAIPlugin", () => {
       realizeAIPlugin(options)(integrationSettingsCollision),
     ).toThrow("Realize Admin route collision: /integrations/:provider");
 
+    const agentLayerCollision = baseConfig();
+    agentLayerCollision.admin!.components!.views = {
+      conflict: { Component: "./conflict", path: "/ai/settings" },
+    };
+    expect(() => realizeAIPlugin(options)(agentLayerCollision)).toThrow(
+      "Realize Admin route collision: /ai/settings",
+    );
+
     const endpointCollision = baseConfig();
     endpointCollision.endpoints = [
       {
@@ -511,5 +620,81 @@ describe("realizeAIPlugin", () => {
     await expect(
       requireDataManager(req, sanitizeOptions(options)),
     ).resolves.toBe(req.user);
+  });
+});
+
+describe("workflow registry Admin views", () => {
+  it("registers exact list and detail routes under a custom AI route", async () => {
+    const result = await realizeAIPlugin({
+      ...options,
+      admin: { route: "/tools/assist" },
+    })(baseConfig());
+    expect(result.admin?.components?.views).toMatchObject({
+      realizeWorkflowRuns: {
+        exact: true,
+        path: "/tools/assist/runs",
+        Component: {
+          serverProps: {
+            runsRoute: "/tools/assist/runs",
+            chatRoute: "/tools/assist",
+            mode: "list",
+          },
+        },
+      },
+      realizeWorkflowRun: {
+        exact: true,
+        path: "/tools/assist/runs/:rootRunID",
+        Component: { serverProps: { mode: "detail" } },
+      },
+    });
+  });
+  it.each(["realizeWorkflowRuns", "realizeWorkflowRun"])(
+    "rejects a reserved view key %s",
+    (key) => {
+      const config = baseConfig();
+      config.admin!.components!.views = {
+        [key]: { Component: "./existing", path: "/existing" },
+      };
+      expect(() => realizeAIPlugin(options)(config)).toThrow(
+        `Realize Admin view key collision: ${key}`,
+      );
+    },
+  );
+  it.each(["/ai/runs", "/ai/runs/:rootRunID"] as const)(
+    "rejects an existing route %s",
+    (path) => {
+      const config = baseConfig();
+      config.admin!.components!.views = {
+        existing: { Component: "./existing", path },
+      };
+      expect(() => realizeAIPlugin(options)(config)).toThrow(
+        `Realize Admin route collision: ${path}`,
+      );
+    },
+  );
+  it("formats all links under the actual admin base and guards unauthenticated access", () => {
+    const props = {
+      ...integrationViewProps("catalog"),
+      mode: "detail",
+      runsRoute: "/tools/assist/runs",
+      chatRoute: "/tools/assist",
+      settingsRoute: "/tools/assist/settings",
+      params: { segments: ["tools", "assist", "runs", "42"] },
+    } as unknown as WorkflowRunsViewProps;
+    props.initPageResult.req.user = { id: 1, roles: ["admin"] } as never;
+    expect(loadWorkflowRunsView(props)).toEqual({
+      runsURL: "/control/tools/assist/runs",
+      chatURL: "/control/tools/assist",
+      settingsURL: "/control/tools/assist/settings",
+      rootRunID: "42",
+    });
+    props.initPageResult.req.user = null;
+    expect(() => loadWorkflowRunsView(props)).toThrow(
+      "NEXT_REDIRECT;/control/login",
+    );
+    props.initPageResult.req.user = { id: 2, roles: ["customer"] } as never;
+    expect(() => loadWorkflowRunsView(props)).toThrow(
+      "NEXT_REDIRECT;/control/unauthorized",
+    );
   });
 });

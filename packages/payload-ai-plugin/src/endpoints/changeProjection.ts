@@ -1,12 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeProjection.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Собирает Change Request DTO с execution, preview, source и release evidence.
  */
 
 import type { ChangeRequestDTO } from "@realize/ai-contracts";
 import { assessExecutionScope } from "@realize/change-engine";
 
+import { mapWorkerAvailability } from "../integrations/runtime/mapWorkerAvailability.mapper";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { DeploymentRepository } from "./deploymentRepository";
 import type { AIDocument } from "./repository";
@@ -155,6 +157,15 @@ export const projectChangeRequest = async (input: {
   const job = await input.executionRepository.getLatestJob(
     String(input.change.id),
   );
+  const assignedInstanceKey =
+    job &&
+    ["preparing_workspace", "running", "validating"].includes(
+      String(job.status),
+    )
+      ? String(job.workerID || "unreported")
+      : undefined;
+  const presenceRead =
+    input.executionRepository.readWorkerPresence(assignedInstanceKey);
   const deployment = await input.deploymentRepository.getLatestDeployment(
     String(input.change.id),
   );
@@ -269,7 +280,46 @@ export const projectChangeRequest = async (input: {
     promotionReason = "Срок исходного preview artifact истёк.";
   }
 
+  const presence = await presenceRead;
+  const worker = mapWorkerAvailability(presence, {
+    operation: "execution",
+    assignedInstanceKey,
+    allowedChangeRequestID: String(input.change.id),
+    disabledReason:
+      !assignedInstanceKey && !input.options.enabled
+        ? "Агент выключен в админке. Задание останется в очереди до включения."
+        : !assignedInstanceKey && !input.options.execution.enabled
+          ? "Выполнение кода выключено в настройках агента. Задание остаётся в очереди."
+          : undefined,
+  });
+  if (job?.status === "queued") executionReason = worker.reason;
+  if (deployment?.status === "queued")
+    previewReason = mapWorkerAvailability(presence, {
+      operation: "preview",
+      allowedChangeRequestID: String(input.change.id),
+      disabledReason: !input.options.preview.enabled
+        ? "Предпросмотр выключен в настройках агента. Задание остаётся в очереди."
+        : undefined,
+    }).reason;
+  if (sourcePromotion?.status === "queued")
+    promotionReason = mapWorkerAvailability(presence, {
+      operation: "sourcePromotion",
+      allowedChangeRequestID: String(input.change.id),
+      disabledReason: !input.options.sourcePromotion.enabled
+        ? "Публикация изменений выключена в настройках агента. Задание остаётся в очереди."
+        : undefined,
+    }).reason;
+  if (releaseCandidate?.status === "queued")
+    candidateReason = mapWorkerAvailability(presence, {
+      operation: "release",
+      allowedChangeRequestID: String(input.change.id),
+      disabledReason: !input.options.release.enabled
+        ? "Подготовка выпуска выключена в настройках агента. Задание остаётся в очереди."
+        : undefined,
+    }).reason;
+
   return toChangeRequestDTO(input.change, input.approval, {
+    executionWorker: worker,
     acceptance: input.acceptance,
     checkResults,
     deployment,

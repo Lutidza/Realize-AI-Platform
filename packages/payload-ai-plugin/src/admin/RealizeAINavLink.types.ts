@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RealizeAINavLink.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-10
  * @description Задаёт настраиваемые ссылки навигации AI и интеграций.
  */
 
@@ -18,9 +18,15 @@ export type RealizeAINavigationItem = {
   isActive: boolean;
   isCurrentPage: boolean;
   label: string;
+  onClick?: () => void;
+  disabled?: boolean;
+};
+
+export type RealizeAINavigationGroup = {
+  label: string;
+  links: RealizeAINavigationItem[];
 };
 
 export type RealizeAINavLinkViewProps = {
-  group: string;
-  links: RealizeAINavigationItem[];
+  groups: RealizeAINavigationGroup[];
 };

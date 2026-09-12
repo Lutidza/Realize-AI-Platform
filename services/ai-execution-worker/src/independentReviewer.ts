@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/independentReviewer.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-09-11
  * @description Запускает отдельную read-only проверку через выбранную интеграцию Codex.
  */
 
@@ -18,7 +18,7 @@ import type {
   IndependentReviewResult,
 } from "./previewTypes";
 
-/** Expected fail-closed rejection from an independent reviewer. */
+/** Отказ независимого reviewer, запрещающий продвижение результата. */
 export class IndependentReviewError extends Error {
   constructor(message: string) {
     super(message);
@@ -39,7 +39,7 @@ const boundedText = (value: unknown, maximum: number, name: string): string => {
   return result;
 };
 
-/** Parses the exact reviewer JSON contract and rejects ambiguous output. */
+/** Проверяет точный JSON-контракт reviewer и отклоняет неоднозначный результат. */
 export const parseIndependentReview = (
   value: string,
   model?: string,
@@ -121,7 +121,7 @@ export const parseIndependentReview = (
   };
 };
 
-/** Executes one independent reviewer turn with no implementation thread reuse. */
+/** Выполняет независимый review в отдельной сессии выбранной интеграции. */
 export const runIndependentReview = async (input: {
   config: ExecutionWorkerConfig;
   codex: CodexConnectionResolver;
@@ -148,7 +148,7 @@ export const runIndependentReview = async (input: {
       cwd: input.workspace,
       developerInstructions: buildIndependentReviewDeveloperInstructions(),
       ephemeral: true,
-      model: input.config.reviewModel,
+      model: lease.reviewModel,
       prompt: [
         `Change Request: ${input.job.changeRequestID}.`,
         `Base commit: ${input.job.baseCommit}.`,
@@ -176,5 +176,5 @@ export const runIndependentReview = async (input: {
   if (timedOut)
     throw new IndependentReviewError("Independent review timed out.");
   if (failure) throw new IndependentReviewError(failure);
-  return parseIndependentReview(content, input.config.reviewModel);
+  return parseIndependentReview(content, lease.reviewModel);
 };

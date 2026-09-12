@@ -1,10 +1,14 @@
 /**
  * @file tests/e2e/admin-ai-chat.e2e.spec.ts
- * @version 2026-08-28
+ * @version 1.1.0
+ * @date 2026-09-09
  * @description Проверяет chat, execution, preview, draft PR и OCI release approval UI.
  */
 
 import { expect, test } from "@playwright/test";
+import { CODEX_CHAT_SETTINGS_DEFAULTS } from "@realize/ai-contracts";
+import { mkdir } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import {
   ADMIN_AI_FINAL_ANSWER,
@@ -17,7 +21,7 @@ import {
   type PayloadAdminFixture,
 } from "./support/payloadAdmin";
 
-test("keeps the modern assistant available across Admin and binds plan approval", async ({
+test("сохраняет чат между страницами Admin и полный цикл подтверждения изменений", async ({
   page,
 }) => {
   test.setTimeout(60_000);
@@ -31,26 +35,69 @@ test("keeps the modern assistant available across Admin and binds plan approval"
     expect(login.ok()).toBe(true);
 
     await installAdminAIChatScenario(page);
+    await page.route("**/api/realize-ai/chat/settings", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: CODEX_CHAT_SETTINGS_DEFAULTS,
+          correlationID: "e2e",
+        }),
+      }),
+    );
+    await page.route("**/api/realize-ai/chat/capabilities", (route) =>
+      route.fulfill({
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            attachments: { available: false },
+            projectFiles: { available: false },
+            webSearch: { available: false },
+          },
+          correlationID: "e2e",
+        }),
+      }),
+    );
+    const screenshotDirectory = resolve(
+      process.cwd(),
+      ".ai-workspace/tasks/2026-09-09-chat-workbench/screenshots",
+    );
+    await mkdir(screenshotDirectory, { recursive: true });
 
     await page.goto("/admin/collections/pages");
     const launcher = page.getByRole("button", {
       name: "Открыть AI-ассистента",
     });
-    const drawer = page.locator(".drawer__content");
+    const panel = page.getByTestId("realize-ai-panel");
     await expect(launcher).toBeVisible();
     await expect
       .poll(
         async () => {
-          if (await drawer.isVisible()) return true;
+          if (await panel.isVisible()) return true;
           await launcher.click();
-          return await drawer.isVisible();
+          return await panel.isVisible();
         },
         { intervals: [100, 250, 500], timeout: 20_000 },
       )
       .toBe(true);
-    await expect(
-      page.getByText("Project copilot · approval-gated"),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(panel.getByText("Codex", { exact: true }).first()).toBeVisible(
+      { timeout: 15_000 },
+    );
+    await expect
+      .poll(() =>
+        panel.getByTestId("chat-workspace").evaluate((element) => {
+          const styles = getComputedStyle(element);
+          return Boolean(
+            styles.getPropertyValue("--ui-color-border").trim() &&
+            styles.getPropertyValue("--ui-space-4").trim(),
+          );
+        }),
+      )
+      .toBe(true);
+    await panel
+      .getByRole("button", { name: "Закрыть историю", exact: true })
+      .click();
     await page
       .getByRole("textbox", { name: "Сообщение ассистенту" })
       .fill(ADMIN_AI_USER_MESSAGE);
@@ -67,7 +114,7 @@ test("keeps the modern assistant available across Admin and binds plan approval"
     });
     await expect(progress).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Оформить Change Request" }).click();
+    await page.getByRole("button", { name: "Оформить план изменения" }).click();
     const changeCard = page.getByTestId("change-request-card");
     await expect(changeCard).toContainText("R3");
     await changeCard.getByText("Проверить scope и план").click();
@@ -130,7 +177,7 @@ test("keeps the modern assistant available across Admin and binds plan approval"
       "Release утверждён ролью admin. Production deploy не запускался.",
     );
     await page.screenshot({
-      path: "documentation/reports/evidence/admin-ai-chat-desktop.png",
+      path: resolve(screenshotDirectory, "admin-ai-chat-desktop.png"),
     });
 
     await page.getByRole("button", { name: "Закрыть AI-ассистента" }).click();
@@ -152,15 +199,27 @@ test("keeps the modern assistant available across Admin and binds plan approval"
     await page.getByRole("button", { name: "Закрыть AI-ассистента" }).click();
     await page.setViewportSize({ height: 844, width: 390 });
     await page.getByRole("button", { name: "Открыть AI-ассистента" }).click();
-    await expect(drawer).toBeVisible();
-    const drawerBox = await drawer.boundingBox();
-    expect(drawerBox?.width).toBeLessThanOrEqual(391);
+    await expect(panel).toBeVisible();
+    const panelBox = await panel.boundingBox();
+    expect(panelBox?.width).toBeLessThanOrEqual(391);
     await expect(
       page.getByRole("textbox", { name: "Сообщение ассистенту" }),
     ).toBeVisible();
-    await page.waitForTimeout(500);
+    await expect(
+      page.getByRole("textbox", { name: "Сообщение ассистенту" }),
+    ).toBeInViewport({ ratio: 1 });
+    const closeHistory = panel.getByRole("button", {
+      name: "Закрыть историю",
+      exact: true,
+    });
+    if (await closeHistory.isVisible()) await closeHistory.click();
+    const pageWidth = await page.evaluate(() => ({
+      content: document.documentElement.scrollWidth,
+      viewport: document.documentElement.clientWidth,
+    }));
+    expect(pageWidth.content).toBeLessThanOrEqual(pageWidth.viewport);
     await page.screenshot({
-      path: "documentation/reports/evidence/admin-ai-chat-mobile.png",
+      path: resolve(screenshotDirectory, "admin-ai-chat-mobile.png"),
     });
   } finally {
     if (admin) await removePayloadAdmin(admin);

@@ -1,17 +1,23 @@
 /**
  * @file packages/change-engine/src/dataOperationPolicy.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Вычисляет immutable hashes и approval bindings Payload Data Lane.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 
 import { createHash } from "node:crypto";
+import { hashCanonicalJSON } from "./canonicalJson";
+import type {
+  PageDraftOperationHashInput,
+  PageDraftRollbackHashInput,
+} from "./PageDraftPolicy.types";
 
 const sha256 = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
 
-/** Security-relevant fields of one resolved category assignment dry-run. */
+/** Поля, определяющие безопасность подготовленного назначения категории. */
 export type CategoryAssignmentHashInput = {
   afterCategoryIDs: string[];
   beforeCategoryIDs: string[];
@@ -20,7 +26,7 @@ export type CategoryAssignmentHashInput = {
   productID: string;
 };
 
-/** Binds the typed operation to exact targets, state and rollback strategy. */
+/** Связывает операцию с точными целями, состоянием и стратегией отката. */
 export const createCategoryAssignmentOperationHash = (
   input: CategoryAssignmentHashInput,
 ): string =>
@@ -42,7 +48,7 @@ export const createCategoryAssignmentOperationHash = (
     }),
   );
 
-/** Binds compensating execution to the exact before/after dry-run snapshot. */
+/** Связывает компенсирующую запись с точным snapshot до и после изменения. */
 export const createCategoryAssignmentRollbackHash = (input: {
   afterCategoryIDs: string[];
   beforeCategoryIDs: string[];
@@ -59,7 +65,7 @@ export const createCategoryAssignmentRollbackHash = (input: {
     }),
   );
 
-/** Hashes every field that makes a data or rollback decision valid. */
+/** Включает в hash все поля, определяющие действительность решения. */
 export const createDataOperationApprovalBinding = (input: {
   actorID: string;
   actorRoles: string[];
@@ -82,3 +88,46 @@ export const createDataOperationApprovalBinding = (input: {
       input.expiresAt,
     ]),
   );
+
+/** Связывает подтверждение с точным текстом, свободным slug и серверным рецептом записи. */
+export const createPageDraftOperationHash = (
+  input: PageDraftOperationHashInput,
+): string =>
+  hashCanonicalJSON({
+    collection: "pages",
+    createDataHash: input.createDataHash,
+    expectedSlugState: "absent",
+    intent: input.intent,
+    mapperVersion: input.mapperVersion,
+    rollbackStrategy: "delete-created-draft",
+    status: "draft",
+  });
+
+/** До apply hash описывает рецепт, после apply связывает откат с неизменённым созданным draft. */
+export const createPageDraftRollbackHash = (
+  input: PageDraftRollbackHashInput,
+): string => {
+  const hasCreatedPage = input.pageID !== undefined;
+  if (
+    hasCreatedPage !== (input.updatedAt !== undefined) ||
+    hasCreatedPage !== (input.fingerprint !== undefined) ||
+    (hasCreatedPage &&
+      (!input.pageID || !input.updatedAt || !input.fingerprint))
+  ) {
+    throw new Error(
+      "Page draft rollback requires pageID, updatedAt and fingerprint together.",
+    );
+  }
+  return hashCanonicalJSON({
+    kind: "pages.createDraft.rollback.v1",
+    operationHash: input.operationHash,
+    rollbackStrategy: "delete-created-draft",
+    ...(hasCreatedPage
+      ? {
+          fingerprint: input.fingerprint,
+          pageID: input.pageID,
+          updatedAt: input.updatedAt,
+        }
+      : { state: "not-created" }),
+  });
+};

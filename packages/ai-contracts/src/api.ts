@@ -1,9 +1,15 @@
 /**
  * @file packages/ai-contracts/src/api.ts
- * @version 2026-08-28
+ * @version 1.3.0
+ * @date 2026-09-11
  * @description Задаёт public API envelopes для чата, изменений, source promotion и integrations.
  */
 
+import type {
+  ChatAttachmentDto,
+  ProjectContextFileDto,
+  ChatSourceDto,
+} from "./ChatContext.types";
 import type {
   ChangeExecutionDTO,
   ImplementationAcceptanceDTO,
@@ -12,6 +18,15 @@ import type { ChangePreviewDTO } from "./preview";
 import type { ChangeReleaseDTO } from "./release";
 import type { ChangeSourcePromotionDTO } from "./sourcePromotion";
 import type { DataOperationDTO } from "./dataOperations";
+import type { ChangePlanReadinessDTO } from "./ChangePlanReadiness.types";
+import type {
+  AIChatConfigurationSelection,
+  AIChatConfigurationSummary,
+} from "./AIChatConfiguration.types";
+import type {
+  WorkflowRunSummary,
+  WorkflowStartInput,
+} from "./WorkflowExecution.types";
 
 /** Stable machine-readable errors returned by the site API. */
 export type APIErrorCode =
@@ -160,6 +175,11 @@ export type ConversationDTO = {
 
 /** Redacted, user-visible message projection. */
 export type MessageDTO = {
+  changePlan: ChangePlanReadinessDTO;
+  attachments?: ChatAttachmentDto[];
+  projectFiles?: ProjectContextFileDto[];
+  webSearch?: boolean;
+  sources?: ChatSourceDto[];
   content: string;
   conversationID: string;
   createdAt: string;
@@ -174,6 +194,8 @@ export type MessageDTO = {
 
 /** Auditable read-only run projection exposed to an authorized admin. */
 export type RunDTO = {
+  agentConfiguration?: AIChatConfigurationSummary;
+  workflow?: WorkflowRunSummary;
   conversationID: string;
   createdAt: string;
   errorSummary?: string;
@@ -213,6 +235,11 @@ export type CreateConversationInput = {
 
 /** Validated payload accepted when starting a message run. */
 export type CreateMessageInput = {
+  agentConfiguration?: AIChatConfigurationSelection;
+  workflow?: WorkflowStartInput;
+  attachmentIDs?: string[];
+  projectFiles?: Array<{ path: string; sha256: string }>;
+  webSearch?: boolean;
   content: string;
 };
 

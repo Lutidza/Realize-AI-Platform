@@ -1,0 +1,137 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/chat/ChatConversation.module.css
+ * @version 1.1.0
+ * @date 2026-09-09
+ * @description Ограничивает прокрутку сообщениями и оформляет состояния разговора.
+ */
+
+.chat {
+  display: grid;
+  flex: 1;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.messages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-6);
+  min-width: 0;
+  min-height: 0;
+  padding: var(--ui-space-6) clamp(16px, 4cqw, 40px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.empty {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+  padding-block: var(--ui-space-6);
+  text-align: center;
+}
+
+.emptyMark {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-bottom: var(--ui-space-5);
+}
+
+.empty h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.25;
+}
+
+.empty p {
+  margin: var(--ui-space-3) 0 var(--ui-space-4);
+  color: var(--ui-color-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-2);
+  width: 100%;
+}
+
+.suggestion {
+  justify-content: flex-start;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  text-align: left;
+  white-space: normal;
+}
+
+.suggestion > span {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.runCard,
+.activity {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  overflow-wrap: anywhere;
+}
+
+.runCard {
+  padding: var(--ui-space-4);
+}
+
+.runHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin-bottom: var(--ui-space-2);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+
+.runHeading > span:last-child {
+  margin-left: auto;
+}
+
+.messageContent {
+  font-size: 14px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.runIssue {
+  margin-top: var(--ui-space-3);
+}
+
+@container chat (max-width: 550px) {
+  .messages {
+    gap: var(--ui-space-5);
+    padding: var(--ui-space-5) var(--ui-space-4);
+  }
+
+  .suggestions {
+    grid-template-columns: 1fr;
+    max-width: 310px;
+  }
+
+  .empty h2 {
+    font-size: 21px;
+  }
+}

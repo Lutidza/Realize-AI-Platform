@@ -2,7 +2,7 @@
 
 ## Статус и область
 
-`accepted-as-target`, уточнено 9 сентября 2026 года. Через отдельного Spark-воркера
+`accepted-as-target`, уточнено 12 сентября 2026 года. Через отдельного Spark-воркера
 реализованы `inspect`, локальный `commit` и отдельный `push` с подключением из БД
 по HTTPS/SSH. Вызывающая среда отвечает за пользовательское разрешение;
 контекст передачи отделён от модели. `commit_push` остаётся целевым контрактом.
@@ -46,6 +46,23 @@ SQL и vault принадлежат общему серверному модул
 Конфигурация модели и инструкция находятся в `.codex/agents/delivery/git/`
 и `.codex/prompts/workflows/delivery/git/`. Доступный вход:
 `npm run --silent git:worker -- inspect`, `commit [message]` или `push`.
+
+Для каждого из этих действий вызывающая среда явно назначает
+`REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL к development-профилю
+Codex CLI. Каталог должен существовать и быть заранее авторизован оператором;
+проверка его существования и чтение содержимого credentials не входят в
+Git environment adapter. Примеры с безопасным placeholder пути приведены в
+[README обработчика](../../../.ai/tools/git-delivery/README.md#git-воркер).
+
+`src/worker/createGitWorkerEnvironment.adapter.ts` проверяет только явно
+переданное `source.REALIZE_GIT_CODEX_HOME` и формирует окружение
+`{ ...createCodexEnvironment(source), CODEX_HOME: source.REALIZE_GIT_CODEX_HOME }`.
+Отсутствующее, пустое, относительное или содержащее NUL значение вызывает
+`PolicyError` с кодом `worker_profile_invalid` до создания процесса. Выбор
+профиля из унаследованных `HOME`, `CODEX_HOME` или API keys не допускается;
+общий фильтр окружения не наследует `CODEX_HOME` и ключи. Этот adapter принадлежит
+development Git worker и не меняет авторизацию продуктовой интеграции или
+контракт общего транспорта, требующий явный `environment.CODEX_HOME`.
 
 Для ограниченных `inspect`, `commit` и `push` модель получает краткий prompt и команду,
 без полных AGENTS, Git-правила, workflow, навыков и истории. Основной агент

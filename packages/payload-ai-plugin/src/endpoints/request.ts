@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/request.ts
- * @version 2026-08-18
- * @description Owns shared JSON, idempotency and error-envelope endpoint boundaries.
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Проверяет JSON, публичный idempotency key и общий error envelope.
  */
 
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
@@ -13,7 +14,11 @@ export const idempotencyKeyFor = (
   req: Parameters<PayloadEndpointHandler>[0],
 ): string => {
   const value = req.headers.get("idempotency-key");
-  if (!value || !/^[A-Za-z0-9._:-]{8,128}$/.test(value)) {
+  if (
+    !value ||
+    !/^[A-Za-z0-9._:-]{8,128}$/.test(value) ||
+    value.startsWith("workflow:")
+  ) {
     throw new EndpointError(
       "INVALID_REQUEST",
       "A valid Idempotency-Key header is required.",

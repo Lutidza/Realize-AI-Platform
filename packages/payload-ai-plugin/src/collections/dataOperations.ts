@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/dataOperations.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-11
  * @description Хранит immutable dry-run и lifecycle typed Payload DataOperation.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -16,7 +17,7 @@ import {
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createCollectionAccess } from "./access";
 
-/** Creates the hidden aggregate for one approved category assignment. */
+/** Хранит общий aggregate управляемых операций данных. */
 export const createDataOperationsCollection = (
   options: SanitizedRealizeAIPluginOptions,
 ): CollectionConfig => {
@@ -40,7 +41,7 @@ export const createDataOperationsCollection = (
       {
         index: true,
         name: "kind",
-        options: ["catalog.assignCategory.v1"],
+        options: ["catalog.assignCategory.v1", "pages.createDraft.v1"],
         required: true,
         type: "select",
       },
@@ -84,7 +85,7 @@ export const createDataOperationsCollection = (
       {
         defaultValue: "before-snapshot",
         name: "rollbackStrategy",
-        options: ["before-snapshot"],
+        options: ["before-snapshot", "delete-created-draft"],
         required: true,
         type: "select",
       },
@@ -121,29 +122,27 @@ export const createDataOperationsCollection = (
         index: true,
         name: "product",
         relationTo: "products",
-        required: true,
         type: "relationship",
       },
       {
         index: true,
         name: "category",
         relationTo: "categories",
-        required: true,
         type: "relationship",
       },
       { name: "originalRequest", required: true, type: "textarea" },
       { name: "intent", required: true, type: "json" },
-      { name: "productSnapshot", required: true, type: "json" },
-      { name: "categorySnapshot", required: true, type: "json" },
+      { name: "productSnapshot", type: "json" },
+      { name: "categorySnapshot", type: "json" },
       { name: "beforeSnapshot", required: true, type: "json" },
       { name: "afterSnapshot", required: true, type: "json" },
       {
         index: true,
         name: "expectedTargetUpdatedAt",
-        required: true,
         type: "text",
       },
       { name: "appliedTargetUpdatedAt", type: "text" },
+      { name: "appliedSnapshot", type: "json" },
       { index: true, name: "operationHash", required: true, type: "text" },
       { index: true, name: "rollbackHash", required: true, type: "text" },
       { name: "errorSummary", type: "textarea" },

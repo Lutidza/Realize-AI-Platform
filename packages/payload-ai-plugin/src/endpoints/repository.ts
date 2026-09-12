@@ -1,8 +1,13 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/repository.ts
- * @version 2026-08-17
- * @description Implements the narrow Local API repository with explicit ownership checks.
+ * @version 1.1.0
+ * @date 2026-09-10
+ * @description Выполняет узкие Local API операции с явной проверкой владельца.
  */
+
+import { parseChatSources } from "@realize/ai-contracts";
+import type { ChatMessageContext } from "../chat-context/ChatAttachment.types";
+import type { ChatRunContext } from "../chat-context/ChatRunContext.types";
 
 import { isDeepStrictEqual } from "node:util";
 
@@ -78,6 +83,8 @@ export class AIRepository {
     idempotencyKey: string;
     model?: string;
     requestedBy: number | string;
+    requestHash?: string;
+    turnContext?: ChatRunContext;
     threadID?: string;
   }): Promise<AIDocument> {
     return await this.create(RUNS_SLUG, {
@@ -87,6 +94,8 @@ export class AIRepository {
       model: input.model,
       provider: "openai-codex",
       requestedBy: input.requestedBy,
+      requestHash: input.requestHash,
+      turnContext: input.turnContext,
       sandboxProfile: "analysis-readonly",
       status: "queued",
       threadID: input.threadID,
@@ -98,6 +107,7 @@ export class AIRepository {
     conversationID: string;
     idempotencyKey: string;
     runID: string;
+    turnContext?: ChatMessageContext;
   }): Promise<AIDocument> {
     const count = await this.api.count({
       collection: MESSAGES_SLUG,
@@ -109,6 +119,7 @@ export class AIRepository {
     });
     return await this.create(MESSAGES_SLUG, {
       content: input.content,
+      turnContext: input.turnContext,
       conversation: this.documentID(input.conversationID),
       idempotencyKey: input.idempotencyKey,
       kind: "user_message",
@@ -178,7 +189,10 @@ export class AIRepository {
     return { conversation, messages: messages.docs, runs: runs.docs };
   }
 
-  async getLatestThreadID(conversationID: string): Promise<string | undefined> {
+  async getLatestThreadID(
+    conversationID: string,
+    runtimeContextHash?: string,
+  ): Promise<string | undefined> {
     const result = await this.find(
       RUNS_SLUG,
       {
@@ -190,6 +204,12 @@ export class AIRepository {
       },
       { limit: 1, sort: "-createdAt" },
     );
+    const context = result.docs[0]?.turnContext;
+    const previousHash =
+      context && typeof context === "object" && "runtimeContextHash" in context
+        ? context.runtimeContextHash
+        : undefined;
+    if (previousHash !== runtimeContextHash) return undefined;
     return typeof result.docs[0]?.threadID === "string"
       ? result.docs[0].threadID
       : undefined;
@@ -297,6 +317,7 @@ export class AIRepository {
     });
     await this.create(MESSAGES_SLUG, {
       content,
+      sources: parseChatSources(event.payload.sources),
       conversation: this.documentID(conversationID),
       idempotencyKey,
       kind: "assistant_message",

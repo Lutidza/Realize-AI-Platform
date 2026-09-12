@@ -1,12 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/aiConfigRepository.ts
- * @version 2026-09-02
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Сохраняет config drafts, immutable releases, pointers и replay events.
  * @docref Realize AI Commerce v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
  */
 
 import type {
+  ActiveAIConfigPointer,
   AIConfigArtifact,
   AIConfigBaseReleaseDTO,
   AIConfigRelease,
@@ -24,7 +26,12 @@ import { EndpointError } from "./http";
 import type { AIDocument } from "./repository";
 
 export type AIConfigEventAction =
-  "draft_created" | "draft_updated" | "draft_validated" | "release_created";
+  | "draft_created"
+  | "draft_updated"
+  | "draft_validated"
+  | "release_created"
+  | "config_activated"
+  | "config_rolled_back";
 
 const draftData = (input: {
   artifacts: readonly AIConfigArtifact[];
@@ -96,6 +103,7 @@ export class AIConfigRepository {
     baseRelease: AIConfigBaseReleaseDTO | null;
     draftID: string;
     expectedRevision: number;
+    expectedState: "editing" | "ready";
   }): Promise<AIDocument> {
     return await this.persistence.updateDraft({
       collection: AI_CONFIG_DRAFTS_SLUG,
@@ -107,6 +115,7 @@ export class AIConfigRepository {
       },
       draftID: input.draftID,
       expectedRevision: input.expectedRevision,
+      expectedState: input.expectedState,
     });
   }
 
@@ -207,6 +216,24 @@ export class AIConfigRepository {
         { sort: "-version" },
       )
     ).docs[0];
+  }
+
+  /** Вставляется только под общим transaction lock; unique version key дополнительно защищает CAS. */
+  async createActivePointer(input: {
+    action: "activate" | "rollback";
+    actorID: number | string;
+    pointer: ActiveAIConfigPointer;
+  }): Promise<AIDocument> {
+    return await this.persistence.create(ACTIVE_AI_CONFIG_POINTERS_SLUG, {
+      action: input.action,
+      activatedAt: input.pointer.activatedAt,
+      activatedBy: input.actorID,
+      manifestHash: input.pointer.manifestHash,
+      pointerKey: "installation",
+      pointerVersionKey: `installation:${input.pointer.version}`,
+      releaseID: input.pointer.releaseID,
+      version: input.pointer.version,
+    });
   }
 
   async findEvent(idempotencyKey: string): Promise<AIDocument | undefined> {

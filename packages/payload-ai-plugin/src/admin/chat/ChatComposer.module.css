@@ -1,0 +1,188 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/chat/ChatComposer.module.css
+ * @version 1.1.0
+ * @date 2026-09-09
+ * @description Размещает единый composer и ограничивает файлы, поиск и ввод доступной высотой.
+ */
+
+.wrap {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 840px;
+  min-width: 0;
+  margin-inline: auto;
+  padding: var(--ui-space-2) clamp(12px, 3cqw, 28px) var(--ui-space-3);
+}
+.surface {
+  padding: var(--ui-space-4);
+}
+.surface:focus-within,
+.surface[data-dragging="true"] {
+  border-color: var(--ui-color-primary);
+}
+.surface[data-dragging="true"] {
+  box-shadow: var(--ui-focus-ring);
+}
+.form {
+  display: grid;
+  gap: var(--ui-space-3);
+  margin: 0;
+}
+.input {
+  min-height: 44px;
+  max-height: 160px;
+  resize: none;
+}
+.footer,
+.tools,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  --ui-control-height: 34px;
+}
+.footer {
+  justify-content: space-between;
+}
+.tools {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.caption {
+  margin: var(--ui-space-2) 0 0;
+  color: var(--ui-color-muted);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: center;
+}
+.fileInput {
+  display: none;
+}
+.error {
+  margin-bottom: var(--ui-space-2);
+}
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  max-height: 156px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.attachment {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2);
+  min-width: 0;
+  max-width: 100%;
+  width: 230px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  --ui-control-height: 26px;
+}
+.attachment[data-status="failed"] {
+  border-color: var(--ui-color-danger);
+}
+.preview {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  border-radius: var(--ui-radius-sm);
+  object-fit: cover;
+}
+.attachmentInfo {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.attachmentInfo strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+}
+.attachmentInfo span {
+  color: var(--ui-color-muted);
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.attachmentInfo progress {
+  width: 100%;
+  height: 3px;
+  accent-color: var(--ui-color-primary);
+}
+.projectChip {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  max-width: 100%;
+  padding-left: var(--ui-space-2);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-color-muted);
+  --ui-control-height: 26px;
+}
+.projectChip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+.support,
+.extensions {
+  margin: var(--ui-space-2);
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.extensions {
+  font-size: 10px;
+}
+.filePicker {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-2);
+  min-width: 0;
+}
+.filePicker > strong {
+  font-size: 13px;
+}
+.fileResults {
+  max-height: min(320px, 40vh);
+  min-height: 60px;
+  overflow: auto;
+}
+.fileResults button {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+.fileResults button span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
+  font-size: 11px;
+}
+.fileResults p {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+@container chat (max-width:450px) {
+  .surface {
+    padding: var(--ui-space-3);
+  }
+  .webLabel {
+    display: none;
+  }
+  .attachments {
+    max-height: 128px;
+  }
+}

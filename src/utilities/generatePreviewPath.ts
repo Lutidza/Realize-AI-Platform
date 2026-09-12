@@ -1,31 +1,39 @@
-import { PreviewSearchParams } from '@/app/(app)/next/preview/route'
-import { PayloadRequest, CollectionSlug } from 'payload'
+/**
+ * @file src/utilities/generatePreviewPath.ts
+ * @version 1.0.0
+ * @date 2026-09-11
+ * @description Формирует проверенную ссылку предпросмотра страницы или товара.
+ */
 
-const collectionPrefixMap: Partial<Record<CollectionSlug, string>> = {
-  pages: '',
-  products: '/products',
-}
+import type {
+  PreviewPathArgs,
+  PreviewSearchParams,
+} from "./preview/preview.types";
+import { resolvePreviewPath } from "./preview/resolvePreviewPath.validator";
 
-type Props = {
-  collection: keyof typeof collectionPrefixMap
-  slug: string
-  req: PayloadRequest
-}
+const collectionPrefixMap = {
+  pages: "",
+  products: "/products",
+};
 
-export const generatePreviewPath = ({ collection, slug }: Props) => {
-  if (slug === undefined || slug === null) {
-    return null
+/** Не создаёт рабочую ссылку при отсутствующем секрете или некорректном slug. */
+export const generatePreviewPath = ({ collection, slug }: PreviewPathArgs) => {
+  if (!slug || !process.env.PREVIEW_SECRET) {
+    return null;
   }
 
-  // Encode to support slugs with special characters
-  const encodedSlug = encodeURIComponent(slug)
+  const encodedSlug = encodeURIComponent(slug);
+  const path = resolvePreviewPath(
+    `${collectionPrefixMap[collection]}/${encodedSlug}`,
+  );
+  if (!path) return null;
 
   const encodedParams = new URLSearchParams({
-    path: `${collectionPrefixMap[collection]}/${encodedSlug}`,
-    previewSecret: process.env.PREVIEW_SECRET || '',
-  } satisfies PreviewSearchParams)
+    path,
+    previewSecret: process.env.PREVIEW_SECRET,
+  } satisfies PreviewSearchParams);
 
-  const url = `/next/preview?${encodedParams.toString()}`
+  const url = `/next/preview?${encodedParams.toString()}`;
 
-  return url
-}
+  return url;
+};

@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/useCodexIntegration.hook.ts
- * @version 1.0.1
+ * @version 1.1.0
  * @date 2026-09-09
  * @description Управляет операциями Codex и обновляет каталог только безопасным подключением.
  */
@@ -91,7 +91,10 @@ export const useCodexIntegration = ({
     setError(undefined);
     try {
       await codexIntegrationAPI.disconnect({ expectedRevision: revision });
-      onConnectionChange(undefined);
+      const catalog = await loadIntegrationCatalog();
+      onConnectionChange(
+        catalog.connections.find((item) => item.provider === "codex"),
+      );
       setTestResult(undefined);
       setSavedNotice(false);
       return true;

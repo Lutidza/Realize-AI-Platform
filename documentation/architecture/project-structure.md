@@ -1,7 +1,7 @@
 # Структура проекта (источник для AI-layer)
 
 - **Статус:** current implementation
-- **Дата сверки:** 1 сентября 2026 года
+- **Дата сверки:** 11 сентября 2026 года
 
 ## Активный продуктовый контур
 
@@ -27,20 +27,38 @@ storefront.
 ## Realize AI chat, Data Lane, execution, preview, source promotion и release gate
 
 - `packages/ai-contracts/**` — DTO, API envelope, SSE events, adapter contracts,
-  `CapabilityDescriptor`, installation config artifacts и declarative workflows.
+  `CapabilityDescriptor`, installation config artifacts, declarative workflows,
+  strict start/continue DTO, private checkpoint и public workflow summary.
 - `packages/change-engine/**` — plan derivation,
   plan/implementation/preview/release bindings, protected paths, check
   registries, short-lived execution capability, exact-version capability
   registry, canonical config hashes, draft/release validation и effective config
-  compiler.
+  compiler. `workflowExecution*.ts` владеют pure переходами и проверкой checkpoint;
+  `workflowValueResolution.service.ts` — own-key/JSON Pointer lookup,
+  `buildWorkflowStepInstructions.service.ts` — bounded step instructions
+  и отдельным публичным вопросом без private данных.
 - `packages/codex-adapter/**` — server-side Codex App Server adapter для
   read-only chat, изолированного `workspace-write` turn и отдельного ephemeral
   read-only reviewer; управление отдельным профилем и протоколом входа Codex.
 - `packages/payload-ai-plugin/**` — Payload plugin, hidden runtime/config collections,
-  authenticated endpoints, SSE bridge, глобальный Admin provider/drawer и
-  полноэкранный UI, включая отдельные `DataOperation`, `SourcePromotion` и
+  authenticated endpoints, SSE bridge, общий Admin provider и три размещения
+  чата, включая отдельные `DataOperation`, `SourcePromotion` и
   `ReleaseCandidate` aggregates, provider-neutral integration registry и
   installation Config API с redacted/audited DTO boundaries.
+- `packages/payload-ai-plugin/src/chat-context/*Workflow*.ts` и
+  `*workflow*.ts` — создание и продолжение workflow сегментов в существующих
+  AIRun, private checkpoints, event projection и отмена.
+  `endpoints/executeWorkflowCapability.service.ts` и
+  `executeWorkflowCheck.service.ts` соединяют процесс с настоящим DataOperation
+  dry-run и проверкой его текущего состояния; apply и approvals остаются
+  у существующего Data Lane.
+- `packages/payload-ai-plugin/src/endpoints/WorkflowRunRegistry.repository.ts`,
+  `workflowRunRegistry.sql.ts`, list/detail services и mapper — owned реестр,
+  серверная пагинация и safe история workflow из существующих AIRun.
+- `packages/payload-ai-plugin/src/admin/workflow-runs/` — отдельные Admin views
+  реестра и карточки, URL-фильтры, история шагов и действия. Команды продолжения,
+  операций данных и SSE переиспользуют общие hooks Admin. URL helpers в
+  `admin/realizeAILinks.util.ts` связывают карточку с историческим выпуском и чатом.
 - `packages/payload-ai-plugin/src/integrations/runtime/` — серверное разрешение
   подключения GitHub: SQL в `IntegrationRuntime.repository.ts`, проверка записи
   в `validateRuntimeGitHubIntegration.validator.ts`, получение credential через
@@ -52,8 +70,10 @@ storefront.
 - `packages/payload-ai-plugin/src/integrations/codex/` — сохранение, проверка
   и вход Codex; вложенный `runtime/` предоставляет блокировку и авторизацию
   исполнителям. Контракт описан в [интеграции Codex](codex-integration.md).
-- `services/ai-control-plane/**` — loopback development control plane и bounded
-  Context Pack.
+- `services/ai-control-plane/**` — loopback development control plane, bounded
+  Context Pack, безопасный каталог файлов проекта и приватные вложения чата.
+  Metadata и проверка владельца вложений принадлежат Payload plugin; бинарные
+  данные передаются через защищённый серверный канал, отдельно от JSON turn.
 - `services/ai-execution-worker/**` — отдельный PostgreSQL queue consumer,
   Git worktree orchestration, scope/diff gates, allowlisted checks, exact-diff
   promotion, reviewer, sanitized DB clone, loopback standalone preview,
@@ -65,10 +85,19 @@ storefront.
 - `compose.release-preview.yaml`, `scripts/deploy/remote-release-preview.sh` и
   cleanup workflow — TTL-bound sanitized HTTPS preview на scoped VPS Compose.
 - `/admin/ai` — custom Payload root view только для admin role; тот же chat
-  controller доступен в drawer на остальных страницах `/admin/**`;
-  `REALIZE_AI_ENABLED` включает запуски, а при `false` UI показывает
-  явный disabled state.
-- `/admin/integrations` — каталог карточек сервисов с поиском и фильтром
+  controller доступен в правой панели на остальных страницах `/admin/**`.
+  `/admin/ai/window` предоставляет отдельное окно. Представление принадлежит
+  `packages/payload-ai-plugin/src/admin/chat/`, размещение и переходы —
+  соседнему `chat-presentation/`, включая перенос `workflowDraft` с сырым
+  JSON-текстом и exact profile selection, защищённый от потери
+  неподтверждённого workflow запроса;
+  `connection.enabled` интеграции GPT — Codex включает новые запуски;
+  `configuration.agent` хранит модели, разрешения этапов и сроки. Вкладка
+  «Агент» управляет ими без перезапуска, выключение сохраняет историю и recovery.
+  Каждый HTTP-запрос получает проекцию `resolveCodexRuntimeOptions`, а worker
+  читает текущие разрешения через `readWorkerRuntimeSettings`.
+- `/admin/integrations` — пункт «Интеграции» в группе навигации «Настройки»;
+  каталог карточек сервисов с поиском и фильтром
   активности; `/admin/integrations/:provider` — отдельные настройки сервиса.
   UI принадлежит `packages/payload-ai-plugin/src/admin/integrations/`,
   карточки и фильтры — вложенному `catalog/`. Реализованы GitHub и Codex;
@@ -94,9 +123,55 @@ Typed foundation installation AI configuration находится в
 `packages/ai-contracts/**` и `packages/change-engine/**`. Его Payload owner уже
 добавляет hidden draft/release/pointer/event collections и strict
 `/api/realize-ai/config/*`; schema зафиксирована migration
-`20260901_163832_ai_config_persistence`. Target `/admin/ai/settings`, eval,
-activate/rollback и runtime binding остаются следующим slice. `.ai/**` и
-`.codex/**` не являются client-editable data.
+`20260901_163832_ai_config_persistence`. Раздел «Настройки → Агентский слой»
+(`/admin/ai/settings`) находится в
+`packages/payload-ai-plugin/src/admin/agent-layer-settings/**`. Этот owner содержит
+оболочку с группами разделов, общий каталог всех восьми видов с поиском,
+фильтрами и страницами, типизированные карточки и вычисление прямых/обратных
+связей. Контекст каталогов сохраняется при переходах внутри рабочей области.
+Выбор и копирование черновика, редакторы правил, профилей, ролей, навыков,
+шаблонов, возможностей, проверок и процессов, серверная валидация, просмотр версий
+и системной основы используют существующий Config API. Формы восьми видов,
+общий выбор связей и действие создания в каталоге принадлежат тому же owner.
+Создание, локальные копии и сохранение используют общий жизненный цикл формы,
+защиту несохранённого ввода и aggregate
+mutation с revision/CAS. Идентичность копии подбирается в пределах вида записи.
+Отдельные API, DTO или persistence для редактора не создаются.
+`AgentLayerBinding.types.ts` и helpers в этом owner задают обе формы,
+структурную проверку, локальное копирование и aggregate mapper. Строковый
+`maxTargets` преобразуется после проверки; наследуемые области сохраняются
+отдельно от пустых массивов. `AgentLayerChoiceList` и его hook обслуживают
+выбор записей черновика, системных целей и допустимых ограничений:
+поиск, фильтр выбранных, страницы по 25 и сохранённые отсутствующие значения.
+`AgentLayerWorkflow.types.ts` задаёт локальную модель графа, шагов и значений;
+helpers формируют canonical `WorkflowDefinition` через существующий parser.
+Операции переименования шага обновляют связанные ключи атомарно.
+Hook редактора процесса владеет выбором и фильтрами каталога шагов;
+данные и незавершённый ввод принадлежат общей форме и её lifecycle.
+Исполняемый workflow engine в Admin owner не добавляется.
+Проекция системной основы содержит зарегистрированные возможности и проверки;
+она не предоставляет содержимое или редактирование `.ai/**` и `.codex/**`.
+
+Этот же Admin owner содержит создание выпуска, просмотр immutable состава
+с поиском и связями и отдельное переключение active pointer. Config endpoints
+в `packages/payload-ai-plugin/src/endpoints/**` владеют release/activate/rollback,
+транзакционной блокировкой, CAS и durable replay. Migration
+`20260910_122259_ai_config_activation` расширяет audit event enum.
+
+Контракты выбора, закрытого snapshot и публичной сводки chat run принадлежат
+`packages/ai-contracts/**`; compiler, проверка hashes и ограниченный renderer
+инструкций — `packages/change-engine/**`. В
+`packages/payload-ai-plugin/src/chat-context/**` находятся разрешение active
+release/profile, каталог для chat users, сохранение snapshot, runtime fingerprint
+и ограниченная история для нового thread. UI выбора профиля и его состояние
+находятся в `packages/payload-ai-plugin/src/admin/chat/**`; handoff использует
+общий controller чата. `services/ai-control-plane/**` проверяет закрытый snapshot
+и собирает provider prompt под существующей read-only policy.
+Новые run columns не создаются: используется существующее `turnContext`.
+
+База знаний, eval и выполнение декларативных
+workflows пока не реализованы. Capability/check bindings остаются metadata;
+доступ к инструментам и approvals задают существующие серверные owners.
 
 ## Delivery и эксплуатация
 
@@ -156,5 +231,5 @@ AI-layer audit от 2026-08-17 сохранён как historical evidence в
 `packages/ui-kit` (`@realize/ui-kit`) владеет семантическими токенами,
 темой и общими кнопками, полями, статусами и поверхностями.
 `packages/payload-ai-plugin/src/admin/AdminUiTheme.component.tsx` связывает
-его с темой Payload. Каталог интеграций и настройки GitHub и Codex используют
+его с темой Payload. Чат, каталог интеграций и настройки GitHub и Codex используют
 общие компоненты. Контракт и границы миграции — [UI-кит](ui-kit.md).

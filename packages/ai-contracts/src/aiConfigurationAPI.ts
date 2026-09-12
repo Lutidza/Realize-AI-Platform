@@ -1,6 +1,7 @@
 /**
  * @file packages/ai-contracts/src/aiConfigurationAPI.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-09-10
  * @description Задаёт strict browser DTO первого installation configuration API.
  * @docref Realize AI Commerce v1.0 — API и streaming contracts
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
@@ -97,6 +98,16 @@ export type CreateAIConfigReleaseInput = {
   draftID: string;
   expectedDraftRevision: number;
   expectedSystemManifestHash: string;
+  schemaVersion: "1.0";
+};
+
+/** Переключает exact immutable release при неизменных system ceiling и версии указателя. */
+export type ActivateAIConfigReleaseInput = {
+  action: "activate" | "rollback";
+  expectedPointerVersion: number;
+  expectedReleaseManifestHash: string;
+  expectedSystemManifestHash: string;
+  releaseID: string;
   schemaVersion: "1.0";
 };
 

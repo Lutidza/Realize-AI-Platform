@@ -7,10 +7,12 @@
     ".": "./src/realizeAIPlugin.plugin.ts",
     "./client": "./src/admin/RealizeAINavLink.component.tsx",
     "./integrations-rsc": "./src/admin/integrations/IntegrationsView.view.tsx",
+    "./agent-layer-rsc": "./src/admin/agent-layer-settings/AgentLayerView.view.tsx",
     "./provider": "./src/admin/RealizeAIProvider.tsx",
     "./server/integration-vault": "./src/integrations/credentialVault.ts",
     "./server/integration-runtime": "./src/integrations/runtime/integrationRuntime.index.ts",
-    "./rsc": "./src/admin/RealizeAIView.tsx"
+    "./rsc": "./src/admin/RealizeAIView.tsx",
+    "./workflow-runs-rsc": "./src/admin/workflow-runs/WorkflowRunsView.view.tsx"
   },
   "dependencies": {
     "@realize/ai-contracts": "0.1.0",

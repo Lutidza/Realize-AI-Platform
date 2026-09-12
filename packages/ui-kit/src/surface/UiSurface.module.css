@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/surface/UiSurface.module.css
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-10
  * @description Определяет повторяемую поверхность, градиентную границу и focus.
  */
 
@@ -48,6 +48,12 @@
     inset 0 1px 0 color-mix(in srgb, var(--ui-color-text) 10%, transparent),
     0 4px 12px color-mix(in srgb, var(--ui-color-bg) 40%, transparent),
     var(--ui-shadow-glow);
+}
+
+.flush {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .interactive {

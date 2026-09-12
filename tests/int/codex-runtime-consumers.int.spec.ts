@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codex-runtime-consumers.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-09-11
  * @description Проверяет выбранную интеграцию исполнителя и reviewer Codex, включая cleanup при отказе.
  */
 
@@ -50,6 +50,8 @@ const fixture = () => {
     home: "/fixture-selected-profile",
     authMode: "chatgpt" as const,
     revision: 3,
+    model: "fixture-integration-model",
+    reviewModel: "fixture-integration-review-model",
     environment: {
       NODE_ENV: "test" as const,
       CODEX_HOME: "/fixture-selected-profile",
@@ -63,7 +65,6 @@ const fixture = () => {
       config: {
         codexBinary: "/fixture-codex-cli",
         reviewTimeoutMs: 30_000,
-        reviewModel: "fixture-review-model",
       } as ExecutionWorkerConfig,
       job: {
         changeRequestID: 1,
@@ -98,6 +99,7 @@ describe("Codex reviewer integration consumer", () => {
     });
     const result = await runIndependentReview(test.input);
     expect(result.status).toBe("approved");
+    expect(result.model).toBe("fixture-integration-review-model");
     expect(mock.create).toHaveBeenCalledWith({
       codexBinary: "/fixture-codex-cli",
       environment: test.lease.environment,
@@ -107,7 +109,7 @@ describe("Codex reviewer integration consumer", () => {
       expect.objectContaining({
         ephemeral: true,
         sandboxProfile: "review-readonly",
-        model: "fixture-review-model",
+        model: "fixture-integration-review-model",
       }),
     );
     expect(test.lease.dispose).toHaveBeenCalledTimes(1);
@@ -154,7 +156,6 @@ describe("Codex implementation integration consumer", () => {
           ...test.input.config,
           turnTimeoutMs: 30_000,
           repositoryRoot: "/fixture-root",
-          model: "fixture-implementation-model",
         },
         codex: test.input.codex,
         repository: repository as unknown as ExecutionJobRepository,
@@ -186,7 +187,7 @@ describe("Codex implementation integration consumer", () => {
       expect.objectContaining({
         sandboxProfile: "code-workspace-write",
         ephemeral: true,
-        model: "fixture-implementation-model",
+        model: "fixture-integration-model",
       }),
     );
     expect(test.repository.complete).toHaveBeenCalledTimes(1);
@@ -210,5 +211,33 @@ describe("Codex implementation integration consumer", () => {
       test.executionInput.job,
       expect.objectContaining({ summary: "fixture persistence failure" }),
     );
+  });
+
+  it("сохраняет отказ интеграции без запуска модели", async () => {
+    const test = execution();
+    test.input.codex.acquire.mockRejectedValue(
+      new Error("fixture integration disabled"),
+    );
+    await executeClaimedJob(test.executionInput);
+    expect(mock.create).not.toHaveBeenCalled();
+    expect(mock.turn).not.toHaveBeenCalled();
+    expect(test.repository.complete).not.toHaveBeenCalled();
+    expect(test.repository.fail).toHaveBeenCalledWith(
+      test.executionInput.job,
+      expect.objectContaining({ summary: "fixture integration disabled" }),
+    );
+  });
+
+  it("передаёт default провайдера без подстановки модели из старого окружения", async () => {
+    const test = execution();
+    Reflect.deleteProperty(test.lease, "model");
+    mock.turn.mockImplementation(async function* () {
+      yield { type: "assistant.completed", content: "fixture implemented" };
+    });
+    await executeClaimedJob(test.executionInput);
+    expect(mock.turn).toHaveBeenCalledWith(
+      expect.objectContaining({ model: undefined }),
+    );
+    expect(test.repository.complete).toHaveBeenCalledTimes(1);
   });
 });
