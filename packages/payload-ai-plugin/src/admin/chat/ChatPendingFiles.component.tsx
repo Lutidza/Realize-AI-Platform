@@ -1,8 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatPendingFiles.component.tsx
- * @version 1.0.0
- * @date 2026-09-09
- * @description Показывает локальные превью, настоящий прогресс и повтор загрузки.
+ * @version 1.1.0
+ * @date 2026-09-12
+ * @description Показывает выбранные источники контекста, прогресс и повтор загрузки вложений.
  */
 
 /* eslint-disable @next/next/no-img-element -- Приватные URL и локальные preview требуют cookies браузера, без image proxy. */
@@ -16,6 +16,29 @@ export const ChatPendingFiles = ({
   disabled,
 }: ChatPendingFilesProps) => (
   <div className={styles.attachments}>
+    {context.pageDraft && (
+      <div className={styles.projectChip}>
+        <FileText size={15} />
+        <span
+          title={
+            context.pageDraft.slug
+              ? `/${context.pageDraft.slug}`
+              : context.pageDraft.title
+          }
+        >
+          Страница: {context.pageDraft.title}
+        </span>
+        <UiButton
+          aria-label={`Убрать страницу ${context.pageDraft.title}`}
+          disabled={disabled}
+          size="icon"
+          variant="ghost"
+          onClick={context.removePageDraft}
+        >
+          <X size={13} />
+        </UiButton>
+      </div>
+    )}
     {context.attachments.map((item) => {
       const name = item.file?.name ?? item.attachment?.name ?? "Файл";
       const preview =

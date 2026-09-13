@@ -1,12 +1,13 @@
 /**
  * @file services/ai-control-plane/src/parseChatRun.validator.ts
- * @version 1.2.0
- * @date 2026-09-11
+ * @version 1.3.0
+ * @date 2026-09-12
  * @description Проверяет серверный запрос turn без браузерных путей к изображениям.
  */
 import {
   CHAT_ATTACHMENT_LIMITS,
   parseCreateMessageInput,
+  parsePageDraftContext,
 } from "@realize/ai-contracts";
 import type { ChatAssetReference } from "@realize/ai-contracts";
 import type { ControlPlaneRun } from "./runStore";
@@ -32,6 +33,7 @@ export const parseChatRun = (
           "agentConfiguration",
           "conversationHistory",
           "workflow",
+          "pageDraftContext",
         ].includes(key),
     )
   )
@@ -102,7 +104,14 @@ export const parseChatRun = (
             );
           return checkpoint;
         })();
+  if (workflow && body.pageDraftContext !== undefined)
+    throw new Error("Workflow does not accept a selected page context.");
   return {
+    ...(body.pageDraftContext === undefined
+      ? {}
+      : {
+          pageDraftContext: parsePageDraftContext(body.pageDraftContext),
+        }),
     ...(workflow ? { workflow } : {}),
     ...(body.agentConfiguration !== undefined
       ? {

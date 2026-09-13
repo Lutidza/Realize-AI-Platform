@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createWorkflowMessage.service.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Создаёт первый сегмент процесса и его исходное сообщение в одной транзакции.
  */
 import type { CreateMessageInput } from "@realize/ai-contracts";
@@ -33,10 +33,14 @@ export const createWorkflowMessage = async (
   input: CreateMessageInput,
 ): Promise<CreateChatMessageResult> => {
   if (!input.workflow) throw new Error("Workflow selection is required.");
-  if (input.attachmentIDs?.length || input.projectFiles?.length)
+  if (
+    input.attachmentIDs?.length ||
+    input.projectFiles?.length ||
+    input.pageDraft
+  )
     throw new EndpointError(
       "INVALID_REQUEST",
-      "Для запуска процесса уберите вложения и файлы проекта. Входные данные процесса задаются отдельно.",
+      "Для запуска процесса уберите вложения, файлы проекта и выбранную страницу. Входные данные процесса задаются отдельно.",
       400,
     );
   const repository = new AIRepository(req.payload, req);

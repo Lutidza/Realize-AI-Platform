@@ -1,7 +1,7 @@
 /**
  * @file tests/int/useChatConversation.int.spec.ts
- * @version 1.3.1
- * @date 2026-09-11
+ * @version 1.4.0
+ * @date 2026-09-12
  * @description Проверяет настройки отправки, безопасный ввод IME и запрет повторной отправки.
  */
 
@@ -69,6 +69,9 @@ const controllerFor = (
     attachments: [],
     projectFiles: [],
     webSearch: false,
+    isSelectingPageDraft: false,
+    selectPageDraft: vi.fn(async () => {}),
+    removePageDraft: vi.fn(),
     hasPendingAttachments: false,
     hasFailedAttachments: false,
     addAttachments: vi.fn(),
@@ -134,6 +137,42 @@ const renderConversation = (
 afterEach(cleanup);
 
 describe("Отправка сообщения в ChatConversation", () => {
+  it.each(["loading", "workflow", "unavailable"])(
+    "сохраняет выбранную страницу и блокирует отправку при %s",
+    (reason) => {
+      const controller = controllerFor();
+      controller.context.pageDraft = {
+        id: "42",
+        title: "О компании",
+        fingerprint: "a".repeat(64),
+      };
+      controller.context.isSelectingPageDraft = reason === "loading";
+      if (reason === "workflow") controller.workflow.key = "flow";
+      if (reason !== "unavailable")
+        controller.context.capabilities = {
+          attachments: {
+            available: false,
+            maxFiles: 0,
+            maxImageBytes: 0,
+            maxTextBytes: 0,
+            maxTotalBytes: 0,
+            extensions: [],
+            mimeTypes: [],
+          },
+          projectFiles: { available: false, maxFiles: 0 },
+          webSearch: { available: false },
+          pageDrafts: { available: true },
+        };
+      renderConversation(controller);
+      expect(screen.getByText("Страница: О компании")).toBeTruthy();
+      fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+      expect(controller.send).not.toHaveBeenCalled();
+      fireEvent.click(
+        screen.getByRole("button", { name: "Убрать страницу О компании" }),
+      );
+      expect(controller.context.removePageDraft).toHaveBeenCalledOnce();
+    },
+  );
   it("блокирует отправку устаревшего профиля, сохраняя текст и доступ к его исправлению", () => {
     const controller = controllerFor();
     controller.agentConfiguration = {

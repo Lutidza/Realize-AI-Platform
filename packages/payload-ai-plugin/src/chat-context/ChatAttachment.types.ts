@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/ChatAttachment.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Отделяет закрытые метаданные хранилища от пользовательского снимка сообщения.
  */
 import type {
@@ -9,6 +9,7 @@ import type {
   MessageDTO,
   RunDTO,
   ProjectContextFileDto,
+  DataDocumentRefDTO,
 } from "@realize/ai-contracts";
 export type ChatAttachmentDocument = {
   id: number | string;
@@ -23,6 +24,7 @@ export type ChatAttachmentDocument = {
   runID?: string;
 };
 export type ChatMessageContext = {
+  pageDraft?: DataDocumentRefDTO;
   attachments: ChatAttachmentDto[];
   projectFiles: ProjectContextFileDto[];
   webSearch: boolean;

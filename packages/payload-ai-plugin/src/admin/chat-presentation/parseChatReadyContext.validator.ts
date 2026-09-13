@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat-presentation/parseChatReadyContext.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Ограничивает готовый контекст межоконного обмена и приватные URL вложений.
  */
 
@@ -25,7 +25,10 @@ export const parseChatReadyContext = (
   if (
     !record(value) ||
     Object.keys(value).some(
-      (key) => !["attachments", "projectFiles", "webSearch"].includes(key),
+      (key) =>
+        !["attachments", "projectFiles", "webSearch", "pageDraft"].includes(
+          key,
+        ),
     ) ||
     !Array.isArray(value.attachments) ||
     value.attachments.length > CHAT_ATTACHMENT_LIMITS.maxFiles ||
@@ -82,5 +85,33 @@ export const parseChatReadyContext = (
       sha256: item.sha256,
     });
   }
-  return { attachments, projectFiles, webSearch: value.webSearch };
+  const page = value.pageDraft;
+  let pageDraft: ChatReadyContext["pageDraft"];
+  if (page !== undefined) {
+    if (
+      !record(page) ||
+      Object.keys(page).some(
+        (key) => !["id", "title", "slug", "fingerprint"].includes(key),
+      ) ||
+      !text(page.id, 128) ||
+      !/^[A-Za-z0-9_-]+$/.test(page.id) ||
+      !text(page.title, 1000) ||
+      (page.slug !== undefined && !text(page.slug, 255)) ||
+      !text(page.fingerprint, 64) ||
+      !/^[a-f0-9]{64}$/.test(page.fingerprint)
+    )
+      return;
+    pageDraft = {
+      id: page.id,
+      title: page.title,
+      fingerprint: page.fingerprint,
+      ...(page.slug === undefined ? {} : { slug: page.slug as string }),
+    };
+  }
+  return {
+    attachments,
+    projectFiles,
+    webSearch: value.webSearch,
+    ...(pageDraft ? { pageDraft } : {}),
+  };
 };

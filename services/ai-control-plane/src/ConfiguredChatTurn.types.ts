@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/ConfiguredChatTurn.types.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Задаёт вход сборки инструкций и пользовательского контекста одного turn.
  */
 import type { ControlPlaneRun } from "./runStore";
@@ -15,6 +15,7 @@ export type ConfiguredChatTurnInput = {
     | "agentConfiguration"
     | "conversationHistory"
     | "workflow"
+    | "pageDraftContext"
   >;
   fileCount: number;
   totalBytes: number;

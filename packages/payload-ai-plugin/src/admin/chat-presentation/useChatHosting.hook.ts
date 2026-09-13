@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat-presentation/useChatHosting.hook.ts
- * @version 1.4.1
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-12
  * @description Связывает единый controller с панелью, страницей и отдельным окном чата.
  */
 
@@ -160,10 +160,11 @@ export const useChatHosting = ({
         controller.isCreatingConversation ||
         (transfersWindow &&
           (controller.context.hasPendingAttachments ||
-            controller.context.hasFailedAttachments))
+            controller.context.hasFailedAttachments ||
+            controller.context.isSelectingPageDraft))
       ) {
         setNotice(
-          "Дождитесь сохранения сообщения и загрузок; удалите или повторите неудачные вложения, затем смените расположение чата.",
+          "Дождитесь сохранения сообщения, чтения страницы и загрузок; удалите или повторите неудачные вложения, затем смените расположение чата.",
         );
         return;
       }
@@ -207,6 +208,7 @@ export const useChatHosting = ({
       controller.isCreatingConversation,
       controller.context.hasPendingAttachments,
       controller.context.hasFailedAttachments,
+      controller.context.isSelectingPageDraft,
     ],
   );
 
@@ -226,10 +228,11 @@ export const useChatHosting = ({
         controller.isSubmitting ||
         controller.isCreatingConversation ||
         controller.context.hasPendingAttachments ||
-        controller.context.hasFailedAttachments
+        controller.context.hasFailedAttachments ||
+        controller.context.isSelectingPageDraft
       ) {
         setNotice(
-          "Дождитесь сохранения сообщения и загрузок; удалите или повторите неудачные вложения, затем верните чат в основную вкладку.",
+          "Дождитесь сохранения сообщения, чтения страницы и загрузок; удалите или повторите неудачные вложения, затем верните чат в основную вкладку.",
         );
         return;
       }
@@ -253,6 +256,7 @@ export const useChatHosting = ({
     controller.isCreatingConversation,
     controller.context.hasPendingAttachments,
     controller.context.hasFailedAttachments,
+    controller.context.isSelectingPageDraft,
   ]);
   const openSettings = useCallback(() => {
     setPanelOpen(false);

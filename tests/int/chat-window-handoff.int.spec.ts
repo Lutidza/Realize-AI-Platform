@@ -1,7 +1,7 @@
 /**
  * @file tests/int/chat-window-handoff.int.spec.ts
- * @version 1.3.0
- * @date 2026-09-11
+ * @version 1.4.0
+ * @date 2026-09-12
  * @description Проверяет границы передачи состояния чата и ожидание загрузки перед закрытием popup.
  */
 
@@ -28,6 +28,42 @@ const options = (): ChatWindowOptions => ({
 });
 
 describe("межоконный handoff чата", () => {
+  it("сохраняет одну выбранную страницу без содержимого и отклоняет подмешанный snapshot", () => {
+    const pageDraft = {
+      id: "42",
+      title: "О компании",
+      slug: "about",
+      fingerprint: "a".repeat(64),
+    };
+    const context = {
+      attachments: [],
+      projectFiles: [],
+      webSearch: false,
+      pageDraft,
+    };
+    const message = {
+      type: "realize-chat-state",
+      state: { ...state, context },
+    };
+    expect(parseChatWindowMessage(message)).toEqual(message);
+    for (const invalid of [
+      null,
+      [],
+      { ...pageDraft, id: "../42" },
+      { ...pageDraft, fingerprint: "old" },
+      { ...pageDraft, title: "x".repeat(1001) },
+      { ...pageDraft, fields: [] },
+      { ...pageDraft, instructions: "override" },
+      { ...pageDraft, raw: {} },
+    ]) {
+      expect(
+        parseChatWindowMessage({
+          ...message,
+          state: { ...state, context: { ...context, pageDraft: invalid } },
+        }),
+      ).toBeUndefined();
+    }
+  });
   it("переносит точный выбор профиля и отклоняет подмешанные инструкции", () => {
     const agentConfigurationSelection = {
       releaseID: "release-3",

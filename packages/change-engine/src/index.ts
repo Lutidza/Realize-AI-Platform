@@ -100,3 +100,11 @@ export { buildAIChatConfigurationInstructions } from "./buildAIChatConfiguration
 export { hashCompiledAgentConfiguration } from "./hashCompiledAgentConfiguration.util";
 export { parseAIChatConfigurationSnapshot } from "./parseAIChatConfigurationSnapshot.validator";
 export { toAIChatConfigurationSummary } from "./toAIChatConfigurationSummary.mapper";
+export {
+  createPageDraftUpdateOperationHash,
+  createPageDraftUpdateRollbackHash,
+} from "./pageDraftUpdatePolicy";
+export type {
+  PageDraftUpdateOperationHashInput,
+  PageDraftUpdateRollbackHashInput,
+} from "./PageDraftUpdatePolicy.types";

@@ -2,7 +2,7 @@
 
 /**
  * @file tests/int/migration-adoption.int.spec.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-12
  * @description Проверяет semantic schema comparison и fail-closed migration adoption.
  */
@@ -38,6 +38,7 @@ const expectedMigrations = [
   "20260910_122259_ai_config_activation",
   "20260911_132139_worker_presence",
   "20260911_155718_page_draft_data_operation",
+  "20260912_111003_page_draft_update",
 ];
 
 describe("migration adoption evidence", () => {

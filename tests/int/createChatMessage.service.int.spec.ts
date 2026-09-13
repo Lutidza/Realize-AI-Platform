@@ -1,13 +1,14 @@
 // @vitest-environment node
 /**
  * @file tests/int/createChatMessage.service.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-10
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Проверяет сохранение полного запроса, права вложений и идемпотентность отправки.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PayloadRequest } from "payload";
 import { createChatMessage } from "../../packages/payload-ai-plugin/src/chat-context/createChatMessage.service";
+import { PageDraftUpdate } from "../../packages/payload-ai-plugin/src/endpoints/pageDraftUpdate.service";
 import { ChatAttachmentRepository } from "../../packages/payload-ai-plugin/src/chat-context/ChatAttachment.repository";
 import { AIRepository } from "../../packages/payload-ai-plugin/src/endpoints/repository";
 import { AIConfigRepository } from "../../packages/payload-ai-plugin/src/endpoints/aiConfigRepository";
@@ -102,6 +103,103 @@ beforeEach(() => {
 });
 
 describe("createChatMessage", () => {
+  const pageContext = {
+    page: { id: "19", title: "О компании", slug: "about" },
+    updatedAt: "2026-09-12T10:00:00.000Z",
+    fingerprint: "c".repeat(64),
+    adapterVersion: "1.0",
+    fields: [
+      {
+        path: "/title",
+        label: "Заголовок",
+        value: "О компании",
+        maxLength: 160,
+      },
+    ],
+  };
+  const pageInput = {
+    content: "Сократи заголовок",
+    pageDraft: { id: "19", fingerprint: "c".repeat(64) },
+  };
+  const pageReq = {
+    ...req,
+    user: { id: 1, collection: "users", roles: ["admin"] },
+  } as unknown as PayloadRequest;
+  const pageOptions = {
+    ...options,
+    access: { canManageData: () => true },
+  } as unknown as SanitizedRealizeAIPluginOptions;
+  it("resolves the selected CMS snapshot once and relays it without exposing content in public DTO", async () => {
+    vi.spyOn(PageDraftUpdate.prototype, "readContext").mockResolvedValue(
+      pageContext,
+    );
+    const result = await createChatMessage(
+      pageReq,
+      pageOptions,
+      1,
+      "2",
+      "page",
+      pageInput,
+    );
+    expect(PageDraftUpdate.prototype.readContext).toHaveBeenCalledWith("19");
+    expect(client.startRun).toHaveBeenCalledWith(
+      expect.objectContaining({ pageDraftContext: pageContext }),
+    );
+    expect(AIRepository.prototype.createRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        turnContext: expect.objectContaining({ pageDraftContext: pageContext }),
+      }),
+    );
+    expect(result.message?.pageDraft).toEqual(pageContext.page);
+    expect(result.message).not.toHaveProperty("pageDraftContext");
+    expect(result.run).not.toHaveProperty("pageDraftContext");
+  });
+  it("rejects stale CMS selection before creating a run or contacting the model", async () => {
+    vi.spyOn(PageDraftUpdate.prototype, "readContext").mockResolvedValue({
+      ...pageContext,
+      fingerprint: "d".repeat(64),
+    });
+    await expect(
+      createChatMessage(pageReq, pageOptions, 1, "2", "page", pageInput),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(AIRepository.prototype.createRun).not.toHaveBeenCalled();
+    expect(client.startRun).not.toHaveBeenCalled();
+  });
+  it("replays the accepted page request after the CMS changes and rejects a substituted page", async () => {
+    const read = vi
+      .spyOn(PageDraftUpdate.prototype, "readContext")
+      .mockResolvedValue(pageContext);
+    await createChatMessage(pageReq, pageOptions, 1, "2", "page", pageInput);
+    const saved = vi.mocked(AIRepository.prototype.createRun).mock.calls[0][0];
+    vi.mocked(AIRepository.prototype.findRunByIdempotencyKey).mockResolvedValue(
+      { ...run, requestHash: saved.requestHash },
+    );
+    read.mockRejectedValue(new Error("changed"));
+    client.startRun.mockClear();
+    await expect(
+      createChatMessage(pageReq, pageOptions, 1, "2", "page", pageInput),
+    ).resolves.toHaveProperty("run");
+    await expect(
+      createChatMessage(pageReq, pageOptions, 1, "2", "page", {
+        ...pageInput,
+        pageDraft: { id: "20", fingerprint: "c".repeat(64) },
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(client.startRun).not.toHaveBeenCalled();
+  });
+  it("requires data-management permission before reading CMS context", async () => {
+    const read = vi.spyOn(PageDraftUpdate.prototype, "readContext");
+    const denied = {
+      ...pageOptions,
+      access: { canManageData: () => false },
+    } as unknown as SanitizedRealizeAIPluginOptions;
+    await expect(
+      createChatMessage(pageReq, denied, 1, "2", "page", pageInput),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(read).not.toHaveBeenCalled();
+    expect(client.startRun).not.toHaveBeenCalled();
+  });
   it("persists a context snapshot and relays only server-owned asset references", async () => {
     const result = await createChatMessage(req, options, 1, "2", "request", {
       content: "",

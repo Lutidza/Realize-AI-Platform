@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/useChatDraftContext.hook.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Сохраняет вложения и опции черновика до успешной отправки или явного удаления.
  */
 
@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CHAT_SETTINGS_UPDATED_EVENT } from "../chat-presentation/chatPresentation.constants";
+import { useChatPageDraftSelection } from "./useChatPageDraftSelection.hook";
 import type {
   ChatCapabilitiesDto,
   ProjectContextFileDto,
@@ -32,6 +33,13 @@ export const useChatDraftContext = (
   const [webSearch, setWebSearch] = useState(false);
   const [capabilities, setCapabilities] = useState<ChatCapabilitiesDto>();
   const [error, setError] = useState<string>();
+  const {
+    pageDraft,
+    isSelectingPageDraft,
+    selectPageDraft,
+    restorePageDraft,
+    clearSentPageDraft,
+  } = useChatPageDraftSelection(setError);
   const itemsRef = useRef<PendingChatAttachment[]>([]);
   const uploadsRef = useRef(new Map<string, () => void>());
   const mountedRef = useRef(true);
@@ -241,8 +249,9 @@ export const useChatDraftContext = (
       ),
       projectFiles,
       webSearch,
+      ...(pageDraft ? { pageDraft } : {}),
     }),
-    [projectFiles, webSearch],
+    [projectFiles, webSearch, pageDraft],
   );
   const restoreContext = useCallback(
     (context: ChatReadyContext) => {
@@ -259,8 +268,9 @@ export const useChatDraftContext = (
       );
       setProjectFiles(context.projectFiles);
       setWebSearch(context.webSearch);
+      restorePageDraft(context.pageDraft);
     },
-    [updateItems],
+    [updateItems, restorePageDraft],
   );
   const clearSentContext = useCallback(
     (context: ChatReadyContext) => {
@@ -275,8 +285,9 @@ export const useChatDraftContext = (
       const paths = new Set(context.projectFiles.map((item) => item.path));
       setProjectFiles((files) => files.filter((file) => !paths.has(file.path)));
       setWebSearch(false);
+      clearSentPageDraft(context.pageDraft);
     },
-    [updateItems],
+    [updateItems, clearSentPageDraft],
   );
 
   return {
@@ -285,6 +296,10 @@ export const useChatDraftContext = (
     error,
     projectFiles,
     webSearch,
+    pageDraft,
+    isSelectingPageDraft,
+    selectPageDraft,
+    removePageDraft: () => restorePageDraft(),
     hasPendingAttachments: attachments.some(
       (item) => item.status === "uploading" || item.isRemoving,
     ),

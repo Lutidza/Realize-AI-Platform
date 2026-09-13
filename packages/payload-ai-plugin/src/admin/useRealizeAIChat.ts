@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useRealizeAIChat.ts
- * @version 1.4.0
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-12
  * @description Управляет bootstrap чата, durable state и governed change actions.
  */
 
@@ -263,6 +263,8 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     hasContext:
       context.attachments.length > 0 ||
       context.projectFiles.length > 0 ||
+      Boolean(context.pageDraft) ||
+      context.isSelectingPageDraft ||
       context.webSearch,
     setDraft,
     setError,
@@ -272,6 +274,22 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
 
   const send = useCallback(async () => {
     const pending = pendingWorkflowStartRef.current;
+    if (context.isSelectingPageDraft) return;
+    if (context.pageDraft && (workflow.isReplying || workflow.key || pending)) {
+      setError(
+        "Страница CMS доступна только в обычном чате. Уберите страницу или вернитесь в обычный чат.",
+      );
+      return;
+    }
+    if (
+      context.pageDraft &&
+      context.capabilities?.pageDrafts?.available !== true
+    ) {
+      setError(
+        "Чтение страниц сейчас недоступно. Выбор сохранён; дождитесь доступности или уберите страницу.",
+      );
+      return;
+    }
     if (workflow.isReplying && !pending) {
       await workflow.continue();
       return;
@@ -294,7 +312,8 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
         ? selectedIDRef.current !== pending.conversationID
         : (!content &&
             !snapshot.attachments.length &&
-            !snapshot.projectFiles.length) ||
+            !snapshot.projectFiles.length &&
+            !snapshot.pageDraft) ||
           !workflow.isSelectionReady ||
           context.hasPendingAttachments ||
           context.hasFailedAttachments ||
@@ -327,6 +346,14 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
             sha256,
           })),
           webSearch: snapshot.webSearch,
+          ...(snapshot.pageDraft
+            ? {
+                pageDraft: {
+                  id: snapshot.pageDraft.id,
+                  fingerprint: snapshot.pageDraft.fingerprint,
+                },
+              }
+            : {}),
           ...(workflowInput ? { workflow: workflowInput } : {}),
           ...(configurationSelection
             ? { agentConfiguration: configurationSelection }

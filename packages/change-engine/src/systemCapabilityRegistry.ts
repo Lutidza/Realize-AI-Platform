@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/systemCapabilityRegistry.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Регистрирует текущие system capabilities и stable check IDs.
  * @docref Realize AI Commerce v1.0 — Change Engine
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/11-change-engine.md
@@ -92,10 +92,23 @@ const PAGES_CREATE_DRAFT_SOURCE = {
   version: "1.0",
 } satisfies CapabilityDescriptor;
 
+const PAGES_UPDATE_DRAFT_SOURCE = {
+  ...PAGES_CREATE_DRAFT_SOURCE,
+  actions: ["page.updateDraft"],
+  description:
+    "Изменяет выбранные текстовые поля черновика по точному снимку, сохраняя структуру и опубликованную версию страницы.",
+  executor: { id: "pages.updateDraft.executor", version: "1.0" },
+  id: "pages.updateDraft.v1",
+  inputSchema: { id: "pages.updateDraft.input", version: "1.0" },
+  resolver: { id: "pages.updateDraft.resolver", version: "1.0" },
+  title: "Редактирование черновика страницы",
+} satisfies CapabilityDescriptor;
+
 /** Неизменяемый серверный registry; точная версия выбирается без latest fallback. */
 export const SYSTEM_CAPABILITY_REGISTRY = createCapabilityRegistry([
   CATALOG_ASSIGN_CATEGORY_SOURCE,
   PAGES_CREATE_DRAFT_SOURCE,
+  PAGES_UPDATE_DRAFT_SOURCE,
 ]);
 
 /** Неизменяемый profile adapter каталога из system registry. */

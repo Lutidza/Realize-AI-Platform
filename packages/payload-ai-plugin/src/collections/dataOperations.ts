@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/dataOperations.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Хранит immutable dry-run и lifecycle typed Payload DataOperation.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -41,7 +41,11 @@ export const createDataOperationsCollection = (
       {
         index: true,
         name: "kind",
-        options: ["catalog.assignCategory.v1", "pages.createDraft.v1"],
+        options: [
+          "catalog.assignCategory.v1",
+          "pages.createDraft.v1",
+          "pages.updateDraft.v1",
+        ],
         required: true,
         type: "select",
       },

@@ -1,11 +1,12 @@
 /**
  * @file src/plugins/index.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
 
 import { mapAIPageDraftContent } from "@/collections/Pages/mapAIPageDraft.mapper";
+import { pageDraftTextAdapter } from "@/collections/Pages/pageDraftText.adapter";
 import { formBuilderPlugin } from "@payloadcms/plugin-form-builder";
 import { seoPlugin } from "@payloadcms/plugin-seo";
 import { Plugin } from "payload";
@@ -35,7 +36,11 @@ const stripePublishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOKS_SIGNING_SECRET;
 
 const realizeAI = realizeAIPlugin({
-  pageDraft: { version: "1.0", mapContent: mapAIPageDraftContent },
+  pageDraft: {
+    version: "1.0",
+    mapContent: mapAIPageDraftContent,
+    text: pageDraftTextAdapter,
+  },
   access: {
     canApproveRelease: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),

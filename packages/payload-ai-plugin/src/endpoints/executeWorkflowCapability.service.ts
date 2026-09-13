@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/executeWorkflowCapability.service.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Подготавливает typed Data Operation из разрешённого capability шага без применения.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
@@ -37,22 +37,28 @@ export const executeWorkflowCapability = async (
   const descriptor = SYSTEM_CAPABILITY_REGISTRY.get(binding.capability);
   if (
     !descriptor ||
-    !["catalog.assignCategory.v1", "pages.createDraft.v1"].includes(
-      descriptor.id,
-    ) ||
+    ![
+      "catalog.assignCategory.v1",
+      "pages.createDraft.v1",
+      "pages.updateDraft.v1",
+    ].includes(descriptor.id) ||
     descriptor.version !== "1.0" ||
     descriptor.inputSchema.id !==
-      (descriptor.id === "pages.createDraft.v1"
-        ? "pages.createDraft.input"
-        : "catalog.assignCategory.input") ||
+      (descriptor.id === "pages.updateDraft.v1"
+        ? "pages.updateDraft.input"
+        : descriptor.id === "pages.createDraft.v1"
+          ? "pages.createDraft.input"
+          : "catalog.assignCategory.input") ||
     descriptor.inputSchema.version !== "1.0" ||
     !descriptor.projectProfiles.includes(
       configuration.compiled.projectProfile,
     ) ||
     !binding.actions.includes(
-      descriptor.id === "pages.createDraft.v1"
-        ? "page.createDraft"
-        : "category.assign",
+      descriptor.id === "pages.updateDraft.v1"
+        ? "page.updateDraft"
+        : descriptor.id === "pages.createDraft.v1"
+          ? "page.createDraft"
+          : "category.assign",
     ) ||
     binding.actions.some(
       (action) =>

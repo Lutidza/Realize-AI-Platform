@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/useChatConversation.hook.ts
- * @version 1.3.1
- * @date 2026-09-11
+ * @version 1.4.0
+ * @date 2026-09-12
  * @description Управляет вводом, отправкой и прокруткой текущего разговора.
  */
 
@@ -72,18 +72,27 @@ export const useChatConversation = ({
           !controller.workflow.hasRetry &&
           !controller.context.attachments.length &&
           !controller.context.projectFiles.length &&
+          !controller.context.pageDraft &&
+          !controller.context.isSelectingPageDraft &&
           !controller.context.webSearch
         : (Boolean(controller.draft.trim()) ||
             controller.context.attachments.some(
               (item) => item.status === "ready",
             ) ||
-            controller.context.projectFiles.length > 0) &&
+            controller.context.projectFiles.length > 0 ||
+            Boolean(controller.context.pageDraft)) &&
           !isBusy &&
           controller.ready &&
           controller.agentConfiguration.isReady &&
           controller.workflow.isSelectionReady &&
           !controller.context.hasPendingAttachments &&
           !controller.context.hasFailedAttachments);
+  const canSendPageContext =
+    !controller.context.isSelectingPageDraft &&
+    (!controller.context.pageDraft ||
+      (!controller.workflow.key &&
+        !controller.workflow.isReplying &&
+        controller.context.capabilities?.pageDrafts?.available === true));
   const showRunFeedback =
     controller.isSubmitting || Boolean(controller.currentRun);
   const canClarifyChange =
@@ -117,7 +126,7 @@ export const useChatConversation = ({
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (canSend) {
+    if (canSend && canSendPageContext) {
       shouldFollowRef.current = true;
       void controller.send();
     }
@@ -133,7 +142,7 @@ export const useChatConversation = ({
     )
       return;
     event.preventDefault();
-    if (canSend) {
+    if (canSend && canSendPageContext) {
       shouldFollowRef.current = true;
       void controller.send();
     }
@@ -184,7 +193,7 @@ export const useChatConversation = ({
     changesByMessage,
     dataOperationsByMessage,
     isBusy,
-    canSend,
+    canSend: canSend && canSendPageContext,
     canClarifyChange,
     clarificationBlockedFor,
     clarifyChange,

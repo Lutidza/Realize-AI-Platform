@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/ChatContext.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Задаёт безопасные проекции вложений, файлов проекта и возможностей чата.
  */
 
@@ -27,6 +27,7 @@ export type ChatSourceDto = { url: string; title?: string };
 
 /** Снимок доступности runtime и ограничений, понятный клиенту без внутренних путей. */
 export type ChatCapabilitiesDto = {
+  pageDrafts?: { available: boolean };
   attachments: {
     available: boolean;
     mimeTypes: string[];

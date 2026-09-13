@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createChatMessage.service.ts
- * @version 1.2.0
- * @date 2026-09-11
+ * @version 1.3.0
+ * @date 2026-09-12
  * @description Связывает полный запрос сообщения с владельцем, неизменяемыми файлами и одним run.
  */
 import { createHash, randomUUID } from "node:crypto";
@@ -27,6 +27,8 @@ import { toChatAttachmentDto } from "./chatAttachment.mapper";
 import { resolveAIChatConfiguration } from "./resolveAIChatConfiguration.service";
 import { buildChatConversationHistory } from "./buildChatConversationHistory.util";
 import { createWorkflowMessage } from "./createWorkflowMessage.service";
+import { PageDraftUpdate } from "../endpoints/pageDraftUpdate.service";
+import { requireDataManager } from "../endpoints/access";
 import type { ChatRunContext } from "./ChatRunContext.types";
 import type {
   ChatMessageContext,
@@ -66,6 +68,7 @@ export const createChatMessage = async (
         attachmentIDs: input.attachmentIDs ?? [],
         projectFiles: input.projectFiles ?? [],
         webSearch: input.webSearch ?? false,
+        ...(input.pageDraft ? { pageDraft: input.pageDraft } : {}),
         ...(input.agentConfiguration
           ? { agentConfiguration: input.agentConfiguration }
           : {}),
@@ -79,6 +82,7 @@ export const createChatMessage = async (
       !input.projectFiles?.length &&
       !input.webSearch &&
       !input.agentConfiguration &&
+      !input.pageDraft &&
       detail.messages.some(
         (message) =>
           String(message.runID) === String(existing.id) &&
@@ -97,6 +101,21 @@ export const createChatMessage = async (
     idempotencyKey,
   );
   if (existing) return replay(existing);
+  if (input.pageDraft) await requireDataManager(req, options);
+  const pageDraftContext = input.pageDraft
+    ? await new PageDraftUpdate(req.payload, req).readContext(
+        input.pageDraft.id,
+      )
+    : undefined;
+  if (
+    pageDraftContext &&
+    pageDraftContext.fingerprint !== input.pageDraft?.fingerprint
+  )
+    throw new EndpointError(
+      "CONFLICT",
+      "Выбранная страница изменилась. Выберите её заново; текст сообщения сохранён.",
+      409,
+    );
   const agentConfiguration = await resolveAIChatConfiguration(
     req,
     input.agentConfiguration,
@@ -137,6 +156,7 @@ export const createChatMessage = async (
     }
   }
   const context: ChatMessageContext = {
+    ...(pageDraftContext ? { pageDraft: pageDraftContext.page } : {}),
     attachments: attachments.map(toChatAttachmentDto),
     projectFiles,
     webSearch: input.webSearch ?? false,
@@ -147,7 +167,8 @@ export const createChatMessage = async (
         configuration: agentConfiguration?.compiled.compiledContextHash ?? null,
         model: options.runtime.model ?? null,
         developerInstructions: buildChatDeveloperInstructions(input.webSearch),
-        contextPolicyVersion: "1.0",
+        contextPolicyVersion: "1.1",
+        pageDraftFingerprint: pageDraftContext?.fingerprint ?? null,
       }),
     )
     .digest("hex");
@@ -160,6 +181,7 @@ export const createChatMessage = async (
     : buildChatConversationHistory(detail.messages);
   const runContext: ChatRunContext = {
     ...context,
+    pageDraftContext,
     agentConfiguration,
     runtimeContextHash,
     conversationHistory,
@@ -216,6 +238,7 @@ export const createChatMessage = async (
       webSearch: input.webSearch,
       agentConfiguration,
       conversationHistory,
+      pageDraftContext,
     });
   } catch {
     const event: AIStreamEvent = {

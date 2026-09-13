@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationRollback.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Атомарно откатывает подтверждённую операцию данных с проверкой снимка.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -10,6 +10,7 @@
 import type { Payload, PayloadRequest } from "payload";
 
 import { PageDraftCreation } from "./pageDraftCreation.service";
+import { PageDraftUpdate } from "./pageDraftUpdate.service";
 import { CatalogCategoryAssignment } from "./catalogCategoryAssignment";
 import { DataOperationAuditRepository } from "./dataOperationAuditRepository";
 import {
@@ -70,21 +71,25 @@ export const rollbackDataOperation = async (input: {
   try {
     operation = await withPayloadTransaction(input.req, async () => {
       const restoredTargetUpdatedAt =
-        operation.kind === "pages.createDraft.v1"
-          ? await new PageDraftCreation(input.payload, input.req).rollback(
+        operation.kind === "pages.updateDraft.v1"
+          ? await new PageDraftUpdate(input.payload, input.req).rollback(
               operation,
             )
-          : await new CatalogCategoryAssignment(
-              input.payload,
-              input.req,
-            ).rollback({
-              afterCategoryIDs: snapshotIDs(operation.afterSnapshot),
-              appliedTargetUpdatedAt: String(
-                operation.appliedTargetUpdatedAt || "",
-              ),
-              beforeCategoryIDs: snapshotIDs(operation.beforeSnapshot),
-              productID: relationID(operation.product),
-            });
+          : operation.kind === "pages.createDraft.v1"
+            ? await new PageDraftCreation(input.payload, input.req).rollback(
+                operation,
+              )
+            : await new CatalogCategoryAssignment(
+                input.payload,
+                input.req,
+              ).rollback({
+                afterCategoryIDs: snapshotIDs(operation.afterSnapshot),
+                appliedTargetUpdatedAt: String(
+                  operation.appliedTargetUpdatedAt || "",
+                ),
+                beforeCategoryIDs: snapshotIDs(operation.beforeSnapshot),
+                productID: relationID(operation.product),
+              });
       const transitioned = await repository.transition({
         data: {
           errorSummary: undefined,

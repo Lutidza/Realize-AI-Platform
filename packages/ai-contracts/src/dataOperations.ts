@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/dataOperations.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Задаёт общие контракты и discriminated union управляемых операций Payload Data Lane.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -11,14 +11,18 @@ import type {
   CreatePageDraftIntent,
   PageDraftCreationOperationDTO,
 } from "./PageDraftCreation.types";
+import type {
+  PageDraftUpdateOperationDTO,
+  UpdatePageDraftIntent,
+} from "./PageDraftUpdate.types";
 
 /** Закрытый список реализованных и проверяемых операций Data Lane. */
 export type DataOperationKind =
-  "catalog.assignCategory.v1" | "pages.createDraft.v1";
+  "catalog.assignCategory.v1" | "pages.createDraft.v1" | "pages.updateDraft.v1";
 
 /** Декларативное предложение никогда не предоставляет право записи модели. */
 export type DataOperationIntent =
-  AssignProductCategoryIntent | CreatePageDraftIntent;
+  AssignProductCategoryIntent | CreatePageDraftIntent | UpdatePageDraftIntent;
 
 /** Явный selector ассистента; допускается ровно один ключ. */
 export type DataEntitySelector =
@@ -104,7 +108,9 @@ export type CategoryAssignmentOperationDTO = DataOperationBaseDTO & {
 
 /** kind однозначно определяет preview, результат записи и стратегию отката. */
 export type DataOperationDTO =
-  CategoryAssignmentOperationDTO | PageDraftCreationOperationDTO;
+  | CategoryAssignmentOperationDTO
+  | PageDraftCreationOperationDTO
+  | PageDraftUpdateOperationDTO;
 
 /** Выбирает сохранённый ответ ассистента как источник предложения. */
 export type CreateDataOperationInput = {

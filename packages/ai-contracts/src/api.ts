@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/api.ts
- * @version 1.3.0
- * @date 2026-09-11
+ * @version 1.4.0
+ * @date 2026-09-12
  * @description Задаёт public API envelopes для чата, изменений, source promotion и integrations.
  */
 
@@ -17,7 +17,8 @@ import type {
 import type { ChangePreviewDTO } from "./preview";
 import type { ChangeReleaseDTO } from "./release";
 import type { ChangeSourcePromotionDTO } from "./sourcePromotion";
-import type { DataOperationDTO } from "./dataOperations";
+import type { DataDocumentRefDTO, DataOperationDTO } from "./dataOperations";
+import type { PageDraftReference } from "./PageDraftUpdate.types";
 import type { ChangePlanReadinessDTO } from "./ChangePlanReadiness.types";
 import type {
   AIChatConfigurationSelection,
@@ -175,6 +176,7 @@ export type ConversationDTO = {
 
 /** Redacted, user-visible message projection. */
 export type MessageDTO = {
+  pageDraft?: DataDocumentRefDTO;
   changePlan: ChangePlanReadinessDTO;
   attachments?: ChatAttachmentDto[];
   projectFiles?: ProjectContextFileDto[];
@@ -235,6 +237,7 @@ export type CreateConversationInput = {
 
 /** Validated payload accepted when starting a message run. */
 export type CreateMessageInput = {
+  pageDraft?: PageDraftReference;
   agentConfiguration?: AIChatConfigurationSelection;
   workflow?: WorkflowStartInput;
   attachmentIDs?: string[];

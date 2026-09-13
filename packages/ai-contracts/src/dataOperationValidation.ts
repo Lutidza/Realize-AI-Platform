@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/dataOperationValidation.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Проверяет недоверенный assistant protocol и HTTP input Data Lane.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -17,6 +17,7 @@ import type {
   DecideDataOperationInput,
 } from "./dataOperations";
 import { parseCreatePageDraftIntent } from "./parseCreatePageDraftIntent.validator";
+import { parseUpdatePageDraftIntent } from "./parseUpdatePageDraftIntent.validator";
 import { ContractValidationError, parseIdentifier } from "./validation";
 
 const asObject = (value: unknown, name: string): Record<string, unknown> => {
@@ -139,6 +140,9 @@ export const parseDataOperationIntent = (
   const input = asObject(value, "data operation");
   if (input.kind === "pages.createDraft.v1") {
     return parseCreatePageDraftIntent(input);
+  }
+  if (input.kind === "pages.updateDraft.v1") {
+    return parseUpdatePageDraftIntent(input);
   }
   return parseAssignProductCategoryIntent(input);
 };

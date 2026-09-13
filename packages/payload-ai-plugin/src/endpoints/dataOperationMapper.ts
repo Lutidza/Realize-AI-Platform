@@ -1,14 +1,18 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationMapper.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Проецирует DataOperation persistence в allowlisted browser DTO.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 
-import { parseCreatePageDraftIntent } from "@realize/ai-contracts";
+import {
+  parseCreatePageDraftIntent,
+  parseUpdatePageDraftIntent,
+} from "@realize/ai-contracts";
 import type { AppliedPageDraftSnapshot } from "./PageDraft.types";
+import type { PageDraftUpdateSnapshot } from "./PageDraftUpdate.types";
 import type {
   DataDocumentRefDTO,
   DataOperationApprovalDTO,
@@ -113,6 +117,45 @@ export const toDataOperationDTO = (input: {
     updatedAt: iso(input.operation.updatedAt),
     version: Number(input.operation.version || 1),
   };
+  if (input.operation.kind === "pages.updateDraft.v1") {
+    const intent = parseUpdatePageDraftIntent(input.operation.intent);
+    const snapshot = input.operation.afterSnapshot as PageDraftUpdateSnapshot;
+    const applied = input.operation.appliedSnapshot as
+      AppliedPageDraftSnapshot | undefined;
+    return {
+      ...base,
+      kind: "pages.updateDraft.v1",
+      rollbackStrategy: "before-snapshot",
+      expectedTargetUpdatedAt: intent.expectedUpdatedAt,
+      preview: {
+        page: documentRef(snapshot.preview.page),
+        changes: intent.changes.map((change) => ({
+          path: change.path,
+          before: change.before,
+          after: change.after,
+          label:
+            snapshot.preview.changes.find((item) => item.path === change.path)
+              ?.label ?? change.path,
+        })),
+        status: "draft",
+      },
+      ...(applied?.pageID &&
+      ["applied", "rollback_approved", "rollback_failed"].includes(
+        String(input.operation.state),
+      )
+        ? {
+            result: {
+              page: {
+                id: applied.pageID,
+                title: applied.title,
+                slug: applied.slug,
+              },
+              adminUrl: applied.adminUrl,
+            },
+          }
+        : {}),
+    };
+  }
   if (input.operation.kind === "pages.createDraft.v1") {
     const intent = parseCreatePageDraftIntent(input.operation.intent);
     const applied = input.operation.appliedSnapshot as

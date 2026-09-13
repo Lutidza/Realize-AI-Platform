@@ -1477,7 +1477,7 @@ export interface RealizeAiExecutionJob {
 export interface RealizeAiDataOperation {
   id: number;
   title: string;
-  kind: 'catalog.assignCategory.v1' | 'pages.createDraft.v1';
+  kind: 'catalog.assignCategory.v1' | 'pages.createDraft.v1' | 'pages.updateDraft.v1';
   state:
     | 'awaiting_approval'
     | 'approved'

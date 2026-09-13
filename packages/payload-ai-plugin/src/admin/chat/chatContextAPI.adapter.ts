@@ -1,14 +1,16 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/chatContextAPI.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
- * @description Передаёт приватные вложения и читает разрешённый файловый контекст чата.
+ * @version 1.1.0
+ * @date 2026-09-12
+ * @description Передаёт вложения и читает разрешённые файлы и страницы для контекста чата.
  */
 
 import type {
   APIResponse,
   ChatAttachmentDto,
   ChatCapabilitiesDto,
+  PageDraftCatalogDTO,
+  PageDraftContextDTO,
   ProjectContextFilesDto,
 } from "@realize/ai-contracts";
 import { REALIZE_AI_API_ROOT, requestRealizeAI } from "../realizeAIAPI";
@@ -73,5 +75,21 @@ export const loadChatCapabilities = (signal: AbortSignal) =>
 export const searchChatProjectFiles = (query: string, signal: AbortSignal) =>
   requestRealizeAI<ProjectContextFilesDto>(
     `/chat/project-files?q=${encodeURIComponent(query)}`,
+    { signal },
+  );
+
+export const searchChatPageDrafts = (
+  query: string,
+  page: number,
+  signal: AbortSignal,
+) =>
+  requestRealizeAI<PageDraftCatalogDTO>(
+    `/chat/page-drafts?q=${encodeURIComponent(query)}&page=${page}`,
+    { signal },
+  );
+
+export const loadChatPageDraft = (id: string, signal: AbortSignal) =>
+  requestRealizeAI<PageDraftContextDTO>(
+    `/chat/page-drafts/${encodeURIComponent(id)}`,
     { signal },
   );

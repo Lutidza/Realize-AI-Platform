@@ -13,6 +13,7 @@ import * as migration_20260909_190959_chat_message_context from './20260909_1909
 import * as migration_20260910_122259_ai_config_activation from './20260910_122259_ai_config_activation';
 import * as migration_20260911_132139_worker_presence from './20260911_132139_worker_presence';
 import * as migration_20260911_155718_page_draft_data_operation from './20260911_155718_page_draft_data_operation';
+import * as migration_20260912_111003_page_draft_update from './20260912_111003_page_draft_update';
 
 export const migrations = [
   {
@@ -88,6 +89,11 @@ export const migrations = [
   {
     up: migration_20260911_155718_page_draft_data_operation.up,
     down: migration_20260911_155718_page_draft_data_operation.down,
-    name: '20260911_155718_page_draft_data_operation'
+    name: '20260911_155718_page_draft_data_operation',
+  },
+  {
+    up: migration_20260912_111003_page_draft_update.up,
+    down: migration_20260912_111003_page_draft_update.down,
+    name: '20260912_111003_page_draft_update'
   },
 ];

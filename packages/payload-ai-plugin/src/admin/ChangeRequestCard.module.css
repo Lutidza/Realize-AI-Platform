@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/ChangeRequestCard.module.css
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Задаёт оформление карточек подтверждения изменений кода и данных.
  */
 
@@ -202,6 +202,31 @@
   display: grid;
   gap: 6px;
   margin: 0;
+}
+
+.textDiff {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: var(--ui-space-3);
+  margin: 0;
+}
+.textDiff > div {
+  min-width: 0;
+  padding: var(--ui-space-3);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+}
+.textDiff dt {
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  margin-bottom: var(--ui-space-2);
+}
+.textDiff dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .hashes div {

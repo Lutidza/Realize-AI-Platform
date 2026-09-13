@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 1.12.0
- * @date 2026-09-11
+ * @version 1.13.0
+ * @date 2026-09-12
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
@@ -31,6 +31,24 @@ export type {
   PageDraftSection,
 } from "./PageDraftCreation.types";
 export { parseCreatePageDraftIntent } from "./parseCreatePageDraftIntent.validator";
+export type {
+  PageDraftTextFieldDTO,
+  PageDraftCatalogDTO,
+  PageDraftContextDTO,
+  PageDraftReference,
+  PageDraftTextChange,
+  UpdatePageDraftIntent,
+  PageDraftUpdatePreviewDTO,
+  PageDraftUpdateOperationDTO,
+} from "./PageDraftUpdate.types";
+export {
+  parsePageDraftContext,
+  parsePageDraftReference,
+} from "./parsePageDraftContext.validator";
+export {
+  parseUpdatePageDraftIntent,
+  parsePageDraftTextChanges,
+} from "./parseUpdatePageDraftIntent.validator";
 export * from "./events";
 export * from "./execution";
 export * from "./integrations";

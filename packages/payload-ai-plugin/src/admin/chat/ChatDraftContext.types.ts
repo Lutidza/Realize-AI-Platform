@@ -1,13 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatDraftContext.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Разделяет локальные файлы загрузки и переносимый контекст черновика чата.
  */
 
 import type {
   ChatAttachmentDto,
   ChatCapabilitiesDto,
+  DataDocumentRefDTO,
+  PageDraftReference,
   ProjectContextFileDto,
 } from "@realize/ai-contracts";
 
@@ -28,7 +30,11 @@ export type ChatReadyContext = {
   attachments: ChatAttachmentDto[];
   projectFiles: ProjectContextFileDto[];
   webSearch: boolean;
+  pageDraft?: ChatPageDraftSelection;
 };
+
+/** Подпись служит только интерфейсу; запись связывается с серверным fingerprint. */
+export type ChatPageDraftSelection = DataDocumentRefDTO & PageDraftReference;
 
 export type ChatDraftContextController = {
   attachments: PendingChatAttachment[];
@@ -36,6 +42,10 @@ export type ChatDraftContextController = {
   error?: string;
   projectFiles: ProjectContextFileDto[];
   webSearch: boolean;
+  pageDraft?: ChatPageDraftSelection;
+  isSelectingPageDraft: boolean;
+  selectPageDraft: (id: string) => Promise<void>;
+  removePageDraft: () => void;
   hasPendingAttachments: boolean;
   hasFailedAttachments: boolean;
   addAttachments: (files: File[]) => void;

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/useChatHosting.int.spec.ts
- * @version 1.0.1
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Проверяет перенос режима workflow с черновиком и блокировку потери неподтверждённых запросов.
  */
 
@@ -40,6 +40,7 @@ const mocks = vi.hoisted(() => {
         })),
         restoreContext: vi.fn(),
         hasPendingAttachments: false,
+        isSelectingPageDraft: false,
         hasFailedAttachments: false,
       },
       workflow: {
@@ -95,10 +96,34 @@ beforeEach(() => {
   mocks.controller.workflow.isPending = false;
   mocks.controller.workflow.pendingConversationID = undefined;
   mocks.controller.pendingWorkflowConversationID = undefined;
+  mocks.controller.context.isSelectingPageDraft = false;
 });
 afterEach(cleanup);
 
 describe("Hosting workflow draft", () => {
+  it("не переносит незавершённое чтение выбранной страницы в другое окно", () => {
+    mocks.controller.context.isSelectingPageDraft = true;
+    const { result } = renderHook(() => useChatHosting({ route: "/ai" }));
+    act(() => result.current.presentation.openChat("window"));
+    expect(mocks.openWindow).not.toHaveBeenCalled();
+    expect(result.current.presentation.notice).toContain("чтения страницы");
+  });
+  it("сохраняет popup до завершения чтения выбранной страницы и затем разрешает возврат", () => {
+    mocks.pathname = "/admin/ai/window";
+    mocks.controller.context.isSelectingPageDraft = true;
+    const { result, rerender } = renderHook(() =>
+      useChatHosting({ route: "/ai" }),
+    );
+    act(() => result.current.presentation.closeChat());
+    expect(mocks.returnToParent).not.toHaveBeenCalled();
+    expect(result.current.presentation.notice).toContain("чтения страницы");
+
+    mocks.controller.context.isSelectingPageDraft = false;
+    rerender();
+    act(() => result.current.presentation.closeChat());
+    expect(mocks.returnToParent).toHaveBeenCalledOnce();
+    expect(mocks.returnToParent).toHaveBeenCalledWith("panel");
+  });
   it("переносит профиль, исходную привязку процесса и незавершённый JSON вместе с сообщением", async () => {
     renderHook(() => useChatHosting({ route: "/ai" }));
     const state = mocks.options!.readState();

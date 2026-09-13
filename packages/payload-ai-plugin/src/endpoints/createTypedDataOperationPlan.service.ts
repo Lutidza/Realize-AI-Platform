@@ -1,23 +1,26 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/createTypedDataOperationPlan.service.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Создаёт один immutable preview из проверенного intent с durable replay и audit.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 import { parseDataOperationIntent } from "@realize/ai-contracts";
 import {
   createPageDraftRollbackHash,
+  createPageDraftUpdateRollbackHash,
   createCategoryAssignmentOperationHash,
   createCategoryAssignmentRollbackHash,
   hashCanonicalJSON,
 } from "@realize/change-engine";
 import { PageDraftCreation } from "./pageDraftCreation.service";
+import { PageDraftUpdate } from "./pageDraftUpdate.service";
 import { CatalogCategoryAssignment } from "./catalogCategoryAssignment";
 import { DataOperationAuditRepository } from "./dataOperationAuditRepository";
 import { DataOperationRepository } from "./dataOperationRepository";
 import type { TypedDataOperationPlanInput } from "./DataOperationPlanning.types";
 import { EndpointError } from "./http";
+import { assertDataOperationSource } from "./assertDataOperationSource.validator";
 import { relationID } from "./mappers";
 import { withPayloadTransaction } from "./payloadTransaction";
 import { redactText } from "./redaction";
@@ -55,6 +58,9 @@ export const createTypedDataOperationPlan = async (
         .find(
           (message) =>
             message.role === "user" &&
+            (input.intent.kind !== "pages.updateDraft.v1" ||
+              (typeof assistant.runID === "string" &&
+                message.runID === assistant.runID)) &&
             Number(message.sequence) < Number(assistant.sequence),
         );
   }
@@ -88,7 +94,10 @@ export const createTypedDataOperationPlan = async (
         )
       : undefined);
   const assertReplay = async (operation: AIDocument): Promise<AIDocument> => {
-    if (input.source.type === "assistant") return operation;
+    if (input.source.type === "assistant") {
+      assertDataOperationSource(operation, input);
+      return operation;
+    }
     const event = await audit.getPreviewEvent(String(operation.id));
     const payload = event?.payload as Record<string, unknown> | undefined;
     const workflow = payload?.workflow as Record<string, unknown> | undefined;
@@ -120,7 +129,21 @@ export const createTypedDataOperationPlan = async (
     sourceMessageID: input.sourceMessageID,
     sourceMessageKey,
   };
-  if (input.intent.kind === "pages.createDraft.v1") {
+  if (input.intent.kind === "pages.updateDraft.v1") {
+    const pages = new PageDraftUpdate(input.payload, input.req);
+    const snapshot = await pages.dryRun(input.intent);
+    const operationHash = pages.operationHash(input.intent, snapshot);
+    planned = {
+      ...common,
+      kind: input.intent.kind,
+      afterSnapshot: snapshot,
+      beforeSnapshot: snapshot.beforePage,
+      expectedTargetUpdatedAt: snapshot.context.updatedAt,
+      operationHash,
+      rollbackHash: createPageDraftUpdateRollbackHash({ operationHash }),
+      title: `Изменить черновик «${snapshot.context.page.title}»`.slice(0, 120),
+    };
+  } else if (input.intent.kind === "pages.createDraft.v1") {
     const pages = new PageDraftCreation(input.payload, input.req);
     const snapshot = await pages.dryRun(input.intent);
     const operationHash = pages.operationHash(input.intent, snapshot);

@@ -1,8 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/DataOperationPreview.tsx
- * @version 1.0.0
- * @date 2026-09-11
- * @description Выбирает предпросмотр страницы или изменения категории по типу операции.
+ * @version 1.1.0
+ * @date 2026-09-12
+ * @description Выбирает предпросмотр создания или изменения страницы и назначения категории.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -15,6 +15,7 @@ import { ChevronDown } from "lucide-react";
 import styles from "./ChangeRequestCard.module.css";
 import type { DataOperationPreviewProps } from "./DataOperationCard.types";
 import { PageDraftPreview } from "./PageDraftPreview";
+import { PageDraftUpdatePreview } from "./PageDraftUpdatePreview";
 
 const categoryList = (
   categories: CategoryAssignmentPreviewDTO["beforeCategories"],
@@ -39,6 +40,8 @@ export const DataOperationPreview = ({
   if (operation.kind === "pages.createDraft.v1") {
     return <PageDraftPreview operation={operation} />;
   }
+  if (operation.kind === "pages.updateDraft.v1")
+    return <PageDraftUpdatePreview operation={operation} />;
   return (
     <details
       className={styles.details}

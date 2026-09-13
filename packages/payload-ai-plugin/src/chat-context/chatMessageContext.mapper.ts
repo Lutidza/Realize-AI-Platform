@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/chatMessageContext.mapper.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Восстанавливает только пользовательскую проекцию контекста с defaults старой истории.
  */
 import type {
@@ -59,5 +59,27 @@ export const toChatMessageContext = (value: unknown): ChatMessageContext => {
       sha256: item.sha256,
     });
   }
-  return { attachments, projectFiles, webSearch: context.webSearch === true };
+  const page = context.pageDraft;
+  const pageDraft =
+    page &&
+    typeof page === "object" &&
+    !Array.isArray(page) &&
+    "id" in page &&
+    typeof page.id === "string" &&
+    "title" in page &&
+    typeof page.title === "string"
+      ? {
+          id: page.id,
+          title: page.title,
+          ...("slug" in page && typeof page.slug === "string"
+            ? { slug: page.slug }
+            : {}),
+        }
+      : undefined;
+  return {
+    attachments,
+    projectFiles,
+    webSearch: context.webSearch === true,
+    ...(pageDraft ? { pageDraft } : {}),
+  };
 };

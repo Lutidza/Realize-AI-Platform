@@ -1,13 +1,14 @@
 /**
  * @file tests/int/dataOperationCard.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Проверяет подтверждение создания черновика, результат, безопасный откат и сохранение карточки каталога.
  */
 
 import type {
   CategoryAssignmentOperationDTO,
   PageDraftCreationOperationDTO,
+  PageDraftUpdateOperationDTO,
 } from "@realize/ai-contracts";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
@@ -60,6 +61,101 @@ const propsFor = (
 });
 
 describe("Карточка создания черновика страницы", () => {
+  it("показывает точный diff существующей страницы и раздельные подтверждение, запись и восстановление", () => {
+    const operation: PageDraftUpdateOperationDTO = {
+      ...page,
+      kind: "pages.updateDraft.v1",
+      title: "Изменить текст страницы",
+      rollbackStrategy: "before-snapshot",
+      expectedTargetUpdatedAt: "2026-09-12T10:00:00Z",
+      preview: {
+        page: { id: "17", title: "О компании", slug: "about" },
+        status: "draft",
+        changes: [
+          {
+            path: "title",
+            label: "Название",
+            before: "  Прежний заголовок\nВторая строка",
+            after: "<script>Новый заголовок</script>",
+          },
+          {
+            path: "meta.description",
+            label: "SEO-описание",
+            before: "Описание",
+            after: "",
+          },
+        ],
+      },
+    };
+    const props = propsFor(operation);
+    const { container, rerender } = render(
+      createElement(DataOperationCard, props),
+    );
+    expect(
+      screen.getByRole("region", { name: "Изменение 1: Название" }),
+    ).toBeTruthy();
+    expect(container.querySelector("dd")?.textContent).toBe(
+      "  Прежний заголовок\nВторая строка",
+    );
+    expect(screen.getByText("<script>Новый заголовок</script>")).toBeTruthy();
+    expect(container.querySelector("script")).toBeNull();
+    expect(screen.getByText("Пустое значение")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Подтвердить изменения" }),
+    );
+    expect(props.onApprove).toHaveBeenCalledOnce();
+    expect(props.onApply).not.toHaveBeenCalled();
+    rerender(
+      createElement(DataOperationCard, {
+        ...props,
+        operation: { ...operation, state: "approved" },
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Сохранить черновик" }));
+    expect(props.onApply).toHaveBeenCalledOnce();
+    const applied = {
+      ...operation,
+      state: "applied" as const,
+      result: {
+        page: { id: "17", title: "Новый заголовок" },
+        adminUrl: "/admin/collections/pages/17",
+      },
+    };
+    rerender(
+      createElement(DataOperationCard, { ...props, operation: applied }),
+    );
+    expect(screen.getByText("Черновик обновлён")).toBeTruthy();
+    expect(
+      screen
+        .getByRole("link", { name: "Открыть черновик" })
+        .getAttribute("href"),
+    ).toBe(applied.result.adminUrl);
+    expect(screen.queryByText("Удалить созданный черновик")).toBeNull();
+    expect(screen.queryByText("Назначить категорию")).toBeNull();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Подтвердить восстановление" }),
+    );
+    expect(props.onApproveRollback).toHaveBeenCalledOnce();
+    expect(props.onRollback).not.toHaveBeenCalled();
+    rerender(
+      createElement(DataOperationCard, {
+        ...props,
+        operation: { ...applied, state: "rollback_approved" },
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Восстановить содержимое" }),
+    );
+    expect(props.onRollback).toHaveBeenCalledOnce();
+    rerender(
+      createElement(DataOperationCard, {
+        ...props,
+        operation: { ...applied, state: "rolled_back" },
+      }),
+    );
+    expect(screen.getByText("Содержимое восстановлено")).toBeTruthy();
+    expect(screen.queryByText("Черновик удалён")).toBeNull();
+  });
   it("показывает полное содержание как текст и подтверждает отдельно от записи", () => {
     const props = propsFor();
     const { container, rerender } = render(

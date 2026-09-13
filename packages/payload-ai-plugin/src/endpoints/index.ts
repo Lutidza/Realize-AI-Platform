@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 1.7.0
- * @date 2026-09-11
+ * @version 1.8.0
+ * @date 2026-09-12
  * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
@@ -10,6 +10,7 @@ import type { Endpoint } from "payload";
 import { DEFAULT_API_ROUTE } from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createChatContextEndpoints } from "../chat-context/chatContextEndpoints.controller";
+import { createPageDraftContextEndpoints } from "../chat-context/pageDraftContextEndpoints.controller";
 import { createAIConfigEndpoints } from "./aiConfigEndpoints";
 import { createChangeHandlers } from "./changeHandlers";
 import { createDataOperationHandlers } from "./dataOperationHandlers";
@@ -73,6 +74,7 @@ export const createAIEndpoints = (
       path: `${DEFAULT_API_ROUTE}/runs/:id/workflow/continue`,
     },
     ...createChatContextEndpoints(options),
+    ...createPageDraftContextEndpoints(options),
     {
       handler: withCodexRuntime(options, createStatusHandler),
       method: "get",

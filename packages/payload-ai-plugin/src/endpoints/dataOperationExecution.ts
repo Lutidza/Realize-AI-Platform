@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationExecution.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Атомарно применяет подтверждённую типизированную операцию данных.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -11,6 +11,7 @@ import type { ApplyDataOperationInput } from "@realize/ai-contracts";
 import type { Payload, PayloadRequest } from "payload";
 
 import { PageDraftCreation } from "./pageDraftCreation.service";
+import { PageDraftUpdate } from "./pageDraftUpdate.service";
 import { CatalogCategoryAssignment } from "./catalogCategoryAssignment";
 import { DataOperationAuditRepository } from "./dataOperationAuditRepository";
 import {
@@ -70,11 +71,13 @@ export const applyDataOperation = async (input: {
   try {
     operation = await withPayloadTransaction(input.req, async () => {
       const pageResult =
-        operation.kind === "pages.createDraft.v1"
-          ? await new PageDraftCreation(input.payload, input.req).apply(
-              operation,
-            )
-          : undefined;
+        operation.kind === "pages.updateDraft.v1"
+          ? await new PageDraftUpdate(input.payload, input.req).apply(operation)
+          : operation.kind === "pages.createDraft.v1"
+            ? await new PageDraftCreation(input.payload, input.req).apply(
+                operation,
+              )
+            : undefined;
       const appliedTargetUpdatedAt =
         pageResult?.appliedSnapshot.updatedAt ??
         (await new CatalogCategoryAssignment(input.payload, input.req).apply({

@@ -21,7 +21,7 @@ changes/approvals, data operations/apply/rollback, execution/acceptance,
 preview, source promotion, release candidates, runs/events/cancel.
 
 Это описание групп, а не гарантия универсальных capabilities: фактический Data
-Lane поддерживает `catalog.assignCategory.v1` и `pages.createDraft.v1`.
+Lane поддерживает `catalog.assignCategory.v1`, `pages.createDraft.v1` и `pages.updateDraft.v1`.
 
 ### Готовность ответа к оформлению плана кода
 
@@ -57,7 +57,7 @@ POST повторяет проверку, далее сохраняются от
 
 ### Операции данных и черновик страницы
 
-Обе операции используют существующие endpoints; отдельный произвольный Pages
+Операции используют существующие endpoints; отдельный произвольный Pages
 CRUD для модели не открывается. Пути ниже относительны к `/api/realize-ai`:
 
 | Действие | Endpoint | Strict request body |
@@ -86,11 +86,11 @@ Mutation требует `Idempotency-Key`; отклонение требует �
   сервером из настроенного маршрута Admin. После успешного отката результат
   удалённого черновика в DTO отсутствует.
 
-`expectedTargetUpdatedAt` принадлежит только ветке существующего товара:
+`expectedTargetUpdatedAt` принадлежит веткам изменения существующего документа:
 до создания страницы такой версии нет. После apply меняется `rollbackHash`,
 который связывает отдельное решение об удалении с ID, версией и fingerprint
 созданного черновика. Закрытые snapshot, Lexical/Content schema, пользовательские
-документы и fingerprint за границу DTO не выдаются.
+документы за границу DTO не выдаются; read-контекст update передаёт только opaque fingerprint.
 
 В UI страницы доступны последовательные действия «Подготовить изменение
 данных», «Подтвердить создание», «Создать черновик», затем «Открыть черновик».
@@ -99,6 +99,33 @@ Mutation требует `Idempotency-Key`; отклонение требует �
 как `CONFLICT`; неподдерживаемый intent — `INVALID_REQUEST`, отсутствие права —
 `FORBIDDEN`. Полный контракт текста, транзакции и защищённого отката — в
 [Data/Config Pipeline](../02-change-engine-and-pipelines/14-data-config-pipeline.md#145-создание-черновика-cms-страницы).
+
+### Контекст и изменение существующей страницы
+
+`GET /chat/page-drafts?q=&page=1` возвращает `{pages: [{id, title, slug?}],
+page, totalPages, totalDocs}` с поиском по title/slug и лимитом 20. Поисковая
+строка — до 128 символов. `GET /chat/page-drafts/:id` возвращает
+`PageDraftContextDTO`: `{page, updatedAt, fingerprint, adapterVersion,
+fields: [{path, label, value, maxLength}]}`. Обе операции требуют текущую
+сессию чата, `canManageData`, подключённый host adapter и доступ Pages;
+ответы `no-store`, без raw Payload.
+
+`POST /conversations/:id/messages` принимает необязательный
+`pageDraft: {id, fingerprint}`. Browser не задаёт текст снимка, version,
+инструкции или права. Сервер перечитывает exact selection перед созданием
+run; stale selection — `CONFLICT`, без отправки провайдеру. `ChatCapabilitiesDto`
+содержит `pageDrafts?: {available}`. `MessageDTO.pageDraft?` показывает только
+`{id, title, slug?}`; закрытый run context не выдаётся. Выбор вместе с workflow
+отклоняется, как несовместимый контекст.
+
+Ветка `DataOperationDTO.kind: "pages.updateDraft.v1"` содержит
+`preview: {page, changes: [{path, label, before, after}], status: "draft"}`,
+`expectedTargetUpdatedAt`, `rollbackStrategy: "before-snapshot"` и после apply
+`result: {page, adminUrl}`. Общие approval/apply/rollback endpoints сохраняются.
+В интерфейсе — полный diff, «Подтвердить изменения», «Сохранить черновик» и
+отдельное восстановление предыдущего текста. Это не публикация и не удаление
+страницы. Все пределы и проверки исходной версии описаны в
+[Data/Config Pipeline](../02-change-engine-and-pipelines/14-data-config-pipeline.md#146-редактирование-текста-существующей-страницы).
 
 ### Управление админским агентом
 
@@ -365,7 +392,7 @@ Strict JSON checkpoint ограничен 128 КиБ UTF-8. Интерпрета
 непрерывный путь и cumulative `maxSteps`, явно различает missing и `null`,
 использует exact own keys либо RFC 6901 JSON Pointer и canonical JSON comparison.
 Capability создаёт настоящий preview `catalog.assignCategory.v1` или
-`pages.createDraft.v1` только при exact разрешённом binding;
+`pages.createDraft.v1` и `pages.updateDraft.v1` только при exact разрешённом binding;
 check проверяет его фактическое состояние и audit provenance. Возможности,
 подтверждения и ограничения [системного runtime](../01-architecture/10-ai-codex-layer-integration.md#108-исполнение-workflow-сегментами)
 не заменяются текстом workflow или результатом модели.

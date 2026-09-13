@@ -1,7 +1,7 @@
 /**
  * @file tests/int/useRealizeAIChat.lifecycle.int.spec.ts
- * @version 1.3.0
- * @date 2026-09-11
+ * @version 1.4.0
+ * @date 2026-09-12
  * @description Проверяет сохранение выбора и черновика при скрытии чата и межоконном handoff.
  */
 
@@ -55,6 +55,64 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("lifecycle общего controller чата", () => {
+  it("отправляет только id/fingerprint страницы и сохраняет выбор и текст после отказа устаревшей ревизии", async () => {
+    mocks.request.mockImplementation(async (path: string) => {
+      if (path === "/status") return { state: "ready" };
+      if (path === "/config/runtime")
+        return { activePointer: null, release: null, profiles: [] };
+      if (path === "/chat/capabilities")
+        return { pageDrafts: { available: true } };
+      if (path === "/conversations")
+        return [{ id: "selected", status: "active" }];
+      if (path.endsWith("/messages"))
+        throw new Error("Страница изменилась. Выберите её снова.");
+      return {
+        conversation: { id: "selected" },
+        messages: [],
+        runs: [],
+        changeRequests: [],
+        dataOperations: [],
+      };
+    });
+    const { result } = renderHook(() => useRealizeAIChat(true));
+    await waitFor(() =>
+      expect(result.current.detail?.conversation.id).toBe("selected"),
+    );
+    await waitFor(() =>
+      expect(result.current.context.capabilities?.pageDrafts?.available).toBe(
+        true,
+      ),
+    );
+    const selected = {
+      id: "42",
+      title: "О компании",
+      slug: "about",
+      fingerprint: "a".repeat(64),
+    };
+    act(() => {
+      result.current.setDraft("Сократи первый абзац");
+      result.current.context.restoreContext({
+        attachments: [],
+        projectFiles: [],
+        webSearch: false,
+        pageDraft: selected,
+      });
+    });
+    await act(() => result.current.send());
+    const [, init] = mocks.request.mock.calls.find(([path]) =>
+      path.endsWith("/messages"),
+    )!;
+    expect(JSON.parse(init.body)).toEqual({
+      content: "Сократи первый абзац",
+      attachmentIDs: [],
+      projectFiles: [],
+      webSearch: false,
+      pageDraft: { id: selected.id, fingerprint: selected.fingerprint },
+    });
+    expect(result.current.context.pageDraft).toEqual(selected);
+    expect(result.current.draft).toBe("Сократи первый абзац");
+    expect(result.current.error).toContain("Страница изменилась");
+  });
   it("после скрытия и повторного открытия сохраняет выбранный диалог и черновик", async () => {
     const { result, rerender } = renderHook(
       ({ enabled }) => useRealizeAIChat(enabled),

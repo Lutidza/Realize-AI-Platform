@@ -1,7 +1,7 @@
 /**
  * @file tests/int/useChatDraftContext.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Проверяет загрузку, повтор, удаление и безопасный перенос контекста чата.
  */
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   upload: vi.fn(),
   remove: vi.fn(),
   capabilities: vi.fn(),
+  page: vi.fn(),
 }));
 vi.mock(
   "../../packages/payload-ai-plugin/src/admin/chat/chatContextAPI.adapter",
@@ -20,6 +21,7 @@ vi.mock(
     uploadChatAttachment: mocks.upload,
     removeChatAttachment: mocks.remove,
     loadChatCapabilities: mocks.capabilities,
+    loadChatPageDraft: mocks.page,
   }),
 );
 const attachment = {
@@ -51,6 +53,75 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe("контекст черновика", () => {
+  it("переносит только ссылку на выбранную ревизию, сохраняет выбор при ошибке и не стирает новую страницу поздним успешным send", async () => {
+    const first = { id: "11", title: "Первая", fingerprint: "a".repeat(64) };
+    const next = { id: "12", title: "Вторая", fingerprint: "b".repeat(64) };
+    mocks.page
+      .mockResolvedValueOnce({
+        page: { id: first.id, title: first.title },
+        fingerprint: first.fingerprint,
+        fields: [{ path: "title", value: "Контент не переносится" }],
+      })
+      .mockRejectedValueOnce(new Error("Версия недоступна"))
+      .mockResolvedValueOnce({
+        page: { id: next.id, title: next.title },
+        fingerprint: next.fingerprint,
+      });
+    const { result } = renderHook(() => useChatDraftContext(false));
+    await act(() => result.current.selectPageDraft(first.id));
+    const sent = result.current.readReadyContext();
+    expect(sent.pageDraft).toEqual(first);
+    expect(JSON.stringify(sent)).not.toContain("Контент не переносится");
+    await act(() => result.current.selectPageDraft(next.id));
+    expect(result.current.pageDraft).toEqual(first);
+    expect(result.current.error).toBe("Версия недоступна");
+    await act(() => result.current.selectPageDraft(next.id));
+    act(() => result.current.clearSentContext(sent));
+    expect(result.current.pageDraft).toEqual(next);
+    act(() =>
+      result.current.clearSentContext(result.current.readReadyContext()),
+    );
+    expect(result.current.pageDraft).toBeUndefined();
+  });
+  it("не применяет запоздавшее чтение страницы после явного удаления или восстановления handoff", async () => {
+    let finish!: (value: unknown) => void;
+    mocks.page.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result } = renderHook(() => useChatDraftContext(false));
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.selectPageDraft("11");
+    });
+    expect(result.current.isSelectingPageDraft).toBe(true);
+    const selected = {
+      id: "12",
+      title: "Из другого окна",
+      fingerprint: "b".repeat(64),
+    };
+    act(() =>
+      result.current.restoreContext({
+        attachments: [],
+        projectFiles: [],
+        webSearch: false,
+        pageDraft: selected,
+      }),
+    );
+    await act(async () => {
+      finish({
+        page: { id: "11", title: "Старый выбор" },
+        fingerprint: "a".repeat(64),
+      });
+      await pending;
+    });
+    expect(result.current.pageDraft).toEqual(selected);
+    expect(result.current.isSelectingPageDraft).toBe(false);
+    act(() => result.current.removePageDraft());
+    expect(result.current.readReadyContext().pageDraft).toBeUndefined();
+  });
   it("показывает фактический прогресс, сохраняет ошибку для повторной загрузки и освобождает превью после отправки", async () => {
     let fail!: (error: Error) => void;
     let finish!: (value: typeof attachment) => void;

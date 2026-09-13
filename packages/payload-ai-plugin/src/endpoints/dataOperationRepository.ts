@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationRepository.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Сохраняет DataOperation aggregate и защищает переходы состояния.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 
 import type { Payload, PayloadRequest } from "payload";
+import type { DataOperationKind } from "@realize/ai-contracts";
 
 import { DATA_OPERATIONS_SLUG, MESSAGES_SLUG } from "../constants";
 import { EndpointError } from "./http";
@@ -64,7 +65,7 @@ export class DataOperationRepository {
     sourceMessageID: string;
     sourceMessageKey?: string;
     title: string;
-    kind?: "catalog.assignCategory.v1" | "pages.createDraft.v1";
+    kind?: DataOperationKind;
   }): Promise<AIDocument> {
     return await this.create(DATA_OPERATIONS_SLUG, {
       afterSnapshot: input.afterSnapshot,

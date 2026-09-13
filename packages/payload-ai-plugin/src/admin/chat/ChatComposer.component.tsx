@@ -1,18 +1,26 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatComposer.component.tsx
- * @version 1.3.0
- * @date 2026-09-11
- * @description Соединяет текст, вложения, файлы проекта и веб-поиск в одной форме.
+ * @version 1.4.0
+ * @date 2026-09-12
+ * @description Соединяет текст и выбранные источники контекста в одной форме чата.
  */
 
 "use client";
 import { UiButton, UiNotice, UiSurface, UiTextarea } from "@realize/ui-kit";
-import { ArrowUp, AtSign, Globe, Paperclip, Square } from "lucide-react";
+import {
+  ArrowUp,
+  AtSign,
+  FileText,
+  Globe,
+  Paperclip,
+  Square,
+} from "lucide-react";
 import { AdminMenu } from "../ui/AdminMenu.component";
 import { ChatPendingFiles } from "./ChatPendingFiles.component";
 import { ChatWorkflowSelection } from "./ChatWorkflowSelection.component";
 import { ChatAgentConfiguration } from "./ChatAgentConfiguration.component";
 import { ProjectFilePicker } from "./ProjectFilePicker.component";
+import { PageDraftPicker } from "./PageDraftPicker.component";
 import { useChatComposer } from "./useChatComposer.hook";
 import type { ChatComposerProps } from "./ChatComposer.types";
 import styles from "./ChatComposer.module.css";
@@ -120,6 +128,18 @@ export const ChatComposer = ({
           </UiButton>
         </UiNotice>
       ) : null}
+      {context.pageDraft && (workflowReply || controller.workflow.key) && (
+        <UiNotice role="status">
+          Страница CMS доступна только в обычном чате. Уберите выбранную
+          страницу или вернитесь в обычный чат.
+        </UiNotice>
+      )}
+      {context.pageDraft && !capabilities?.pageDrafts?.available && (
+        <UiNotice role="status">
+          Чтение страниц сейчас недоступно. Выбор сохранён; дождитесь
+          доступности или уберите страницу.
+        </UiNotice>
+      )}
       <UiSurface
         className={styles.surface}
         data-dragging={isDragging}
@@ -128,7 +148,9 @@ export const ChatComposer = ({
         onDrop={onDrop}
       >
         <form className={styles.form} onSubmit={submit}>
-          {context.attachments.length || context.projectFiles.length ? (
+          {context.attachments.length ||
+          context.projectFiles.length ||
+          context.pageDraft ? (
             <ChatPendingFiles context={context} disabled={locked} />
           ) : null}
           <UiTextarea
@@ -214,6 +236,18 @@ export const ChatComposer = ({
                   <ProjectFilePicker context={context} disabled={filesLocked} />
                 </AdminMenu>
               ) : null}
+              {capabilities?.pageDrafts?.available ? (
+                <AdminMenu
+                  label="Выбрать страницу CMS"
+                  icon={<FileText size={18} />}
+                  placement="top"
+                  align="left"
+                  wide
+                  disabled={filesLocked}
+                >
+                  <PageDraftPicker context={context} disabled={filesLocked} />
+                </AdminMenu>
+              ) : null}
               {capabilities?.webSearch.available ? (
                 <UiButton
                   aria-label="Веб-поиск"
@@ -261,13 +295,18 @@ export const ChatComposer = ({
         </form>
       </UiSurface>
       <p className={styles.caption} id={hintId}>
-        {context.hasPendingAttachments
-          ? "Файлы загружаются — дождитесь завершения"
-          : context.hasFailedAttachments
-            ? "Повторите загрузку или удалите файл с ошибкой"
-            : settings.sendOnEnter
-              ? "Enter — отправить · Shift+Enter — новая строка"
-              : "Enter — новая строка"}
+        {context.isSelectingPageDraft
+          ? "Читаем текущую версию страницы — дождитесь завершения"
+          : capabilities?.pageDrafts?.available &&
+              (workflowReply || controller.workflow.key)
+            ? "Выбор страницы CMS доступен только в обычном чате"
+            : context.hasPendingAttachments
+              ? "Файлы загружаются — дождитесь завершения"
+              : context.hasFailedAttachments
+                ? "Повторите загрузку или удалите файл с ошибкой"
+                : settings.sendOnEnter
+                  ? "Enter — отправить · Shift+Enter — новая строка"
+                  : "Enter — новая строка"}
       </p>
     </div>
   );

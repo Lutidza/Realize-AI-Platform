@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/DataOperationCard.tsx
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Показывает подтверждение, результат и безопасный откат изменений данных.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -24,11 +24,12 @@ import { useEffect, useState } from "react";
 
 import styles from "./ChangeRequestCard.module.css";
 import { DataOperationPreview } from "./DataOperationPreview";
+import { dataOperationPresentation } from "./dataOperationPresentation.util";
 import type { DataOperationCardProps } from "./DataOperationCard.types";
 
 const stateLabel = (
   state: DataOperationDTO["state"],
-  pageDraft: boolean,
+  labels: ReturnType<typeof dataOperationPresentation>,
 ): string => {
   switch (state) {
     case "awaiting_approval":
@@ -38,13 +39,13 @@ const stateLabel = (
     case "rejected":
       return "Отклонено";
     case "applied":
-      return pageDraft ? "Черновик создан" : "Применено";
+      return labels.applied;
     case "apply_failed":
       return "Не применено";
     case "rollback_approved":
       return "Откат подтверждён";
     case "rolled_back":
-      return pageDraft ? "Черновик удалён" : "Откат выполнен";
+      return labels.rolledBack;
     default:
       return "Откат не выполнен";
   }
@@ -73,7 +74,10 @@ export const DataOperationCard = ({
   const [rejectionReason, setRejectionReason] = useState("");
   const [approvalNow] = useState(() => Date.now());
   const expired = Date.parse(operation.expiresAt) <= approvalNow;
-  const pageDraft = operation.kind === "pages.createDraft.v1";
+  const pageDraft =
+    operation.kind === "pages.createDraft.v1" ||
+    operation.kind === "pages.updateDraft.v1";
+  const labels = dataOperationPresentation(operation);
   useEffect(() => {
     onDraftChange?.(
       operation.state === "awaiting_approval" &&
@@ -95,16 +99,14 @@ export const DataOperationCard = ({
           <strong>{operation.title}</strong>
         </div>
         <span className={`${styles.state} ${stateTone(operation.state)}`}>
-          {stateLabel(operation.state, pageDraft)}
+          {stateLabel(operation.state, labels)}
         </span>
       </header>
 
       <div className={styles.summaryGrid}>
         <div>
           <span>Операция</span>
-          <strong>
-            {pageDraft ? "Создать страницу" : "Назначить категорию"}
-          </strong>
+          <strong>{labels.operation}</strong>
         </div>
         <div>
           <span>Риск</span>
@@ -116,9 +118,7 @@ export const DataOperationCard = ({
         </div>
         <div>
           <span>Откат</span>
-          <strong>
-            {pageDraft ? "Удаление черновика" : "Восстановление категорий"}
-          </strong>
+          <strong>{labels.rollback}</strong>
         </div>
       </div>
 
@@ -160,10 +160,8 @@ export const DataOperationCard = ({
         <div className={styles.decision}>
           <RotateCcw size={16} />
           <span>
-            {pageDraft
-              ? "Удаление черновика подтверждено"
-              : "Откат подтверждён"}{" "}
-            ролью {operation.rollbackApproval.actorRole}.
+            {labels.rollbackApproved} ролью{" "}
+            {operation.rollbackApproval.actorRole}.
           </span>
         </div>
       ) : null}
@@ -171,26 +169,12 @@ export const DataOperationCard = ({
       {operation.state === "approved" ? (
         <div className={styles.executeAction}>
           <div>
-            <strong>
-              {pageDraft
-                ? "Создать черновик страницы"
-                : "Применить изменение категорий"}
-            </strong>
-            <span>
-              {pageDraft
-                ? "Страница появится в разделе «Страницы». Опубликовать её можно после проверки в редакторе."
-                : "Перед записью повторно проверим права и убедимся, что товар не изменился."}
-            </span>
+            <strong>{labels.applyTitle}</strong>
+            <span>{labels.applyHint}</span>
           </div>
           <button disabled={pending} onClick={onApply} type="button">
             <Play size={15} fill="currentColor" />
-            {pending
-              ? pageDraft
-                ? "Создаём…"
-                : "Применяем…"
-              : pageDraft
-                ? "Создать черновик"
-                : "Шаг 3 · Применить"}
+            {pending ? labels.applying : labels.apply}
           </button>
         </div>
       ) : null}
@@ -198,7 +182,9 @@ export const DataOperationCard = ({
       {pageDraft && operation.result && operation.state !== "rolled_back" ? (
         <div className={styles.executeAction}>
           <div>
-            <strong>Черновик «{operation.result.page.title}» создан</strong>
+            <strong>
+              Черновик «{operation.result.page.title}» {labels.result}
+            </strong>
             <span>
               Страница сохранена без публикации. Проверьте её в редакторе.
             </span>
@@ -218,24 +204,12 @@ export const DataOperationCard = ({
       {operation.state === "applied" ? (
         <div className={styles.executeAction}>
           <div>
-            <strong>
-              {pageDraft
-                ? "Удалить созданный черновик"
-                : "Отменить изменение категорий"}
-            </strong>
-            <span>
-              {pageDraft
-                ? "Удаление возможно, только если страницу не изменяли и не публиковали после создания."
-                : "Откат восстановит прежние категории, если товар не менялся после применения."}
-            </span>
+            <strong>{labels.rollbackTitle}</strong>
+            <span>{labels.rollbackHint}</span>
           </div>
           <button disabled={pending} onClick={onApproveRollback} type="button">
             <RotateCcw size={15} />
-            {pending
-              ? "Подтверждаем…"
-              : pageDraft
-                ? "Подтвердить удаление"
-                : "Подтвердить откат"}
+            {pending ? "Подтверждаем…" : labels.approveRollback}
           </button>
         </div>
       ) : null}
@@ -243,24 +217,12 @@ export const DataOperationCard = ({
       {operation.state === "rollback_approved" ? (
         <div className={styles.executeAction}>
           <div>
-            <strong>
-              {pageDraft ? "Удаление черновика разрешено" : "Откат разрешён"}
-            </strong>
-            <span>
-              {pageDraft
-                ? "Перед удалением повторно проверим, что черновик не изменён и не опубликован."
-                : "Перед откатом повторно проверим, что товар не изменился после применения."}
-            </span>
+            <strong>{labels.rollbackReady}</strong>
+            <span>{labels.rollbackReadyHint}</span>
           </div>
           <button disabled={pending} onClick={onRollback} type="button">
             <RotateCcw size={15} />
-            {pending
-              ? pageDraft
-                ? "Удаляем…"
-                : "Откатываем…"
-              : pageDraft
-                ? "Удалить черновик"
-                : "Выполнить откат"}
+            {pending ? labels.rollingBack : labels.executeRollback}
           </button>
         </div>
       ) : null}
@@ -319,11 +281,7 @@ export const DataOperationCard = ({
               type="button"
             >
               <Check size={15} />
-              {pending
-                ? "Сохраняем…"
-                : pageDraft
-                  ? "Подтвердить создание"
-                  : `Шаг 2 · Подтвердить v${operation.version}`}
+              {pending ? "Сохраняем…" : labels.approve}
             </button>
           </div>
         )

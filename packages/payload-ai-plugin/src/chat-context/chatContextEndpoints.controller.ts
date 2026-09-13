@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/chatContextEndpoints.controller.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-12
  * @description Предоставляет закрытые вложения и каталог файлов только пользователю чата.
  */
 import {
@@ -52,7 +52,19 @@ export const createChatContextEndpoints = (
             /* Недоступность runtime явно отключает зависящие от него действия. */
           }
         }
-        return success(capabilities, correlationID);
+        return success(
+          {
+            ...capabilities,
+            pageDrafts: {
+              available: Boolean(
+                options.enabled &&
+                options.pageDraft?.text &&
+                (await options.access.canManageData({ req })),
+              ),
+            },
+          },
+          correlationID,
+        );
       }),
     ),
   },

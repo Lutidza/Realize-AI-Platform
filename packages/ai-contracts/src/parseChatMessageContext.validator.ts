@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/parseChatMessageContext.validator.ts
- * @version 1.2.0
- * @date 2026-09-11
+ * @version 1.3.0
+ * @date 2026-09-12
  * @description Проверяет параметры контекста одного сообщения без повышения полномочий.
  */
 import type { CreateMessageInput } from "./api";
@@ -13,6 +13,7 @@ import { ContractValidationError } from "./validation";
 import { parseProjectFileReference } from "./parseProjectFileReference.validator";
 import { parseAIChatConfigurationSelection } from "./parseAIChatConfigurationSelection.validator";
 import { parseWorkflowStartInput } from "./parseWorkflowExecutionInput.validator";
+import { parsePageDraftReference } from "./parsePageDraftContext.validator";
 /** Отклоняет неизвестные опции, повторные ID и неподтверждённые capabilities. */
 export const parseChatMessageContext = (
   input: Record<string, unknown>,
@@ -27,6 +28,7 @@ export const parseChatMessageContext = (
           "webSearch",
           "agentConfiguration",
           "workflow",
+          "pageDraft",
         ].includes(key),
     )
   )
@@ -56,6 +58,9 @@ export const parseChatMessageContext = (
   )
     throw new ContractValidationError("Файл проекта выбран повторно.");
   return {
+    ...(input.pageDraft === undefined
+      ? {}
+      : { pageDraft: parsePageDraftReference(input.pageDraft) }),
     ...(input.workflow === undefined
       ? {}
       : { workflow: parseWorkflowStartInput(input.workflow) }),

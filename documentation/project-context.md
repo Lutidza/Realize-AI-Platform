@@ -82,7 +82,8 @@ loopback и создаёт ограниченный Context Pack без secrets/
 
 Approval-gated Data Lane поддерживает назначение существующей категории
 существующему товару (`catalog.assignCategory.v1`) и создание одного черновика
-CMS-страницы (`pages.createDraft.v1`). Агент передаёт только versioned intent;
+CMS-страницы (`pages.createDraft.v1`), а также изменение текста существующей
+страницы в черновике (`pages.updateDraft.v1`). Агент передаёт только versioned intent;
 Payload готовит preview, проверяет access и условия записи, применяет изменение
 в транзакции и сохраняет audit/outbox. Применение и откат требуют отдельных
 hash-bound подтверждений. Произвольные CRUD, публикация страниц, schema changes,
@@ -98,6 +99,32 @@ SQL и массовые операции в этот slice не входят.
 публикации. PostgreSQL advisory lock связывает проверки с Pages-записями,
 включая autosave до чтения версии. Контракт описан в
 [Data/Config Pipeline](specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md#145-создание-черновика-cms-страницы).
+
+Редактирование существующей страницы доступно через `pages.updateDraft.v1`.
+В composer выбирается одна страница с актуальным fingerprint; сервер сохраняет
+ограниченный текстовый контекст исходного run. Host-адаптер разрешает точечные
+изменения title, SEO и текстовых Lexical leaves hero/Content/CTA/Banner,
+сохраняя остальные блоки, ID, media, формы, ссылки и форматирование.
+Администратор проверяет полный diff, подтверждает его и сохраняет draft.
+Повторная проверка полной ревизии, общей блокировки и прав защищает от
+перезаписи новых изменений; откат восстанавливает прежний текст только при
+неизменённой применённой версии. Опубликованная запись остаётся прежней.
+Публикация и изменение структуры страницы через агента пока не реализованы.
+Подробный контракт — [редактирование черновика](specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md#146-редактирование-текста-существующей-страницы).
+
+Для следующего этапа спроектирована
+[архитектура сервисов страниц](specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md#147-архитектура-сервисов-страниц-для-агентов):
+контекст и каталог возможностей, подготовка изменений, проверки, предпросмотр
+конкретной версии и отдельная публикация. Это целевой проект внутри существующих
+owners и Data Lane; новые возможности не считаются реализованными. Первый
+предметный объект для развития сервисов — страницы.
+
+Целевой проект дополнен
+[описаниями модулей, блоков, виджетов и компонентов](specifications/realize-ai-commerce/v1.0/01-architecture/07-declarative-first.md#74-элементы-проекта-и-их-связи)
+и [выбором сервиса, браузера или разработки недостающей возможности](specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/11-change-engine.md#116-выбор-способа-исполнения).
+Производный каталог, инструкции элементов в Context Pack, делегированный
+browser-write и полный engineering workflow ещё не реализованы. Текущие
+runtime permissions этим проектом не изменены.
 
 Для локальной разработки добавлен approval-gated code execution foundation. Payload
 endpoint только создаёт durable PostgreSQL job и short-lived HMAC capability.
@@ -203,7 +230,7 @@ worker-у production credentials и не запускает rollout.
 
 В `packages/ai-contracts/**` и `packages/change-engine/**` реализован foundation
 настраиваемого installation AI-layer: generic exact-version capability registry,
-adapters `catalog.assignCategory.v1` и `pages.createDraft.v1`, typed skills/prompts/rules/roles,
+adapters `catalog.assignCategory.v1`, `pages.createDraft.v1` и `pages.updateDraft.v1`, typed skills/prompts/rules/roles,
 capability/check bindings, agent profiles и декларативные workflows. Ready draft
 можно валидировать, опубликовать как детерминированный immutable release,
 проверить по SHA-256 и скомпилировать с exact server-owned system ceiling в

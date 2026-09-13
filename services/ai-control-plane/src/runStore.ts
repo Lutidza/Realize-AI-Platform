@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/runStore.ts
- * @version 1.2.0
- * @date 2026-09-11
+ * @version 1.3.0
+ * @date 2026-09-12
  * @description Хранит runtime runs и повторяемые события с проверкой полного запроса.
  */
 
@@ -14,10 +14,12 @@ import type {
   AIStreamEventType,
   AIChatConfigurationSnapshot,
   WorkflowCheckpoint,
+  PageDraftContextDTO,
 } from "@realize/ai-contracts";
 
 /** Internal mutable run state owned by the loopback development service. */
 export type ControlPlaneRun = {
+  pageDraftContext?: PageDraftContextDTO;
   agentConfiguration?: AIChatConfigurationSnapshot;
   workflow?: WorkflowCheckpoint;
   conversationHistory?: string;

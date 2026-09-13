@@ -1,13 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/PageDraft.types.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-12
  * @description Задаёт server-only адаптер host-схемы и immutable снимки черновика.
  */
 import type { AIDocument } from "./repository";
 import type {
   CreatePageDraftIntent,
   PageDraftCreationPreviewDTO,
+  PageDraftTextChange,
+  PageDraftTextFieldDTO,
 } from "@realize/ai-contracts";
 
 /** Host строит только содержимое; статус, идентификатор и slug принадлежат исполнителю. */
@@ -17,6 +19,15 @@ export type PageDraftAdapter = {
     hero: Record<string, unknown>;
     layout: Record<string, unknown>[];
     meta?: { title?: string; description?: string };
+  };
+  /** Host разрешает только известные текстовые поля и сохраняет остальные данные документа. */
+  text?: {
+    version: string;
+    readFields: (page: Record<string, unknown>) => PageDraftTextFieldDTO[];
+    patch: (
+      page: Record<string, unknown>,
+      changes: PageDraftTextChange[],
+    ) => Record<string, unknown>;
   };
 };
 

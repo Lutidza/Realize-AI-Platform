@@ -1,8 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatMessageContext.component.tsx
- * @version 1.0.0
- * @date 2026-09-09
- * @description Показывает приватные вложения, выбранные файлы и реальные источники ответа.
+ * @version 1.1.0
+ * @date 2026-09-12
+ * @description Показывает вложения, выбранные страницы и файлы, а также источники ответа.
  */
 /* eslint-disable @next/next/no-img-element -- Приватные URL и локальные preview требуют cookies браузера, без image proxy. */
 
@@ -13,8 +13,15 @@ export const ChatMessageContext = ({ message }: ChatMessageContextProps) => (
   <>
     {message.attachments?.length ||
     message.projectFiles?.length ||
+    message.pageDraft ||
     message.webSearch ? (
       <div className={styles.context}>
+        {message.pageDraft && (
+          <span className={styles.project}>
+            <FileText size={14} />
+            Страница: {message.pageDraft.title}
+          </span>
+        )}
         {(message.attachments ?? []).map((file) => (
           <a
             className={styles.file}
