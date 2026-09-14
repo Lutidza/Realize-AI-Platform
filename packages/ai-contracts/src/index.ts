@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 1.13.0
- * @date 2026-09-12
+ * @version 2.0.0
+ * @date 2026-09-14
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
@@ -41,6 +41,20 @@ export type {
   PageDraftUpdatePreviewDTO,
   PageDraftUpdateOperationDTO,
 } from "./PageDraftUpdate.types";
+export type {
+  PageArtifactManifest,
+  PageArtifactDefinitionDTO,
+  PageArtifactCatalogDTO,
+  PageBlockOutlineDTO,
+  PageOutlineDTO,
+  PageKnowledgeDTO,
+  PageStructureContextDTO,
+} from "./PageKnowledge.types";
+export { parsePageArtifactCatalog } from "./parsePageArtifactCatalog.validator";
+export {
+  parsePageKnowledge,
+  parsePageStructureContext,
+} from "./parsePageKnowledge.validator";
 export {
   parsePageDraftContext,
   parsePageDraftReference,
@@ -89,3 +103,55 @@ export * from "./normalizeChatAttachmentMime.validator";
 export * from "./CodexAgentSettings.types";
 export * from "./codexAgentSettings.config";
 export * from "./parseCodexAgentSettings.validator";
+
+export type {
+  AgentReadToolDefinition,
+  AgentReadTools,
+} from "./AgentReadTool.types";
+export type {
+  PageDiscoveryCall,
+  PageDiscoveryGrant,
+  PageDiscoverySearchDTO,
+  PageDiscoveryReadRecord,
+  PageDiscoveryResult,
+} from "./PageDiscovery.types";
+export {
+  parsePageDiscoveryCall,
+  parsePageDiscoveryGrant,
+  parsePageDiscoverySearch,
+  parsePageDiscoveryResult,
+} from "./parsePageDiscovery.validator";
+
+export type {
+  UpdatePageStructureDraftIntent,
+  PageDraftStructureCommand,
+  PageDraftContentPreviewDTO,
+  PageDraftStructurePreviewDTO,
+  PageDraftStructureOperationDTO,
+} from "./PageDraftStructure.types";
+export {
+  parseUpdatePageStructureDraftIntent,
+  parsePageDraftContentPreview,
+  parsePageDraftStructurePreview,
+} from "./parsePageDraftStructure.validator";
+
+export type { PageDiscoveryStructureReadRecord } from "./PageDiscovery.types";
+export type {
+  PreparePagePublicationInput,
+  PagePublicationCheckDTO,
+  PreparePagePublicationRestoreInput,
+  PagePublicationReviewInput,
+  PagePublicationReviewEvidenceDTO,
+  PagePublicationStateDTO,
+  PagePublicationPreviewDTO,
+  PagePublicationDeliveryDTO,
+  PagePublicationResultDTO,
+  PagePublicationOperationDTO,
+  PagePublicationRestoreOperationDTO,
+} from "./PagePublication.types";
+export {
+  parsePagePublicationChecks,
+  parsePagePublicationReview,
+  parsePagePublicationEvidence,
+  parsePagePublicationPreview,
+} from "./parsePagePublication.validator";

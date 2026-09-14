@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationExecutionSupport.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-14
  * @description Проверяет approval binding и фиксирует terminal execution failures.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -14,6 +15,7 @@ import { DataOperationRepository } from "./dataOperationRepository";
 import { EndpointError } from "./http";
 import { relationID } from "./mappers";
 import { withPayloadTransaction } from "./payloadTransaction";
+import { lockAITransaction } from "./lockAITransaction.util";
 import type { AIDocument } from "./repository";
 
 export const snapshotIDs = (value: unknown): string[] => {
@@ -89,6 +91,25 @@ export const recordDataOperationFailure = async (input: {
   ).slice(0, 1_000);
   try {
     await withPayloadTransaction(input.req, async () => {
+      const operation = await repository.getOwnedOperation(
+        input.id,
+        input.userID,
+      );
+      if (
+        typeof operation.kind === "string" &&
+        operation.kind.startsWith("pages.")
+      ) {
+        await lockAITransaction(input.req, "page-drafts");
+        const current = await repository.getOwnedOperation(
+          input.id,
+          input.userID,
+        );
+        if (
+          current.state !== input.expectedState ||
+          current.version !== input.expectedVersion
+        )
+          return;
+      }
       await repository.transition({
         data: {
           errorSummary: summary,

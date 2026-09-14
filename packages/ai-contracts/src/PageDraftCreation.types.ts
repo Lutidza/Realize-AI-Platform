@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/PageDraftCreation.types.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Задаёт безопасный текстовый intent и browser DTO создания черновика CMS-страницы.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -36,9 +36,10 @@ export type PageDraftCreationPreviewDTO = {
   title: string;
 };
 
-/** Результат записи с серверной ссылкой редактора, без raw Payload document. */
+/** Серверные ссылки редактора и штатного предпросмотра без секрета в DTO. */
 export type PageDraftCreationResultDTO = {
   adminUrl: string;
+  frontendPreviewUrl: string;
   page: DataDocumentRefDTO;
 };
 

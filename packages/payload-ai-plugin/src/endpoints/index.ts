@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 1.8.0
- * @date 2026-09-12
+ * @version 2.1.0
+ * @date 2026-09-14
  * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
@@ -11,9 +11,11 @@ import { DEFAULT_API_ROUTE } from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createChatContextEndpoints } from "../chat-context/chatContextEndpoints.controller";
 import { createPageDraftContextEndpoints } from "../chat-context/pageDraftContextEndpoints.controller";
+import { createPageDiscoveryEndpoints } from "../chat-context/pageDiscoveryEndpoints.controller";
 import { createAIConfigEndpoints } from "./aiConfigEndpoints";
 import { createChangeHandlers } from "./changeHandlers";
 import { createDataOperationHandlers } from "./dataOperationHandlers";
+import { createPagePublicationEndpoints } from "./pagePublication.controller";
 import { createExecutionHandlers } from "./executionHandlers";
 import { createIntegrationHandlers } from "./integrationHandlers";
 import { createCodexIntegrationHandlers } from "./codexIntegrationHandlers";
@@ -67,6 +69,8 @@ export const createAIEndpoints = (
   );
 
   return [
+    ...createPagePublicationEndpoints(options),
+    ...createPageDiscoveryEndpoints(options),
     ...createWorkflowRunEndpoints(options),
     {
       handler: withCodexRuntime(options, createWorkflowContinueHandler),
@@ -181,6 +185,11 @@ export const createAIEndpoints = (
       handler: dataOperations.detail,
       method: "get",
       path: `${DEFAULT_API_ROUTE}/data-operations/:id`,
+    },
+    {
+      handler: dataOperations.openPage,
+      method: "get",
+      path: `${DEFAULT_API_ROUTE}/data-operations/:id/open-page`,
     },
     {
       handler: dataOperations.approve,

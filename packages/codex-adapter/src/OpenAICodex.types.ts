@@ -1,10 +1,11 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodex.types.ts
- * @version 2.0.0
- * @date 2026-09-11
+ * @version 2.1.0
+ * @date 2026-09-13
  * @description Задаёт серверные параметры и состояние активного запуска Codex App Server.
  */
 
+import type { AgentReadTools } from "@realize/ai-contracts";
 import type { JsonLineRPCClient } from "./JsonLineRpcClient.adapter";
 
 /** Проверенный сервером путь штатного image input App Server. */
@@ -23,6 +24,8 @@ export type OpenAICodexAdapterOptions = {
   environment: NodeJS.ProcessEnv;
   /** Каталоги приватного server storage; не принимаются из browser или run DTO. */
   privateReadDenyPaths?: readonly string[];
+  /** Server-owned callback; разрешён только для analysis-readonly с новым thread. */
+  readTools?: AgentReadTools;
   signal?: AbortSignal;
 };
 

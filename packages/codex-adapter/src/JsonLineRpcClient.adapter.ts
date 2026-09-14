@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.adapter.ts
- * @version 2.0.0
- * @date 2026-09-11
+ * @version 2.1.0
+ * @date 2026-09-13
  * @description Ограниченный JSONL RPC и завершение изолированного процесса Codex App Server.
  */
 
@@ -43,6 +43,7 @@ export class JsonLineRPCClient {
   private readonly options: JsonLineRPCClientOptions;
   private readonly notifications = new AsyncQueue<RPCMessage>();
   private readonly pending = new Map<JSONRPCID, PendingRpcRequest>();
+  private readonly responses = new Set<Promise<void>>();
   private readonly completion: Promise<void>;
   private complete!: () => void;
   private child?: ChildProcessWithoutNullStreams;
@@ -54,6 +55,7 @@ export class JsonLineRPCClient {
   private processClosed = false;
   private finished = false;
   private forceKill?: NodeJS.Timeout;
+  private securityViolation = false;
 
   constructor(options: JsonLineRPCClientOptions) {
     this.options = options;
@@ -131,8 +133,18 @@ export class JsonLineRPCClient {
   }
 
   /** Очередь уведомлений для одного потребителя, сохраняющая порядок доставки. */
-  getNotifications(): AsyncIterable<RPCMessage> {
-    return this.notifications;
+  async *getNotifications(): AsyncIterable<RPCMessage> {
+    for await (const message of this.notifications) {
+      // Ранний turn/completed не скрывает отказ незавершённого server request из того же chunk.
+      if (message.method === "turn/completed") {
+        while (this.responses.size) await Promise.all(this.responses);
+      }
+      if (this.securityViolation) {
+        yield { method: "realize/securityViolation" };
+        return;
+      }
+      yield message;
+    }
   }
 
   /** Отправляет уведомление без ответа; ошибки сериализации и транспорта безопасны. */
@@ -230,8 +242,11 @@ export class JsonLineRPCClient {
       return;
     }
     if (typeof message.method === "string") {
-      if (hasID) void this.respond(message);
-      else this.notifications.push(message);
+      if (hasID) {
+        const response = this.respond(message);
+        this.responses.add(response);
+        void response.finally(() => this.responses.delete(response));
+      } else this.notifications.push(message);
       return;
     }
     if (
@@ -252,7 +267,8 @@ export class JsonLineRPCClient {
 
   private async respond(message: RPCMessage): Promise<void> {
     try {
-      if (!this.options.onRequest) {
+      if (!this.options.onRequest || message.method !== "item/tool/call") {
+        this.securityViolation = true;
         this.write({
           id: message.id,
           error: { code: -32_001, message: "codex_request_forbidden" },
@@ -270,10 +286,15 @@ export class JsonLineRPCClient {
       if (!this.failure) this.write({ id: message.id, result: result ?? null });
     } catch {
       if (this.failure) return;
+      this.securityViolation = true;
       try {
         this.write({
           id: message.id,
           error: { code: -32_603, message: "codex_handler_failed" },
+        });
+        this.notifications.push({
+          method: "realize/securityViolation",
+          params: { blockedMethod: message.method },
         });
       } catch {
         this.stop("codex_transport_failed");

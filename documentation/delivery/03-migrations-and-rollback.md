@@ -1,7 +1,7 @@
 # Миграции и rollback
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 11 сентября 2026 года
+- **Дата сверки:** 14 сентября 2026 года
 
 ## 1. Канонический порядок миграций
 
@@ -34,7 +34,13 @@
 14. `20260911_132139_worker_presence` — служебное состояние исполнителей,
     время heartbeat, доступные этапы и ссылка на текущее задание;
 15. `20260911_155718_page_draft_data_operation` — операция создания черновика
-    страницы, её стратегия отката и закрытый снимок созданного документа.
+    страницы, её стратегия отката и закрытый снимок созданного документа;
+16. `20260912_111003_page_draft_update` — значение `pages.updateDraft.v1`
+    для изменения текста существующего черновика;
+17. `20260913_184706_page_structure_draft_operation` — значение
+    `pages.updateStructureDraft.v1` для структурных операций над черновиком.
+18. `20260914_083749_page_publication_operations` — публикация и восстановление
+    публичной версии Pages, подтверждение просмотра и доставка обновления витрины.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -43,7 +49,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-На пустой PostgreSQL все пятнадцать миграций должны применяться по порядку.
+На пустой PostgreSQL все восемнадцать миграций должны применяться по порядку.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 
@@ -94,6 +100,62 @@ Data Lane, а не откат миграции.
 При сохранённых update-операциях `down` недопустим: старый enum не принимает
 их kind. Откат приложения сохраняет расширенную схему и audit; удалять
 операции ради выполнения `down` нельзя.
+
+Миграция `20260913_184706_page_structure_draft_operation` добавляет только
+`pages.updateStructureDraft.v1` в enum `kind`. Таблицы Pages/versions,
+снимки и существующие операции не изменяются. До создания первой структурной
+Data Operation требуется применить миграцию. Откат приложения сохраняет
+расширенную схему и историю операций.
+
+Generated `down` возвращает прежний enum в транзакции. Если сохранена хотя бы
+одна операция нового kind, PostgreSQL отклоняет приведение значения
+(`22P02`); транзакция должна откатиться целиком, сохранив расширенный enum,
+операцию и audit. Удалять или переименовывать операции и события для успешного
+`down` нельзя. При отсутствии нового kind откат схемы допустим только после
+остановки writers и проверенного backup. На отдельной PostgreSQL проверены
+полная цепочка из 17 миграций, `up`/`down` без новых операций и отказ `down`
+с новой операцией и её событием без изменения схемы и audit.
+
+Миграция `20260914_083749_page_publication_operations` добавляет kinds
+`pages.publishDraft.v1` и `pages.restorePublication.v1`, risk level `R2`, стратегии
+`restore-publication` и `none`, тип события `publication_delivery_requested`
+и delivery status `failed`. Новые nullable-поля — `preview_evidence` в approvals,
+`delivery_error` и `delivered_at` в outbox. Existing defaults и данные сохраняются;
+таблицы Pages/versions не изменяются. Публикация требует этой миграции до создания
+операций новых kinds.
+
+Обычный generated `down` не защищает заполненные nullable-поля от удаления.
+Поэтому источник этой миграции — отдельный Payload template
+[`scripts/migrations/page-publication-operations.mjs`](../../scripts/migrations/page-publication-operations.mjs).
+Он использует реальную sanitized schema и штатный Drizzle generator; TS, JSON
+snapshot и index создаются через официальный CLI, без ручного редактирования:
+
+```bash
+npm run payload:migrate:create -- page_publication_operations --file "$PWD/scripts/migrations/page-publication-operations.mjs"
+npm run payload:generate-types
+```
+
+Это команда первоначальной генерации данной миграции, а не шаг её применения.
+Template требует последним snapshot `20260913_184706_page_structure_draft_operation.json`
+и PostgreSQL adapter. Повторная генерация возможна только вместо собственной
+ещё не применённой пары TS/JSON; уже применённую миграцию не удаляют и не
+перегенерируют. Для применения готовой цепочки используют `payload:migrate`.
+
+`down` внутри штатной Payload transaction сначала блокирует operations, approvals
+и events от конкурирующих writers. До любого cast/drop он отказывает с `P0001`
+и `PAGE_PUBLICATION_ROLLBACK_BLOCKED`, если существуют новые kinds, `R2`, новые
+стратегии, любой non-null `preview_evidence`, новый тип/статус доставки либо
+non-null `delivery_error`/`delivered_at`. Проверка новых полей действует и для
+операций старого kind. Нельзя удалять audit, очищать evidence или менять kinds
+ради прохождения этой проверки. Откат приложения сохраняет расширенную схему;
+восстановление публичной версии — отдельная подтверждаемая операция Pages.
+
+На disposable PostgreSQL проверены полная цепочка из 18 миграций, точное
+расширение семи enum-значений и трёх nullable-полей, восстановление схемы пустым
+`down` и десять независимых отказов с сохранением схемы, операций, approvals
+и events. Перед применением к сохраняемой БД обязательны остановка writers,
+private backup `0600`, проверка restore на clone и сверка всех прежних полей
+существующих строк; новые nullable-поля должны остаться пустыми.
 
 ## 2. Existing database adoption
 

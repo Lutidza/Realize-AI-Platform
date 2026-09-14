@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationRepository.ts
- * @version 1.2.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-14
  * @description Сохраняет DataOperation aggregate и защищает переходы состояния.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -66,6 +66,12 @@ export class DataOperationRepository {
     sourceMessageKey?: string;
     title: string;
     kind?: DataOperationKind;
+    riskLevel?: "R1" | "R2";
+    rollbackStrategy?:
+      | "before-snapshot"
+      | "delete-created-draft"
+      | "restore-publication"
+      | "none";
   }): Promise<AIDocument> {
     return await this.create(DATA_OPERATIONS_SLUG, {
       afterSnapshot: input.afterSnapshot,
@@ -87,12 +93,13 @@ export class DataOperationRepository {
       product: input.productID ? this.documentID(input.productID) : undefined,
       productSnapshot: input.productSnapshot,
       requestedBy: input.requestedBy,
-      riskLevel: "R1",
+      riskLevel: input.riskLevel ?? "R1",
       rollbackHash: input.rollbackHash,
       rollbackStrategy:
-        input.kind === "pages.createDraft.v1"
+        input.rollbackStrategy ??
+        (input.kind === "pages.createDraft.v1"
           ? "delete-created-draft"
-          : "before-snapshot",
+          : "before-snapshot"),
       sourceMessage: this.documentID(input.sourceMessageID),
       // Workflow identity формируется сервером для одного root run и шага.
       sourceMessageKey:

@@ -1,15 +1,16 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/pageDraftUpdate.service.ts
- * @version 1.0.0
- * @date 2026-09-12
+ * @version 1.1.1
+ * @date 2026-09-13
  * @description Готовит, применяет и откатывает точные текстовые изменения одной версии черновика.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 import {
-  ContractValidationError,
   parsePageDraftContext,
+  parsePageStructureContext,
   parseUpdatePageDraftIntent,
   type PageDraftContextDTO,
+  type PageStructureContextDTO,
   type UpdatePageDraftIntent,
 } from "@realize/ai-contracts";
 import {
@@ -22,7 +23,7 @@ import { REALIZE_AI_SERVER_RUNTIME_KEY } from "../constants";
 import type { RealizeAIServerRuntime } from "../types";
 import { createPageDraftRestorePatch } from "./createPageDraftRestorePatch.mapper";
 import { EndpointError } from "./http";
-import { lockAITransaction } from "./lockAITransaction.util";
+import { PageDraftRevisionGuard } from "./PageDraftRevisionGuard.service";
 import { PageDraftUpdateRepository } from "./PageDraftUpdate.repository";
 import type {
   AppliedPageDraftUpdateSnapshot,
@@ -30,25 +31,16 @@ import type {
   PageDraftTextAdapter,
   PageDraftUpdateSnapshot,
 } from "./PageDraftUpdate.types";
-import { withPayloadTransaction } from "./payloadTransaction";
 import type { AIDocument } from "./repository";
 import { validatePageDraftTextPatch } from "./validatePageDraftTextPatch.validator";
-
-/** updatedAt меняется при сохранении версии; остальные поля должны остаться точными. */
-const contentHash = (page: AIDocument): string =>
-  hashCanonicalJSON(
-    Object.fromEntries(
-      Object.entries(page).filter(([key]) => key !== "updatedAt"),
-    ),
-  );
+import { PageKnowledge } from "./pageKnowledge.service";
+import type { PageStructureReadRequest } from "./PageKnowledge.types";
 
 /** Все чтения одного снимка и записи сериализованы с обычным редактором Pages. */
-export class PageDraftUpdate {
+export class PageDraftUpdate extends PageDraftRevisionGuard {
   private readonly repository: PageDraftUpdateRepository;
-  constructor(
-    private readonly payload: Payload,
-    private readonly req: PayloadRequest,
-  ) {
+  constructor(payload: Payload, req: PayloadRequest) {
+    super(payload, req);
     this.repository = new PageDraftUpdateRepository(payload, req);
   }
 
@@ -56,7 +48,69 @@ export class PageDraftUpdate {
     return await this.locked(async () => {
       await this.assertAccess(pageID);
       const revision = await this.repository.read(pageID);
-      return this.context(revision, this.adapter());
+      const context = this.context(revision, this.adapter());
+      const runtime = this.payload.config.custom?.[
+        REALIZE_AI_SERVER_RUNTIME_KEY
+      ] as RealizeAIServerRuntime | undefined;
+      // Enrichment не входит в snapshot записи: прежние operation hashes остаются неизменными.
+      if (!runtime?.pageDraft?.knowledge) return context;
+      const knowledge = await new PageKnowledge(this.req).read(
+        revision.page,
+        context.fingerprint,
+        0,
+      );
+      return parsePageDraftContext({ ...context, knowledge });
+    });
+  }
+
+  /** Независимое чтение структуры не извлекает все текстовые листья большой страницы. */
+  async readStructure(
+    pageID: string,
+    request: PageStructureReadRequest = {},
+  ): Promise<PageStructureContextDTO> {
+    const offset = request.offset ?? 0;
+    if (
+      !Number.isSafeInteger(offset) ||
+      offset < 0 ||
+      offset > 10_000 ||
+      offset % 32 !== 0 ||
+      (offset > 0 && (!request.fingerprint || !request.catalogHash)) ||
+      [request.fingerprint, request.catalogHash].some(
+        (value) => value !== undefined && !/^[a-f0-9]{64}$/.test(value),
+      )
+    )
+      throw new EndpointError(
+        "INVALID_REQUEST",
+        "Продолжение структуры требует корректные offset, fingerprint и catalogHash.",
+        400,
+      );
+    return await this.locked(async () => {
+      await this.assertAccess(pageID);
+      const revision = await this.repository.read(pageID);
+      const identity = this.revisionIdentity(revision, this.adapter());
+      if (request.fingerprint && request.fingerprint !== identity.fingerprint)
+        throw new EndpointError(
+          "CONFLICT",
+          "Страница изменилась. Перечитайте структуру с начала.",
+          409,
+        );
+      const knowledge = await new PageKnowledge(this.req).read(
+        revision.page,
+        identity.fingerprint,
+        offset,
+      );
+      if (request.catalogHash && request.catalogHash !== knowledge.catalogHash)
+        throw new EndpointError(
+          "CONFLICT",
+          "Описание схемы изменилось. Перечитайте структуру с начала.",
+          409,
+        );
+      return parsePageStructureContext({
+        page: identity.page,
+        updatedAt: identity.updatedAt,
+        fingerprint: identity.fingerprint,
+        knowledge,
+      });
     });
   }
 
@@ -216,21 +270,10 @@ export class PageDraftUpdate {
     revision: PageDraftRevision,
     adapter: PageDraftTextAdapter,
   ): PageDraftContextDTO {
-    const page = revision.page;
     return this.hostResult(() =>
       parsePageDraftContext({
-        page: {
-          id: String(page.id),
-          title: page.title,
-          ...(typeof page.slug === "string" ? { slug: page.slug } : {}),
-        },
-        updatedAt: page.updatedAt,
-        adapterVersion: adapter.version,
-        fingerprint: hashCanonicalJSON({
-          ...revision,
-          adapterVersion: adapter.version,
-        }),
-        fields: adapter.readFields(structuredClone(page)),
+        ...this.revisionIdentity(revision, adapter),
+        fields: adapter.readFields(structuredClone(revision.page)),
       }),
     );
   }
@@ -282,82 +325,5 @@ export class PageDraftUpdate {
       publicationFingerprint: revision.publicationFingerprint,
       preview: { page: context.page, changes, status: "draft" },
     };
-  }
-
-  private assertSaved(
-    revision: PageDraftRevision,
-    expected: AIDocument,
-    snapshot: Pick<
-      PageDraftRevision,
-      "baseFingerprint" | "publicationFingerprint"
-    >,
-  ): void {
-    // Payload maxPerDoc удаляет старые версии, включая последнюю published запись.
-    // Под общим lock её исчезновение при собственной записи допустимо; новая
-    // публикация и изменение основной строки по-прежнему запрещены.
-    const publicationPreserved =
-      revision.publicationFingerprint === snapshot.publicationFingerprint ||
-      revision.publicationFingerprint === hashCanonicalJSON(null);
-    if (
-      revision.page._status !== "draft" ||
-      revision.baseFingerprint !== snapshot.baseFingerprint ||
-      !publicationPreserved ||
-      contentHash(revision.page) !== contentHash(expected)
-    )
-      throw new EndpointError(
-        "CONFLICT",
-        "Payload изменил опубликованную версию или не подтвердил точное содержимое черновика.",
-        409,
-      );
-  }
-
-  private async assertAccess(
-    pageID: string,
-    data?: Record<string, unknown>,
-  ): Promise<void> {
-    const access = this.payload.collections.pages?.config.access.update;
-    const id =
-      this.payload.db.defaultIDType === "text" ? pageID : Number(pageID);
-    if (typeof id === "number" && (!Number.isSafeInteger(id) || id < 1))
-      throw new EndpointError(
-        "INVALID_REQUEST",
-        "Идентификатор страницы недопустим.",
-        400,
-      );
-    // Generated host ID сейчас number; переносимый plugin сохраняет тип ID runtime-адаптера.
-    const args = { req: this.req, id, ...(data ? { data } : {}) } as Parameters<
-      NonNullable<typeof access>
-    >[0];
-    const allowed = await access?.(args);
-    if (allowed !== true)
-      throw new EndpointError(
-        "FORBIDDEN",
-        "Недостаточно прав для редактирования страницы.",
-        403,
-      );
-  }
-
-  private hostResult<T>(work: () => T): T {
-    try {
-      return work();
-    } catch (error) {
-      if (
-        error instanceof ContractValidationError ||
-        (error instanceof Error && error.constructor === Error)
-      )
-        throw new EndpointError(
-          "INVALID_REQUEST",
-          `Страница не соответствует ограничениям редактирования: ${error.message}`,
-          400,
-        );
-      throw error;
-    }
-  }
-
-  private async locked<T>(work: () => Promise<T>): Promise<T> {
-    return await withPayloadTransaction(this.req, async () => {
-      await lockAITransaction(this.req, "page-drafts");
-      return await work();
-    });
   }
 }

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/types.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-14
  * @description Задаёт public plugin options для AI config, delivery и integrations.
  */
 
@@ -102,6 +102,8 @@ export type SanitizedRealizeAIPluginOptions = {
 /** Server-only состояние плагина для Payload views и адаптеров через config.custom. */
 export type RealizeAIServerRuntime = {
   pageDraft?: PageDraftAdapter;
+  canUseChat: RealizeAIAccessResolver;
+  canManageData: RealizeAIAccessResolver;
   canManageAIConfiguration: RealizeAIAccessResolver;
   canManageIntegrations: RealizeAIAccessResolver;
   integrationEncryptionKeyEnv: string;

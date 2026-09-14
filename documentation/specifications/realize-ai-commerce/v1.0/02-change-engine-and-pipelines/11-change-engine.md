@@ -176,7 +176,27 @@ DOM, screenshots и traces дополняют проверки содержим�
 ### Что доступно сейчас
 
 Текущий встроенный чат работает в read-only policy; Codex RPC запускается с
-`mcp_servers={}`, а adapter блокирует MCP/dynamic tool calls. Playwright smoke
+`mcp_servers={}`. Adapter допускает только зарегистрированные сервером
+`pages_search`, `pages_read`, `pages_structure` в обычном аналитическом чате;
+неизвестные dynamic tools, MCP и запросы approval блокируются. Эти инструменты
+читают доступные страницы и не вызывают executor записи. Найденная страница
+может стать источником `pages.updateDraft.v1` только после серверного чтения
+и сохранения exact snapshot текущего run; подготовка, подтверждение, apply
+и rollback остаются в Data Lane. Контракт —
+[самостоятельный поиск страниц](14-data-config-pipeline.md#1410-самостоятельный-поиск-и-чтение-страниц).
+
+Для одного структурного изменения Content зарегистрирован
+`pages.updateStructureDraft.v1` с действиями `page.insertContentBlock`,
+`page.moveContentBlock`, `page.removeContentBlock`. Отдельный intent и executor
+используют существующий Data Lane, operation/rollback hashes и exact snapshot
+с catalog binding. Цель и якорь берутся из сохранённых чтений того же run.
+Исполнение доступно из обычного чата после подтверждения; workflow allowlist
+этим расширением не меняется. Публичный preview показывает позиции и полный
+вставляемый/удаляемый текст; визуальный предпросмотр конкретной версии остаётся
+отдельным этапом. Контракт —
+[структура Content](14-data-config-pipeline.md#1411-структурное-редактирование-content).
+
+Playwright smoke
 проверяет preview, но не является универсальным browser executor. Возможности
 внешнего агента разработки в IDE не являются возможностями установленного чата.
 Browser tools, session/guard, candidate mode и восстанавливаемое исполнение

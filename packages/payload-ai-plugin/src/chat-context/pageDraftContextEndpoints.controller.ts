@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/pageDraftContextEndpoints.controller.ts
- * @version 1.0.0
- * @date 2026-09-12
+ * @version 1.1.0
+ * @date 2026-09-13
  * @description Предоставляет авторизованный каталог и точный текстовый снимок одной CMS-страницы.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -15,11 +15,29 @@ import { withCodexRuntime } from "../endpoints/withCodexRuntime.controller";
 import { PageDraftUpdate } from "../endpoints/pageDraftUpdate.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { listPageDrafts } from "./listPageDrafts.repository";
+import { PageKnowledge } from "../endpoints/pageKnowledge.service";
 
 /** Чтение контекста не предоставляет права изменения и не отправляет данные провайдеру. */
 export const createPageDraftContextEndpoints = (
   options: SanitizedRealizeAIPluginOptions,
 ): Endpoint[] => [
+  {
+    path: `${DEFAULT_API_ROUTE}/chat/page-artifacts`,
+    method: "get",
+    handler: withCodexRuntime(options, (options) =>
+      withHandler(async (req, correlationID) => {
+        await requireChatUser(req, options);
+        await requireDataManager(req, options);
+        if (!options.enabled || !options.pageDraft?.knowledge)
+          throw new EndpointError(
+            "CONFLICT",
+            "Каталог страниц сейчас недоступен.",
+            409,
+          );
+        return success(new PageKnowledge(req).catalog(), correlationID);
+      }),
+    ),
+  },
   {
     path: `${DEFAULT_API_ROUTE}/chat/page-drafts`,
     method: "get",
@@ -44,6 +62,44 @@ export const createPageDraftContextEndpoints = (
           );
         return success(
           await listPageDrafts(req, query, Number(rawPage)),
+          correlationID,
+        );
+      }),
+    ),
+  },
+  {
+    path: `${DEFAULT_API_ROUTE}/chat/page-drafts/:id/structure`,
+    method: "get",
+    handler: withCodexRuntime(options, (options) =>
+      withHandler(async (req, correlationID) => {
+        await requireChatUser(req, options);
+        await requireDataManager(req, options);
+        if (!options.enabled || !options.pageDraft?.knowledge)
+          throw new EndpointError(
+            "CONFLICT",
+            "Структура страниц сейчас недоступна.",
+            409,
+          );
+        const id = parseIdentifier(req.routeParams?.id, "page id");
+        const params = new URL(req.url ?? "http://localhost").searchParams;
+        const offset = params.get("offset") ?? "0";
+        if (
+          !/^(0|[1-9]\d{0,4})$/.test(offset) ||
+          [...params.keys()].some(
+            (key) => !["offset", "fingerprint", "catalogHash"].includes(key),
+          )
+        )
+          throw new EndpointError(
+            "INVALID_REQUEST",
+            "Некорректные параметры структуры страницы.",
+            400,
+          );
+        return success(
+          await new PageDraftUpdate(req.payload, req).readStructure(id, {
+            offset: Number(offset),
+            fingerprint: params.get("fingerprint") ?? undefined,
+            catalogHash: params.get("catalogHash") ?? undefined,
+          }),
           correlationID,
         );
       }),

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/dataOperations.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-14
  * @description Хранит immutable dry-run и lifecycle typed Payload DataOperation.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -45,6 +45,9 @@ export const createDataOperationsCollection = (
           "catalog.assignCategory.v1",
           "pages.createDraft.v1",
           "pages.updateDraft.v1",
+          "pages.updateStructureDraft.v1",
+          "pages.publishDraft.v1",
+          "pages.restorePublication.v1",
         ],
         required: true,
         type: "select",
@@ -75,7 +78,7 @@ export const createDataOperationsCollection = (
       {
         defaultValue: "R1",
         name: "riskLevel",
-        options: ["R1"],
+        options: ["R1", "R2"],
         required: true,
         type: "select",
       },
@@ -89,7 +92,12 @@ export const createDataOperationsCollection = (
       {
         defaultValue: "before-snapshot",
         name: "rollbackStrategy",
-        options: ["before-snapshot", "delete-created-draft"],
+        options: [
+          "before-snapshot",
+          "delete-created-draft",
+          "restore-publication",
+          "none",
+        ],
         required: true,
         type: "select",
       },

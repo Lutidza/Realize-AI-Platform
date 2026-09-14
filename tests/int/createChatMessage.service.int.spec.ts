@@ -1,14 +1,15 @@
 // @vitest-environment node
 /**
  * @file tests/int/createChatMessage.service.int.spec.ts
- * @version 1.2.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-13
  * @description Проверяет сохранение полного запроса, права вложений и идемпотентность отправки.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { PayloadRequest } from "payload";
 import { createChatMessage } from "../../packages/payload-ai-plugin/src/chat-context/createChatMessage.service";
 import { PageDraftUpdate } from "../../packages/payload-ai-plugin/src/endpoints/pageDraftUpdate.service";
+import { pageAgentManifest } from "../../src/collections/Pages/pageAgent.manifest";
 import { ChatAttachmentRepository } from "../../packages/payload-ai-plugin/src/chat-context/ChatAttachment.repository";
 import { AIRepository } from "../../packages/payload-ai-plugin/src/endpoints/repository";
 import { AIConfigRepository } from "../../packages/payload-ai-plugin/src/endpoints/aiConfigRepository";
@@ -164,6 +165,56 @@ describe("createChatMessage", () => {
     ).rejects.toMatchObject({ status: 409 });
     expect(AIRepository.prototype.createRun).not.toHaveBeenCalled();
     expect(client.startRun).not.toHaveBeenCalled();
+  });
+  it("сохраняет knowledge в закрытом run и меняет совместимость thread при изменении описания", async () => {
+    const knowledge = {
+      version: "1.0" as const,
+      pageID: "19",
+      fingerprint: pageContext.fingerprint,
+      catalogHash: "a".repeat(64),
+      definitions: [{ ...pageAgentManifest, fields: [] }],
+      outline: {
+        offset: 0,
+        limit: 32 as const,
+        totalBlocks: 0,
+        nextOffset: null,
+        blocks: [],
+      },
+    };
+    const read = vi
+      .spyOn(PageDraftUpdate.prototype, "readContext")
+      .mockResolvedValue({ ...pageContext, knowledge });
+    await createChatMessage(
+      pageReq,
+      pageOptions,
+      1,
+      "2",
+      "knowledge-one",
+      pageInput,
+    );
+    const first = vi.mocked(AIRepository.prototype.createRun).mock.calls[0][0]
+      .turnContext!;
+    expect(first.pageDraftContext?.knowledge).toEqual(knowledge);
+    expect(client.startRun).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pageDraftContext: { ...pageContext, knowledge },
+      }),
+    );
+    read.mockResolvedValue({
+      ...pageContext,
+      knowledge: { ...knowledge, catalogHash: "b".repeat(64) },
+    });
+    await createChatMessage(
+      pageReq,
+      pageOptions,
+      1,
+      "2",
+      "knowledge-two",
+      pageInput,
+    );
+    const second = vi.mocked(AIRepository.prototype.createRun).mock.calls[1][0]
+      .turnContext!;
+    expect(second.runtimeContextHash).not.toBe(first.runtimeContextHash);
   });
   it("replays the accepted page request after the CMS changes and rejects a substituted page", async () => {
     const read = vi

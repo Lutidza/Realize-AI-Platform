@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createChatMessage.service.ts
- * @version 1.3.0
- * @date 2026-09-12
+ * @version 1.6.0
+ * @date 2026-09-13
  * @description Связывает полный запрос сообщения с владельцем, неизменяемыми файлами и одним run.
  */
 import { createHash, randomUUID } from "node:crypto";
@@ -29,6 +29,7 @@ import { buildChatConversationHistory } from "./buildChatConversationHistory.uti
 import { createWorkflowMessage } from "./createWorkflowMessage.service";
 import { PageDraftUpdate } from "../endpoints/pageDraftUpdate.service";
 import { requireDataManager } from "../endpoints/access";
+import { createPageDiscoveryGrant } from "./pageDiscoveryGrant.service";
 import type { ChatRunContext } from "./ChatRunContext.types";
 import type {
   ChatMessageContext,
@@ -101,6 +102,11 @@ export const createChatMessage = async (
     idempotencyKey,
   );
   if (existing) return replay(existing);
+  const pageDiscoveryEnabled = Boolean(
+    options.enabled &&
+    options.pageDraft?.text &&
+    (await options.access.canManageData({ req })),
+  );
   if (input.pageDraft) await requireDataManager(req, options);
   const pageDraftContext = input.pageDraft
     ? await new PageDraftUpdate(req.payload, req).readContext(
@@ -167,21 +173,30 @@ export const createChatMessage = async (
         configuration: agentConfiguration?.compiled.compiledContextHash ?? null,
         model: options.runtime.model ?? null,
         developerInstructions: buildChatDeveloperInstructions(input.webSearch),
-        contextPolicyVersion: "1.1",
+        contextPolicyVersion: "1.4",
+        pageDiscoveryVersion: pageDiscoveryEnabled ? "1.1" : null,
         pageDraftFingerprint: pageDraftContext?.fingerprint ?? null,
+        ...(pageDraftContext?.knowledge
+          ? {
+              pageKnowledgeHash: createHash("sha256")
+                .update(JSON.stringify(pageDraftContext.knowledge))
+                .digest("hex"),
+            }
+          : {}),
       }),
     )
     .digest("hex");
-  const threadID = await repository.getLatestThreadID(
-    conversationID,
-    runtimeContextHash,
-  );
+  // Codex thread/resume не переопределяет dynamicTools; каждый discovery run получает новый thread.
+  const threadID = pageDiscoveryEnabled
+    ? undefined
+    : await repository.getLatestThreadID(conversationID, runtimeContextHash);
   const conversationHistory = threadID
     ? undefined
     : buildChatConversationHistory(detail.messages);
   const runContext: ChatRunContext = {
     ...context,
     pageDraftContext,
+    pageDiscoveryEnabled,
     agentConfiguration,
     runtimeContextHash,
     conversationHistory,
@@ -239,6 +254,16 @@ export const createChatMessage = async (
       agentConfiguration,
       conversationHistory,
       pageDraftContext,
+      ...(pageDiscoveryEnabled
+        ? {
+            pageDiscovery: createPageDiscoveryGrant(
+              req.payload,
+              options,
+              runID,
+              String(userID),
+            ),
+          }
+        : {}),
     });
   } catch {
     const event: AIStreamEvent = {

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/workflow-runs/WorkflowRunApprovals.component.tsx
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Связывает существующие карточки изменений с правами и повторами в реестре процессов.
  */
 
@@ -40,7 +40,12 @@ export const WorkflowRunApprovals = ({
         <DataOperationCard
           key={operation.id}
           operation={operation}
-          pending={disabled}
+          staleMarker={dataActions.staleMarkers[operation.id]}
+          pending={
+            disabled ||
+            operation.kind === "pages.publishDraft.v1" ||
+            operation.kind === "pages.restorePublication.v1"
+          }
           onDraftChange={(value) =>
             controller.setOperationDraft(operation.id, value)
           }

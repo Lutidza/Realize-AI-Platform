@@ -1,13 +1,16 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useDataOperationActions.hook.ts
- * @version 1.0.1
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-14
  * @description Выполняет общие DataOperation HTTP-действия и согласует результат без зависимости от conversation DTO.
  */
 
 "use client";
 
-import type { DataOperationDTO } from "@realize/ai-contracts";
+import type {
+  DataOperationDTO,
+  PagePublicationReviewInput,
+} from "@realize/ai-contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chatErrorMessage } from "./chatState";
 import { requestRealizeAI } from "./realizeAIAPI";
@@ -15,6 +18,7 @@ import { RealizeAIRequestError } from "./RealizeAIRequest.error";
 import type {
   DataOperationActionsOptions,
   DataOperationPendingRequest,
+  DataOperationStaleMarker,
 } from "./DataOperationActions.types";
 
 /** Возвращает hash/version-bound действия для чата и карточки процесса. */
@@ -32,10 +36,38 @@ export const useDataOperationActions = ({
   );
   const [hasRetry, setHasRetry] = useState(false);
   const [isPending, setIsPending] = useState(false);
+  const [staleMarkers, setStaleMarkers] = useState<
+    Record<string, DataOperationStaleMarker>
+  >({});
+
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      const latest = dataOperations ?? readDataOperations?.();
+      if (latest)
+        setStaleMarkers((current) => {
+          const entries = Object.entries(current).filter(([id, marker]) => {
+            const operation = latest.find((item) => item.id === id);
+            return (
+              !operation ||
+              (operation.version === marker.expectedVersion &&
+                operation.operationHash === marker.expectedOperationHash)
+            );
+          });
+          return entries.length === Object.keys(current).length
+            ? current
+            : Object.fromEntries(entries);
+        });
+    });
+    return () => {
+      active = false;
+    };
+  }, [dataOperations, readDataOperations]);
 
   const reconcile = useCallback(() => {
     const pending = unresolvedRef.current;
-    if (!pending || inFlight.current) return;
+    if (!pending || inFlight.current || pending.createsOperation) return;
     const operationID = /^\/data-operations\/([^/]+)\//.exec(pending.path)?.[1];
     const operation = (dataOperations ?? readDataOperations?.())?.find(
       (item) => item.id === operationID,
@@ -77,6 +109,21 @@ export const useDataOperationActions = ({
         unresolvedRef.current = undefined;
         commit(operation);
       } catch (cause) {
+        if (
+          cause instanceof RealizeAIRequestError &&
+          cause.status === 409 &&
+          request.conflictScope
+        ) {
+          const marker = {
+            ...request.conflictScope,
+            message:
+              "Версия страницы, её проверка или текущая публикация изменились. Подготовьте новую операцию публикации или восстановления.",
+          };
+          setStaleMarkers((current) => ({
+            ...current,
+            [marker.operationID]: marker,
+          }));
+        }
         const rejected =
           cause instanceof RealizeAIRequestError &&
           cause.status !== undefined &&
@@ -88,7 +135,7 @@ export const useDataOperationActions = ({
         const operationPath = /^\/data-operations\/([^/]+)\//.exec(
           request.path,
         );
-        if (operationPath) {
+        if (operationPath && !request.createsOperation) {
           try {
             const operation = await requestRealizeAI<DataOperationDTO>(
               `/data-operations/${operationPath[1]}`,
@@ -120,6 +167,8 @@ export const useDataOperationActions = ({
       path: string,
       body: Record<string, unknown>,
       fallback: string,
+      createsOperation = false,
+      conflictScope?: DataOperationPendingRequest["conflictScope"],
     ) => {
       reconcile();
       const pending = unresolvedRef.current;
@@ -137,6 +186,8 @@ export const useDataOperationActions = ({
           body: JSON.stringify(body),
           key: crypto.randomUUID(),
           fallback,
+          createsOperation,
+          conflictScope,
           ...(typeof body.expectedVersion === "number"
             ? { expectedVersion: body.expectedVersion }
             : {}),
@@ -165,6 +216,7 @@ export const useDataOperationActions = ({
       operation: DataOperationDTO,
       decision: "approve" | "reject",
       comment?: string,
+      previewReview?: PagePublicationReviewInput,
     ) => {
       await mutate(
         operation.id,
@@ -173,8 +225,19 @@ export const useDataOperationActions = ({
           comment,
           expectedOperationHash: operation.operationHash,
           expectedVersion: operation.version,
+          ...(previewReview ? { previewReview } : {}),
         },
         "Не удалось сохранить решение по изменению данных.",
+        false,
+        decision === "approve" &&
+          (operation.kind === "pages.publishDraft.v1" ||
+            operation.kind === "pages.restorePublication.v1")
+          ? {
+              operationID: operation.id,
+              expectedVersion: operation.version,
+              expectedOperationHash: operation.operationHash,
+            }
+          : undefined,
       );
     },
     [mutate],
@@ -190,6 +253,62 @@ export const useDataOperationActions = ({
           expectedVersion: operation.version,
         },
         "Не удалось применить изменение данных.",
+        false,
+        operation.kind === "pages.publishDraft.v1" ||
+          operation.kind === "pages.restorePublication.v1"
+          ? {
+              operationID: operation.id,
+              expectedVersion: operation.version,
+              expectedOperationHash: operation.operationHash,
+            }
+          : undefined,
+      );
+    },
+    [mutate],
+  );
+
+  const preparePagePublication = useCallback(
+    async (operation: DataOperationDTO) => {
+      await mutate(
+        operation.id,
+        `/data-operations/${operation.id}/page-publication`,
+        {
+          expectedVersion: operation.version,
+          expectedOperationHash: operation.operationHash,
+        },
+        "Не удалось подготовить публикацию сохранённой версии.",
+        true,
+      );
+    },
+    [mutate],
+  );
+
+  const preparePublicationRestore = useCallback(
+    async (operation: DataOperationDTO) => {
+      await mutate(
+        operation.id,
+        `/data-operations/${operation.id}/page-publication-restore`,
+        {
+          expectedVersion: operation.version,
+          expectedOperationHash: operation.operationHash,
+        },
+        "Не удалось подготовить восстановление публикации.",
+        true,
+      );
+    },
+    [mutate],
+  );
+
+  const retryPublicationDelivery = useCallback(
+    async (operation: DataOperationDTO) => {
+      await mutate(
+        operation.id,
+        `/data-operations/${operation.id}/page-publication-delivery`,
+        {
+          expectedVersion: operation.version,
+          expectedOperationHash: operation.operationHash,
+        },
+        "Не удалось обновить витрину. Публикация повторно не выполнялась.",
       );
     },
     [mutate],
@@ -226,6 +345,7 @@ export const useDataOperationActions = ({
   );
 
   return {
+    staleMarkers,
     hasRetry,
     isLocked: isPending || hasRetry,
     retry: async () => {
@@ -236,6 +356,9 @@ export const useDataOperationActions = ({
     applyDataOperation,
     approveDataRollback,
     createDataOperation,
+    preparePagePublication,
+    preparePublicationRestore,
+    retryPublicationDelivery,
     decideDataOperation,
     rollbackDataOperation,
   };

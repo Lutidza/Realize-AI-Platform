@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/dataOperationApprovals.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-14
  * @description Хранит append-only write и rollback approvals DataOperation.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -15,7 +16,7 @@ import {
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createCollectionAccess } from "./access";
 
-/** Creates immutable decisions bound to one exact operation or rollback hash. */
+/** Хранит неизменяемое решение для точного hash и подтверждение проверки публикации. */
 export const createDataOperationApprovalsCollection = (
   options: SanitizedRealizeAIPluginOptions,
 ): CollectionConfig => {
@@ -59,6 +60,7 @@ export const createDataOperationApprovalsCollection = (
         type: "relationship",
       },
       { name: "roleSnapshot", required: true, type: "json" },
+      { name: "previewEvidence", type: "json" },
       { index: true, name: "targetHash", required: true, type: "text" },
       { index: true, name: "boundHash", required: true, type: "text" },
       {

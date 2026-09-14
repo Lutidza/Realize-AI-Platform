@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/dataOperationEvents.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-14
  * @description Хранит append-only audit и durable outbox событий DataOperation.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -12,7 +13,7 @@ import { DATA_OPERATION_EVENTS_SLUG, DATA_OPERATIONS_SLUG } from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createCollectionAccess } from "./access";
 
-/** Creates the transactionally written audit/outbox collection. */
+/** Хранит транзакционный аудит и состояние доставки обновления витрины после commit. */
 export const createDataOperationEventsCollection = (
   options: SanitizedRealizeAIPluginOptions,
 ): CollectionConfig => {
@@ -47,6 +48,7 @@ export const createDataOperationEventsCollection = (
           "rollback_approved",
           "rollback_succeeded",
           "rollback_failed",
+          "publication_delivery_requested",
         ],
         required: true,
         type: "select",
@@ -64,10 +66,12 @@ export const createDataOperationEventsCollection = (
         defaultValue: "pending",
         index: true,
         name: "deliveryStatus",
-        options: ["pending", "delivered"],
+        options: ["pending", "delivered", "failed"],
         required: true,
         type: "select",
       },
+      { name: "deliveryError", type: "text" },
+      { name: "deliveredAt", type: "date" },
       { index: true, name: "occurredAt", required: true, type: "date" },
       {
         admin: { hidden: true },

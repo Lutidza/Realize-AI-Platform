@@ -1477,7 +1477,13 @@ export interface RealizeAiExecutionJob {
 export interface RealizeAiDataOperation {
   id: number;
   title: string;
-  kind: 'catalog.assignCategory.v1' | 'pages.createDraft.v1' | 'pages.updateDraft.v1';
+  kind:
+    | 'catalog.assignCategory.v1'
+    | 'pages.createDraft.v1'
+    | 'pages.updateDraft.v1'
+    | 'pages.updateStructureDraft.v1'
+    | 'pages.publishDraft.v1'
+    | 'pages.restorePublication.v1';
   state:
     | 'awaiting_approval'
     | 'approved'
@@ -1488,9 +1494,9 @@ export interface RealizeAiDataOperation {
     | 'rolled_back'
     | 'rollback_failed';
   version: number;
-  riskLevel: 'R1';
+  riskLevel: 'R1' | 'R2';
   approvalPolicy: 'WRITE_CONFIRMATION';
-  rollbackStrategy: 'before-snapshot' | 'delete-created-draft';
+  rollbackStrategy: 'before-snapshot' | 'delete-created-draft' | 'restore-publication' | 'none';
   estimatedCount: number;
   requestedBy: number | User;
   conversation: number | RealizeAiConversation;
@@ -1584,6 +1590,15 @@ export interface RealizeAiDataOperationApproval {
     | number
     | boolean
     | null;
+  previewEvidence?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   targetHash: string;
   boundHash: string;
   operationVersion: number;
@@ -1609,7 +1624,8 @@ export interface RealizeAiDataOperationEvent {
     | 'apply_failed'
     | 'rollback_approved'
     | 'rollback_succeeded'
-    | 'rollback_failed';
+    | 'rollback_failed'
+    | 'publication_delivery_requested';
   fromState?: string | null;
   toState: string;
   actor?: (number | null) | User;
@@ -1623,7 +1639,9 @@ export interface RealizeAiDataOperationEvent {
     | boolean
     | null;
   topic: string;
-  deliveryStatus: 'pending' | 'delivered';
+  deliveryStatus: 'pending' | 'delivered' | 'failed';
+  deliveryError?: string | null;
+  deliveredAt?: string | null;
   occurredAt: string;
   idempotencyKey: string;
   updatedAt: string;
@@ -2862,6 +2880,7 @@ export interface RealizeAiDataOperationApprovalsSelect<T extends boolean = true>
   decision?: T;
   actor?: T;
   roleSnapshot?: T;
+  previewEvidence?: T;
   targetHash?: T;
   boundHash?: T;
   operationVersion?: T;
@@ -2885,6 +2904,8 @@ export interface RealizeAiDataOperationEventsSelect<T extends boolean = true> {
   payload?: T;
   topic?: T;
   deliveryStatus?: T;
+  deliveryError?: T;
+  deliveredAt?: T;
   occurredAt?: T;
   idempotencyKey?: T;
   updatedAt?: T;

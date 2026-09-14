@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatMessage.component.tsx
- * @version 1.3.1
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-14
  * @description Показывает сообщение и сохраняет действующие карточки подтверждения операций.
  */
 
@@ -161,8 +161,22 @@ export const ChatMessage = ({
           <DataOperationCard
             key={dataOperation.id}
             onApply={() => void controller.applyDataOperation(dataOperation)}
-            onApprove={() =>
-              void controller.decideDataOperation(dataOperation, "approve")
+            onApprove={(review) =>
+              void controller.decideDataOperation(
+                dataOperation,
+                "approve",
+                undefined,
+                review,
+              )
+            }
+            onPreparePublication={() =>
+              void controller.preparePagePublication(dataOperation)
+            }
+            onPreparePublicationRestore={() =>
+              void controller.preparePublicationRestore(dataOperation)
+            }
+            onRetryPublicationDelivery={() =>
+              void controller.retryPublicationDelivery(dataOperation)
             }
             onApproveRollback={() =>
               void controller.approveDataRollback(dataOperation)
@@ -178,6 +192,7 @@ export const ChatMessage = ({
               void controller.rollbackDataOperation(dataOperation)
             }
             operation={dataOperation}
+            staleMarker={controller.dataOperationStaleMarkers[dataOperation.id]}
             pending={controller.isPlanActionPending === dataOperation.id}
           />
         ))}

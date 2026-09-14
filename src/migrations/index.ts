@@ -14,6 +14,8 @@ import * as migration_20260910_122259_ai_config_activation from './20260910_1222
 import * as migration_20260911_132139_worker_presence from './20260911_132139_worker_presence';
 import * as migration_20260911_155718_page_draft_data_operation from './20260911_155718_page_draft_data_operation';
 import * as migration_20260912_111003_page_draft_update from './20260912_111003_page_draft_update';
+import * as migration_20260913_184706_page_structure_draft_operation from './20260913_184706_page_structure_draft_operation';
+import * as migration_20260914_083749_page_publication_operations from './20260914_083749_page_publication_operations';
 
 export const migrations = [
   {
@@ -94,6 +96,16 @@ export const migrations = [
   {
     up: migration_20260912_111003_page_draft_update.up,
     down: migration_20260912_111003_page_draft_update.down,
-    name: '20260912_111003_page_draft_update'
+    name: '20260912_111003_page_draft_update',
+  },
+  {
+    up: migration_20260913_184706_page_structure_draft_operation.up,
+    down: migration_20260913_184706_page_structure_draft_operation.down,
+    name: '20260913_184706_page_structure_draft_operation',
+  },
+  {
+    up: migration_20260914_083749_page_publication_operations.up,
+    down: migration_20260914_083749_page_publication_operations.down,
+    name: '20260914_083749_page_publication_operations'
   },
 ];

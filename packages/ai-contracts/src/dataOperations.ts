@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/dataOperations.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-14
  * @description Задаёт общие контракты и discriminated union управляемых операций Payload Data Lane.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -16,13 +16,32 @@ import type {
   UpdatePageDraftIntent,
 } from "./PageDraftUpdate.types";
 
+import type {
+  UpdatePageStructureDraftIntent,
+  PageDraftStructureOperationDTO,
+} from "./PageDraftStructure.types";
+import type {
+  PagePublicationOperationDTO,
+  PagePublicationRestoreOperationDTO,
+  PagePublicationReviewEvidenceDTO,
+  PagePublicationReviewInput,
+} from "./PagePublication.types";
+
 /** Закрытый список реализованных и проверяемых операций Data Lane. */
 export type DataOperationKind =
-  "catalog.assignCategory.v1" | "pages.createDraft.v1" | "pages.updateDraft.v1";
+  | "catalog.assignCategory.v1"
+  | "pages.createDraft.v1"
+  | "pages.updateDraft.v1"
+  | "pages.updateStructureDraft.v1"
+  | "pages.publishDraft.v1"
+  | "pages.restorePublication.v1";
 
 /** Декларативное предложение никогда не предоставляет право записи модели. */
 export type DataOperationIntent =
-  AssignProductCategoryIntent | CreatePageDraftIntent | UpdatePageDraftIntent;
+  | AssignProductCategoryIntent
+  | CreatePageDraftIntent
+  | UpdatePageDraftIntent
+  | UpdatePageStructureDraftIntent;
 
 /** Явный selector ассистента; допускается ровно один ключ. */
 export type DataEntitySelector =
@@ -74,6 +93,7 @@ export type DataOperationApprovalDTO = {
   id: string;
   targetHash: string;
   type: "ROLLBACK_APPROVAL" | "WRITE_CONFIRMATION";
+  previewEvidence?: PagePublicationReviewEvidenceDTO;
 };
 
 /** Общий жизненный цикл подготовки, подтверждения и компенсирующего отката. */
@@ -110,7 +130,10 @@ export type CategoryAssignmentOperationDTO = DataOperationBaseDTO & {
 export type DataOperationDTO =
   | CategoryAssignmentOperationDTO
   | PageDraftCreationOperationDTO
-  | PageDraftUpdateOperationDTO;
+  | PageDraftUpdateOperationDTO
+  | PageDraftStructureOperationDTO
+  | PagePublicationOperationDTO
+  | PagePublicationRestoreOperationDTO;
 
 /** Выбирает сохранённый ответ ассистента как источник предложения. */
 export type CreateDataOperationInput = {
@@ -122,6 +145,7 @@ export type DecideDataOperationInput = {
   comment?: string;
   expectedOperationHash: string;
   expectedVersion: number;
+  previewReview?: PagePublicationReviewInput;
 };
 
 /** Применяет точную подтверждённую операцию. */

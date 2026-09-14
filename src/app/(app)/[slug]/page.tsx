@@ -1,14 +1,13 @@
 /**
  * @file src/app/(app)/[slug]/page.tsx
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Отображает CMS-страницу и metadata через защищённое чтение документа.
  */
 
 import type { Metadata } from "next";
 
-import { RenderBlocks } from "@/blocks/RenderBlocks";
-import { RenderHero } from "@/heros/RenderHero";
+import { PageContent } from "@/components/PageContent.component";
 import { generateMeta } from "@/utilities/generateMeta";
 import configPromise from "@payload-config";
 import { getPayload } from "payload";
@@ -61,14 +60,7 @@ export default async function Page({ params }: Args) {
     return notFound();
   }
 
-  const { hero, layout } = page;
-
-  return (
-    <article className="pt-16 pb-24">
-      <RenderHero {...hero} />
-      <RenderBlocks blocks={layout} />
-    </article>
-  );
+  return <PageContent hero={page.hero} layout={page.layout} />;
 }
 
 export async function generateMetadata({ params }: Args): Promise<Metadata> {

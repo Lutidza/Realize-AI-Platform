@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.types.ts
- * @version 2.0.0
- * @date 2026-09-11
+ * @version 2.1.0
+ * @date 2026-09-13
  * @description Контракты ограниченного транспорта Codex App Server и его безопасных ошибок.
  */
 
@@ -15,6 +15,7 @@ export type JsonLineRPCClientOptions = {
   environment: NodeJS.ProcessEnv;
   workingDirectory: string;
   signal?: AbortSignal;
+  /** Только item/tool/call; другие server requests и ошибки обработчика завершают run как нарушение. */
   onRequest?: (method: string, params: unknown) => Promise<unknown>;
 };
 

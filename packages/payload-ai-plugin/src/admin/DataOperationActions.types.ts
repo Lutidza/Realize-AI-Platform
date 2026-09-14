@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/DataOperationActions.types.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Задаёт независимые порты согласования DataOperation после пользовательского действия.
  */
 
@@ -26,4 +26,15 @@ export type DataOperationPendingRequest = {
   key: string;
   fallback: string;
   expectedVersion?: number;
+  /** Creation возвращает новый ID; изменение source операции не подтверждает результат такого POST. */
+  createsOperation?: boolean;
+  conflictScope?: Omit<DataOperationStaleMarker, "message">;
+};
+
+/** Локальный запрет повторного подтверждения устаревшего плана; серверные проверки остаются обязательными. */
+export type DataOperationStaleMarker = {
+  operationID: string;
+  expectedVersion: number;
+  expectedOperationHash: string;
+  message: string;
 };

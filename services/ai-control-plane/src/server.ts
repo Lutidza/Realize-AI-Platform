@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/server.ts
- * @version 1.2.1
- * @date 2026-09-11
+ * @version 1.3.0
+ * @date 2026-09-13
  * @description Предоставляет loopback control plane для read-only запуска выбранной интеграции Codex.
  */
 
@@ -24,6 +24,7 @@ import { materializeChatAttachments } from "./materializeChatAttachments.service
 import { ChatAssetStore } from "./ChatAssetStore.repository";
 import { handleChatContextRoute } from "./chatContextRoutes.controller";
 import { parseChatRun } from "./parseChatRun.validator";
+import { createPageDiscoveryReadTools } from "./pageDiscoveryTools.adapter";
 import { readControlPlaneJSON } from "./readControlPlaneJSON.service";
 
 import { createContextSnapshot } from "./contextSnapshot";
@@ -103,6 +104,7 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
         ? [process.env.REALIZE_AI_CHAT_ASSET_ROOT]
         : [],
       signal: lease.signal,
+      readTools: createPageDiscoveryReadTools(run, lease.signal),
     });
     activeAdapters.set(run.id, adapter);
     snapshot = await createContextSnapshot(workspaceRoot, run.projectFiles);

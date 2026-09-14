@@ -1,7 +1,7 @@
 /**
  * @file tests/int/useChatConversation.int.spec.ts
- * @version 1.4.0
- * @date 2026-09-12
+ * @version 1.5.0
+ * @date 2026-09-14
  * @description Проверяет настройки отправки, безопасный ввод IME и запрет повторной отправки.
  */
 
@@ -97,6 +97,10 @@ const controllerFor = (
   approveDataRollback: vi.fn(async () => {}),
   createChangeRequest: vi.fn(async () => {}),
   createDataOperation: vi.fn(async () => {}),
+  dataOperationStaleMarkers: {},
+  preparePagePublication: vi.fn(async () => {}),
+  preparePublicationRestore: vi.fn(async () => {}),
+  retryPublicationDelivery: vi.fn(async () => {}),
   decideChangeRequest: vi.fn(async () => {}),
   decideImplementation: vi.fn(async () => {}),
   decideDataOperation: vi.fn(async () => {}),

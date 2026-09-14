@@ -1,25 +1,29 @@
-import { cn } from '@/utilities/cn'
-import React from 'react'
-import { RichText } from '@/components/RichText'
-import type { DefaultDocumentIDType } from 'payload'
-import type { ContentBlock as ContentBlockProps } from '@/payload-types'
+/**
+ * @file src/blocks/Content/Component.tsx
+ * @version 1.0.0
+ * @date 2026-09-14
+ * @description Отображает колонки страницы с generated контрактом ID блока.
+ */
+import { cn } from "@/utilities/cn";
+import React from "react";
+import { RichText } from "@/components/RichText";
+import type { ContentBlock as ContentBlockProps } from "@/payload-types";
 
-import { CMSLink } from '../../components/Link'
+import { CMSLink } from "../../components/Link";
 
 export const ContentBlock: React.FC<
   ContentBlockProps & {
-    id?: DefaultDocumentIDType
-    className?: string
+    className?: string;
   }
 > = (props) => {
-  const { columns } = props
+  const { columns } = props;
 
   const colsSpanClasses = {
-    full: '12',
-    half: '6',
-    oneThird: '4',
-    twoThirds: '8',
-  }
+    full: "12",
+    half: "6",
+    oneThird: "4",
+    twoThirds: "8",
+  };
 
   return (
     <div className="container my-16">
@@ -27,22 +31,25 @@ export const ContentBlock: React.FC<
         {columns &&
           columns.length > 0 &&
           columns.map((col, index) => {
-            const { enableLink, link, richText, size } = col
+            const { enableLink, link, richText, size } = col;
 
             return (
               <div
-                className={cn(`col-span-4 lg:col-span-${colsSpanClasses[size!]}`, {
-                  'md:col-span-2': size !== 'full',
-                })}
+                className={cn(
+                  `col-span-4 lg:col-span-${colsSpanClasses[size!]}`,
+                  {
+                    "md:col-span-2": size !== "full",
+                  },
+                )}
                 key={index}
               >
                 {richText && <RichText data={richText} enableGutter={false} />}
 
                 {enableLink && <CMSLink {...link} />}
               </div>
-            )
+            );
           })}
       </div>
     </div>
-  )
-}
+  );
+};

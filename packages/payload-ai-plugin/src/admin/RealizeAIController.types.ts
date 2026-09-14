@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RealizeAIController.types.ts
- * @version 1.3.0
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-14
  * @description Задаёт общий controller сообщений, истории и управляемых действий чата.
  */
 
@@ -10,6 +10,7 @@ import type {
   ConversationDTO,
   ConversationDetailDTO,
   DataOperationDTO,
+  PagePublicationReviewInput,
   RunDTO,
   RuntimeStatusDTO,
 } from "@realize/ai-contracts";
@@ -20,6 +21,7 @@ import type { ChatAgentConfigurationController } from "./chat/ChatAgentConfigura
 import type { ChatWorkflowController } from "./chat/ChatWorkflow.types";
 
 import type { RunStreamState } from "./runStreamTypes";
+import type { DataOperationStaleMarker } from "./DataOperationActions.types";
 
 /** Единое состояние чата и управляемые действия, принадлежащие Admin provider. */
 export type RealizeAIController = {
@@ -35,6 +37,10 @@ export type RealizeAIController = {
   approveDataRollback: (operation: DataOperationDTO) => Promise<void>;
   createChangeRequest: (messageID: string) => Promise<void>;
   createDataOperation: (messageID: string) => Promise<void>;
+  dataOperationStaleMarkers: Record<string, DataOperationStaleMarker>;
+  preparePagePublication: (operation: DataOperationDTO) => Promise<void>;
+  preparePublicationRestore: (operation: DataOperationDTO) => Promise<void>;
+  retryPublicationDelivery: (operation: DataOperationDTO) => Promise<void>;
   currentRun?: RunDTO;
   decideChangeRequest: (
     change: ChangeRequestDTO,
@@ -50,6 +56,7 @@ export type RealizeAIController = {
     operation: DataOperationDTO,
     decision: "approve" | "reject",
     comment?: string,
+    previewReview?: PagePublicationReviewInput,
   ) => Promise<void>;
   decidePreview: (
     change: ChangeRequestDTO,

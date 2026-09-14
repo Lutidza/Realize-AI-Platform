@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 2.0.0
- * @date 2026-09-11
+ * @version 2.1.0
+ * @date 2026-09-13
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
@@ -24,6 +24,7 @@ import { codexRecord as asRecord } from "./codexRecord.util";
 import { collectCodexChatSources } from "./collectCodexChatSources.mapper";
 import { validateCodexImageInputs } from "./validateCodexImageInputs.validator";
 import { createCodexChatPermissions } from "./createCodexChatPermissions.config";
+import { CodexReadTools } from "./CodexReadTools.adapter";
 import type {
   RPCMessage,
   ThreadStartResult,
@@ -85,6 +86,16 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
 
     const webSearch =
       input.webSearch === true && input.sandboxProfile === "analysis-readonly";
+    if (
+      this.options.readTools &&
+      input.sandboxProfile !== "analysis-readonly"
+    ) {
+      yield {
+        type: "run.failed",
+        message: "Инструменты чтения разрешены только для аналитического чата.",
+      };
+      return;
+    }
     if (input.webSearch === true && !webSearch) {
       yield {
         type: "run.failed",
@@ -94,7 +105,10 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     }
     let images: CodexLocalImageInput[];
     let chatPermissions: CodexChatPermissions | undefined;
+    let readTools: CodexReadTools | undefined;
     try {
+      if (this.options.readTools)
+        readTools = new CodexReadTools(this.options.readTools);
       images = await validateCodexImageInputs(input.cwd, input.images);
       if (input.sandboxProfile === "analysis-readonly")
         chatPermissions = await createCodexChatPermissions(
@@ -114,6 +128,9 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       codexBinary: chatPermissions?.binaryPath ?? this.options.codexBinary,
       environment: this.options.environment,
       signal: this.options.signal,
+      ...(readTools
+        ? { onRequest: readTools.handleRequest.bind(readTools) }
+        : {}),
       workingDirectory: input.cwd,
       webSearch: webSearch ? "live" : "disabled",
     });
@@ -150,7 +167,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
 
     try {
       await client.request("initialize", {
-        capabilities: null,
+        capabilities: readTools ? { experimentalApi: true } : null,
         clientInfo: {
           name: "realize-ai-control-plane",
           title: "Realize AI Control Plane",
@@ -159,24 +176,27 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       });
       client.notify("initialized");
 
-      const thread = input.threadID
-        ? await client.request<ThreadStartResult>("thread/resume", {
-            approvalPolicy: "never",
-            baseInstructions: null,
-            cwd: input.cwd,
-            developerInstructions: input.developerInstructions,
-            model: input.model || null,
-            ...permissions,
-            threadId: input.threadID,
-          })
-        : await client.request<ThreadStartResult>("thread/start", {
-            approvalPolicy: "never",
-            cwd: input.cwd,
-            developerInstructions: input.developerInstructions,
-            ephemeral: input.ephemeral ?? false,
-            model: input.model || null,
-            ...permissions,
-          });
+      // Resume не заменяет сохранённые dynamicTools: каждый запуск с tools получает точный новый набор.
+      const thread =
+        input.threadID && !readTools
+          ? await client.request<ThreadStartResult>("thread/resume", {
+              approvalPolicy: "never",
+              baseInstructions: null,
+              cwd: input.cwd,
+              developerInstructions: input.developerInstructions,
+              model: input.model || null,
+              ...permissions,
+              threadId: input.threadID,
+            })
+          : await client.request<ThreadStartResult>("thread/start", {
+              approvalPolicy: "never",
+              cwd: input.cwd,
+              developerInstructions: input.developerInstructions,
+              ephemeral: input.ephemeral ?? false,
+              model: input.model || null,
+              ...(readTools ? { dynamicTools: readTools.definitions } : {}),
+              ...permissions,
+            });
 
       const turn = await client.request<TurnStartResult>("turn/start", {
         approvalPolicy: "never",
@@ -192,6 +212,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
         threadID: thread.thread.id,
         turnID: turn.turn.id,
       };
+      readTools?.bind(active.threadID, active.turnID);
       this.activeRuns.set(input.runID, active);
       yield { threadID: active.threadID, type: "run.started" };
 
@@ -229,7 +250,8 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             (!writable && item?.type === "fileChange") ||
             (!webSearch && item?.type === "webSearch") ||
             item?.type === "mcpToolCall" ||
-            item?.type === "dynamicToolCall"
+            (item?.type === "dynamicToolCall" &&
+              !readTools?.allowsItem(item, params.threadId, params.turnId))
           ) {
             await this.cancelRun(input.runID);
             yield {
@@ -252,6 +274,12 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               type: "tool.started",
             };
           }
+          if (item?.type === "dynamicToolCall") {
+            yield {
+              type: "tool.started",
+              summary: "Чтение данных CMS начато.",
+            };
+          }
           continue;
         }
 
@@ -261,7 +289,8 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             (!writable && item?.type === "fileChange") ||
             (!webSearch && item?.type === "webSearch") ||
             item?.type === "mcpToolCall" ||
-            item?.type === "dynamicToolCall"
+            (item?.type === "dynamicToolCall" &&
+              !readTools?.allowsItem(item, params.threadId, params.turnId))
           ) {
             await this.cancelRun(input.runID);
             yield {
@@ -291,6 +320,16 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               type: "tool.completed",
             };
           }
+          if (item?.type === "dynamicToolCall") {
+            yield {
+              type: "tool.completed",
+              status:
+                item.status === "completed" && item.success === true
+                  ? "completed"
+                  : "failed",
+              summary: "Чтение данных CMS завершено.",
+            };
+          }
           continue;
         }
 
@@ -310,6 +349,28 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
                 type: "run.failed",
                 message:
                   "Codex попытался использовать веб-поиск вне разрешённого режима.",
+              };
+              break;
+            }
+            if (
+              items.some((value) => {
+                const item = asRecord(value);
+                return (
+                  item?.type === "mcpToolCall" ||
+                  (!writable && item?.type === "fileChange") ||
+                  (item?.type === "dynamicToolCall" &&
+                    !readTools?.allowsItem(
+                      item,
+                      params.threadId,
+                      turnResult.id,
+                    ))
+                );
+              })
+            ) {
+              yield {
+                type: "run.failed",
+                message:
+                  "Codex использовал инструмент вне разрешённого набора.",
               };
               break;
             }
@@ -347,6 +408,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
         type: "run.failed",
       };
     } finally {
+      readTools?.close();
       if (active) this.activeRuns.delete(input.runID);
       await client.close();
     }

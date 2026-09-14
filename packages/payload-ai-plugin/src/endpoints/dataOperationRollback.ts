@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationRollback.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-14
  * @description Атомарно откатывает подтверждённую операцию данных с проверкой снимка.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -11,6 +11,7 @@ import type { Payload, PayloadRequest } from "payload";
 
 import { PageDraftCreation } from "./pageDraftCreation.service";
 import { PageDraftUpdate } from "./pageDraftUpdate.service";
+import { PageDraftStructure } from "./pageDraftStructure.service";
 import { CatalogCategoryAssignment } from "./catalogCategoryAssignment";
 import { DataOperationAuditRepository } from "./dataOperationAuditRepository";
 import {
@@ -20,6 +21,7 @@ import {
 } from "./dataOperationExecutionSupport";
 import { DataOperationRepository } from "./dataOperationRepository";
 import { EndpointError } from "./http";
+import { isPagePublicationKind } from "./pagePublicationAccess.service";
 import { relationID } from "./mappers";
 import { withPayloadTransaction } from "./payloadTransaction";
 import type { AIDocument } from "./repository";
@@ -39,6 +41,12 @@ export const rollbackDataOperation = async (input: {
     input.dataOperationID,
     input.userID,
   );
+  if (isPagePublicationKind(operation.kind))
+    throw new EndpointError(
+      "CONFLICT",
+      "Публикация восстанавливается отдельной подтверждаемой операцией.",
+      409,
+    );
   if (operation.rollbackHash !== input.expectedRollbackHash) {
     throw new EndpointError("CONFLICT", "Rollback hash mismatch.", 409);
   }
@@ -70,26 +78,43 @@ export const rollbackDataOperation = async (input: {
 
   try {
     operation = await withPayloadTransaction(input.req, async () => {
-      const restoredTargetUpdatedAt =
-        operation.kind === "pages.updateDraft.v1"
-          ? await new PageDraftUpdate(input.payload, input.req).rollback(
-              operation,
-            )
-          : operation.kind === "pages.createDraft.v1"
-            ? await new PageDraftCreation(input.payload, input.req).rollback(
-                operation,
-              )
-            : await new CatalogCategoryAssignment(
-                input.payload,
-                input.req,
-              ).rollback({
-                afterCategoryIDs: snapshotIDs(operation.afterSnapshot),
-                appliedTargetUpdatedAt: String(
-                  operation.appliedTargetUpdatedAt || "",
-                ),
-                beforeCategoryIDs: snapshotIDs(operation.beforeSnapshot),
-                productID: relationID(operation.product),
-              });
+      let restoredTargetUpdatedAt: string;
+      if (operation.kind === "pages.updateStructureDraft.v1")
+        restoredTargetUpdatedAt = await new PageDraftStructure(
+          input.payload,
+          input.req,
+        ).rollback(operation);
+      else if (operation.kind === "pages.updateDraft.v1")
+        restoredTargetUpdatedAt = await new PageDraftUpdate(
+          input.payload,
+          input.req,
+        ).rollback(operation);
+      else if (operation.kind === "pages.createDraft.v1")
+        restoredTargetUpdatedAt = await new PageDraftCreation(
+          input.payload,
+          input.req,
+        ).rollback(operation);
+      else if (
+        operation.kind === undefined ||
+        operation.kind === "catalog.assignCategory.v1"
+      )
+        restoredTargetUpdatedAt = await new CatalogCategoryAssignment(
+          input.payload,
+          input.req,
+        ).rollback({
+          afterCategoryIDs: snapshotIDs(operation.afterSnapshot),
+          appliedTargetUpdatedAt: String(
+            operation.appliedTargetUpdatedAt || "",
+          ),
+          beforeCategoryIDs: snapshotIDs(operation.beforeSnapshot),
+          productID: relationID(operation.product),
+        });
+      else
+        throw new EndpointError(
+          "INVALID_REQUEST",
+          "Тип операции данных не поддерживается.",
+          400,
+        );
       const transitioned = await repository.transition({
         data: {
           errorSummary: undefined,

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationPlanning.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-13
  * @description Превращает persisted assistant intent в immutable DataOperation dry-run.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -10,7 +10,8 @@ import {
   parseDataOperationIntentFromAssistant,
 } from "@realize/change-engine";
 import type { Payload, PayloadRequest } from "payload";
-import { parsePageDraftContext } from "@realize/ai-contracts";
+import { matchesPageDiscoveryContext } from "../chat-context/pageDiscoveryContext.validator";
+import { matchesPageStructureContext } from "../chat-context/pageStructureContext.validator";
 import { relationID } from "./mappers";
 import { assertDataOperationSource } from "./assertDataOperationSource.validator";
 import { createTypedDataOperationPlan } from "./createTypedDataOperationPlan.service";
@@ -72,37 +73,28 @@ export const createDataOperationPlan = async (input: {
       assertDataOperationSource(existing, { ...input, intent });
       return existing;
     }
-    if (intent.kind === "pages.updateDraft.v1") {
+    if (
+      intent.kind === "pages.updateDraft.v1" ||
+      intent.kind === "pages.updateStructureDraft.v1"
+    ) {
       const run = await new AIRepository(input.payload, input.req).getRun(
         String(assistant.runID || ""),
         input.userID,
       );
-      const stored = run.turnContext as Record<string, unknown> | undefined;
-      if (
-        !stored?.pageDraftContext ||
-        relationID(run.conversation) !== input.conversationID
-      )
+      if (relationID(run.conversation) !== input.conversationID)
         throw new EndpointError(
           "CONFLICT",
-          "В исходном ответе нет выбранной страницы. Выберите страницу и запросите новое предложение.",
+          "Исходный ответ не принадлежит этому диалогу. Запросите новое предложение.",
           409,
         );
-      const context = parsePageDraftContext(stored.pageDraftContext);
-      if (
-        context.page.id !== intent.pageID ||
-        context.updatedAt !== intent.expectedUpdatedAt ||
-        context.fingerprint !== intent.expectedFingerprint ||
-        intent.changes.some(
-          (change) =>
-            !context.fields.some(
-              (field) =>
-                field.path === change.path && field.value === change.before,
-            ),
-        )
-      )
+      const matches =
+        intent.kind === "pages.updateStructureDraft.v1"
+          ? matchesPageStructureContext(run.turnContext, intent)
+          : matchesPageDiscoveryContext(run.turnContext, intent);
+      if (!matches)
         throw new EndpointError(
           "CONFLICT",
-          "Предложение не соответствует снимку страницы из исходного ответа. Подготовьте новое предложение.",
+          "Предложение не соответствует странице, прочитанной в исходном ответе. Попросите агента перечитать страницу и подготовить новое предложение.",
           409,
         );
     }

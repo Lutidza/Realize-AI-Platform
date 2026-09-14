@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/dataOperationValidation.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-14
  * @description Проверяет недоверенный assistant protocol и HTTP input Data Lane.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -18,6 +18,8 @@ import type {
 } from "./dataOperations";
 import { parseCreatePageDraftIntent } from "./parseCreatePageDraftIntent.validator";
 import { parseUpdatePageDraftIntent } from "./parseUpdatePageDraftIntent.validator";
+import { parseUpdatePageStructureDraftIntent } from "./parsePageDraftStructure.validator";
+import { parsePagePublicationReview } from "./parsePagePublication.validator";
 import { ContractValidationError, parseIdentifier } from "./validation";
 
 const asObject = (value: unknown, name: string): Record<string, unknown> => {
@@ -144,6 +146,8 @@ export const parseDataOperationIntent = (
   if (input.kind === "pages.updateDraft.v1") {
     return parseUpdatePageDraftIntent(input);
   }
+  if (input.kind === "pages.updateStructureDraft.v1")
+    return parseUpdatePageStructureDraftIntent(input);
   return parseAssignProductCategoryIntent(input);
 };
 
@@ -169,12 +173,15 @@ export const parseDecideDataOperationInput = (
   const input = asObject(value, "request body");
   requireExactKeys(
     input,
-    ["comment", "expectedOperationHash", "expectedVersion"],
+    ["comment", "expectedOperationHash", "expectedVersion", "previewReview"],
     "request body",
   );
   const comment = parseComment(input.comment, commentRequired);
   return {
     ...(comment ? { comment } : {}),
+    ...(input.previewReview === undefined
+      ? {}
+      : { previewReview: parsePagePublicationReview(input.previewReview) }),
     expectedOperationHash: parseHash(
       input.expectedOperationHash,
       "expectedOperationHash",

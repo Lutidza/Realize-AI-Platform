@@ -1,7 +1,7 @@
 # 10. Интеграция системного и installation AI-layer
 
 - **Статус:** target specification
-- **Дата сверки реализации:** 11 сентября 2026 года
+- **Дата сверки реализации:** 13 сентября 2026 года
 
 ## 10.1. Разделение владельцев
 
@@ -84,9 +84,16 @@ system release, immutable installation release и выбранного agent pro
 `compiledContextHash`. Runtime отдельно связывает его с выбранной моделью,
 текущими developer instructions, включая web-search policy, и версией политики
 контекста в `runtimeContextHash`. Последний завершённый provider thread
-переиспользуется только при совпадении этого fingerprint. При несовпадении
+переиспользуется только при совпадении этого fingerprint и отсутствии
+подключённых инструментов discovery. При несовпадении
 или отсутствии старого fingerprint создаётся новый thread; сохранённые реплики
 передаются как недоверенные данные объёмом не более 32 КиБ UTF-8.
+
+Обычный чат с инструментами чтения Pages всегда создаёт новый provider thread:
+установленная схема App Server принимает `dynamicTools` в `thread/start`, но
+не заменяет их при `thread/resume`. Сервер передаёт ограниченную историю
+сохранённых реплик и заново регистрирует точный набор tools; прежний снимок
+страницы из истории не становится основанием нового изменения.
 
 ## 10.7. Текущий chat runtime
 
@@ -124,6 +131,36 @@ JSON с `developerInstructions` и `prompt` 256 КиБ UTF-8. Переполне
 содержит только сводку выбора и хешей. Контракты persistence и API описаны
 в [модели данных](../03-runtime-delivery-and-security/21-ai-plugin-data-model.md)
 и [API](../03-runtime-delivery-and-security/22-api-and-streaming-contracts.md).
+
+В обычном чате доступны три server-owned инструмента: `pages_search`,
+`pages_read`, `pages_structure`. Они подключаются только при включённой текущей
+интеграции, host text adapter и `canManageData`; workflow их не наследует.
+Определения и callback задаёт сервер, browser и модель не передают исполняемый
+код, endpoint или полномочия. Callback использует отдельный HMAC-допуск на
+15 минут, подписанный существующим control-plane token, привязанный к run и
+администратору. Допуск остаётся в закрытом серверном transport и не попадает
+в prompt, RunDTO или события UI. Payload повторно проверяет текущие права,
+интеграцию и состояние run перед чтением.
+
+Codex opt-in `experimentalApi` включается только при зарегистрированных tools.
+Adapter принимает только `item/tool/call` для точного имени без namespace,
+с подтверждёнными thread/turn ID и новым callID. Пределы adapter: 16 вызовов,
+4 одновременно, 16 КиБ аргументов, 128 КиБ одного ответа и 512 КиБ ответов
+за turn; сервис Pages дополнительно ограничивает persistent журнал 12 вызовами.
+Результат передаётся модели как ограниченный текстовый JSON, а UI получает
+общие события чтения без raw arguments/results. Незнакомые requests/tools,
+MCP и запросы approval по-прежнему блокируются; sandbox filesystem/network
+не расширяется. Сбой обработчика не может быть скрыт ранним `turn/completed`.
+Контракт данных и сохранённых снимков описан в
+[поиске страниц](../02-change-engine-and-pipelines/14-data-config-pipeline.md#1410-самостоятельный-поиск-и-чтение-страниц).
+
+Обычный чат может предложить `pages.updateStructureDraft.v1` по stable IDs из
+прочитанных в том же run порций. Callback сохраняет до восьми порций структуры
+и до трёх текстовых снимков; общий размер двух массивов — до 384 КиБ UTF-8.
+Exact replay структуры повторно проверяет ревизию, каталог и доступ к ссылкам.
+Инструменты остаются читающими; новый intent проходит существующие Data Lane
+preview, подтверждение, apply и rollback. Подробности —
+[структурный сервис Content](../02-change-engine-and-pipelines/14-data-config-pipeline.md#1411-структурное-редактирование-content).
 
 ## 10.8. Исполнение workflow сегментами
 

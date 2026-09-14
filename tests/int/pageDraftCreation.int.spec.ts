@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/pageDraftCreation.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Проверяет границы dry-run, создания и отката черновика Pages без изменения рабочих данных.
  */
 import type { CreatePageDraftIntent } from "@realize/ai-contracts";
@@ -193,15 +193,20 @@ describe("Создание черновика страницы", () => {
     const operation = await f.prepare();
     const applied = await f.service.apply(operation);
     const dto = toDataOperationDTO({
+      apiRoute: "/custom-api/",
       operation: { ...operation, ...applied, state: "applied", version: 3 },
     });
     expect(dto).toMatchObject({
       kind: "pages.createDraft.v1",
-      result: { page: { id: "7", title: intent.title } },
+      result: {
+        page: { id: "7", title: intent.title },
+        frontendPreviewUrl: `/custom-api/realize-ai/data-operations/${encodeURIComponent(String(operation.id))}/open-page`,
+      },
     });
     expect(JSON.stringify(dto)).not.toMatch(
-      /createData|fingerprint|blockType|expectedTargetUpdatedAt/,
+      /createData|fingerprint|blockType|expectedTargetUpdatedAt|previewSecret/,
     );
+    expect(applied.appliedSnapshot).not.toHaveProperty("frontendPreviewUrl");
   });
 
   it("обычный autosave update и управляемый rollback используют общий transaction lock", async () => {

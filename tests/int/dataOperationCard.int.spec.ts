@@ -1,7 +1,7 @@
 /**
  * @file tests/int/dataOperationCard.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.2.0
+ * @date 2026-09-14
  * @description Проверяет подтверждение создания черновика, результат, безопасный откат и сохранение карточки каталога.
  */
 
@@ -119,6 +119,7 @@ describe("Карточка создания черновика страницы"
       result: {
         page: { id: "17", title: "Новый заголовок" },
         adminUrl: "/admin/collections/pages/17",
+        frontendPreviewUrl: "/api/realize-ai/data-operations/17/open-page",
       },
     };
     rerender(
@@ -127,7 +128,7 @@ describe("Карточка создания черновика страницы"
     expect(screen.getByText("Черновик обновлён")).toBeTruthy();
     expect(
       screen
-        .getByRole("link", { name: "Открыть черновик" })
+        .getByRole("link", { name: "Посмотреть в админке" })
         .getAttribute("href"),
     ).toBe(applied.result.adminUrl);
     expect(screen.queryByText("Удалить созданный черновик")).toBeNull();
@@ -199,6 +200,8 @@ describe("Карточка создания черновика страницы"
       result: {
         page: { id: "99", title: "О компании", slug: "about" },
         adminUrl: "/custom-admin/collections/pages/99",
+        frontendPreviewUrl:
+          "/custom-api/realize-ai/data-operations/99/open-page",
       },
     };
     const props = propsFor(applied);
@@ -206,9 +209,15 @@ describe("Карточка создания черновика страницы"
     expect(screen.getByText("Черновик создан")).toBeTruthy();
     expect(
       screen
-        .getByRole("link", { name: "Открыть черновик" })
+        .getByRole("link", { name: "Посмотреть в админке" })
         .getAttribute("href"),
     ).toBe("/custom-admin/collections/pages/99");
+    expect(
+      screen
+        .getByRole("link", { name: "Посмотреть на фронте" })
+        .getAttribute("href"),
+    ).toBe(applied.result!.frontendPreviewUrl);
+    expect(screen.getAllByRole("link")).toHaveLength(2);
     expect(
       screen.queryByRole("button", { name: "Создать черновик" }),
     ).toBeNull();
@@ -236,7 +245,9 @@ describe("Карточка создания черновика страницы"
       }),
     );
     expect(screen.getByText("Черновик удалён")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "Открыть черновик" })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: "Посмотреть в админке" }),
+    ).toBeNull();
   });
 
   it("блокирует повторное действие во время запроса и показывает причину неудачи", () => {
@@ -260,7 +271,9 @@ describe("Карточка создания черновика страницы"
     expect(
       screen.queryByRole("button", { name: "Создать черновик" }),
     ).toBeNull();
-    expect(screen.queryByRole("link", { name: "Открыть черновик" })).toBeNull();
+    expect(
+      screen.queryByRole("link", { name: "Посмотреть в админке" }),
+    ).toBeNull();
   });
 
   it("истёкшее предложение нельзя подтвердить, отклонение сохраняет причину", () => {

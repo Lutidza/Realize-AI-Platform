@@ -1,7 +1,7 @@
 # 22. API и streaming contracts
 
 - **Статус:** target specification
-- **Дата сверки реализации:** 11 сентября 2026 года
+- **Дата сверки реализации:** 14 сентября 2026 года
 
 ## 22.1. Общие правила
 
@@ -21,7 +21,8 @@ changes/approvals, data operations/apply/rollback, execution/acceptance,
 preview, source promotion, release candidates, runs/events/cancel.
 
 Это описание групп, а не гарантия универсальных capabilities: фактический Data
-Lane поддерживает `catalog.assignCategory.v1`, `pages.createDraft.v1` и `pages.updateDraft.v1`.
+Lane поддерживает `catalog.assignCategory.v1`, `pages.createDraft.v1`,
+`pages.updateDraft.v1` и `pages.updateStructureDraft.v1`.
 
 ### Готовность ответа к оформлению плана кода
 
@@ -82,7 +83,7 @@ Mutation требует `Idempotency-Key`; отклонение требует �
 
 - `preview: {title, slug, sections: [{heading?, body}], description?, status: "draft"}`;
 - `rollbackStrategy: "delete-created-draft"`, `riskLevel: "R1"` и `estimatedCount: 1`;
-- после apply — `result: {page: {id, title, slug}, adminUrl}`. Ссылка строится
+- после apply — `result: {page: {id, title, slug}, adminUrl, frontendPreviewUrl}`. Ссылка редактора строится
   сервером из настроенного маршрута Admin. После успешного отката результат
   удалённого черновика в DTO отсутствует.
 
@@ -93,7 +94,8 @@ Mutation требует `Idempotency-Key`; отклонение требует �
 документы за границу DTO не выдаются; read-контекст update передаёт только opaque fingerprint.
 
 В UI страницы доступны последовательные действия «Подготовить изменение
-данных», «Подтвердить создание», «Создать черновик», затем «Открыть черновик».
+данных», «Подтвердить создание», «Создать черновик», затем «Посмотреть в админке»
+и «Посмотреть на фронте».
 Текстовое «подтверждаю» в чате не заменяет hash-bound решение. Занятый адрес,
 изменившийся рецепт, устаревшие version/hash и небезопасный откат отклоняются
 как `CONFLICT`; неподдерживаемый intent — `INVALID_REQUEST`, отсутствие права —
@@ -106,7 +108,7 @@ Mutation требует `Idempotency-Key`; отклонение требует �
 page, totalPages, totalDocs}` с поиском по title/slug и лимитом 20. Поисковая
 строка — до 128 символов. `GET /chat/page-drafts/:id` возвращает
 `PageDraftContextDTO`: `{page, updatedAt, fingerprint, adapterVersion,
-fields: [{path, label, value, maxLength}]}`. Обе операции требуют текущую
+fields: [{path, label, value, maxLength}], knowledge?}`. Обе операции требуют текущую
 сессию чата, `canManageData`, подключённый host adapter и доступ Pages;
 ответы `no-store`, без raw Payload.
 
@@ -121,11 +123,169 @@ run; stale selection — `CONFLICT`, без отправки провайдер�
 Ветка `DataOperationDTO.kind: "pages.updateDraft.v1"` содержит
 `preview: {page, changes: [{path, label, before, after}], status: "draft"}`,
 `expectedTargetUpdatedAt`, `rollbackStrategy: "before-snapshot"` и после apply
-`result: {page, adminUrl}`. Общие approval/apply/rollback endpoints сохраняются.
+`result: {page, adminUrl, frontendPreviewUrl}`. Общие approval/apply/rollback endpoints сохраняются.
 В интерфейсе — полный diff, «Подтвердить изменения», «Сохранить черновик» и
 отдельное восстановление предыдущего текста. Это не публикация и не удаление
 страницы. Все пределы и проверки исходной версии описаны в
 [Data/Config Pipeline](../02-change-engine-and-pipelines/14-data-config-pipeline.md#146-редактирование-текста-существующей-страницы).
+
+### Изменение размещения Content
+
+`DataOperationDTO.kind: "pages.updateStructureDraft.v1"` использует те же
+prepare/approve/apply/approve-rollback/rollback маршруты. Source — сохранённый
+assistant response и предшествующий запрос пользователя того же run. Структурный
+intent и полное содержание snapshot из браузера endpoint не принимает.
+
+Preview содержит `{page,status:"draft",action,blockID,beforeIndex,afterIndex,
+totalBefore,totalAfter,beforeBlockID,content?}`. Индексы с нуля, отсутствующая
+позиция равна null. `content` обязателен для insert/remove и содержит полные
+`columns:[{size,text}]` и необязательный `blockName`; у move он отсутствует.
+Для insert/move `beforeBlockID:null` означает конец; у remove это поле всегда
+равно null. Действие и позиции проверяются согласованно.
+После применения возвращается `{page,adminUrl,frontendPreviewUrl}` без raw snapshots.
+Подробные входы, bounds, same-run provenance и ограничения —
+[структурный контракт](../02-change-engine-and-pipelines/14-data-config-pipeline.md#1411-структурное-редактирование-content).
+
+### Штатный Live Preview Pages
+
+Визуальное отображение использует обычный редактор Payload и его Live Preview.
+AI API не выдаёт отдельный визуальный preview или допуск к renderer. Native
+admin.preview/livePreview, вход /next/preview и текущая сессия остаются владельцами
+просмотра. Карточка публикационного плана содержит top-level adminUrl обычного
+редактора; он вычисляется сервером из config.routes.admin и page ID. Пара кнопок
+«Посмотреть в админке» и «Посмотреть на фронте» видна непосредственно в карточке.
+
+`frontendPreviewUrl` в результате сохранения draft и на верхнем уровне
+публикационного DTO указывает на `GET /data-operations/:id/open-page` под текущим
+config.routes.api и plugin prefix `/realize-ai`. Этот endpoint проверяет chat
+access, владельца операции и текущий Pages read ACL, читает сохранённый draft и
+вызывает существующий `Pages.admin.preview`. Ответ — перенаправление на штатный
+внутренний URL с `Cache-Control: no-store` и `Referrer-Policy: no-referrer`.
+Вход не создаёт токены, не включает draftMode, не меняет страницу или подтверждение.
+Для неподдерживаемой операции, отсутствующей страницы или настройки preview
+переход отклоняется. Он доступен при выключенном AI с сохранением обычных прав.
+Ссылки вычисляются при projection; сохранённые snapshots и hashes не меняются.
+
+Контракт и связь с выбранной версией — [штатный Live Preview](../02-change-engine-and-pipelines/14-data-config-pipeline.md#1412-штатный-live-preview-payload).
+
+### Публикация и восстановление Pages
+
+- `POST /data-operations/:sourceID/page-publication` принимает
+  `{expectedVersion,expectedOperationHash}` и создаёт отдельную
+  `pages.publishDraft.v1` из выбранного сохранённого draft.
+- `POST /data-operations/:publicationID/page-publication-restore` принимает
+  `{expectedVersion,expectedOperationHash}` и создаёт отдельную
+  `pages.restorePublication.v1`, сохраняя текущий рабочий draft.
+- `POST /data-operations/:id/page-publication-delivery` с тем же CAS повторяет
+  только обновление витрины для выполненной публикационной операции.
+
+Все три записи требуют idempotency key и текущую сессию/права. Первые два endpoint
+возвращают HTTP 201 и новый DataOperationDTO с другим ID; retry того же key/body
+возвращает ту же операцию. Delivery возвращает HTTP 200 и DTO исходной операции.
+Новые kinds имеют R2; rollbackStrategy — `restore-publication` и `none`
+соответственно. Generic draft rollback этих kinds запрещён.
+
+Public `preview` содержит `{page,sourceOperationID,manifestHash,policyHash,checks,
+before:{status,page},after:{status,page}}`, где status — `published|unpublished`.
+Снимки страниц публичным DTO не возвращаются. Top-level adminUrl и frontendPreviewUrl
+доступны и до применения операции; native preview URL с секретом через DTO не выдаётся. При применении
+`result:{page,adminUrl,publicUrl?,delivery}` содержит delivery
+`{status:pending|succeeded|failed,message?,deliveredAt?}`. Сбой доставки не
+заменяет applied на apply_failed и не разрешает повторную публикацию.
+
+Пользователь просматривает страницу в штатном Live Preview после подготовки
+плана. Подтверждение публикации использует обычный `/approve`, дополненный
+`previewReview:{manifestHash,desktop:true,mobile:true,noErrors:true}`.
+Все флаги обязательны; actor и время назначает сервер. Approval DTO получает
+`previewEvidence:{version:"1.0",reviewedAt,...previewReview}`. Это свидетельство
+пользователя о просмотре, а не автоматический browser PASS. Restore использует
+обычный `/approve` без previewReview. Применение обоих kinds — существующий
+`/apply` с ожидаемыми version/hash; callback доставки вызывается после commit.
+
+Пропущенное свидетельство/некорректный ввод дают 400, отсутствие сессии — 401,
+недостаточные права — 403, чужая операция скрыта как 404; stale/version/manifest/
+policy/expiry дают 409. UI закрывает старые действия после 409 для конкретного
+id/version/hash; сервер перепроверяет условия независимо от состояния клиента.
+Подробности — [14.13](../02-change-engine-and-pipelines/14-data-config-pipeline.md#1413-публикация-и-восстановление-публичной-версии-pages).
+
+### Каталог и порционное чтение структуры страницы
+
+`GET /chat/page-artifacts` возвращает `PageArtifactCatalogDTO` версии `1.0`:
+`{version, hash, definitions}` для Pages, Content и FormBlock. Определение
+содержит ID/version, kind, назначение, ссылки schema/renderer, краткий guide,
+summary фактических полей и `supportedOperations` с exact capability versions.
+Поддержка реализацией не является разрешением на действие. Предел — 32 КиБ.
+Определения и guides Pages/Content имеют версию `1.1`, FormBlock — `1.0`;
+версии DTO каталога и knowledge остаются `1.0`.
+
+`GET /chat/page-drafts/:id/structure?offset=0` возвращает
+`PageStructureContextDTO`: `{page, updatedAt, fingerprint, knowledge}`.
+`knowledge` содержит `{version: "1.0", pageID, fingerprint, catalogHash,
+definitions, outline: {offset, limit: 32, totalBlocks, nextOffset, blocks}}`.
+Следующая порция запрашивается с `offset=nextOffset`, `fingerprint` и
+`catalogHash` предыдущего ответа. Продолжение без обеих привязок —
+`INVALID_REQUEST`; изменившаяся страница или схема — `CONFLICT`. Неизвестные
+query-параметры отклоняются. Максимум 10 000 размещений и 48 КиБ на knowledge.
+
+Размещение содержит `{id, identity, index, path, blockType, definitionID,
+settings, references}`. `identity` — `stable`, `missing` или `duplicate`;
+без сохранённого ID возвращается `null`. Ссылка FormBlock содержит только
+`{field: "form", collection: "forms", id, access}`: readable либо unavailable
+с `id: null`. Проверяются текущие права чтения формы, её данные не выдаются.
+Структура не является writable Payload patch.
+
+Обе операции требуют сессию чата, `canManageData`, включённого агента и
+подключённого host knowledge adapter; чтение структуры дополнительно проходит
+прежний Pages update ACL. Ответы `no-store`. Отдельное пользовательское
+разрешение чтения пока не введено.
+Опциональное `knowledge` в старом текстовом ответе связано с теми же pageID и
+fingerprint; сервер передаёт его control plane, а browser не может прислать
+свой snapshot. Старые 128 полей / 64 КиБ и write hashes сохраняются отдельно.
+Ограничения первого среза описаны в
+[контракте каталога и структуры](../02-change-engine-and-pipelines/14-data-config-pipeline.md#149-каталог-и-структура-pages-первый-реализованный-срез).
+
+### Самостоятельный поиск страниц: закрытый callback
+
+`POST /chat/page-tools/:runID` обслуживает только server-to-server вызовы
+зарегистрированных `pages_search`, `pages_read`, `pages_structure`. Тело —
+strict `PageDiscoveryCall`: `{callID, name, arguments}`. У поиска arguments
+содержат `query` и необязательную `page`; у чтения — `pageID`; у структуры —
+`pageID` и необязательные `offset`, `fingerprint`, `catalogHash` по прежнему
+контракту порций. Чужие поля и имена отклоняются. Endpoint не является
+универсальным Payload API или MCP transport.
+
+Авторизация — `Authorization: Bearer <run grant>`: HMAC с отдельным domain
+prefix, подписанный существующим control-plane token, сроком ровно 15 минут
+и привязкой к runID/userID. URL строится из serverURL и настроенных API routes
+установки; browser, модель и HTTP Host не задают callback target. URL и token
+передаются только через закрытый `pageDiscovery` серверного запроса к control
+plane и не входят в публичный chat DTO, prompt или SSE. Relay запрещает
+redirect, ограничивает ответ до 128 КиБ перед JSON parsing и использует
+timeout 15 секунд; upstream credentials и raw ошибки модели не раскрываются.
+
+Payload восстанавливает текущего actor, проверяет интеграцию, chat/data access,
+владельца активного диалога и run; control plane должен подтверждать running.
+Доступ к Pages и forms проверяют существующие сервисы с actor request.
+Поиск возвращает `PageDiscoverySearchDTO`: прежний каталог по 20 записей плюс
+`adminUrl` у каждой страницы. Остальные результаты — `PageDraftContextDTO` и
+`PageStructureContextDTO`. Все ответы используют прежний success/error envelope,
+без raw Payload documents.
+
+В `turnContext` сохраняются до 12 вызовов, до трёх текстовых снимков и до восьми
+порций структуры. Общий предел двух массивов снимков — 384 КиБ; они не выдаются
+в RunDTO. Бюджет резервируется под блокировкой run до чтения; ошибки его не
+возвращают. Exact replay `pages_read` возвращает сохранённый снимок после
+повторной проверки текущего доступа, а поиск перечитывается. Другие arguments
+с прежним callID, повтор pending и повтор failed отклоняются.
+Текстовый снимок текущего run допускается к `pages.updateDraft.v1`
+только после completed чтения и exact сверки полей. Порция структуры хранит
+также проверенные arguments, callID и requestHash; она может подтвердить stable
+ID цели/якоря для отдельной `pages.updateStructureDraft.v1`. Повтор порции
+требует совпадения текущей ревизии/каталога и проверенного доступа к ссылкам.
+Истёкший/некорректный grant — 401, отзыв доступа — 403, конфликт run, callID или
+ревизии — 409, исчерпание бюджета — 429. Допуск не предоставляет права записи,
+подтверждения или публикации. Подробная семантика повторов и ограничений —
+[самостоятельный поиск страниц](../02-change-engine-and-pipelines/14-data-config-pipeline.md#1410-самостоятельный-поиск-и-чтение-страниц).
 
 ### Управление админским агентом
 
@@ -322,7 +482,8 @@ compiled snapshot или trusted policy. Отсутствующий или ус�
 через серверный transport; публичный `RunDTO.agentConfiguration` содержит
 только allowlisted summary из [модели данных](21-ai-plugin-data-model.md#213-снимок-конфигурации-chat-run).
 Thread reuse связан с runtime fingerprint конфигурации, модели и server
-policy. При несовпадении новый thread получает историю до 32 КиБ UTF-8
+policy. С tools поиска страниц thread всегда новый; при смене fingerprint
+он также не переиспользуется. Новый thread получает историю до 32 КиБ UTF-8
 как данные. Renderer ограничен 128 КиБ, итоговый JSON prompt/developer
 instructions — 256 КиБ UTF-8; превышение не приводит к молчаливому усечению.
 

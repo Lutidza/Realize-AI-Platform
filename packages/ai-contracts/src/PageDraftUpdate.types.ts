@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/PageDraftUpdate.types.ts
- * @version 1.0.0
- * @date 2026-09-12
+ * @version 1.1.0
+ * @date 2026-09-13
  * @description Задаёт ограниченный текстовый контекст страницы и подтверждаемый diff её черновика.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -9,6 +9,7 @@ import type {
   DataDocumentRefDTO,
   DataOperationBaseDTO,
 } from "./dataOperations";
+import type { PageKnowledgeDTO } from "./PageKnowledge.types";
 import type { PageDraftCreationResultDTO } from "./PageDraftCreation.types";
 
 /** Только разрешённый текстовый лист; path задаёт серверный host adapter. */
@@ -26,6 +27,7 @@ export type PageDraftContextDTO = {
   fingerprint: string;
   adapterVersion: string;
   fields: PageDraftTextFieldDTO[];
+  knowledge?: PageKnowledgeDTO;
 };
 
 /** Browser передаёт только выбор; текст и ревизию сервер повторно читает сам. */

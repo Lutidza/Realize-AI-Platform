@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/pageDraftUpdate.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-12
+ * @version 1.1.0
+ * @date 2026-09-13
  * @description Проверяет точный diff, версии, сохранность связей и защищённый откат текста Pages.
  */
 import type {
@@ -21,10 +21,12 @@ import { PageDraftUpdate } from "../../packages/payload-ai-plugin/src/endpoints/
 import type { AIDocument } from "../../packages/payload-ai-plugin/src/endpoints/repository";
 import { mapAIPageDraftContent } from "../../src/collections/Pages/mapAIPageDraft.mapper";
 import { pageDraftTextAdapter } from "../../src/collections/Pages/pageDraftText.adapter";
+import { pageKnowledgeAdapter } from "../../src/collections/Pages/pageKnowledge.adapter";
+import { Pages } from "../../src/collections/Pages";
 
 const time = "2026-09-12T12:00:00.000Z";
 const textPath = "/layout/0/columns/0/richText/root/children/0/children/0/text";
-const fixture = (isPublished = true) => {
+const fixture = (isPublished = true, withKnowledge = false) => {
   const content = mapAIPageDraftContent({
     version: "1.0",
     kind: "pages.createDraft.v1",
@@ -76,14 +78,22 @@ const fixture = (isPublished = true) => {
             version: "1.0",
             mapContent: mapAIPageDraftContent,
             text: adapter,
+            ...(withKnowledge ? { knowledge: pageKnowledgeAdapter } : {}),
           },
         },
       },
     },
     collections: {
-      pages: { config: { access: { update: vi.fn(async () => true) } } },
+      pages: {
+        config: {
+          fields: Pages.fields,
+          access: { update: vi.fn(async () => true) },
+        },
+      },
+      forms: {},
     },
     db: { name: "postgres", sessions: { tx: { db: { execute } } } },
+    findByID: vi.fn(async () => ({ id: 31 })),
     find: vi.fn(async (args: Record<string, unknown>) => ({
       docs: [structuredClone(args.draft ? page : base)],
     })),
@@ -226,13 +236,25 @@ describe("Редактирование черновика страницы", () 
       expect(f.page()).toEqual(before);
     },
   );
-  it.each([true, false])(
-    "меняет только утверждённый текст, сохраняя публичную версию: %s",
-    async (published) => {
-      const f = fixture(published);
+  it.each([
+    [true, false],
+    [false, false],
+    [true, true],
+  ])(
+    "меняет только утверждённый текст, сохраняя публикацию %s и структуру при knowledge=%s",
+    async (published, withKnowledge) => {
+      const f = fixture(published, withKnowledge);
       const originalPage = structuredClone(f.page());
       const originalBase = structuredClone(f.base());
+      if (withKnowledge) {
+        const context = await f.service.readContext("7");
+        expect(context.knowledge?.outline.blocks[2]).toMatchObject({
+          id: "form-block",
+          definitionID: "blocks.formBlock",
+        });
+      }
       const operation = await f.prepare();
+      expect(operation.afterSnapshot).not.toHaveProperty("context.knowledge");
       const applied = await f.service.apply(operation);
       expect(f.base()).toEqual(originalBase);
       expect(f.page().hero).toEqual(originalPage.hero);

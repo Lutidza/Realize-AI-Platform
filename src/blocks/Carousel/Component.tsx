@@ -1,7 +1,7 @@
 /**
  * @file src/blocks/Carousel/Component.tsx
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Отображает карусель опубликованных товаров в блоке страницы.
  */
 
@@ -11,16 +11,12 @@ import type {
 } from "@/payload-types";
 
 import configPromise from "@payload-config";
-import { DefaultDocumentIDType, getPayload } from "payload";
+import { getPayload } from "payload";
 import React from "react";
 
 import { CarouselClient } from "./Component.client";
 
-export const CarouselBlock: React.FC<
-  CarouselBlockProps & {
-    id?: DefaultDocumentIDType;
-  }
-> = async (props) => {
+export const CarouselBlock: React.FC<CarouselBlockProps> = async (props) => {
   const { categories, limit = 3, populateBy, selectedDocs } = props;
 
   let products: Product[] = [];

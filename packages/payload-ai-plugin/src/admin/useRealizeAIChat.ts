@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useRealizeAIChat.ts
- * @version 1.5.0
- * @date 2026-09-12
+ * @version 1.6.0
+ * @date 2026-09-14
  * @description Управляет bootstrap чата, durable state и governed change actions.
  */
 
@@ -462,6 +462,10 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     approveDataRollback,
     createDataOperation,
     decideDataOperation,
+    preparePagePublication,
+    preparePublicationRestore,
+    retryPublicationDelivery,
+    staleMarkers: dataOperationStaleMarkers,
     rollbackDataOperation,
   } = useDataOperations({
     detailRef,
@@ -496,6 +500,10 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     createChangeRequest,
     createDataOperation,
     currentRun,
+    dataOperationStaleMarkers,
+    preparePagePublication,
+    preparePublicationRestore,
+    retryPublicationDelivery,
     decideChangeRequest,
     decideDataOperation,
     decideImplementation,

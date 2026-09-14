@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/dataOperationPresentation.util.ts
- * @version 1.0.0
- * @date 2026-09-12
+ * @version 1.2.0
+ * @date 2026-09-14
  * @description Задаёт подписи записи и отката отдельно для каждого поддерживаемого изменения данных.
  */
 
@@ -10,6 +10,71 @@ import type { DataOperationDTO } from "@realize/ai-contracts";
 /** Подписи не меняют lifecycle; создание, правка и удаление остаются различимы. */
 export const dataOperationPresentation = (operation: DataOperationDTO) => {
   switch (operation.kind) {
+    case "pages.publishDraft.v1":
+    case "pages.restorePublication.v1": {
+      const restore = operation.kind === "pages.restorePublication.v1";
+      const remove = operation.preview.after.status === "unpublished";
+      return {
+        operation: restore
+          ? "Восстановить публикацию"
+          : "Опубликовать страницу",
+        rollback: restore ? "Отдельная операция" : "Восстановление публикации",
+        applied: remove ? "Публикация снята" : "Публикация сохранена",
+        rolledBack: "Восстановление оформлено отдельно",
+        approve: restore
+          ? "Подтвердить восстановление публикации"
+          : "Подтвердить публикацию",
+        applyTitle: restore
+          ? "Применить восстановление публикации"
+          : "Опубликовать выбранную версию",
+        applyHint:
+          "Перед записью повторно проверим права, выбранную версию и текущую публикацию.",
+        apply: restore
+          ? remove
+            ? "Снять публикацию"
+            : "Восстановить публикацию"
+          : "Опубликовать страницу",
+        applying: restore ? "Восстанавливаем…" : "Публикуем…",
+        result: "опубликована",
+        rollbackTitle: "Восстановление публикации",
+        rollbackHint: "Подготовьте отдельную подтверждаемую операцию.",
+        approveRollback: "Подготовить восстановление публикации",
+        rollbackApproved: "Восстановление подтверждено",
+        rollbackReady: "Восстановление оформляется отдельно",
+        rollbackReadyHint: "Рабочий черновик сохраняется.",
+        executeRollback: "Восстановить публикацию",
+        rollingBack: "Восстанавливаем…",
+      };
+    }
+    case "pages.updateStructureDraft.v1":
+      return {
+        operation:
+          operation.preview.action === "insert"
+            ? "Добавить текстовый блок"
+            : operation.preview.action === "move"
+              ? "Переместить текстовый блок"
+              : "Удалить текстовый блок",
+        rollback: "Восстановление структуры",
+        applied: "Структура черновика обновлена",
+        rolledBack: "Структура восстановлена",
+        approve: "Подтвердить изменение структуры",
+        applyTitle: "Сохранить структуру в черновик",
+        applyHint:
+          "Перед записью повторно проверим права, схему и версию страницы.",
+        apply: "Сохранить черновик",
+        applying: "Сохраняем…",
+        result: "обновлён",
+        rollbackTitle: "Восстановить прежнюю структуру",
+        rollbackHint:
+          "Откат восстановит размещение и содержимое блока, если страницу после этой операции не изменяли и не публиковали.",
+        approveRollback: "Подтвердить восстановление",
+        rollbackApproved: "Восстановление структуры подтверждено",
+        rollbackReady: "Восстановление структуры разрешено",
+        rollbackReadyHint:
+          "Перед восстановлением повторно проверим права, схему и неизменность страницы.",
+        executeRollback: "Восстановить структуру",
+        rollingBack: "Восстанавливаем…",
+      };
     case "pages.createDraft.v1":
       return {
         operation: "Создать страницу",

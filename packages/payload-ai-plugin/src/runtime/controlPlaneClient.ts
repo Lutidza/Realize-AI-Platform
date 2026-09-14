@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/runtime/controlPlaneClient.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-13
  * @description Передаёт серверные запросы и бинарные потоки авторизованному control plane.
  */
 
@@ -13,7 +13,10 @@ import type {
   ProjectFileReference,
   ChatAssetReference,
 } from "@realize/ai-contracts";
-import type { StartControlPlaneRunInput } from "./ControlPlaneChat.types";
+import type {
+  StartControlPlaneRunInput,
+  ControlPlaneRunStatus,
+} from "./ControlPlaneChat.types";
 import { ControlPlaneUnavailableError } from "./ControlPlaneUnavailable.error";
 export type { StartControlPlaneRunInput } from "./ControlPlaneChat.types";
 export { ControlPlaneUnavailableError } from "./ControlPlaneUnavailable.error";
@@ -107,6 +110,53 @@ export class ControlPlaneClient {
     await this.fetch(`/v1/runs/${encodeURIComponent(runID)}/cancel`, {
       method: "POST",
     });
+  }
+
+  /** Проверяет фактический статус runtime, даже когда браузер не подключён к SSE. */
+  async runStatus(runID: string): Promise<ControlPlaneRunStatus> {
+    const response = await this.fetch(`/v1/runs/${encodeURIComponent(runID)}`, {
+      method: "GET",
+    });
+    const invalid = () =>
+      new ControlPlaneUnavailableError("Invalid control-plane run status.");
+    if (!response.body) throw invalid();
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let size = 0;
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 8_192) {
+          await reader.cancel();
+          throw invalid();
+        }
+        chunks.push(value);
+      }
+    } finally {
+      reader.releaseLock();
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    } catch {
+      throw invalid();
+    }
+    if (!body || typeof body !== "object" || !("run" in body)) throw invalid();
+    const run = body.run;
+    if (
+      !run ||
+      typeof run !== "object" ||
+      !("id" in run) ||
+      run.id !== runID ||
+      !("status" in run) ||
+      !["queued", "running", "completed", "failed", "cancelled"].includes(
+        String(run.status),
+      )
+    )
+      throw invalid();
+    return run.status as ControlPlaneRunStatus;
   }
 
   async health(): Promise<boolean> {

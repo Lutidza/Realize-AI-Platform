@@ -1,8 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/DataOperationPreview.tsx
- * @version 1.1.0
- * @date 2026-09-12
- * @description Выбирает предпросмотр создания или изменения страницы и назначения категории.
+ * @version 1.3.0
+ * @date 2026-09-14
+ * @description Выбирает предметный предпросмотр текста, структуры страницы или назначения категории.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -16,6 +16,8 @@ import styles from "./ChangeRequestCard.module.css";
 import type { DataOperationPreviewProps } from "./DataOperationCard.types";
 import { PageDraftPreview } from "./PageDraftPreview";
 import { PageDraftUpdatePreview } from "./PageDraftUpdatePreview";
+import { PageDraftStructurePreview } from "./PageDraftStructurePreview";
+import { PagePublicationPreview } from "./PagePublicationPreview.component";
 
 const categoryList = (
   categories: CategoryAssignmentPreviewDTO["beforeCategories"],
@@ -42,6 +44,13 @@ export const DataOperationPreview = ({
   }
   if (operation.kind === "pages.updateDraft.v1")
     return <PageDraftUpdatePreview operation={operation} />;
+  if (operation.kind === "pages.updateStructureDraft.v1")
+    return <PageDraftStructurePreview operation={operation} />;
+  if (
+    operation.kind === "pages.publishDraft.v1" ||
+    operation.kind === "pages.restorePublication.v1"
+  )
+    return <PagePublicationPreview operation={operation} />;
   return (
     <details
       className={styles.details}

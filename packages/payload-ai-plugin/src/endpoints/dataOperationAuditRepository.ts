@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationAuditRepository.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Сохраняет append-only DataOperation approvals и audit/outbox events.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 
 import type { Payload, PayloadRequest } from "payload";
+import type { PagePublicationReviewEvidenceDTO } from "@realize/ai-contracts";
 
 import {
   DATA_OPERATION_APPROVALS_SLUG,
@@ -48,6 +49,7 @@ export class DataOperationAuditRepository {
     roles: string[];
     targetHash: string;
     type: "ROLLBACK_APPROVAL" | "WRITE_CONFIRMATION";
+    previewEvidence?: PagePublicationReviewEvidenceDTO;
   }): Promise<AIDocument> {
     return await this.create(DATA_OPERATION_APPROVALS_SLUG, {
       actor: input.actor,
@@ -62,6 +64,9 @@ export class DataOperationAuditRepository {
       roleSnapshot: input.roles,
       targetHash: input.targetHash,
       type: input.type,
+      ...(input.previewEvidence
+        ? { previewEvidence: input.previewEvidence }
+        : {}),
     });
   }
 

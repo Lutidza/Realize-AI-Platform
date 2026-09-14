@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/realizeAIPlugin.plugin.ts
- * @version 1.4.0
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-14
  * @description Подключает коллекции, endpoints и Admin views плагина Payload.
  */
 
@@ -215,6 +215,8 @@ export const realizeAIPlugin = (
         ...(incomingConfig.custom || {}),
         [REALIZE_AI_SERVER_RUNTIME_KEY]: {
           pageDraft: options.pageDraft,
+          canUseChat: options.access.canUseChat,
+          canManageData: options.access.canManageData,
           canManageAIConfiguration: options.access.canManageAIConfiguration,
           canManageIntegrations: options.access.canManageIntegrations,
           integrationEncryptionKeyEnv: options.integrations.encryptionKeyEnv,

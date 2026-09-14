@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationDecisions.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-09-14
  * @description Сохраняет hash-bound write и rollback decisions DataOperation.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -17,7 +18,16 @@ import {
 } from "./dataOperationDecisionSupport";
 import { DataOperationRepository } from "./dataOperationRepository";
 import { EndpointError } from "./http";
+import {
+  isPagePublicationKind,
+  requirePagePublicationAccess,
+} from "./pagePublicationAccess.service";
+import {
+  preparePagePublicationApproval,
+  assertPagePublicationReviewReplay,
+} from "./pagePublicationApproval.service";
 import { withPayloadTransaction } from "./payloadTransaction";
+import { lockAITransaction } from "./lockAITransaction.util";
 import type { AIDocument } from "./repository";
 
 /** Approves or rejects the exact operation hash produced by dry-run. */
@@ -36,6 +46,14 @@ export const decideDataOperation = async (input: {
     input.dataOperationID,
     input.user.id,
   );
+  if (isPagePublicationKind(operation.kind))
+    await requirePagePublicationAccess(input.req);
+  else if (input.data.previewReview !== undefined)
+    throw new EndpointError(
+      "INVALID_REQUEST",
+      "Эта операция не принимает подтверждение просмотра для публикации.",
+      400,
+    );
   if (operation.operationHash !== input.data.expectedOperationHash) {
     throw new EndpointError(
       "CONFLICT",
@@ -48,6 +66,12 @@ export const decideDataOperation = async (input: {
     "WRITE_CONFIRMATION",
   );
   if (existing) {
+    if (input.decision === "approved")
+      assertPagePublicationReviewReplay(
+        operation,
+        existing,
+        input.data.previewReview,
+      );
     assertDataOperationDecisionReplay({
       approval: existing,
       decision: input.decision,
@@ -90,6 +114,20 @@ export const decideDataOperation = async (input: {
 
   try {
     operation = await withPayloadTransaction(input.req, async () => {
+      // Решения по исходной draft операции разделяют lock с публикацией её manifest.
+      if (
+        typeof operation.kind === "string" &&
+        operation.kind.startsWith("pages.")
+      )
+        await lockAITransaction(input.req, "page-drafts");
+      const previewEvidence =
+        input.decision === "approved" && isPagePublicationKind(operation.kind)
+          ? await preparePagePublicationApproval(
+              input.req,
+              operation,
+              input.data.previewReview,
+            )
+          : undefined;
       await audit.createApproval({
         actor: input.user.id,
         boundHash,
@@ -103,6 +141,7 @@ export const decideDataOperation = async (input: {
         roles: actorRoles,
         targetHash: input.data.expectedOperationHash,
         type: "WRITE_CONFIRMATION",
+        previewEvidence,
       });
       const nextState = input.decision === "approved" ? "approved" : "rejected";
       const transitioned = await repository.transition({
@@ -142,6 +181,12 @@ export const decideDataOperation = async (input: {
       "WRITE_CONFIRMATION",
     );
     if (!concurrent) throw error;
+    if (input.decision === "approved")
+      assertPagePublicationReviewReplay(
+        operation,
+        concurrent,
+        input.data.previewReview,
+      );
     assertDataOperationDecisionReplay({
       approval: concurrent,
       decision: input.decision,
@@ -171,6 +216,12 @@ export const approveDataOperationRollback = async (input: {
     input.dataOperationID,
     input.user.id,
   );
+  if (isPagePublicationKind(operation.kind))
+    throw new EndpointError(
+      "CONFLICT",
+      "Для восстановления публикации подготовьте отдельную операцию из её карточки.",
+      409,
+    );
   if (operation.rollbackHash !== input.expectedRollbackHash) {
     throw new EndpointError(
       "CONFLICT",
@@ -218,6 +269,11 @@ export const approveDataOperationRollback = async (input: {
 
   try {
     operation = await withPayloadTransaction(input.req, async () => {
+      if (
+        typeof operation.kind === "string" &&
+        operation.kind.startsWith("pages.")
+      )
+        await lockAITransaction(input.req, "page-drafts");
       await audit.createApproval({
         actor: input.user.id,
         boundHash,

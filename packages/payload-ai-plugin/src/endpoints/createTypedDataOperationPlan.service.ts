@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/createTypedDataOperationPlan.service.ts
- * @version 1.2.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-13
  * @description Создаёт один immutable preview из проверенного intent с durable replay и audit.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -9,12 +9,14 @@ import { parseDataOperationIntent } from "@realize/ai-contracts";
 import {
   createPageDraftRollbackHash,
   createPageDraftUpdateRollbackHash,
+  createPageDraftStructureRollbackHash,
   createCategoryAssignmentOperationHash,
   createCategoryAssignmentRollbackHash,
   hashCanonicalJSON,
 } from "@realize/change-engine";
 import { PageDraftCreation } from "./pageDraftCreation.service";
 import { PageDraftUpdate } from "./pageDraftUpdate.service";
+import { PageDraftStructure } from "./pageDraftStructure.service";
 import { CatalogCategoryAssignment } from "./catalogCategoryAssignment";
 import { DataOperationAuditRepository } from "./dataOperationAuditRepository";
 import { DataOperationRepository } from "./dataOperationRepository";
@@ -31,6 +33,15 @@ export const createTypedDataOperationPlan = async (
   input: TypedDataOperationPlanInput,
 ): Promise<AIDocument> => {
   input = { ...input, intent: parseDataOperationIntent(input.intent) };
+  if (
+    input.source.type === "workflow" &&
+    input.intent.kind === "pages.updateStructureDraft.v1"
+  )
+    throw new EndpointError(
+      "FORBIDDEN",
+      "Изменение структуры страницы пока доступно только из проверенного ответа чата.",
+      403,
+    );
   const conversations = new AIRepository(input.payload, input.req);
   const repository = new DataOperationRepository(input.payload, input.req);
   const audit = new DataOperationAuditRepository(input.payload, input.req);
@@ -58,7 +69,10 @@ export const createTypedDataOperationPlan = async (
         .find(
           (message) =>
             message.role === "user" &&
-            (input.intent.kind !== "pages.updateDraft.v1" ||
+            (![
+              "pages.updateDraft.v1",
+              "pages.updateStructureDraft.v1",
+            ].includes(input.intent.kind) ||
               (typeof assistant.runID === "string" &&
                 message.runID === assistant.runID)) &&
             Number(message.sequence) < Number(assistant.sequence),
@@ -129,7 +143,24 @@ export const createTypedDataOperationPlan = async (
     sourceMessageID: input.sourceMessageID,
     sourceMessageKey,
   };
-  if (input.intent.kind === "pages.updateDraft.v1") {
+  if (input.intent.kind === "pages.updateStructureDraft.v1") {
+    const pages = new PageDraftStructure(input.payload, input.req);
+    const snapshot = await pages.dryRun(input.intent);
+    const operationHash = pages.operationHash(input.intent, snapshot);
+    planned = {
+      ...common,
+      kind: input.intent.kind,
+      afterSnapshot: snapshot,
+      beforeSnapshot: snapshot.beforePage,
+      expectedTargetUpdatedAt: snapshot.context.updatedAt,
+      operationHash,
+      rollbackHash: createPageDraftStructureRollbackHash({ operationHash }),
+      title: `Изменить структуру «${snapshot.context.page.title}»`.slice(
+        0,
+        120,
+      ),
+    };
+  } else if (input.intent.kind === "pages.updateDraft.v1") {
     const pages = new PageDraftUpdate(input.payload, input.req);
     const snapshot = await pages.dryRun(input.intent);
     const operationHash = pages.operationHash(input.intent, snapshot);

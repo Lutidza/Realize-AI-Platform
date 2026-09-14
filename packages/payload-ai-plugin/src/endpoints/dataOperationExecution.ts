@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationExecution.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-14
  * @description Атомарно применяет подтверждённую типизированную операцию данных.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -12,6 +12,7 @@ import type { Payload, PayloadRequest } from "payload";
 
 import { PageDraftCreation } from "./pageDraftCreation.service";
 import { PageDraftUpdate } from "./pageDraftUpdate.service";
+import { PageDraftStructure } from "./pageDraftStructure.service";
 import { CatalogCategoryAssignment } from "./catalogCategoryAssignment";
 import { DataOperationAuditRepository } from "./dataOperationAuditRepository";
 import {
@@ -21,6 +22,13 @@ import {
 } from "./dataOperationExecutionSupport";
 import { DataOperationRepository } from "./dataOperationRepository";
 import { EndpointError } from "./http";
+import { PagePublication } from "./pagePublication.service";
+import {
+  isPagePublicationKind,
+  requirePagePublicationAccess,
+} from "./pagePublicationAccess.service";
+import { assertPagePublicationReviewApproval } from "./pagePublicationApproval.service";
+import { createPagePublicationDelivery } from "./pagePublicationDelivery.service";
 import { relationID } from "./mappers";
 import { withPayloadTransaction } from "./payloadTransaction";
 import type { AIDocument } from "./repository";
@@ -39,6 +47,8 @@ export const applyDataOperation = async (input: {
     input.dataOperationID,
     input.userID,
   );
+  if (isPagePublicationKind(operation.kind))
+    await requirePagePublicationAccess(input.req);
   if (operation.operationHash !== input.data.expectedOperationHash) {
     throw new EndpointError("CONFLICT", "Operation hash mismatch.", 409);
   }
@@ -58,26 +68,46 @@ export const applyDataOperation = async (input: {
       409,
     );
   }
+  const approval = await audit.getApproval(
+    input.dataOperationID,
+    "WRITE_CONFIRMATION",
+  );
   assertDataOperationApproval({
-    approval: await audit.getApproval(
-      input.dataOperationID,
-      "WRITE_CONFIRMATION",
-    ),
+    approval,
     dataOperationID: input.dataOperationID,
     targetHash: input.data.expectedOperationHash,
     type: "WRITE_CONFIRMATION",
   });
+  if (isPagePublicationKind(operation.kind))
+    assertPagePublicationReviewApproval(operation, approval!);
 
   try {
     operation = await withPayloadTransaction(input.req, async () => {
-      const pageResult =
-        operation.kind === "pages.updateDraft.v1"
-          ? await new PageDraftUpdate(input.payload, input.req).apply(operation)
-          : operation.kind === "pages.createDraft.v1"
-            ? await new PageDraftCreation(input.payload, input.req).apply(
+      const pageResult = isPagePublicationKind(operation.kind)
+        ? await new PagePublication(input.payload, input.req).apply(operation)
+        : operation.kind === "pages.updateStructureDraft.v1"
+          ? await new PageDraftStructure(input.payload, input.req).apply(
+              operation,
+            )
+          : operation.kind === "pages.updateDraft.v1"
+            ? await new PageDraftUpdate(input.payload, input.req).apply(
                 operation,
               )
-            : undefined;
+            : operation.kind === "pages.createDraft.v1"
+              ? await new PageDraftCreation(input.payload, input.req).apply(
+                  operation,
+                )
+              : undefined;
+      if (
+        !pageResult &&
+        operation.kind !== undefined &&
+        operation.kind !== "catalog.assignCategory.v1"
+      )
+        throw new EndpointError(
+          "INVALID_REQUEST",
+          "Тип операции данных не поддерживается.",
+          400,
+        );
       const appliedTargetUpdatedAt =
         pageResult?.appliedSnapshot.updatedAt ??
         (await new CatalogCategoryAssignment(input.payload, input.req).apply({
@@ -112,6 +142,8 @@ export const applyDataOperation = async (input: {
         toState: "applied",
         type: "apply_succeeded",
       });
+      if (isPagePublicationKind(operation.kind))
+        await createPagePublicationDelivery(input.req, transitioned);
       return transitioned;
     });
     return operation;

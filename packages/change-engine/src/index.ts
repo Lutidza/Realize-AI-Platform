@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 1.3.0
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-13
  * @description Экспортирует Change Engine policies, registries и configuration compiler.
  */
 
@@ -108,3 +108,14 @@ export type {
   PageDraftUpdateOperationHashInput,
   PageDraftUpdateRollbackHashInput,
 } from "./PageDraftUpdatePolicy.types";
+
+export { PAGE_DISCOVERY_TOOLS } from "./pageDiscoveryTools.config";
+
+export {
+  createPageDraftStructureOperationHash,
+  createPageDraftStructureRollbackHash,
+} from "./pageDraftStructurePolicy";
+export type {
+  PageDraftStructureOperationHashInput,
+  PageDraftStructureRollbackHashInput,
+} from "./PageDraftStructurePolicy.types";

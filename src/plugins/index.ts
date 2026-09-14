@@ -1,12 +1,15 @@
 /**
  * @file src/plugins/index.ts
- * @version 1.2.0
- * @date 2026-09-12
+ * @version 1.6.1
+ * @date 2026-09-14
  * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
 
+import { pagePublicationAdapter } from "@/collections/Pages/pagePublication.adapter";
+import { pageStructureAdapter } from "@/collections/Pages/pageStructure.adapter";
 import { mapAIPageDraftContent } from "@/collections/Pages/mapAIPageDraft.mapper";
 import { pageDraftTextAdapter } from "@/collections/Pages/pageDraftText.adapter";
+import { pageKnowledgeAdapter } from "@/collections/Pages/pageKnowledge.adapter";
 import { formBuilderPlugin } from "@payloadcms/plugin-form-builder";
 import { seoPlugin } from "@payloadcms/plugin-seo";
 import { Plugin } from "payload";
@@ -40,6 +43,9 @@ const realizeAI = realizeAIPlugin({
     version: "1.0",
     mapContent: mapAIPageDraftContent,
     text: pageDraftTextAdapter,
+    knowledge: pageKnowledgeAdapter,
+    structure: pageStructureAdapter,
+    publication: pagePublicationAdapter,
   },
   access: {
     canApproveRelease: ({ req }) =>

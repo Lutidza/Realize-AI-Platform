@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationHandlers.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.3.0
+ * @date 2026-09-14
  * @description Обрабатывает управляемые операции данных с отдельными подтверждениями и откатом.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -34,6 +34,10 @@ import { DataOperationRepository } from "./dataOperationRepository";
 import { rollbackDataOperation } from "./dataOperationRollback";
 import { success } from "./http";
 import { idempotencyKeyFor, readBody, withHandler } from "./request";
+import { isPagePublicationKind } from "./pagePublicationAccess.service";
+import { deliverPagePublication } from "./pagePublicationDelivery.service";
+import { requireDataOperationWriteTool } from "./requireDataOperationWriteTool.service";
+import { openDataOperationPage } from "./openDataOperationPage.service";
 
 /** Creates all HTTP boundaries of the first typed Payload data lane. */
 export const createDataOperationHandlers = (
@@ -44,17 +48,18 @@ export const createDataOperationHandlers = (
   approveRollback: PayloadEndpointHandler;
   create: PayloadEndpointHandler;
   detail: PayloadEndpointHandler;
+  openPage: PayloadEndpointHandler;
   reject: PayloadEndpointHandler;
   rollback: PayloadEndpointHandler;
 } => ({
   apply: withHandler(async (req, correlationID) => {
     const user = await requireDataManager(req, options);
-    await requireCodexChatTool(req, "dataOperations", options);
     consumeRateLimit(user.id);
     const dataOperationID = parseIdentifier(
       req.routeParams?.id,
       "data operation id",
     );
+    await requireDataOperationWriteTool(req, dataOperationID, options);
     idempotencyKeyFor(req);
     const operation = await applyDataOperation({
       data: parseApplyDataOperationInput(await readBody(req)),
@@ -63,6 +68,8 @@ export const createDataOperationHandlers = (
       req,
       userID: user.id,
     });
+    if (isPagePublicationKind(operation.kind))
+      await deliverPagePublication(req, operation);
     return success(
       await projectDataOperation({ operation, payload: req.payload, req }),
       correlationID,
@@ -71,12 +78,12 @@ export const createDataOperationHandlers = (
 
   approve: withHandler(async (req, correlationID) => {
     const user = await requireDataManager(req, options);
-    await requireCodexChatTool(req, "dataOperations", options);
     consumeRateLimit(user.id);
     const dataOperationID = parseIdentifier(
       req.routeParams?.id,
       "data operation id",
     );
+    await requireDataOperationWriteTool(req, dataOperationID, options);
     const operation = await decideDataOperation({
       data: parseDecideDataOperationInput(await readBody(req)),
       dataOperationID,
@@ -154,6 +161,21 @@ export const createDataOperationHandlers = (
       await projectDataOperation({ operation, payload: req.payload, req }),
       correlationID,
     );
+  }),
+
+  openPage: withHandler(async (req, correlationID) => {
+    await requireChatUser(req, options);
+    const id = parseIdentifier(req.routeParams?.id, "data operation id");
+    const location = await openDataOperationPage(req, id);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: location,
+        "Cache-Control": "private, no-store, max-age=0",
+        "Referrer-Policy": "no-referrer",
+        "X-Correlation-ID": correlationID,
+      },
+    });
   }),
 
   reject: withHandler(async (req, correlationID) => {

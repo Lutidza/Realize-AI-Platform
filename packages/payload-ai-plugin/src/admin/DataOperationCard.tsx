@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/DataOperationCard.tsx
- * @version 1.2.0
- * @date 2026-09-12
+ * @version 1.7.0
+ * @date 2026-09-14
  * @description Показывает подтверждение, результат и безопасный откат изменений данных.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -10,7 +10,6 @@
 "use client";
 
 import type { DataOperationDTO } from "@realize/ai-contracts";
-import { getUiButtonClassName } from "@realize/ui-kit";
 import {
   Check,
   Clock3,
@@ -24,6 +23,10 @@ import { useEffect, useState } from "react";
 
 import styles from "./ChangeRequestCard.module.css";
 import { DataOperationPreview } from "./DataOperationPreview";
+import { PagePublicationResult } from "./PagePublicationResult.component";
+import { PageOperationLinks } from "./PageOperationLinks.component";
+import { PagePublicationReview } from "./PagePublicationReview.component";
+import { usePagePublicationReview } from "./usePagePublicationReview.hook";
 import { dataOperationPresentation } from "./dataOperationPresentation.util";
 import type { DataOperationCardProps } from "./DataOperationCard.types";
 
@@ -69,15 +72,38 @@ export const DataOperationCard = ({
   onRollback,
   operation,
   pending,
+  onPreparePublication,
+  onPreparePublicationRestore,
+  onRetryPublicationDelivery,
+  staleMarker,
 }: DataOperationCardProps) => {
   const [rejecting, setRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
   const [approvalNow] = useState(() => Date.now());
-  const expired = Date.parse(operation.expiresAt) <= approvalNow;
+  const publication =
+    operation.kind === "pages.publishDraft.v1" ||
+    operation.kind === "pages.restorePublication.v1";
+  const blockedReason =
+    publication &&
+    staleMarker?.operationID === operation.id &&
+    staleMarker.expectedVersion === operation.version &&
+    staleMarker.expectedOperationHash === operation.operationHash
+      ? staleMarker.message
+      : undefined;
+  const publicationReview = usePagePublicationReview(operation, pending);
+  const expired = publication
+    ? publicationReview.expired
+    : Date.parse(operation.expiresAt) <= approvalNow;
   const pageDraft =
     operation.kind === "pages.createDraft.v1" ||
-    operation.kind === "pages.updateDraft.v1";
+    operation.kind === "pages.updateDraft.v1" ||
+    operation.kind === "pages.updateStructureDraft.v1";
   const labels = dataOperationPresentation(operation);
+  const pageLinks = publication
+    ? operation
+    : pageDraft && operation.state !== "rolled_back"
+      ? operation.result
+      : undefined;
   useEffect(() => {
     onDraftChange?.(
       operation.state === "awaiting_approval" &&
@@ -89,10 +115,14 @@ export const DataOperationCard = ({
   return (
     <section className={styles.card} data-testid="data-operation-card">
       <header
-        className={`${styles.header} ${pageDraft ? styles.pageDraftHeader : ""}`}
+        className={`${styles.header} ${pageDraft || publication ? styles.pageDraftHeader : ""}`}
       >
         <span className={styles.icon} aria-hidden="true">
-          {pageDraft ? <FileText size={17} /> : <Database size={17} />}
+          {pageDraft || publication ? (
+            <FileText size={17} />
+          ) : (
+            <Database size={17} />
+          )}
         </span>
         <div>
           <span>Изменение данных · версия {operation.version}</span>
@@ -166,13 +196,31 @@ export const DataOperationCard = ({
         </div>
       ) : null}
 
+      {operation.kind === "pages.publishDraft.v1" &&
+      operation.approval?.previewEvidence ? (
+        <p className={styles.executionNotice}>
+          Пользователь подтвердил просмотр на компьютере и телефоне без
+          обнаруженных ошибок отображения —{" "}
+          {new Date(
+            operation.approval.previewEvidence.reviewedAt,
+          ).toLocaleString("ru-RU")}
+          .
+        </p>
+      ) : null}
+
       {operation.state === "approved" ? (
         <div className={styles.executeAction}>
           <div>
             <strong>{labels.applyTitle}</strong>
             <span>{labels.applyHint}</span>
           </div>
-          <button disabled={pending} onClick={onApply} type="button">
+          <button
+            disabled={
+              pending || (publication && expired) || Boolean(blockedReason)
+            }
+            onClick={onApply}
+            type="button"
+          >
             <Play size={15} fill="currentColor" />
             {pending ? labels.applying : labels.apply}
           </button>
@@ -185,23 +233,50 @@ export const DataOperationCard = ({
             <strong>
               Черновик «{operation.result.page.title}» {labels.result}
             </strong>
-            <span>
-              Страница сохранена без публикации. Проверьте её в редакторе.
-            </span>
+            <span>Страница сохранена без публикации.</span>
           </div>
-          <a
-            className={getUiButtonClassName({
-              size: "small",
-              variant: "secondary",
-            })}
-            href={operation.result.adminUrl}
-          >
-            Открыть черновик
-          </a>
         </div>
       ) : null}
 
-      {operation.state === "applied" ? (
+      {pageLinks ? (
+        <PageOperationLinks
+          adminUrl={pageLinks.adminUrl}
+          frontendPreviewUrl={pageLinks.frontendPreviewUrl}
+        />
+      ) : null}
+
+      {pageDraft &&
+      operation.result &&
+      operation.state === "applied" &&
+      onPreparePublication ? (
+        <div className={styles.executeAction}>
+          <div>
+            <strong>Публикация страницы</strong>
+            <span>
+              Подготовьте план, затем проверьте страницу в редакторе и
+              подтвердите публикацию.
+            </span>
+          </div>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={onPreparePublication}
+          >
+            Подготовить публикацию
+          </button>
+        </div>
+      ) : null}
+
+      {publication && operation.state === "applied" ? (
+        <PagePublicationResult
+          operation={operation}
+          pending={pending}
+          onPrepareRestore={onPreparePublicationRestore}
+          onRetryDelivery={onRetryPublicationDelivery}
+        />
+      ) : null}
+
+      {operation.state === "applied" && !publication ? (
         <div className={styles.executeAction}>
           <div>
             <strong>{labels.rollbackTitle}</strong>
@@ -214,7 +289,7 @@ export const DataOperationCard = ({
         </div>
       ) : null}
 
-      {operation.state === "rollback_approved" ? (
+      {operation.state === "rollback_approved" && !publication ? (
         <div className={styles.executeAction}>
           <div>
             <strong>{labels.rollbackReady}</strong>
@@ -229,6 +304,22 @@ export const DataOperationCard = ({
 
       {operation.errorSummary ? (
         <p className={styles.blockedReason}>{operation.errorSummary}</p>
+      ) : null}
+      {blockedReason ? (
+        <p className={styles.blockedReason} role="status">
+          {blockedReason}
+        </p>
+      ) : null}
+
+      {operation.kind === "pages.publishDraft.v1" &&
+      operation.state === "awaiting_approval" &&
+      !expired &&
+      !rejecting ? (
+        <PagePublicationReview
+          checks={publicationReview.checks}
+          disabled={pending || Boolean(blockedReason)}
+          onChange={publicationReview.onChange}
+        />
       ) : null}
 
       {operation.state === "awaiting_approval" && !expired ? (
@@ -276,8 +367,17 @@ export const DataOperationCard = ({
             </button>
             <button
               className={styles.approveButton}
-              disabled={pending}
-              onClick={onApprove}
+              disabled={
+                pending ||
+                Boolean(blockedReason) ||
+                (operation.kind === "pages.publishDraft.v1" &&
+                  !publicationReview.review)
+              }
+              onClick={() => {
+                if (operation.kind !== "pages.publishDraft.v1") onApprove();
+                else if (publicationReview.review)
+                  onApprove(publicationReview.review);
+              }}
               type="button"
             >
               <Check size={15} />

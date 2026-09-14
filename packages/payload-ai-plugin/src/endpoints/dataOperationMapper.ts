@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationMapper.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.5.0
+ * @date 2026-09-14
  * @description Проецирует DataOperation persistence в allowlisted browser DTO.
  * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
@@ -10,9 +10,21 @@
 import {
   parseCreatePageDraftIntent,
   parseUpdatePageDraftIntent,
+  parseUpdatePageStructureDraftIntent,
+  parsePageDraftStructurePreview,
+  parsePagePublicationEvidence,
+  type PagePublicationDeliveryDTO,
 } from "@realize/ai-contracts";
 import type { AppliedPageDraftSnapshot } from "./PageDraft.types";
+import { DEFAULT_API_ROUTE } from "../constants";
 import type { PageDraftUpdateSnapshot } from "./PageDraftUpdate.types";
+import type {
+  PageDraftStructureSnapshot,
+  AppliedPageDraftStructureSnapshot,
+} from "./PageDraftStructure.types";
+import { EndpointError } from "./http";
+import { isPagePublicationKind } from "./pagePublicationAccess.service";
+import { toPagePublicationFields } from "./pagePublication.mapper";
 import type {
   DataDocumentRefDTO,
   DataOperationApprovalDTO,
@@ -63,6 +75,11 @@ export const toDataOperationApprovalDTO = (
     document.type === "ROLLBACK_APPROVAL"
       ? "ROLLBACK_APPROVAL"
       : "WRITE_CONFIRMATION",
+  ...(document.previewEvidence
+    ? {
+        previewEvidence: parsePagePublicationEvidence(document.previewEvidence),
+      }
+    : {}),
 });
 
 /** Преобразует операцию и отдельные решения в типизированный browser DTO. */
@@ -70,7 +87,12 @@ export const toDataOperationDTO = (input: {
   approval?: AIDocument;
   operation: AIDocument;
   rollbackApproval?: AIDocument;
+  delivery?: PagePublicationDeliveryDTO;
+  adminRoute?: string;
+  apiRoute?: string;
 }): DataOperationDTO => {
+  // Ссылка вычисляется из текущего API route, не записывается в снимок операции.
+  const frontendPreviewUrl = `${(input.apiRoute ?? "/api").replace(/\/$/, "")}${DEFAULT_API_ROUTE}/data-operations/${encodeURIComponent(String(input.operation.id))}/open-page`;
   const beforeCategories = documentRefs(input.operation.beforeSnapshot);
   const afterCategories = documentRefs(input.operation.afterSnapshot);
   const beforeIDs = new Set(beforeCategories.map((category) => category.id));
@@ -117,6 +139,60 @@ export const toDataOperationDTO = (input: {
     updatedAt: iso(input.operation.updatedAt),
     version: Number(input.operation.version || 1),
   };
+  if (isPagePublicationKind(input.operation.kind))
+    return {
+      ...base,
+      ...toPagePublicationFields(
+        input.operation,
+        input.delivery,
+        input.adminRoute,
+      ),
+      frontendPreviewUrl,
+    };
+  if (input.operation.kind === "pages.updateStructureDraft.v1") {
+    const intent = parseUpdatePageStructureDraftIntent(input.operation.intent);
+    const snapshot = input.operation
+      .afterSnapshot as PageDraftStructureSnapshot;
+    const applied = input.operation.appliedSnapshot as
+      AppliedPageDraftStructureSnapshot | undefined;
+    const preview = parsePageDraftStructurePreview(snapshot.preview);
+    if (
+      preview.page.id !== intent.pageID ||
+      preview.action !== intent.operation.type ||
+      (intent.operation.type !== "insert" &&
+        preview.blockID !== intent.operation.blockID) ||
+      (intent.operation.type !== "remove" &&
+        preview.beforeBlockID !== intent.operation.beforeBlockID)
+    )
+      throw new EndpointError(
+        "CONFLICT",
+        "Предпросмотр не соответствует предложенному изменению структуры.",
+        409,
+      );
+    return {
+      ...base,
+      kind: "pages.updateStructureDraft.v1",
+      rollbackStrategy: "before-snapshot",
+      expectedTargetUpdatedAt: intent.expectedUpdatedAt,
+      preview,
+      ...(applied?.pageID &&
+      ["applied", "rollback_approved", "rollback_failed"].includes(
+        String(input.operation.state),
+      )
+        ? {
+            result: {
+              page: {
+                id: applied.pageID,
+                title: applied.title,
+                slug: applied.slug,
+              },
+              adminUrl: applied.adminUrl,
+              frontendPreviewUrl,
+            },
+          }
+        : {}),
+    };
+  }
   if (input.operation.kind === "pages.updateDraft.v1") {
     const intent = parseUpdatePageDraftIntent(input.operation.intent);
     const snapshot = input.operation.afterSnapshot as PageDraftUpdateSnapshot;
@@ -151,6 +227,7 @@ export const toDataOperationDTO = (input: {
                 slug: applied.slug,
               },
               adminUrl: applied.adminUrl,
+              frontendPreviewUrl,
             },
           }
         : {}),
@@ -183,11 +260,21 @@ export const toDataOperationDTO = (input: {
                 slug: applied.slug,
               },
               adminUrl: applied.adminUrl,
+              frontendPreviewUrl,
             },
           }
         : {}),
     };
   }
+  if (
+    input.operation.kind !== undefined &&
+    input.operation.kind !== "catalog.assignCategory.v1"
+  )
+    throw new EndpointError(
+      "INVALID_REQUEST",
+      "Тип операции данных не поддерживается.",
+      400,
+    );
   return {
     ...base,
     kind: "catalog.assignCategory.v1",

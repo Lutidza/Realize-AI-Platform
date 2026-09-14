@@ -1,7 +1,7 @@
 /**
  * @file src/blocks/ArchiveBlock/Component.tsx
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-14
  * @description Отображает каталог опубликованных товаров в блоке страницы.
  */
 
@@ -11,7 +11,7 @@ import type {
 } from "@/payload-types";
 
 import configPromise from "@payload-config";
-import { DefaultDocumentIDType, getPayload } from "payload";
+import { getPayload } from "payload";
 import React from "react";
 import { RichText } from "@/components/RichText";
 
@@ -19,7 +19,6 @@ import { CollectionArchive } from "@/components/CollectionArchive";
 
 export const ArchiveBlock: React.FC<
   ArchiveBlockProps & {
-    id?: DefaultDocumentIDType;
     className?: string;
   }
 > = async (props) => {
