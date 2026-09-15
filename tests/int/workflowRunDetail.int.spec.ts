@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/workflowRunDetail.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.1.1
+ * @date 2026-09-14
  * @description Проверяет историческую проекцию workflow, typed результаты и owned операции без runtime вызовов.
  */
 
@@ -40,11 +40,17 @@ import { toWorkflowRegistryItem } from "../../packages/payload-ai-plugin/src/end
 import type { AIDocument } from "../../packages/payload-ai-plugin/src/endpoints/repository";
 import type { SanitizedRealizeAIPluginOptions } from "../../packages/payload-ai-plugin/src/types";
 
+// Синтетический маркер для проверки скрытия секретов собирается во время теста.
+const syntheticRedactionToken = ["sk", "fixtureabcdefghijklmno"].join("-");
+
 const operationHash = "a".repeat(64);
 const evidenceHash = "b".repeat(64);
 const createdAt = "2026-09-11T10:00:00.000Z";
 const req = {
-  payload: { db: { pool: { query: vi.fn() } } },
+  payload: {
+    config: { routes: { admin: "/admin", api: "/api" } },
+    db: { pool: { query: vi.fn() } },
+  },
   user: { id: 1 },
 } as unknown as PayloadRequest;
 const options = {
@@ -133,7 +139,7 @@ const fixture = () => {
       configuration,
       resumeWorkflowInput(configuration, root, "Собственный ответ"),
     ),
-    { text: "Готово sk-fixtureabcdefghijklmno " + "x".repeat(8_001) },
+    { text: `Готово ${syntheticRedactionToken} ` + "x".repeat(8_001) },
   );
   let completed = advanceWorkflowBranch(configuration, answered);
   completed = completeWorkflowStep(
@@ -284,7 +290,7 @@ describe("Историческая workflow проекция", () => {
       "PRIVATE_INPUT_VALUE",
       "PRIVATE_EXTRA",
       "PRIVATE_CHECK_EXTRA",
-      "sk-fixtureabcdefghijklmno",
+      syntheticRedactionToken,
       "turnContext",
       '"compiled":',
     ])
