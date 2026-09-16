@@ -1,7 +1,7 @@
 /**
  * @file src/collections/Media.ts
- * @version 1.2.0
- * @date 2026-09-15
+ * @version 1.2.1
+ * @date 2026-09-16
  * @description Настраивает штатную Media collection, рабочую библиотеку и макеты следующих разделов.
  * @see documentation/specifications/media-management.md
  */
@@ -13,7 +13,6 @@ import {
   lexicalEditor,
 } from "@payloadcms/richtext-lexical";
 import path from "path";
-import { fileURLToPath } from "url";
 
 import { adminOnly } from "@/access/adminOnly";
 import { checkRole } from "@/access/utilities";
@@ -22,9 +21,6 @@ import { archiveAndQueueMedia } from "./Media/archiveAndQueueMedia.hook";
 import { mediaProcessingEndpoints } from "./Media/mediaProcessing.endpoints";
 import { assertMediaDeletionReady } from "./Media/assertMediaDeletionReady.hook";
 import { deleteMediaProcessing } from "./Media/deleteMediaProcessing.hook";
-
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
 
 export const Media: CollectionConfig = {
   admin: {
@@ -125,7 +121,8 @@ export const Media: CollectionConfig = {
     { name: "focalY", type: "number", admin: { hidden: true } },
   ],
   upload: {
-    staticDir: path.resolve(dirname, "../../public/media"),
+    // Standalone устанавливает cwd своего runtime-каталога до загрузки Payload.
+    staticDir: path.resolve(process.cwd(), "public/media"),
     crop: false,
     focalPoint: false,
   },

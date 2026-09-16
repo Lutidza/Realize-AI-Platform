@@ -1,7 +1,7 @@
 /**
  * @file src/payload.config.ts
- * @version 1.1.0
- * @date 2026-09-15
+ * @version 1.1.1
+ * @date 2026-09-16
  * @description Настраивает активную схему Payload, PostgreSQL и native обработку Media.
  * @see documentation/specifications/media-management.md
  */
@@ -21,7 +21,6 @@ import {
 } from "@payloadcms/richtext-lexical";
 import path from "path";
 import { buildConfig } from "payload";
-import { fileURLToPath } from "url";
 
 import { Categories } from "@/collections/Categories";
 import { Media } from "@/collections/Media";
@@ -36,8 +35,8 @@ import { Footer } from "@/globals/Footer";
 import { Header } from "@/globals/Header";
 import { plugins } from "./plugins";
 
-const filename = fileURLToPath(import.meta.url);
-const dirname = path.dirname(filename);
+// Команды миграций и генерации типов запускаются из корня исходников проекта.
+const sourceRoot = path.resolve(process.cwd(), "src");
 const serverURL =
   process.env.PAYLOAD_PUBLIC_SITE_URL ||
   process.env.PAYLOAD_PUBLIC_SERVER_URL ||
@@ -85,7 +84,7 @@ export default buildConfig({
     }),
   },
   db: postgresAdapter({
-    migrationDir: path.resolve(dirname, "migrations"),
+    migrationDir: path.resolve(sourceRoot, "migrations"),
     pool: {
       connectionString:
         process.env.DATABASE_URI || process.env.DATABASE_URL || "",
@@ -133,7 +132,7 @@ export default buildConfig({
   plugins,
   secret: process.env.PAYLOAD_SECRET || "",
   typescript: {
-    outputFile: path.resolve(dirname, "payload-types.ts"),
+    outputFile: path.resolve(sourceRoot, "payload-types.ts"),
   },
   serverURL,
 });
