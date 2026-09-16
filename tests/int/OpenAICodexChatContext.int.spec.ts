@@ -1,7 +1,7 @@
 /**
  * @file tests/int/OpenAICodexChatContext.int.spec.ts
- * @version 1.0.2
- * @date 2026-09-12
+ * @version 1.0.3
+ * @date 2026-09-16
  * @description Проверяет native images, изоляцию веб-поиска и источники ответа без обращения к модели.
  */
 
@@ -94,7 +94,9 @@ beforeEach(async () => {
     {
       method: "turn/completed",
       params: {
+        threadId: "fixture-thread",
         turn: {
+          id: "fixture-turn",
           status: "completed",
           items: [{ type: "agentMessage", text: "fixture answer" }],
         },
@@ -255,12 +257,20 @@ describe("Codex chat context policy", () => {
       ],
     };
     rpc.notifications = [
-      { method: "item/started", params: { item } },
-      { method: "item/completed", params: { item } },
+      {
+        method: "item/started",
+        params: { item, threadId: "fixture-thread", turnId: "fixture-turn" },
+      },
+      {
+        method: "item/completed",
+        params: { item, threadId: "fixture-thread", turnId: "fixture-turn" },
+      },
       {
         method: "turn/completed",
         params: {
+          threadId: "fixture-thread",
           turn: {
+            id: "fixture-turn",
             status: "completed",
             items: [
               {

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/OpenAICodexAuthProfile.int.spec.ts
- * @version 1.1.1
- * @date 2026-09-11
+ * @version 1.1.2
+ * @date 2026-09-16
  * @description Проверяет сохранение WIF read-deny при запуске и возобновлении сессий и безопасные ошибки авторизации.
  */
 
@@ -25,7 +25,9 @@ vi.mock("../../packages/codex-adapter/src/JsonLineRpcClient.adapter", () => ({
       yield {
         method: "turn/completed",
         params: {
+          threadId: "fixture-thread",
           turn: {
+            id: "fixture-turn",
             status: rpc.fail ? "failed" : "completed",
             error: { message: "fixture-sensitive-upstream-detail" },
             items: [],
