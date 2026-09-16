@@ -16,6 +16,8 @@ import * as migration_20260911_155718_page_draft_data_operation from './20260911
 import * as migration_20260912_111003_page_draft_update from './20260912_111003_page_draft_update';
 import * as migration_20260913_184706_page_structure_draft_operation from './20260913_184706_page_structure_draft_operation';
 import * as migration_20260914_083749_page_publication_operations from './20260914_083749_page_publication_operations';
+import * as migration_20260915_080818_media_processing_profiles from './20260915_080818_media_processing_profiles';
+import * as migration_20260915_082031_media_nullable_backlinks from './20260915_082031_media_nullable_backlinks';
 
 export const migrations = [
   {
@@ -106,6 +108,16 @@ export const migrations = [
   {
     up: migration_20260914_083749_page_publication_operations.up,
     down: migration_20260914_083749_page_publication_operations.down,
-    name: '20260914_083749_page_publication_operations'
+    name: '20260914_083749_page_publication_operations',
+  },
+  {
+    up: migration_20260915_080818_media_processing_profiles.up,
+    down: migration_20260915_080818_media_processing_profiles.down,
+    name: '20260915_080818_media_processing_profiles',
+  },
+  {
+    up: migration_20260915_082031_media_nullable_backlinks.up,
+    down: migration_20260915_082031_media_nullable_backlinks.down,
+    name: '20260915_082031_media_nullable_backlinks'
   },
 ];

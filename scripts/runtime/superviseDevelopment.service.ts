@@ -1,7 +1,7 @@
 /**
  * @file scripts/runtime/superviseDevelopment.service.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.0.1
+ * @date 2026-09-15
  * @description Управляет запуском и согласованной остановкой сервисов разработки.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -50,17 +50,18 @@ export const superviseDevelopment = async ({
   const stop = () => {
     if (stopping.signal.aborted) return;
     stopping.abort();
-    log("[dev] Останавливаю сервисы; исполнитель завершит текущее задание.");
+    log("[dev] Останавливаю сервисы; исполнители завершат текущие задания.");
     for (const process of owned) process.stop();
   };
   signal.addEventListener("abort", stop, { once: true });
   try {
-    for (const specification of runtime.processes) {
+    for (const [index, specification] of runtime.processes.entries()) {
       if (stopping.signal.aborted) break;
-      // Worker запускается после успешного старта приложения и control plane.
-      if (specification.drain) {
+      // Ждём только уже запущенные зависимости: Media не зависит от будущего control plane.
+      if (specification.drain && specification.waitForReady !== false) {
         await Promise.all(
           runtime.processes
+            .slice(0, index)
             .filter((item) => item.readyUrl)
             .map(async (item) => {
               const deadline = Date.now() + 180_000;

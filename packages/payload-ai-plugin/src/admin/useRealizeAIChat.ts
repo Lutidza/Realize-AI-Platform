@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useRealizeAIChat.ts
- * @version 1.6.0
- * @date 2026-09-14
+ * @version 1.6.1
+ * @date 2026-09-15
  * @description Управляет bootstrap чата, durable state и governed change actions.
  */
 
@@ -28,6 +28,7 @@ import { chatErrorMessage } from "./chatState";
 import { requestRealizeAI } from "./realizeAIAPI";
 import { isActiveRun } from "./runStreamTypes";
 import { useChangeRequests } from "./useChangeRequests";
+import { useConversationDetailState } from "./useConversationDetailState.hook";
 import { useDataOperations } from "./useDataOperations";
 import { useExecutionPolling } from "./useExecutionPolling";
 import { useRunStream } from "./useRunStream";
@@ -38,7 +39,7 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
   const context = useChatDraftContext(enabled);
   const agentConfiguration = useChatAgentConfiguration(enabled);
   const [conversations, setConversations] = useState<ConversationDTO[]>([]);
-  const [detail, setDetail] = useState<ConversationDetailDTO>();
+  const { detail, detailRef, setDetail } = useConversationDetailState();
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string>();
   const [isCreatingConversation, setIsCreatingConversation] = useState(false);
@@ -56,7 +57,6 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
   const [selectedConversationID, setSelectedConversationID] =
     useState<string>();
   const bootstrappedRef = useRef(false);
-  const detailRef = useRef<ConversationDetailDTO | undefined>(undefined);
   const pendingConversationRef = useRef<Promise<ConversationDTO> | null>(null);
   const selectedIDRef = useRef<string | undefined>(undefined);
   const conversationRequestRef = useRef(0);
@@ -73,12 +73,11 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
   const applyConversation = useCallback(
     (next: ConversationDetailDTO, expectedID: string) => {
       if (selectedIDRef.current !== expectedID) return false;
-      detailRef.current = next;
       setDetail(next);
       setCurrentRun(next.runs.find(isActiveRun));
       return true;
     },
-    [],
+    [setDetail],
   );
 
   const openConversation = useCallback(
@@ -87,7 +86,6 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
       selectionTouchedRef.current = true;
       selectedIDRef.current = id;
       setSelectedConversationID(id);
-      detailRef.current = undefined;
       setDetail(undefined);
       setCurrentRun(undefined);
       const next = await requestRealizeAI<ConversationDetailDTO>(
@@ -97,7 +95,7 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
       if (conversationRequestRef.current === requestVersion)
         applyConversation(next, id);
     },
-    [applyConversation],
+    [applyConversation, setDetail],
   );
 
   const clearConversationSelection = useCallback(() => {
@@ -105,10 +103,9 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     conversationRequestRef.current += 1;
     selectedIDRef.current = undefined;
     setSelectedConversationID(undefined);
-    detailRef.current = undefined;
     setDetail(undefined);
     setCurrentRun(undefined);
-  }, []);
+  }, [setDetail]);
 
   useEffect(() => {
     if (!enabled || bootstrappedRef.current) return;
@@ -192,7 +189,6 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
   const startConversation = useCallback(async () => {
     selectedIDRef.current = undefined;
     setSelectedConversationID(undefined);
-    detailRef.current = undefined;
     setDetail(undefined);
     setCurrentRun(undefined);
     setIsCreatingConversation(true);
@@ -209,7 +205,7 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
       }
       setIsCreatingConversation(false);
     }
-  }, [createConversation]);
+  }, [createConversation, setDetail]);
 
   const acceptMessageResult = useCallback(
     (result: ChatWorkflowResult, conversationID: string) => {
@@ -231,12 +227,11 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
             ...current.runs.filter((run) => run.id !== result.run.id),
           ],
         };
-        detailRef.current = next;
         return next;
       });
       setCurrentRun(isActiveRun(result.run) ? result.run : undefined);
     },
-    [],
+    [setDetail],
   );
   const refreshWorkflowConversation = useCallback(
     async (id: string) => {
@@ -404,6 +399,7 @@ export const useRealizeAIChat = (enabled: boolean): RealizeAIController => {
     agentConfiguration,
     createConversation,
     currentRun,
+    detailRef,
     draft,
     isSubmitting,
     runtime?.state,

@@ -1,5 +1,10 @@
 # syntax=docker/dockerfile:1.7
 
+# @file Dockerfile
+# @version 1.0.1
+# @date 2026-09-15
+# @description Собирает общий runtime образ приложения и штатного Media worker.
+
 ARG NODE_IMAGE=node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
 
 FROM ${NODE_IMAGE} AS base
@@ -19,6 +24,7 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 COPY package.json package-lock.json ./
 COPY packages ./packages
 COPY scripts/runtime/verify-runtime.mjs ./scripts/runtime/verify-runtime.mjs
+COPY scripts/runtime/patches ./scripts/runtime/patches
 RUN npm run verify:runtime && npm ci
 
 COPY . .
@@ -46,9 +52,12 @@ COPY --from=build --chown=realize:realize /app/public ./public
 COPY --from=build --chown=realize:realize /app/public ./.next/standalone/public
 COPY --from=build --chown=realize:realize /app/src ./src
 COPY --from=build --chown=realize:realize /app/packages ./packages
+COPY --from=build --chown=realize:realize /app/scripts/runtime ./scripts/runtime
 COPY --from=build --chown=realize:realize /app/next.config.ts /app/tsconfig.json ./
 
-RUN rm -rf .next/standalone/public/media \
+RUN mkdir -p /app/.data/media /app/public/media \
+  && chown -R realize:realize /app/.data /app/public/media \
+  && rm -rf .next/standalone/public/media \
   && ln -s /app/public/media .next/standalone/public/media
 
 USER realize

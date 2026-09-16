@@ -5,6 +5,7 @@
 /.playwright-mcp
 /.release
 /.runtime
+/.data/media
 /artifacts
 /coverage
 /playwright-report

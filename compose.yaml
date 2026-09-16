@@ -1,3 +1,8 @@
+# @file compose.yaml
+# @version 1.0.0
+# @date 2026-09-15
+# @description Запускает PostgreSQL, приложение и Media worker с постоянным хранилищем.
+
 name: realize-e-commerce
 
 services:
@@ -30,7 +35,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
+    environment: &payload-environment
       DATABASE_URI: ${COMPOSE_DATABASE_URI:?COMPOSE_DATABASE_URI is required}
       DATABASE_URL: ${COMPOSE_DATABASE_URI:?COMPOSE_DATABASE_URI is required}
       NEXT_PUBLIC_SERVER_URL: ${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}
@@ -38,6 +43,7 @@ services:
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:-http://localhost:3000}
       PAYLOAD_PUBLIC_SITE_URL: ${PAYLOAD_PUBLIC_SITE_URL:-http://localhost:3000}
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?PAYLOAD_SECRET is required}
+      MEDIA_PRIVATE_STORAGE_DIR: /app/.data/media
       PREVIEW_SECRET: ${PREVIEW_SECRET:?PREVIEW_SECRET is required}
       REALIZE_AI_CONTROL_PLANE_TOKEN: ${REALIZE_AI_CONTROL_PLANE_TOKEN:-}
       REALIZE_AI_CONTROL_PLANE_URL: ${REALIZE_AI_CONTROL_PLANE_URL:-}
@@ -65,7 +71,36 @@ services:
       - /tmp:uid=1001,gid=1001,mode=1777
     volumes:
       - media-data:/app/public/media
+      - media-private-data:/app/.data/media
+
+  media-worker:
+    image: ${REALIZE_IMAGE:-realize-e-commerce:local}
+    build:
+      context: .
+      target: runtime
+    command:
+      [
+        "node",
+        "--no-deprecation",
+        "node_modules/payload/bin.js",
+        "run",
+        "scripts/runtime/runMediaJobs.controller.ts",
+      ]
+    restart: unless-stopped
+    init: true
+    read_only: true
+    stop_grace_period: 5m
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment: *payload-environment
+    tmpfs:
+      - /tmp:uid=1001,gid=1001,mode=1777
+    volumes:
+      - media-data:/app/public/media:ro
+      - media-private-data:/app/.data/media
 
 volumes:
   media-data:
+  media-private-data:
   postgres-data:

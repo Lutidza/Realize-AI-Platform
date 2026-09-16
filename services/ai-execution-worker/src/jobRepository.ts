@@ -1,7 +1,8 @@
 /**
  * @file services/ai-execution-worker/src/jobRepository.ts
- * @version 2026-08-21
- * @description Claims PostgreSQL jobs atomically and persists worker evidence transitions.
+ * @version 1.1.0
+ * @date 2026-09-15
+ * @description Атомарно сохраняет состояния заданий, серверную причину отказа и отдельное пояснение исполнителя.
  */
 
 import type { Pool, PoolClient, QueryResultRow } from "pg";
@@ -201,7 +202,7 @@ export class ExecutionJobRepository {
     job: ClaimedExecutionJob,
     diff: WorktreeDiff,
     evidenceHash: string,
-    workerSummary: string,
+    workerSummary?: string,
   ): Promise<void> {
     await transaction(this.pool, async (client) => {
       const jobUpdate = await client.query(
@@ -220,7 +221,7 @@ export class ExecutionJobRepository {
           JSON.stringify(diff.diffStat),
           diff.diffTruncated,
           evidenceHash,
-          workerSummary,
+          workerSummary ?? null,
         ],
       );
       const changeUpdate = await client.query(
@@ -241,6 +242,7 @@ export class ExecutionJobRepository {
       blocked: boolean;
       summary: string;
       validationFailure: boolean;
+      workerSummary?: string;
     },
   ): Promise<void> {
     const jobStatus = input.blocked ? "blocked" : "failed";
@@ -250,10 +252,10 @@ export class ExecutionJobRepository {
     await transaction(this.pool, async (client) => {
       await client.query(
         `UPDATE realize_ai_execution_jobs
-            SET status = $2, stage = 'complete', error_summary = $3,
+            SET status = $2, stage = 'complete', error_summary = $3, worker_summary = $4,
                 finished_at = now(), updated_at = now()
           WHERE id = $1`,
-        [job.id, jobStatus, input.summary],
+        [job.id, jobStatus, input.summary, input.workerSummary ?? null],
       );
       await client.query(
         `UPDATE realize_ai_change_requests

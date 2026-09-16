@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/assessChangePlanReadiness.validator.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 2.0.0
+ * @date 2026-09-15
  * @description Проверяет готовность ответа ассистента для UI и серверного оформления плана.
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
  */
@@ -9,7 +9,7 @@
 import type { ChangePlanReadinessDTO } from "@realize/ai-contracts";
 import { extractChangePlanPaths } from "./extractChangePlanPaths.util";
 
-/** Повреждённый Data Lane block также закрывает оформление ответа как изменения кода. */
+/** Data Lane имеет приоритет; готовность кода требует валидного явного списка изменений файлов. */
 export const assessChangePlanReadiness = (
   content: string,
 ): ChangePlanReadinessDTO => {

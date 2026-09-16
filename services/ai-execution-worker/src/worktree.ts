@@ -1,7 +1,8 @@
 /**
  * @file services/ai-execution-worker/src/worktree.ts
- * @version 2026-08-21
- * @description Creates isolated Git worktrees and validates produced diff scope.
+ * @version 1.1.0
+ * @date 2026-09-15
+ * @description Создаёт изолированные Git worktree и проверяет область полученных изменений.
  */
 
 import { createHash } from "node:crypto";
@@ -194,7 +195,9 @@ export const captureWorktreeDiff = async (
   }
   const paths = await changedPaths(workspace);
   if (paths.length === 0) {
-    throw new WorktreePolicyError("Worker completed without a code diff.");
+    throw new WorktreePolicyError(
+      "Исполнитель завершил ответ без изменений файлов. Автоматические проверки не запускались. Изучите его пояснение и уточните план перед новым запуском.",
+    );
   }
   for (const path of paths) {
     await assertPathSafety(workspace, path, job.allowedPaths);

@@ -1,16 +1,28 @@
 /**
  * @file packages/codex-adapter/src/CodexProfile.adapter.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-15
  * @description Управляет файлами и окружением отдельного серверного профиля Codex.
  */
 
 import { constants } from "node:fs";
-import { chmod, lstat, mkdir, open, realpath, unlink } from "node:fs/promises";
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  open,
+  realpath,
+  rm,
+  unlink,
+} from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
 import { CodexProfileError } from "./CodexProfile.error";
-import type { PrepareCodexProfileInput } from "./CodexProfile.types";
+import type {
+  CodexRunProfile,
+  PrepareCodexProfileInput,
+} from "./CodexProfile.types";
 import { createCodexEnvironment } from "./environment";
 import { readCodexAccessTokenCredential } from "./CodexAccessTokenCredential.adapter";
 import { readCodexWorkloadIdentityConfiguration } from "./readCodexWorkloadIdentityConfiguration.config";
@@ -56,6 +68,45 @@ const writePrivateFile = async (
     await file.writeFile(content, "utf8");
   } finally {
     await file.close();
+  }
+};
+
+/** Изолирует persisted parent/child histories одного запуска и удаляет только его собственный каталог. */
+export const createCodexRunProfile = async (
+  stateRoot: string,
+): Promise<CodexRunProfile> => {
+  try {
+    await requirePrivateDirectory(stateRoot);
+    const home = await mkdtemp(join(stateRoot, "run-"));
+    const identity = await lstat(home);
+    return {
+      home,
+      remove: async () => {
+        try {
+          const current = await lstat(home).catch(
+            (error: NodeJS.ErrnoException) => {
+              if (error.code === "ENOENT") return undefined;
+              throw error;
+            },
+          );
+          if (!current) return;
+          // Отказываемся удалять заменённый каталог или путь, перенаправленный через symlink.
+          if (
+            !current.isDirectory() ||
+            current.isSymbolicLink() ||
+            current.dev !== identity.dev ||
+            current.ino !== identity.ino ||
+            (await realpath(home)) !== home
+          )
+            throw new CodexProfileError();
+          await rm(home, { recursive: true, force: true });
+        } catch {
+          throw new CodexProfileError();
+        }
+      },
+    };
+  } catch {
+    throw new CodexProfileError();
   }
 };
 

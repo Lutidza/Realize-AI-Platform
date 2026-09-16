@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnection.types.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-15
  * @description Задаёт серверный lifecycle аренды авторизации Codex из integration registry.
  */
 
@@ -19,7 +19,7 @@ export type CodexConnectionOptions = {
 /** Одна session-level DB блокировка для runtime, проверки и изменения подключения. */
 export type CodexConnectionLock = IntegrationSessionLock;
 
-/** dispose вызывается после закрытия Codex process и сохраняет обновлённые credentials. */
+/** dispose после закрытия Codex process сохраняет refresh; isolated lease также удаляет всю историю запуска. */
 export type CodexConnectionLease = {
   authMode: CodexAuthMode;
   environment: NodeJS.ProcessEnv;
@@ -35,5 +35,13 @@ export type CodexConnectionLease = {
 
 /** Серверный resolver; lease нельзя передавать модели, публичному API или журналу. */
 export interface CodexConnectionResolver {
-  acquire(options?: { allowDisabled?: boolean }): Promise<CodexConnectionLease>;
+  acquire(
+    options?: CodexConnectionAcquireOptions,
+  ): Promise<CodexConnectionLease>;
 }
+
+/** По умолчанию сохраняет chat resume; isolated создаёт удаляемый профиль одного execution/review. */
+export type CodexConnectionAcquireOptions = {
+  allowDisabled?: boolean;
+  isolated?: boolean;
+};

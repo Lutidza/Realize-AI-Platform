@@ -1,0 +1,152 @@
+/**
+ * @file src/components/admin/media/MediaProcessingField.module.css
+ * @version 1.0.0
+ * @date 2026-09-15
+ * @description Размещает исходник, состояния и готовые изображения в карточке Media.
+ * @see documentation/specifications/media-management.md
+ */
+.root,
+.sets,
+.set {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.heading,
+.original,
+.setHeading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+
+.heading > div,
+.original > div,
+.setHeading > div {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.root h3,
+.root h4,
+.root p {
+  margin: 0;
+}
+
+.root h3 {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.root h4 {
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.muted {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.heading .muted,
+.original .muted,
+.setHeading .muted {
+  margin-top: var(--ui-space-1);
+}
+
+.original,
+.set {
+  padding: var(--ui-space-4);
+}
+
+.actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--ui-space-2);
+}
+
+.root button {
+  max-width: 100%;
+  white-space: normal;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  color: var(--ui-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link svg {
+  flex-shrink: 0;
+}
+
+.link:focus-visible,
+.imageLink:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 3px;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.variants {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr));
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+
+.variant {
+  display: grid;
+  align-content: start;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.imageLink {
+  display: grid;
+  place-items: center;
+  height: 160px;
+  min-width: 0;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-surface-raised);
+  overflow: hidden;
+}
+
+.imageLink img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.variant figcaption {
+  display: grid;
+  gap: var(--ui-space-1);
+  min-width: 0;
+  font-size: 13px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3);
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .original,
+  .set {
+    padding: var(--ui-space-3);
+  }
+}

@@ -1,0 +1,143 @@
+/**
+ * @file src/components/admin/media/MediaLibraryGrid.module.css
+ * @version 1.0.0
+ * @date 2026-09-14
+ * @description Оформляет сетку настоящих файлов в семантических токенах Realize.
+ * @see documentation/specifications/media-management.md
+ */
+
+.root {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.selectionBar {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  color: var(--ui-color-muted);
+}
+
+.selectionBar label {
+  cursor: pointer;
+  margin-inline-start: var(--ui-space-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  align-items: stretch;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  min-width: 0;
+  padding: var(--ui-space-3);
+}
+
+.card[data-selected] {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: -2px;
+}
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  min-height: 24px;
+}
+
+.lock {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-1);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.lock svg {
+  flex-shrink: 0;
+}
+
+.link {
+  display: grid;
+  gap: var(--ui-space-3);
+  min-width: 0;
+  border-radius: var(--ui-radius-sm);
+  color: inherit;
+  text-decoration: none;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 4px;
+  box-shadow: var(--ui-focus-ring);
+}
+
+.link:hover .filename {
+  color: var(--ui-color-primary);
+}
+
+.preview {
+  overflow: hidden;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-surface-raised);
+}
+
+.filename {
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.alt {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.metadata {
+  display: grid;
+  gap: var(--ui-space-2);
+  margin: auto 0 0;
+  padding-top: var(--ui-space-3);
+  border-top: 1px solid var(--ui-color-border);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.metadata > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--ui-space-1) var(--ui-space-2);
+}
+
+.metadata dt {
+  color: var(--ui-color-muted);
+}
+
+.metadata dd {
+  margin: 0;
+  min-width: 0;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

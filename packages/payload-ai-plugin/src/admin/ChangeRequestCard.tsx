@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/ChangeRequestCard.tsx
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.0.1
+ * @date 2026-09-15
  * @description Отображает plan, implementation, preview, source promotion и release gates.
  */
 
@@ -81,6 +81,7 @@ const stateLabel = (change: ChangeRequestDTO): string => {
   if (change.state === "workspace_preparing") return "Готовится worktree";
   if (change.state === "execution_queued") return "В очереди";
   if (change.state === "validation_failed") return "Проверки не пройдены";
+  if (change.state === "blocked") return "Изменение заблокировано";
   if (change.approval?.decision === "approved") return "План утверждён";
   if (change.approval?.decision === "rejected") return "План отклонён";
   return "Ожидает решения";

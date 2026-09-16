@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codexReadTools.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-13
+ * @version 1.0.1
+ * @date 2026-09-15
  * @description Проверяет привязку read tools к turn и закрытый RPC без обращения к модели.
  */
 
@@ -185,6 +185,147 @@ describe("Codex server-owned read tools", () => {
       expect.objectContaining({ threadId: "legacy-thread" }),
     );
     expect(rpc.create.mock.calls[0]?.[0]).not.toHaveProperty("onRequest");
+  });
+
+  it("синтетические child и stale turn events не смешивают текст, usage и progress родителя", async () => {
+    const eventsFor = (threadId: string, turnId: string, text: string) => [
+      {
+        method: "item/agentMessage/delta",
+        params: { threadId, turnId, delta: text },
+      },
+      {
+        method: "thread/tokenUsage/updated",
+        params: {
+          threadId,
+          turnId,
+          tokenUsage: {
+            last: { inputTokens: 3, outputTokens: 2, totalTokens: 5 },
+          },
+        },
+      },
+      ...["item/started", "item/completed"].map((method) => ({
+        method,
+        params: {
+          threadId,
+          turnId,
+          item: { type: "commandExecution", status: "completed" },
+        },
+      })),
+    ];
+    rpc.notifications = [
+      ...eventsFor(
+        "child-thread",
+        "child-turn",
+        "Child text must stay private.",
+      ),
+      ...eventsFor(params.threadId, "previous-turn", "Stale parent text."),
+      ...eventsFor(params.threadId, params.turnId, "Текст текущего родителя."),
+      {
+        method: "turn/completed",
+        params: {
+          threadId: params.threadId,
+          turn: { id: params.turnId, status: "completed", items: [] },
+        },
+      },
+    ];
+    const events = await collect(undefined, {
+      ...input,
+      sandboxProfile: "code-workspace-write",
+    });
+    expect(events.filter((event) => event.type === "assistant.delta")).toEqual([
+      { type: "assistant.delta", delta: "Текст текущего родителя." },
+    ]);
+    expect(
+      events.filter((event) => event.type === "usage.updated"),
+    ).toHaveLength(1);
+    expect(
+      events.filter((event) => event.type.startsWith("tool.")),
+    ).toHaveLength(2);
+    expect(events.at(-1)).toEqual({
+      type: "assistant.completed",
+      content: "Текст текущего родителя.",
+    });
+    expect(JSON.stringify(events)).not.toMatch(/Child text|Stale parent/);
+  });
+
+  it("синтетические child terminal и прежний parent turn не завершают активный parent", async () => {
+    const parent = rpc.notifications[0];
+    rpc.notifications = [
+      ...["completed", "failed", "interrupted"].map((status) => ({
+        method: "turn/completed",
+        params: {
+          threadId: "child-thread",
+          turn: {
+            id: "child-turn",
+            status,
+            items: [{ type: "agentMessage", text: "Child final." }],
+          },
+        },
+      })),
+      {
+        method: "turn/completed",
+        params: {
+          threadId: params.threadId,
+          turn: {
+            id: "previous-turn",
+            status: "completed",
+            items: [{ type: "agentMessage", text: "Stale final." }],
+          },
+        },
+      },
+      parent,
+    ];
+    const events = await collect();
+    expect(
+      events.filter((event) => event.type === "assistant.completed"),
+    ).toEqual([{ type: "assistant.completed", content: "Найдена страница." }]);
+    expect(
+      events.some(
+        (event) =>
+          event.type === "run.cancelled" || event.type === "run.failed",
+      ),
+    ).toBe(false);
+    expect(rpc.close).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    { method: "item/started", type: "webSearch" },
+    { method: "item/completed", type: "fileChange" },
+    { method: "turn/completed", type: "mcpToolCall" },
+    { method: "turn/completed", type: "dynamicToolCall" },
+  ])(
+    "child $type при $method по-прежнему блокирует весь запуск",
+    async ({ method, type }) => {
+      const item = { type, tool: "forbidden-child-tool" };
+      rpc.notifications.unshift({
+        method,
+        params:
+          method === "turn/completed"
+            ? {
+                threadId: "child-thread",
+                turn: { id: "child-turn", status: "completed", items: [item] },
+              }
+            : { threadId: "child-thread", turnId: "child-turn", item },
+      });
+      const events = await collect();
+      expect(events.at(-1)?.type).toBe("run.failed");
+      expect(events.some((event) => event.type === "assistant.completed")).toBe(
+        false,
+      );
+    },
+  );
+
+  it("transport security violation без threadId по-прежнему прерывает активный parent", async () => {
+    rpc.notifications.unshift({ method: "realize/securityViolation" });
+    const events = await collect();
+    expect(events.at(-1)?.type).toBe("run.failed");
+    expect(rpc.request).toHaveBeenCalledWith("turn/interrupt", {
+      threadId: params.threadId,
+      turnId: params.turnId,
+    });
+    expect(events.some((event) => event.type === "assistant.completed")).toBe(
+      false,
+    );
   });
 
   it.each([undefined, "review-readonly", "code-workspace-write"] as const)(

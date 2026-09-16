@@ -1,7 +1,7 @@
 /**
  * @file tests/int/change-engine.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-09-15
  * @description Проверяет plan policy и cryptographic execution/release bindings.
  */
 
@@ -40,6 +40,21 @@ describe("approval-only Change Engine", () => {
         "Изменить packages/payload-ai-plugin/src/admin/RealizeAIProvider.tsx.",
         "Обновить tests/e2e/admin-ai-chat.e2e.spec.ts.",
         "Проверки: npm run typecheck и npm run test:e2e.",
+        "```realize-code-plan",
+        JSON.stringify({
+          version: "1.0",
+          files: [
+            {
+              path: "packages/payload-ai-plugin/src/admin/RealizeAIProvider.tsx",
+              change: "Подключить чат ко всем страницам админки.",
+            },
+            {
+              path: "tests/e2e/admin-ai-chat.e2e.spec.ts",
+              change: "Проверить доступность чата на странице коллекции.",
+            },
+          ],
+        }),
+        "```",
       ].join("\n"),
     });
 
@@ -49,9 +64,57 @@ describe("approval-only Change Engine", () => {
       "packages/payload-ai-plugin/src/admin/RealizeAIProvider.tsx",
       "tests/e2e/admin-ai-chat.e2e.spec.ts",
     ]);
-    expect(plan.checks).toContain("npm run test:e2e");
+    expect(plan.checks).toEqual([
+      "node scripts/security/check-secrets.mjs",
+      "npm run lint",
+      "npm run typecheck",
+      "npm run test:int",
+      "npm run build",
+      "npm run test:e2e",
+    ]);
     expect(plan.planHash).toMatch(/^[a-f0-9]{64}$/);
     expect(plan.scopeHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("preserves schema checks and binds a deterministic deduplicated check order", () => {
+    const plans = [
+      "npm run test:e2e, npm run build, npm run format:check, npm run typecheck",
+      "npm run format:check, npm run typecheck, npm run test:e2e, npm run build, npm run test:e2e",
+    ].map((checks) =>
+      deriveChangePlan({
+        originalRequest: "Добавить поле страницы и миграцию",
+        plan: [
+          `Проверки: ${checks}.`,
+          "```realize-code-plan",
+          JSON.stringify({
+            version: "1.0",
+            files: [
+              {
+                path: "src/migrations/20260915_page_title.ts",
+                change: "Добавить миграцию нового поля заголовка страницы.",
+              },
+            ],
+          }),
+          "```",
+        ].join("\n"),
+      }),
+    );
+
+    for (const plan of plans) {
+      expect(plan.type).toBe("SCHEMA_CHANGE");
+      expect(plan.checks).toEqual([
+        "node scripts/security/check-secrets.mjs",
+        "npm run lint",
+        "npm run typecheck",
+        "npm run test:int",
+        "npm run build",
+        "npm run format:check",
+        "npm run payload:migrate:status",
+        "npm run test:e2e",
+      ]);
+    }
+    expect(plans[0].scopeHash).toBe(plans[1].scopeHash);
+    expect(plans[0].planHash).not.toBe(plans[1].planHash);
   });
 
   it("rejects plans without exact scope and binds every approval field", () => {

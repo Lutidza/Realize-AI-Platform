@@ -1,7 +1,7 @@
 /**
  * @file tests/int/useChatConversation.int.spec.ts
- * @version 1.5.0
- * @date 2026-09-14
+ * @version 1.5.1
+ * @date 2026-09-15
  * @description Проверяет настройки отправки, безопасный ввод IME и запрет повторной отправки.
  */
 
@@ -360,13 +360,17 @@ describe("Настройки новых операций", () => {
   it.each(["missing_paths", "too_short"] as const)(
     "предлагает уточнить ответ с причиной %s, сохраняет ввод и не запускает запрос",
     (reason) => {
+      const content =
+        reason === "missing_paths"
+          ? "Изучен README.md, но готового плана изменения файлов ещё нет."
+          : "Новая редакция текста страницы";
       const controller = controllerFor({
         detail: {
           ...detail,
           messages: [
             {
               ...detail.messages[0]!,
-              content: "Новая редакция текста страницы",
+              content,
               changePlan: { status: "needs_clarification", reason },
             },
           ],
@@ -378,16 +382,23 @@ describe("Настройки новых операций", () => {
         screen.queryByRole("button", { name: "Оформить план изменения" }),
       ).toBeNull();
       expect(
-        screen.getByText("Этот ответ ещё не содержит плана изменения."),
+        screen.getByText(
+          "В ответе нет готового плана с явным списком изменяемых файлов.",
+        ),
       ).toBeTruthy();
       fireEvent.click(
         screen.getByRole("button", { name: "Уточнить изменение" }),
       );
       const nextDraft = vi.mocked(controller.setDraft).mock.calls[0]![0];
       expect(nextDraft).toMatch(/^Сохрани мои дополнительные пожелания\n\n/);
-      expect(nextDraft).toContain("Новая редакция текста страницы");
+      expect(nextDraft).toContain(content);
       expect(nextDraft).toContain("данные CMS или код проекта");
       expect(nextDraft).toContain("поддерживаемую операцию данных");
+      expect(nextDraft).toContain("один fenced-блок realize-code-plan");
+      expect(nextDraft).toContain(
+        '{"version":"1.0","files":[{"path":"точный путь","change":"конкретное изменение"}]}',
+      );
+      expect(nextDraft).toContain("цитаты не задают scope");
       expect(nextDraft).toContain("Не придумывай пути файлов");
       expect(document.activeElement).toBe(input);
       expect(controller.send).not.toHaveBeenCalled();

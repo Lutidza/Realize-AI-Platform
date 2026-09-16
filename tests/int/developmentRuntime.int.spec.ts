@@ -1,7 +1,7 @@
 /**
  * @file tests/int/developmentRuntime.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-15
  * @description Проверяет режимы запуска, конфликты портов и завершение дочерних процессов без модели.
  */
 
@@ -48,13 +48,14 @@ const waitForFile = async (path: string) => {
 };
 
 describe("development runtime configuration", () => {
-  it("starts the three local processes and shares the effective control-plane URL", () => {
+  it("starts Media independently before the local AI processes and shares the effective control-plane URL", () => {
     const runtime = readDevelopmentRuntime(
       { ...localEnvironment, REALIZE_AI_CONTROL_PLANE_PORT: "3188" },
       ["--port", "3017", "--webpack"],
     );
     expect(runtime.processes.map((item) => item.name)).toEqual([
       "web",
+      "media-jobs",
       "control-plane",
       "execution-worker",
     ]);
@@ -65,24 +66,30 @@ describe("development runtime configuration", () => {
       expect.arrayContaining(["--port", "3017", "--webpack"]),
     );
     expect(runtime.ports.map((item) => item.port)).toEqual([3017, 3188]);
-    expect(runtime.processes[2].drain).toBe(true);
+    expect(runtime.processes[1].drain).toBe(true);
+    expect(runtime.processes[1].waitForReady).toBe(false);
+    expect(runtime.processes[3].drain).toBe(true);
   });
 
   it.each([
-    { REALIZE_AI_RUNTIME_MODE: "central-control-plane" },
+    {
+      REALIZE_AI_RUNTIME_MODE: "central-control-plane",
+      expected: ["web", "media-jobs"],
+    },
     {
       REALIZE_AI_RUNTIME_MODE: "local-development",
       REALIZE_AI_RUNTIME_ISOLATED: "true",
+      expected: ["web"],
     },
   ])(
     "keeps AI services out of central/isolated starts without requiring their credentials",
-    (environment) => {
+    ({ expected, ...environment }) => {
       expect(
         readDevelopmentRuntime({
           NODE_ENV: "development",
           ...environment,
         }).processes.map((item) => item.name),
-      ).toEqual(["web"]);
+      ).toEqual(expected);
     },
   );
 
@@ -125,6 +132,50 @@ describe("development runtime configuration", () => {
 });
 
 describe("development process supervision", () => {
+  it("starts the independent Media worker without waiting for web or future AI readiness", async () => {
+    const cwd = await mkdtemp(join(tmpdir(), "realize-media-supervisor-"));
+    directories.push(cwd);
+    const runtime: DevelopmentRuntime = {
+      cwd,
+      environment: process.env,
+      local: true,
+      ports: [],
+      processes: [
+        {
+          name: "web",
+          readyUrl: "http://127.0.0.1:1/health",
+          args: ["-e", "setInterval(()=>{},1000)"],
+        },
+        {
+          name: "media-jobs",
+          drain: true,
+          waitForReady: false,
+          args: [
+            "-e",
+            "process.on('SIGTERM',()=>process.exit(0));require('fs').writeFileSync('media-ready','');setInterval(()=>{},1000)",
+          ],
+        },
+        {
+          name: "control-plane",
+          readyUrl: "http://127.0.0.1:1/health",
+          args: ["-e", "setInterval(()=>{},1000)"],
+        },
+      ],
+    };
+    const stopping = new AbortController();
+    const running = superviseDevelopment({
+      runtime,
+      signal: stopping.signal,
+      log: () => undefined,
+    });
+    try {
+      await waitForFile(join(cwd, "media-ready"));
+    } finally {
+      stopping.abort();
+      expect(await running).toBe(0);
+    }
+  });
+
   it.runIf(process.platform !== "win32")(
     "cleans descendants when their service parent crashes",
     async () => {

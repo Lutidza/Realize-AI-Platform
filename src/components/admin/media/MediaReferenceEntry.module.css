@@ -1,0 +1,43 @@
+/**
+ * @file src/components/admin/media/MediaReferenceEntry.module.css
+ * @version 1.0.0
+ * @date 2026-09-14
+ * @description Размещает ссылку на макет без изменения штатного списка Media.
+ */
+.entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+  margin-bottom: var(--ui-space-5);
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-bg);
+}
+
+.copy {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+
+.copy > svg {
+  flex-shrink: 0;
+  color: var(--ui-color-primary);
+}
+
+.copy p {
+  margin: var(--ui-space-1) 0 0;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .entry {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

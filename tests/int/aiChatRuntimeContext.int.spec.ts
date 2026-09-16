@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/aiChatRuntimeContext.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.0.1
+ * @date 2026-09-15
  * @description Проверяет границы конфигурации control plane, reuse thread и публичную проекцию без вызовов модели.
  */
 import { describe, expect, it, vi } from "vitest";
@@ -121,6 +121,37 @@ describe("chat configuration transport and policy", () => {
     expect(turn.prompt).toContain("Категория А");
     expect(turn.developerInstructions).not.toContain("old context");
   });
+  it.each([false, true])(
+    "передаёт строгий code-plan протокол в developer policy при webSearch=%s",
+    (webSearch) => {
+      const turn = buildConfiguredChatTurn({
+        run: { prompt: "Подготовь изменение интерфейса", webSearch },
+        fileCount: 1,
+        totalBytes: 100,
+        selectedFiles: [
+          { path: "README.md", size: 100, sha256: "a".repeat(64) },
+        ],
+        attachmentInstructions: "",
+      });
+      expect(turn.developerInstructions).toContain(
+        "exactly one fenced realize-code-plan block",
+      );
+      expect(turn.developerInstructions).toContain(
+        '{"version":"1.0","files":[{"path":"<verified repository-relative file>","change":"<specific proposed change>"}]}',
+      );
+      expect(turn.developerInstructions).toContain(
+        "Citations and paths in prose never define writable scope",
+      );
+      expect(turn.developerInstructions).toContain(
+        "unresolved file questions must not contain a code-plan block",
+      );
+      expect(turn.developerInstructions).toContain(
+        "do not combine realize-code-plan and realize-data-operation blocks",
+      );
+      expect(turn.prompt).toBe("Подготовь изменение интерфейса");
+    },
+  );
+
   it("rejects oversized history and total provider payload before a model call", () => {
     expect(() =>
       parseChatRun({

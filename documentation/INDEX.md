@@ -38,6 +38,13 @@ Codex-адаптеры — в `.codex/**`.
 - [Execution governance](specifications/realize-ai-commerce/v1.0/06-execution-governance/INDEX.md)
 - [EPIC-000 Phase 0 — historical snapshot](specifications/realize-ai-commerce/v1.0/07-epic-000-phase-0/INDEX.md)
 
+## Проекты развития
+
+- [Медиатека: обработка изображений, загрузка и MediaBlock](specifications/media-management.md)
+  — проект задания для обсуждения; ещё не реализованный функционал.
+- [Референсы интерфейса медиатеки](specifications/media-management-references.md)
+  — официальные примеры, применимые сценарии и требования к экранам.
+
 ## Исторические материалы
 
 `documentation/reports/**` и ADR с датой или номером сохраняют evidence

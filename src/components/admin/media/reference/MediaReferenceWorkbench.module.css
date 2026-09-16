@@ -1,0 +1,488 @@
+/**
+ * @file src/components/admin/media/reference/MediaReferenceWorkbench.module.css
+ * @version 1.0.0
+ * @date 2026-09-14
+ * @description Композиция, контейнерная адаптивность и доступные состояния макета.
+ * @see documentation/specifications/media-management-references.md
+ */
+
+.root {
+  background: var(--ui-color-bg);
+  color: var(--ui-color-text);
+  padding: var(--ui-space-6);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.root.portal {
+  padding: 0;
+  background: transparent;
+}
+.insetPanel {
+  padding: var(--ui-space-4);
+}
+.root *,
+.root *::before,
+.root *::after {
+  box-sizing: border-box;
+}
+.root [hidden] {
+  display: none !important;
+}
+.root h1,
+.root h2,
+.root h3,
+.root p {
+  margin: 0;
+}
+.root h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  font-size: 32px;
+  line-height: 1.2;
+}
+.root h2 {
+  font-size: 22px;
+  line-height: 1.35;
+}
+.root h3 {
+  font-size: 17px;
+  line-height: 1.4;
+}
+.root p {
+  line-height: 1.5;
+}
+.root a {
+  color: var(--ui-color-primary);
+}
+.root :focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 3px;
+  box-shadow: var(--ui-focus-ring);
+}
+.root input,
+.root select,
+.root textarea {
+  min-width: 0;
+  max-width: 100%;
+}
+.root button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.root svg {
+  flex-shrink: 0;
+}
+.container {
+  container-type: inline-size;
+  container-name: media-reference;
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--ui-space-5);
+  align-items: start;
+}
+.header > div,
+.headerActions {
+  display: grid;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+.header p,
+.overview p {
+  color: var(--ui-color-muted);
+}
+.header .headerActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  gap: var(--ui-space-5);
+  align-items: center;
+}
+.scenarioField {
+  display: flex;
+  gap: var(--ui-space-3);
+  align-items: center;
+  font-size: 13px;
+  min-width: 0;
+}
+.scenarioField select {
+  flex: 1;
+  min-width: 130px;
+  width: auto;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 208px minmax(0, 1fr);
+  gap: var(--ui-space-5);
+  align-items: start;
+}
+.navigation {
+  display: grid;
+  gap: var(--ui-space-2);
+  position: sticky;
+  top: var(--ui-space-4);
+}
+.navigation button {
+  justify-content: start;
+  text-align: left;
+}
+.mobileNavigation {
+  display: none !important;
+}
+.content,
+.libraryPane,
+.detailsPane {
+  min-width: 0;
+}
+.content > :not(.libraryLayout),
+.libraryPane,
+.detailsPane {
+  padding: var(--ui-space-5);
+}
+.libraryLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-space-5);
+  align-items: start;
+}
+.libraryLayout[data-details="true"] {
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+.libraryPane {
+  max-height: 85dvh;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.detailsPane {
+  max-height: 85dvh;
+  overflow: auto;
+}
+.stack {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+.actions > *,
+.toolbar > * {
+  min-width: 0;
+  max-width: 100%;
+}
+.field {
+  display: grid;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  font-size: 14px;
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
+  gap: var(--ui-space-3);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+  gap: var(--ui-space-3);
+  align-items: stretch;
+}
+.list {
+  display: grid;
+  gap: var(--ui-space-3);
+}
+.card {
+  min-width: 0;
+  padding: 0;
+  height: 100%;
+}
+.card[data-selected] {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: -2px;
+}
+.cardButton {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: start;
+  text-align: left;
+  width: 100%;
+  height: 100%;
+  padding: var(--ui-space-3);
+  gap: var(--ui-space-3);
+}
+.cardText {
+  display: grid;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+.cardText > span {
+  font-size: 13px;
+}
+.preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 172px;
+  background: var(--ui-color-surface-raised);
+  border-radius: var(--ui-radius-sm);
+  overflow: hidden;
+  min-width: 0;
+}
+.preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.placeholder {
+  display: grid;
+  justify-items: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-3);
+  text-align: center;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+}
+.list .cardButton {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  align-items: center;
+}
+.list .preview {
+  height: 100px;
+}
+.metadata {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--ui-space-3);
+  margin: 0;
+}
+.metadata dt {
+  color: var(--ui-color-muted);
+}
+.metadata dd {
+  margin: 0;
+}
+.dropzone {
+  display: grid;
+  gap: var(--ui-space-4);
+  justify-items: center;
+  padding: var(--ui-space-8);
+  border: 2px dashed var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  text-align: center;
+}
+.uploadRow {
+  padding: var(--ui-space-4);
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--ui-space-5);
+}
+.profileGroup {
+  padding: var(--ui-space-4);
+  margin: 0;
+  min-width: 0;
+}
+.profileGroup legend {
+  padding-inline: var(--ui-space-2);
+  font-weight: 600;
+}
+.error {
+  color: var(--ui-color-danger);
+}
+.processingRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--ui-space-3);
+  border-top: 1px solid var(--ui-color-border);
+  padding-top: var(--ui-space-4);
+  align-items: center;
+}
+.skeleton {
+  height: 220px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface-raised);
+}
+.liveRegion {
+  min-height: 24px;
+  color: var(--ui-color-success);
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--ui-color-bg);
+  opacity: 0.85;
+  z-index: 1000;
+}
+.dialog {
+  position: fixed;
+  z-index: 1001;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(1000px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  box-shadow: var(--ui-shadow-surface);
+  overflow: hidden;
+}
+.dialogHeader,
+.dialogFooter {
+  flex-shrink: 0;
+  padding: var(--ui-space-5);
+  display: flex;
+  gap: var(--ui-space-3);
+  justify-content: space-between;
+  align-items: start;
+}
+.dialogHeader > button {
+  flex-shrink: 0;
+}
+.dialogHeader > div {
+  min-width: 0;
+  display: grid;
+  gap: var(--ui-space-2);
+}
+.dialogHeader {
+  border-bottom: 1px solid var(--ui-color-border);
+}
+.dialogFooter {
+  border-top: 1px solid var(--ui-color-border);
+  flex-wrap: wrap;
+  max-height: 35dvh;
+  overflow: auto;
+}
+.dialogFooter p {
+  width: 100%;
+  max-height: 3em;
+  overflow: auto;
+}
+.dialogBody {
+  padding: var(--ui-space-5);
+  overflow: auto;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+@container media-reference (max-width: 1099px) {
+  .libraryLayout[data-details="true"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .libraryLayout[data-details="true"] .libraryPane {
+    display: none;
+  }
+  .detailsPane {
+    max-height: none;
+  }
+}
+@container media-reference (max-width: 759px) {
+  .header h1 {
+    font-size: 26px;
+  }
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .navigation {
+    display: none;
+  }
+  .mobileNavigation {
+    display: grid !important;
+  }
+  .overview {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ui-space-3);
+  }
+  .content > :not(.libraryLayout),
+  .libraryPane,
+  .detailsPane {
+    padding: var(--ui-space-3);
+  }
+  .libraryPane {
+    max-height: none;
+    overflow: visible;
+  }
+  .uploadRow,
+  .metadata,
+  .processingRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .metadata dd {
+    margin-bottom: var(--ui-space-2);
+  }
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
+  }
+  .list .cardButton {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dropzone {
+    padding: var(--ui-space-4);
+  }
+}
+@media (max-width: 759px) {
+  .root {
+    padding: var(--ui-space-2);
+  }
+  .dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+  }
+  .dialogHeader,
+  .dialogBody,
+  .dialogFooter {
+    padding: var(--ui-space-3);
+  }
+  .dialog .grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+  }
+  .dialog .list .cardButton {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .root *,
+  .root *::before,
+  .root *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

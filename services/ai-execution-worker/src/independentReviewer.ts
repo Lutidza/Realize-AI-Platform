@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/independentReviewer.ts
- * @version 1.0.1
- * @date 2026-09-11
+ * @version 1.0.2
+ * @date 2026-09-15
  * @description Запускает отдельную read-only проверку через выбранную интеграцию Codex.
  */
 
@@ -128,7 +128,7 @@ export const runIndependentReview = async (input: {
   job: ClaimedPreviewDeployment;
   workspace: string;
 }): Promise<IndependentReviewResult> => {
-  const lease = await input.codex.acquire();
+  const lease = await input.codex.acquire({ isolated: true });
   const adapter = new OpenAICodexAdapter({
     codexBinary: input.config.codexBinary,
     environment: lease.environment,
@@ -147,7 +147,8 @@ export const runIndependentReview = async (input: {
     for await (const event of adapter.runTurn({
       cwd: input.workspace,
       developerInstructions: buildIndependentReviewDeveloperInstructions(),
-      ephemeral: true,
+      // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
+      ephemeral: false,
       model: lease.reviewModel,
       prompt: [
         `Change Request: ${input.job.changeRequestID}.`,

@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 2.1.0
- * @date 2026-09-13
+ * @version 2.1.1
+ * @date 2026-09-15
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
@@ -59,6 +59,13 @@ const finalMessageFromTurn = (turn: Record<string, unknown>): string => {
 
   return typeof message?.text === "string" ? message.text : "";
 };
+
+/** Дочерний thread и прежний turn не могут изменить результат текущего запуска. */
+const matchesActiveTurn = (
+  params: Record<string, unknown>,
+  active: ActiveRun,
+  turnID: unknown = params.turnId,
+): boolean => params.threadId === active.threadID && turnID === active.turnID;
 
 /** Выполняет сессии с выбранной политикой доступа и нормализует уведомления App Server. */
 export class OpenAICodexAdapter implements CodingAgentAdapter {
@@ -231,7 +238,8 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
 
         if (
           message.method === "item/agentMessage/delta" &&
-          typeof params.delta === "string"
+          typeof params.delta === "string" &&
+          matchesActiveTurn(params, active)
         ) {
           accumulatedMessage += params.delta;
           yield { delta: params.delta, type: "assistant.delta" };
@@ -239,6 +247,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
         }
 
         if (message.method === "thread/tokenUsage/updated") {
+          if (!matchesActiveTurn(params, active)) continue;
           const usage = readTokenUsage(message);
           if (usage) yield { type: "usage.updated", usage };
           continue;
@@ -260,6 +269,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             };
             break;
           }
+          if (!matchesActiveTurn(params, active)) continue;
           if (item?.type === "commandExecution") {
             yield {
               summary: writable
@@ -299,6 +309,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             };
             break;
           }
+          if (!matchesActiveTurn(params, active)) continue;
           if (item?.type === "commandExecution") {
             yield {
               durationMs:
@@ -337,6 +348,13 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           const turnResult = asRecord(params.turn) || {};
           const status = turnResult.status;
 
+          // Проверки возможностей выполняются и для дочернего completed turn.
+          if (
+            status !== "completed" &&
+            !matchesActiveTurn(params, active, turnResult.id)
+          )
+            continue;
+
           if (status === "completed") {
             const items = Array.isArray(turnResult.items)
               ? turnResult.items
@@ -374,6 +392,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               };
               break;
             }
+            if (!matchesActiveTurn(params, active, turnResult.id)) continue;
             const content =
               finalMessageFromTurn(turnResult) || accumulatedMessage;
             if (webSearch) sources = collectCodexChatSources(items, sources);

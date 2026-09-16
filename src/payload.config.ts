@@ -1,7 +1,9 @@
 /**
  * @file src/payload.config.ts
- * @version 2026-08-17
- * @description Owns the active Payload schema, PostgreSQL adapter and migration policy.
+ * @version 1.1.0
+ * @date 2026-09-15
+ * @description Настраивает активную схему Payload, PostgreSQL и native обработку Media.
+ * @see documentation/specifications/media-management.md
  */
 
 import { postgresAdapter } from "@payloadcms/db-postgres";
@@ -20,10 +22,14 @@ import {
 import path from "path";
 import { buildConfig } from "payload";
 import { fileURLToPath } from "url";
-import sharp from "sharp";
 
 import { Categories } from "@/collections/Categories";
 import { Media } from "@/collections/Media";
+import { MediaProfiles } from "@/collections/Media/MediaProfiles.collection";
+import { MediaOriginals } from "@/collections/Media/MediaOriginals.collection";
+import { MediaVariants } from "@/collections/Media/MediaVariants.collection";
+import { MediaProcessingSets } from "@/collections/Media/MediaProcessingSets.collection";
+import { processMediaTask } from "@/collections/Media/processMedia.task";
 import { Pages } from "@/collections/Pages";
 import { Users } from "@/collections/Users";
 import { Footer } from "@/globals/Footer";
@@ -47,7 +53,37 @@ export default buildConfig({
   admin: {
     user: Users.slug,
   },
-  collections: [Users, Pages, Categories, Media],
+  collections: [
+    Users,
+    Pages,
+    Categories,
+    Media,
+    MediaProfiles,
+    MediaOriginals,
+    MediaProcessingSets,
+    MediaVariants,
+  ],
+  jobs: {
+    tasks: [processMediaTask],
+    autoRun: [],
+    deleteJobOnComplete: false,
+    access: { run: () => false, queue: () => false, cancel: () => false },
+    jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
+      ...defaultJobsCollection,
+      admin: { ...defaultJobsCollection.admin, hidden: true },
+      access: {
+        ...defaultJobsCollection.access,
+        create: () => false,
+        update: () => false,
+        delete: () => false,
+      },
+      fields: defaultJobsCollection.fields.some(
+        (field) => "name" in field && field.name === "meta",
+      )
+        ? defaultJobsCollection.fields
+        : [...defaultJobsCollection.fields, { name: "meta", type: "json" }],
+    }),
+  },
   db: postgresAdapter({
     migrationDir: path.resolve(dirname, "migrations"),
     pool: {
@@ -100,5 +136,4 @@ export default buildConfig({
     outputFile: path.resolve(dirname, "payload-types.ts"),
   },
   serverURL,
-  sharp,
 });

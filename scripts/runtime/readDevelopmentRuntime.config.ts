@@ -1,7 +1,7 @@
 /**
  * @file scripts/runtime/readDevelopmentRuntime.config.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-15
  * @description Собирает процессы разработки с единым окружением и проверенными адресами.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -31,7 +31,7 @@ const optionValue = (
   return value;
 };
 
-/** Central/isolated окружение не получает локальных исполнителей даже при включённом агенте. */
+/** Media работает независимо от AI; isolated/help не запускают фоновых исполнителей. */
 export const readDevelopmentRuntime = (
   sourceEnvironment: NodeJS.ProcessEnv,
   args: string[] = [],
@@ -64,13 +64,27 @@ export const readDevelopmentRuntime = (
     processes: [{ name: "web", args: webArgs }],
     ports: [{ name: "web", host, port }],
   };
-  if (!local || args.includes("--help") || args.includes("-h")) {
-    if (args.includes("--help") || args.includes("-h")) {
-      runtime.local = false;
-      runtime.ports = [];
-    }
+  if (args.includes("--help") || args.includes("-h")) {
+    runtime.local = false;
+    runtime.ports = [];
     return runtime;
   }
+  if (environment.REALIZE_AI_RUNTIME_ISOLATED === "true") return runtime;
+  const serviceArgs = (path: string) => [
+    "--import=tsx/esm",
+    resolve(cwd, path),
+  ];
+  runtime.processes.push({
+    name: "media-jobs",
+    args: [
+      resolve(cwd, "node_modules/payload/bin.js"),
+      "run",
+      resolve(cwd, "scripts/runtime/runMediaJobs.controller.ts"),
+    ],
+    drain: true,
+    waitForReady: false,
+  });
+  if (!local) return runtime;
   const control = readControlPlaneConfig(environment);
   if (args.some((argument) => argument.startsWith("--experimental-https")))
     throw new Error(
@@ -96,10 +110,6 @@ export const readDevelopmentRuntime = (
   });
   const webHost = ["0.0.0.0", "::"].includes(host) ? "127.0.0.1" : host;
   runtime.processes[0].readyUrl = `http://${webHost.includes(":") ? `[${webHost}]` : webHost}:${port}/api/health/live`;
-  const serviceArgs = (path: string) => [
-    "--import=tsx/esm",
-    resolve(cwd, path),
-  ];
   runtime.processes.push(
     {
       name: "control-plane",

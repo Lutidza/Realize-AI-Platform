@@ -1,7 +1,7 @@
 # Локальный запуск и чат в Payload Admin
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 11 сентября 2026 года
+- **Дата сверки:** 15 сентября 2026 года
 
 Этот runbook описывает существующий e-commerce baseline. Capability/config
 foundation, hidden Payload persistence и aggregate Config API уже реализованы.
@@ -165,10 +165,11 @@ adopted БД. `PAYLOAD_DB_PUSH=true` допускается только для 
 npm run dev
 ```
 
-Она запускает Next, control plane и execution worker. Перед запуском
+Она запускает Next, Media worker, control plane и execution worker. Перед запуском
 проверяются инфраструктурные параметры и свободные порты; PostgreSQL session
-lock запрещает второй совместный запуск того же checkout. Исполнитель
-запускается после ответа health-маршрутов приложения и control plane.
+lock запрещает второй совместный запуск того же checkout. Media worker читает
+очередь напрямую из БД и не ждёт HTTP; execution worker запускается после
+ответа health-маршрутов приложения и control plane.
 Подключение и разрешения этапов по-прежнему задаются в админке: сам запуск
 процесса не включает агента.
 
@@ -182,8 +183,9 @@ lock запрещает второй совместный запуск того 
 с ошибкой. Принудительное завершение worker не запускает повтор его текущего
 задания: автоматического возврата незавершённых задач в очередь нет.
 
-В режиме `central-control-plane` либо с `REALIZE_AI_RUNTIME_ISOLATED=true`
-локальные AI-сервисы не запускаются. Для отдельного запуска Next предусмотрен
+В режиме `central-control-plane` локальные AI-сервисы не запускаются, а Media
+worker остаётся активным. `REALIZE_AI_RUNTIME_ISOLATED=true` исключает обоих
+исполнителей и локальный control plane. Для отдельного запуска Next предусмотрен
 `npm run dev:web`; Playwright использует эту команду с isolated-флагом.
 `npm start` и Compose сохраняют отдельную схему серверного запуска и не
 поднимают trusted local worker автоматически.
@@ -245,6 +247,210 @@ http://localhost:3000/admin/integrations
 GitHub adapter принимает canonical HTTPS repository URL. Кнопка «Проверить»
 делает server-side GitHub REST request; browser не вызывает GitHub напрямую.
 
+### 4.1. Исполнитель Media
+
+Обработка изображений использует штатные Payload Jobs: очередь `media`, задача
+`processMedia`, одно задание за вызов `jobs.run` с `sequential:true`. Следующий
+опрос начинается через 5 секунд после завершения предыдущего. `jobs.autoRun`
+остаётся пустым; запуск через HTTP Jobs API запрещён, чтобы обработка не шла
+параллельно в обход singleton. Это отдельный от AI execution worker процесс.
+
+После применения миграций исполнитель можно запускать самостоятельно:
+
+```bash
+npm run media:worker
+```
+
+Для постоянного серверного процесса используется та же команда с
+`NODE_ENV=production`. Ему нужны исходники приложения и production-зависимости
+Payload (его штатный `payload run` подключает собственный TS loader),
+то же подключение PostgreSQL, секрет Payload и общее постоянное хранилище Media,
+что и приложению. Next-загрузка `.env*` выполняется до импорта Payload config;
+исполнитель не включает schema push. `npm start` сам worker не запускает.
+Serverless-процесс Next не заменяет постоянно работающий worker.
+
+В `compose.yaml` предусмотрен отдельный `media-worker` на том же runtime image.
+Миграции применяются до совместного запуска web/worker. Образ включает
+`scripts/runtime`, `src`, `packages` и TS config; новую зависимость для worker
+добавлять не требуется. Web и worker используют общий `media-private-data`
+по `MEDIA_PRIVATE_STORAGE_DIR=/app/.data/media`, с правом записи uid 1001.
+Публичный `media-data` подключён к worker только для чтения; web сохраняет право
+записи. Корневая файловая система контейнеров read-only, `/tmp` — tmpfs. Каталог
+`.data` исключён из Docker build context. Compose даёт 5 минут на остановку
+текущего задания, затем может принудительно остановить процесс; последующий
+запуск применяет ограниченное восстановление ниже. Проверка самого собранного
+образа относится к deployment acceptance и не заменяется просмотром Dockerfile.
+
+PostgreSQL advisory lock действует на очередь в текущей БД, независимо от
+checkout. Второй worker завершается до чтения заданий. `SIGINT`/`SIGTERM`
+прекращают опрос и дожидаются текущего `jobs.run`; Payload и singleton закрываются
+после него. При потере соединения singleton процесс немедленно завершается:
+продолжать работу без владения очередью небезопасно.
+
+При следующем запуске только после получения singleton восстанавливаются
+незавершённые `processing:true` jobs очереди `media` с `taskSlug=processMedia`,
+без workflow и без окончательной ошибки. В `meta.mediaRecoveryCount` сохраняется
+число аварийных восстановлений. Первые три возвращают job в обычный native
+pending-процесс; следующее завершает его с `MediaRecoveryLimitError`. Input,
+история task log, native `totalTried` и `waitUntil` сохраняются. Готовность набора
+и идемпотентное повторное использование файлов определяет Media task. Ручной
+повтор выполняется из карточки файла через отдельную прикладную операцию;
+`runByID` и массовый сброс Jobs для этого не используются.
+
+Эта защита распространяется на данный runner. Не запускайте параллельно
+`payload jobs:run --queue media`, второй scheduler или прямой Local API runner.
+Обычные ошибки задачи и backoff обрабатывает Payload; аварийный счётчик учитывает
+прерывания до записи native task log. Фактическое восстановление после аварии
+нужно проверять на изолированной БД, отдельно от unit-проверки жизненного цикла.
+
+### 4.2. Постоянная локальная production-сборка
+
+Для работы на этом компьютере после закрытия IDE, терминала и выхода из сеанса
+настроен пользовательский systemd target `realize.target`. Включён `linger`;
+target запускается при загрузке системы. Компьютер должен быть включён и
+не находиться в режиме сна. Это локальная установка с адресом
+`http://localhost:3000`, без изменения внешнего production deployment.
+
+Unit-файлы принадлежат оператору и находятся в `~/.config/systemd/user/`:
+
+| Служба | Процесс |
+| --- | --- |
+| `realize-postgres.service` | Существующий PostgreSQL 18 на `127.0.0.1:55432` |
+| `realize-web.service` | Production standalone Next.js на `127.0.0.1:3000` |
+| `realize-control-plane.service` | Локальный AI control plane на `127.0.0.1:3100` |
+| `realize-execution.service` | Штатный AI execution worker |
+| `realize-media.service` | Штатный Payload Media worker |
+
+Службы автоматически перезапускаются после завершения процесса. Явный
+`systemctl stop` оставляет их остановленными. Execution worker при остановке
+завершает принятое задание; systemd ожидает его сохранения, а ограничения времени
+отдельных этапов остаются в самом worker. PostgreSQL останавливается после
+зависимых процессов. Настройки, модели и разрешения агентов остаются в Admin.
+
+Управление из любого терминала:
+
+```bash
+systemctl --user status 'realize-*'
+systemctl --user restart realize.target
+systemctl --user stop realize.target
+systemctl --user start realize.target
+journalctl --user -u realize-web.service -f
+```
+
+Node.js `24.18.0` и npm `11.15.0` размещены отдельно от кеша IDE в
+`~/.local/share/realize-ai-cms/node-24.18.0`. Службы используют абсолютный путь
+к Node и полный установленный `node_modules`: control plane и execution worker
+требуют `tsx`, поэтому `npm prune --omit=dev` к этой локальной установке
+не применяется.
+
+Каждый Node-процесс получает `NODE_ENV=production` и запускается с
+`--import=./scripts/runtime/loadProductionEnvironment.mjs` из корня проекта.
+Preload загружает штатные `.env.production.local`, `.env.local`,
+`.env.production`, `.env` с приоритетом уже заданного process environment.
+Секреты остаются в этих ignored-файлах и не копируются в unit-файлы.
+`REALIZE_AI_RUNTIME_MODE=local-development` сохраняет доверенный локальный
+AI transport; эта настройка не выбирает dev-сборку Next.
+
+Web использует `.next/standalone/server.js`. Перед его запуском production build
+комплектуется `.next/static` и `public` по существующему
+[Dockerfile](../../Dockerfile). `.next/standalone/public/media` ссылается на
+постоянный `public/media` исходного проекта. Unit явно задаёт абсолютные
+`MEDIA_PRIVATE_STORAGE_DIR` и `REALIZE_AI_WORKSPACE_ROOT`, поскольку standalone
+меняет текущую папку. Media originals/variants и история интеграции сохраняют
+прежние каталоги. `REALIZE_BUILD_WITHOUT_DATABASE` — только параметр отдельной
+сборки без БД, на работающие службы он не передаётся.
+
+После изменения исходников требуется новая `npm run build`, обновление
+standalone assets и перезапуск служб. Выполняйте это после завершения активных
+заданий, остановив web и workers и оставив PostgreSQL доступным для сборки.
+Одновременный `npm run dev` на тех же портах не запускайте.
+
+Проверки execution выполняются одновременно с работающей CMS, поэтому им нужен
+отдельный бюджет ресурсов. Следующий профиль для локального компьютера с
+8 логическими CPU и примерно 7 GiB RAM применён к `realize-execution.service`
+после успешной полной контрольной сборки с описанной ниже цепочкой Webpack.
+Профиль ограничивает службу execution двумя разрешёнными CPU,
+`CPUQuota=200%`, `MemoryHigh=3G`, `MemoryMax=3G` и
+`MemorySwapMax=2048M`. Это верхние границы процесса и его потомков, а не
+резервирование свободной памяти или гарантия успешной сборки. Доступный swap
+проверяется отдельно. Ограничения остальных служб и пользовательских программ
+не меняются. Бюджет общий для всего cgroup execution, включая Codex, проверки
+и запущенные preview; несколько preview уменьшают запас для следующей сборки.
+
+В этом профиле рабочие копии новых execution jobs размещаются на диске через
+`REALIZE_AI_EXECUTION_WORKSPACE_ROOT=~/.local/share/realize-ai-cms/execution-workspaces`
+(в unit используется абсолютный путь). На этом хосте `/tmp` — tmpfs: копирование
+туда `node_modules` дополнительно расходует RAM/swap. Старые зарегистрированные
+worktrees не перемещаются этой настройкой. Тот же принцип применяется к
+`REALIZE_AI_PROMOTION_WORKSPACE_ROOT` и `REALIZE_AI_PREVIEW_ROOT`: профиль задаёт
+дисковые каталоги `promotion-workspaces` и `previews` внутри того же
+installation runtime. Promotion worktree содержит зависимости и сборку
+предпросмотра; preview root — журнал и временный дамп БД. Перед сменой этих
+корней у работающей установки нужно проверить существующие preview runtimes:
+их cleanup вычисляет путь по текущей конфигурации. Для одного задания необходимо место
+под исходники, реальную копию зависимостей и `.next`; сборки и очистка сохраняют
+штатный lifecycle worker. Node `24.18.0` учитывает также `MemoryHigh` при выборе
+доступного heap, поэтому его нельзя без проверки опускать ниже бюджета,
+необходимого TypeScript. Лимиты проверяются полной сборкой, включая этот этап.
+
+Для команды `npm run build` штатный check runner задаёт
+`TURBO_TASKS_AVAILABLE_PARALLELISM=2` после caller overrides. Остальные проверки
+не наследуют эту переменную из окружения хоста. Это ограничение основных
+Rust workers Turbopack, подтверждённое для Next `16.3.1`:
+[параметр turbo-tasks](https://github.com/vercel/next.js/blob/v16.3.1/turbopack/crates/turbo-tasks/src/parallel.rs#L20-L40)
+используется [Tokio runtime Next](https://github.com/vercel/next.js/blob/v16.3.1/crates/next-napi-bindings/src/lib.rs#L84-L112).
+Параметр внутренний; при обновлении Next требуется повторная проверка native
+сборки. Он не ограничивает общий RSS, blocking threads или число page-data
+workers. Жёсткий предел памяти задаёт systemd либо соответствующий лимит
+контейнера в другой установке.
+
+Команда проекта `npm run build` использует
+`scripts/runtime/buildProduction.controller.mjs`: сначала `next typegen`
+формирует production-типы маршрутов, затем отдельный `tsc --noEmit` проверяет
+проект и завершает процесс, после чего запускается `next build --webpack`. Ошибка или
+отмена любого этапа запрещает следующий. Только последний дочерний процесс
+получает внутренний `REALIZE_BUILD_TYPES_VERIFIED=1`, который отключает
+повторную встроенную проверку в `next.config.ts`. Входное значение этого флага
+удаляется перед генерацией и проверкой типов. Обычный прямой `next build` без
+внутреннего флага сохраняет встроенную проверку. Флаг не является настройкой
+админского агента и не входит в список наследуемых worker environment variables.
+`experimental.cpus=2` в Next config отдельно ограничивает workers сбора данных
+страниц и prerender: настройка Rust parallelism и CPU affinity не заменяют этот
+предел. Ограничение уменьшает параллельность сборки, не число обслуживаемых
+приложением запросов. Production entry использует штатный Webpack с
+`experimental.webpackBuildWorker=true` и `webpackMemoryOptimizations=true`:
+отдельные процессы компиляторов завершаются последовательно. Явное включение
+worker необходимо, поскольку `withPayload` добавляет собственный Webpack
+callback. Эти экспериментальные настройки требуют проверки совместимости при
+обновлении Next/Payload; настройка команды разработки не меняется.
+Внутренние этапы остаются в группе внешнего runner;
+при адресном сигнале только PID контроллера вне этой группы он пересылает сигнал
+непосредственному child. Полное завершение потомков обеспечивает штатный
+check runner либо cgroup systemd.
+
+Основные проверки новых планов сохраняют порядок: secrets, lint, typecheck,
+test:int, build. Дополнительные явно запрошенные проверки следуют после них
+в стабильном порядке без дубликатов; в частности, e2e может требовать готовую
+сборку. Состав обязательных проверок сохраняется. Отдельный `npm run typecheck`
+остаётся настоящей проверкой; `incremental` в TypeScript позволяет повторно
+использовать её промежуточный результат, но не заменяет успешный exit code.
+Сохранённые планы, порядок их проверок и approval hashes не переписываются.
+
+Execution worktree создаётся строго из подтверждённого `baseCommit`.
+Изменения build scripts в основном checkout попадут в такие сборки только
+после обычной доставки исходников и выбора содержащей их базовой версии.
+Перезапуск worker сам по себе не обновляет исходники старых рабочих копий.
+Настройки дисковых корней и ограничение parallelism в trusted check runner
+действуют независимо от версии `baseCommit`.
+
+Ошибки проверок сохраняют безопасную диагностику кода выхода, сигнала и
+срабатывания тайм-аута. Код `137` или `SIGKILL` сам по себе не доказывает OOM:
+причину устанавливают по журналу ядра и cgroup memory events. На POSIX тайм-аут
+завершает всю созданную группу процессов проверки, включая потомков npm;
+после периода ожидания применяется `SIGKILL`. На Windows используется
+завершение непосредственного дочернего процесса. Эти ограничения не меняют
+обязательные проверки, их approvals или сохранённые состояния старых jobs.
+
 ## 5. Ожидаемое поведение
 
 - чат виден только Payload-пользователю с ролью `admin` и сохраняет выбранный
@@ -252,6 +458,14 @@ GitHub adapter принимает canonical HTTPS repository URL. Кнопка �
 - один provider обслуживает панель и `/admin/ai`; скрытая поверхность не
   запускает лишний SSE/polling. Отдельное окно `/admin/ai/window` принимает
   выбранный диалог и черновик от своего окна Admin, без хранения текста в URL;
+- состояние выбранного диалога и его служебная ссылка обновляются одним
+  dispatcher; consumer updaters не изменяют ref. В Strict Mode повторное
+  вычисление React не рассинхронизирует карточки и фоновое чтение;
+- видимый диалог обновляет незавершённые execution/preview/source promotion/
+  release задания опросом каждые 1,5 секунды. Выход из очереди, блокировка,
+  ошибка и завершение отражаются без перезагрузки; поздний ответ не заменяет
+  новые сообщения или результаты действий. Когда активных заданий не остаётся,
+  опрос прекращается;
 - сообщения, события, Change Requests, Data Operations, hash-bound decisions,
   transactional outbox, execution jobs, deployments, integration settings/audit,
   installation config drafts/releases/events и check results сохраняются в
@@ -292,15 +506,33 @@ GitHub adapter принимает canonical HTTPS repository URL. Кнопка �
   endpoint возвращает управление без запуска Codex в HTTP-процессе;
 - worker создаёт отдельную ветку и worktree от зафиксированного `HEAD`, поэтому
   незакоммиченные изменения основного checkout в job не попадают;
+- исполнитель и reviewer используют отдельный приватный профиль Codex на время
+  задания. История родителя доступна native поисковому помощнику, затем весь
+  профиль удаляется после закрытия процесса и синхронизации credential;
+  постоянная история чата не затрагивается;
+- обязательный поиск делегируется native помощнику с ограниченными путями и
+  заданием на чтение. Родитель получает его результат и закрывает сессию;
+  внешний monitor и отдельный `codex exec` в этом этапе не запускаются;
 - для trusted check phase worker материализует установленный `node_modules` как
   реальную локальную директорию worktree и удаляет её после проверок; внешний
   symlink не используется, потому что Next.js 16/Turbopack отклоняет build,
   выходящий за filesystem root проекта;
 - protected owner layers (`.ai`, `.codex`, platform packages/services,
   migrations, Payload config/access и delivery/security scripts) блокируются;
+- заблокированное execution-задание не возвращается в очередь при перезапуске
+  worker или повторном запросе исполнения. Текущий API возвращает существующее
+  задание. Для нового исполнения нужен новый ответ с планом, новый Change Request
+  и его подтверждение; пояснение модели не заменяет эти серверные действия;
 - после Codex worker повторно сверяет фактические changed paths, запрещает
   symlink/out-of-scope diff, выполняет только команды из server registry и
   сохраняет bounded unified diff, hashes и check evidence;
+- пустой diff блокирует выполнение до автоматических проверок. Итоговое
+  пояснение исполнителя, если оно получено, сохраняется в `workerSummary` и при
+  отказе; известные credentials и локальные корни маскируются до записи. Текст
+  модели показывается отдельно от серверной причины и не подтверждает успех;
+- execution получает отдельную инструкцию реализации уже утверждённого плана.
+  Упоминания чтения или оформления плана в предыдущем ответе не меняют текущую
+  роль; разрешённые файлы, реальные ограничения среды и все проверки сохраняются;
 - фактический результат требует второго implementation acceptance, связанного
   с diff/evidence hash;
 - после implementation acceptance admin может отдельно создать local preview:
