@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useExecutionPolling.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.0.1
+ * @date 2026-09-15
  * @description Обновляет этапы выполнения видимого диалога без перезаписи новых событий и действий.
  */
 
@@ -106,8 +106,7 @@ export const useExecutionPolling = (input: ExecutionPollingOptions): void => {
         }
         // SSE и действия пользователя могли обновить ref или очередь React, пока шёл запрос.
         if (detailRef.current !== snapshot) return;
-        detailRef.current = next;
-        // Updater остаётся чистым: React может повторно вызвать его в Strict Mode.
+        // Единый dispatcher согласует ref и render; оба snapshot guards остаются обязательными.
         setDetail((latest) => (latest === snapshot ? next : latest));
       } catch (cause) {
         if (

@@ -1,12 +1,12 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.adapter.ts
- * @version 2.1.0
- * @date 2026-09-13
+ * @version 2.1.1
+ * @date 2026-09-15
  * @description Ограниченный JSONL RPC и завершение изолированного процесса Codex App Server.
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { isAbsolute } from "node:path";
+import { dirname, isAbsolute } from "node:path";
 
 import { AsyncQueue } from "./AsyncQueue";
 import { JsonLineRpcError } from "./JsonLineRpc.error";
@@ -36,6 +36,22 @@ const DEFAULT_ARGUMENTS = [
   'web_search="disabled"',
   "-c",
   'shell_environment_policy.inherit="none"',
+];
+
+const defaultArguments = (): string[] => [
+  ...DEFAULT_ARGUMENTS,
+  ...(process.platform === "linux"
+    ? [
+        "-c",
+        // Без tool PATH Codex выбирает bundled bwrap без системного AppArmor-профиля.
+        // Разрешаем только текущий Node и системные инструменты, не окружение хоста.
+        `shell_environment_policy.set.PATH=${JSON.stringify(
+          [...new Set([dirname(process.execPath), "/usr/bin", "/bin"])].join(
+            ":",
+          ),
+        )}`,
+      ]
+    : []),
 ];
 
 /** Обслуживает один процесс; повторный start после завершения не поддерживается. */
@@ -95,7 +111,7 @@ export class JsonLineRPCClient {
         this.options.codexBinary ?? "codex",
         [
           ...(this.options.args ??
-            DEFAULT_ARGUMENTS.map((argument) =>
+            defaultArguments().map((argument) =>
               argument === 'web_search="disabled"'
                 ? `web_search="${this.options.webSearch ?? "disabled"}"`
                 : argument,

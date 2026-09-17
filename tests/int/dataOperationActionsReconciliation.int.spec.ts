@@ -1,7 +1,7 @@
 /**
  * @file tests/int/dataOperationActionsReconciliation.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.1.1
+ * @date 2026-09-15
  * @description Проверяет согласование неизвестного DataOperation POST со свежим DTO после обновления чата.
  */
 
@@ -59,7 +59,7 @@ describe("DataOperation reconciliation после обновления чата"
     const options = optionsFor();
     options.detailRef.current = detailFor([approved]);
     options.setDetail.mockImplementation((updater) => {
-      updater(options.detailRef.current);
+      options.detailRef.current = updater(options.detailRef.current);
     });
     const applied = {
       ...approved,

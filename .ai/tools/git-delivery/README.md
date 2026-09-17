@@ -1,7 +1,7 @@
 # Обработчик Git-операций
 
 Программная часть [ADR-0016](../../../documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md).
-Через отдельного Spark-воркера доступны `inspect`, локальный `commit` и `push`.
+Через отдельного Git-воркера доступны `inspect`, локальный `commit` и `push`.
 Push получает подключение из БД интеграций и использует HTTPS-токен либо SSH-профиль.
 Объединённый `commit_push` пока недоступен. Прямой локальный CLI сохраняет только
 `inspect`/`commit`; сетевое действие подключено через вход воркера.
@@ -34,8 +34,9 @@ placeholder; оператор заменяет его на существующ�
 к development Git worker; авторизация продуктовой интеграции остаётся у её
 владельца и не меняется этим adapter.
 
-Нужен установленный Codex CLI. Запуск проверен с `0.153.4`
-и `gpt-5.3-codex-spark`. Используется существующий `tsx` и общий транспорт
+Нужен установленный Codex CLI. Текущая модель — `gpt-5.6-luna`, уровень
+рассуждения — `low`; доступность проверяется через `model/list` перед запуском.
+Используется существующий `tsx` и общий транспорт
 `@realize/codex-adapter/rpc`, без нового SDK или установки зависимостей.
 [Профили inspect](../../../.codex/agents/delivery/git/inspect.json),
 [commit](../../../.codex/agents/delivery/git/commit.json) и

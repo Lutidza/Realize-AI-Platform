@@ -1,11 +1,12 @@
 /**
  * @file packages/codex-adapter/src/codexProfile.index.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-15
  * @description Экспортирует серверные операции профиля Codex без изменения legacy environment.
  */
 
 export {
+  createCodexRunProfile,
   prepareCodexProfile,
   readCodexProfileAuth,
   removeCodexProfileAuth,
@@ -17,5 +18,6 @@ export { readCodexWorkloadIdentityConfiguration } from "./readCodexWorkloadIdent
 export { CodexProfileError } from "./CodexProfile.error";
 export type {
   CodexAuthMode,
+  CodexRunProfile,
   PrepareCodexProfileInput,
 } from "./CodexProfile.types";

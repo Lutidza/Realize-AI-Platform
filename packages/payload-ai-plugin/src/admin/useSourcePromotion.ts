@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useSourcePromotion.ts
- * @version 2026-08-28
+ * @version 1.0.1
+ * @date 2026-09-15
  * @docref ADR-0013
  * @see documentation/architecture/decisions/ADR-0013-github-pull-request-source-promotion.md
  * @description Владеет browser action постановки exact preview commit в source promotion queue.
@@ -25,7 +26,7 @@ export const useSourcePromotion = (input: {
   setError: Dispatch<SetStateAction<string | undefined>>;
   setPending: Dispatch<SetStateAction<string | undefined>>;
 }) => {
-  const { detailRef, setDetail, setError, setPending } = input;
+  const { setDetail, setError, setPending } = input;
 
   return useCallback(
     async (change: ChangeRequestDTO) => {
@@ -49,7 +50,6 @@ export const useSourcePromotion = (input: {
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, queued);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -63,6 +63,6 @@ export const useSourcePromotion = (input: {
         setPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setPending],
+    [setDetail, setError, setPending],
   );
 };

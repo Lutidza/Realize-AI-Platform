@@ -1,17 +1,19 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnection.service.ts
- * @version 1.2.0
- * @date 2026-09-11
+ * @version 1.3.0
+ * @date 2026-09-15
  * @description Предоставляет изолированную авторизацию Codex с DB lock и сохранением token refresh.
  */
 
 import { isAbsolute, join } from "node:path";
 import { parseCodexIntegrationConfiguration } from "@realize/ai-contracts";
 import {
+  createCodexRunProfile,
   prepareCodexProfile,
   readCodexProfileAuth,
   removeCodexProfileAuth,
   validateCodexCredential,
+  type CodexRunProfile,
 } from "@realize/codex-adapter/profile";
 
 import {
@@ -22,6 +24,7 @@ import { PRIMARY_CODEX_CONNECTION_KEY } from "../../providers";
 import { acquireCodexConnectionLock } from "./CodexConnectionLock.adapter";
 import { CodexConnectionError } from "./CodexConnection.error";
 import type {
+  CodexConnectionAcquireOptions,
   CodexConnectionLease,
   CodexConnectionOptions,
   CodexConnectionResolver,
@@ -38,11 +41,12 @@ export class CodexConnectionService implements CodexConnectionResolver {
   constructor(private readonly options: CodexConnectionOptions) {}
 
   async acquire(
-    options: { allowDisabled?: boolean } = {},
+    options: CodexConnectionAcquireOptions = {},
   ): Promise<CodexConnectionLease> {
     const lock = await acquireCodexConnectionLock(this.options.pool);
     const { repository, signal, release } = lock;
     let home: string | undefined;
+    let runProfile: CodexRunProfile | undefined;
     let prepared = false;
     try {
       const row = await repository.readPrimaryCodex();
@@ -98,7 +102,8 @@ export class CodexConnectionService implements CodexConnectionResolver {
         throw new CodexConnectionError(
           "Каталог состояния Codex должен иметь абсолютный путь.",
         );
-      home = join(stateRoot, "runtime");
+      if (options.isolated) runProfile = await createCodexRunProfile(stateRoot);
+      home = runProfile?.home ?? join(stateRoot, "runtime");
       // Cleanup включается до materialize, чтобы удалить credential и при частичной ошибке записи.
       prepared = true;
       const environment = await prepareCodexProfile({
@@ -146,7 +151,8 @@ export class CodexConnectionService implements CodexConnectionResolver {
             // Убираем scoped bearer из объекта lease после завершения владеющего процесса.
             delete environment.CODEX_ACCESS_TOKEN;
             try {
-              await removeCodexProfileAuth(activeHome);
+              if (runProfile) await runProfile.remove();
+              else await removeCodexProfileAuth(activeHome);
             } finally {
               await release();
             }
@@ -167,7 +173,8 @@ export class CodexConnectionService implements CodexConnectionResolver {
       };
     } catch (error) {
       try {
-        if (home && prepared) await removeCodexProfileAuth(home);
+        if (runProfile) await runProfile.remove();
+        else if (home && prepared) await removeCodexProfileAuth(home);
       } finally {
         await release();
       }

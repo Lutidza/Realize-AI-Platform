@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatMessage.component.tsx
- * @version 1.5.0
- * @date 2026-09-14
+ * @version 1.5.1
+ * @date 2026-09-15
  * @description Показывает сообщение и сохраняет действующие карточки подтверждения операций.
  */
 
@@ -105,7 +105,7 @@ export const ChatMessage = ({
             >
               {clarificationBlocked
                 ? "Для уточнения не хватает места в поле сообщения. Сократите текст или сначала отправьте его. Ваш текст сохранён."
-                : "Этот ответ ещё не содержит плана изменения."}
+                : "В ответе нет готового плана с явным списком изменяемых файлов."}
             </p>
             <UiButton
               className={styles.planAction}

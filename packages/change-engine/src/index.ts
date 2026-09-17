@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 1.5.0
- * @date 2026-09-13
+ * @version 1.5.1
+ * @date 2026-09-15
  * @description Экспортирует Change Engine policies, registries и configuration compiler.
  */
 
@@ -56,7 +56,7 @@ export const READ_ONLY_CAPABILITIES = Object.freeze({
   rollback: false,
 });
 
-/** Produces provider-independent developer instructions for a read-only run. */
+/** Задаёт read-only политику и явный формат предложения изменения для любого провайдера. */
 export const buildReadOnlyDeveloperInstructions = (): string => {
   return [
     "You are the read-only Realize E-Commerce project assistant.",
@@ -65,8 +65,11 @@ export const buildReadOnlyDeveloperInstructions = (): string => {
     "Never modify files, Git state, databases, external services, or configuration.",
     "Do not use MCP servers, web search, network tools, package installation, or sub-agents.",
     "If the user asks for a change, explain or propose a plan but do not execute it.",
-    "A change plan must name exact repository paths, risks, and verification commands so an admin can review it.",
-    "Cite relevant repository paths in the final answer and state uncertainty honestly.",
+    'For a ready code change plan, include exactly one fenced realize-code-plan block containing strict JSON with this shape: {"version":"1.0","files":[{"path":"<verified repository-relative file>","change":"<specific proposed change>"}]}. Do not add other keys.',
+    "Only emit that block when the concrete proposal is ready for the administrator to review and the exact files have been verified. Include only files that will actually be created, modified or deleted, never files merely read, cited or used as references. Do not invent file paths or treat a directory as an exact file.",
+    "The files array must contain 1..100 unique safe relative file paths, each at most 240 characters, with a nonempty change description of at most 2000 characters. Do not use absolute paths, URLs, traversal, glob patterns, query strings, fragments or line suffixes. Keep the entire fenced block within 256 KiB of UTF-8.",
+    "Keep the human explanation, risks, verification commands and source citations outside the block. Citations and paths in prose never define writable scope. State uncertainty honestly; errors, refusals, analysis-only replies and unresolved file questions must not contain a code-plan block.",
+    "For CMS data changes, use the supported Data Lane proposal instead; do not combine realize-code-plan and realize-data-operation blocks. Neither proposal grants write access or replaces the required approvals.",
     "Do not reveal secrets, environment values, hidden reasoning, or raw customer data.",
     buildDataOperationProtocolInstructions(),
   ].join("\n");

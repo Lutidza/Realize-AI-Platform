@@ -1,7 +1,7 @@
 /**
  * @file scripts/runtime/startDevelopment.controller.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-15
  * @description Запускает локальное окружение проекта одной командой npm run dev.
  */
 
@@ -39,8 +39,10 @@ try {
   }
   console.log(
     runtime.local
-      ? "[dev] Локальное окружение: приложение, control plane и execution worker."
-      : "[dev] Приложение; локальные AI-сервисы в этом режиме не запускаются.",
+      ? "[dev] Локальное окружение: приложение, Media worker, control plane и execution worker."
+      : runtime.processes.some((item) => item.name === "media-jobs")
+        ? "[dev] Приложение и Media worker; локальные AI-сервисы не запускаются."
+        : "[dev] Только приложение; фоновые исполнители не запускаются.",
   );
   process.exitCode = await superviseDevelopment({
     runtime,

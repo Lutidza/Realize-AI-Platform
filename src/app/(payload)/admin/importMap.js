@@ -17,6 +17,10 @@ import { MetaTitleComponent as MetaTitleComponent_a8a977ebc872c5d5ea7ee689724c08
 import { MetaImageComponent as MetaImageComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
 import { MetaDescriptionComponent as MetaDescriptionComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
 import { PreviewComponent as PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860 } from '@payloadcms/plugin-seo/client'
+import { MediaProcessingField as MediaProcessingField_2a31bd2d111c243d1b54c404a4340257 } from '../../../../src/components/admin/media/MediaProcessingField.component'
+import { MediaReferenceEntry as MediaReferenceEntry_267217ff0f0b6b17796d0e69825407ad } from '../../../../src/components/admin/media/MediaReferenceEntry.component'
+import { MediaListView as MediaListView_333db4b7bc33931690600dd472869093 } from '../../../../src/components/admin/media/MediaListView.component'
+import { MediaReferenceView as MediaReferenceView_653fb0031905459f4dc222d27193b299 } from '../../../../src/components/admin/media/MediaReferenceView.view'
 import { VariantOptionsSelector as VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
 import { PriceCell as PriceCell_e27bf7b8cc50640dcdd584767b8eac3c } from '@payloadcms/plugin-ecommerce/client'
 import { PriceInput as PriceInput_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
@@ -50,6 +54,10 @@ export const importMap = {
   "@payloadcms/plugin-seo/client#MetaImageComponent": MetaImageComponent_a8a977ebc872c5d5ea7ee689724c0860,
   "@payloadcms/plugin-seo/client#MetaDescriptionComponent": MetaDescriptionComponent_a8a977ebc872c5d5ea7ee689724c0860,
   "@payloadcms/plugin-seo/client#PreviewComponent": PreviewComponent_a8a977ebc872c5d5ea7ee689724c0860,
+  "/src/components/admin/media/MediaProcessingField.component#MediaProcessingField": MediaProcessingField_2a31bd2d111c243d1b54c404a4340257,
+  "/src/components/admin/media/MediaReferenceEntry.component#MediaReferenceEntry": MediaReferenceEntry_267217ff0f0b6b17796d0e69825407ad,
+  "/src/components/admin/media/MediaListView.component#MediaListView": MediaListView_333db4b7bc33931690600dd472869093,
+  "/src/components/admin/media/MediaReferenceView.view#MediaReferenceView": MediaReferenceView_653fb0031905459f4dc222d27193b299,
   "@payloadcms/plugin-ecommerce/rsc#VariantOptionsSelector": VariantOptionsSelector_b91672ccd6e8b071c11142ab941fedfb,
   "@payloadcms/plugin-ecommerce/client#PriceCell": PriceCell_e27bf7b8cc50640dcdd584767b8eac3c,
   "@payloadcms/plugin-ecommerce/rsc#PriceInput": PriceInput_b91672ccd6e8b071c11142ab941fedfb,

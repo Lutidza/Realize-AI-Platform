@@ -1,7 +1,7 @@
 /**
  * @file tests/int/CodexConnection.service.int.spec.ts
- * @version 1.1.1
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-15
  * @description Проверяет блокировку, refresh CAS и cleanup серверной интеграции Codex без сети.
  */
 
@@ -15,6 +15,9 @@ import {
   stat,
   writeFile,
   mkdir,
+  readdir,
+  rename,
+  symlink,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -91,7 +94,9 @@ const fixture = async (
   let locked = false;
   const clients: Array<
     EventEmitter & {
-      query: ReturnType<typeof vi.fn>;
+      query: ReturnType<
+        typeof vi.fn<(sql: string, values?: unknown[]) => Promise<unknown>>
+      >;
       release: ReturnType<typeof vi.fn>;
     }
   > = [];
@@ -208,37 +213,45 @@ describe("CodexConnectionService", () => {
     expect(test.isLocked()).toBe(false);
   });
 
-  it("WIF требует server configuration, не требует envelope и запрещает чтение token directory", async () => {
-    const tokenDirectory = await mkdtemp(
-      join(tmpdir(), "realize-wif-runtime-test-"),
-    );
-    directories.push(tokenDirectory);
-    const tokenFile = join(tokenDirectory, "identity-token");
-    await writeFile(tokenFile, "fixture-identity", { mode: 0o600 });
-    const test = await fixture("workloadIdentity", {
-      REALIZE_CODEX_FEDERATION_RULE_ID: "idpm_fixture",
-      REALIZE_CODEX_IDENTITY_TOKEN_FILE: tokenFile,
-      CODEX_ACCESS_TOKEN: "fixture-unselected",
-    });
-    const lease = await test.service.acquire();
-    expect(lease.environment).toMatchObject({
-      OPENAI_FEDERATION_RULE_ID: "idpm_fixture",
-      OPENAI_IDENTITY_TOKEN_FILE: tokenFile,
-    });
-    expect(lease.environment.CODEX_ACCESS_TOKEN).toBeUndefined();
-    const config = await readFile(join(lease.home, "config.toml"), "utf8");
-    expect(config).toContain(`${JSON.stringify(tokenDirectory)} = "deny"`);
-    expect(config).toContain('default_permissions = "realize_wif_readonly"');
-    expect(config).not.toContain("idpm_fixture");
-    expect(config).not.toContain(tokenFile);
-    await expect(stat(join(lease.home, "auth.json"))).rejects.toMatchObject({
-      code: "ENOENT",
-    });
-    await lease.dispose();
-    expect(test.getRow()?.credential_envelope).toBeNull();
-    expect(test.getRow()?.revision).toBe(1);
-    expect(test.isLocked()).toBe(false);
-  });
+  it.each([false, true])(
+    "WIF сохраняет защищённый token directory после dispose (isolated: %s)",
+    async (isolated) => {
+      const tokenDirectory = await mkdtemp(
+        join(tmpdir(), "realize-wif-runtime-test-"),
+      );
+      directories.push(tokenDirectory);
+      const tokenFile = join(tokenDirectory, "identity-token");
+      await writeFile(tokenFile, "fixture-identity", { mode: 0o600 });
+      const test = await fixture("workloadIdentity", {
+        REALIZE_CODEX_FEDERATION_RULE_ID: "idpm_fixture",
+        REALIZE_CODEX_IDENTITY_TOKEN_FILE: tokenFile,
+        CODEX_ACCESS_TOKEN: "fixture-unselected",
+      });
+      const lease = await test.service.acquire({ isolated });
+      expect(lease.environment).toMatchObject({
+        OPENAI_FEDERATION_RULE_ID: "idpm_fixture",
+        OPENAI_IDENTITY_TOKEN_FILE: tokenFile,
+      });
+      expect(lease.environment.CODEX_ACCESS_TOKEN).toBeUndefined();
+      const config = await readFile(join(lease.home, "config.toml"), "utf8");
+      expect(config).toContain(`${JSON.stringify(tokenDirectory)} = "deny"`);
+      expect(config).toContain('default_permissions = "realize_wif_readonly"');
+      expect(config).not.toContain("idpm_fixture");
+      expect(config).not.toContain(tokenFile);
+      await expect(stat(join(lease.home, "auth.json"))).rejects.toMatchObject({
+        code: "ENOENT",
+      });
+      await lease.dispose();
+      expect(test.getRow()?.credential_envelope).toBeNull();
+      expect(test.getRow()?.revision).toBe(1);
+      expect(test.isLocked()).toBe(false);
+      expect(await readFile(tokenFile, "utf8")).toBe("fixture-identity");
+      if (isolated)
+        await expect(stat(lease.home)).rejects.toMatchObject({
+          code: "ENOENT",
+        });
+    },
+  );
 
   it("не подбирает ambient WIF и освобождает lock при отсутствии CMS WIF settings", async () => {
     const test = await fixture("workloadIdentity", {
@@ -370,5 +383,140 @@ describe("CodexConnectionService", () => {
     await expect(stat(join(lease.home, "auth.json"))).rejects.toMatchObject({
       code: "ENOENT",
     });
+  });
+
+  it("удаляет все persisted parent/child histories и WAL только собственного isolated lease", async () => {
+    const test = await fixture("apiKey");
+    const persistent = await test.service.acquire();
+    await mkdir(join(persistent.home, "sessions"));
+    await writeFile(
+      join(persistent.home, "sessions", "chat-thread"),
+      "chat history",
+    );
+    await persistent.dispose();
+
+    const lease = await test.service.acquire({ isolated: true });
+    expect(lease.home).not.toBe(persistent.home);
+    expect(lease.home.startsWith(join(test.stateRoot, "run-"))).toBe(true);
+    expect((await stat(lease.home)).mode & 0o777).toBe(0o700);
+    expect(lease.environment.CODEX_HOME).toBe(lease.home);
+    await expect(stat(join(lease.home, "sessions"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await mkdir(join(lease.home, "sessions", "child"), { recursive: true });
+    await writeFile(
+      join(lease.home, "sessions", "parent.jsonl"),
+      "parent history",
+    );
+    await writeFile(
+      join(lease.home, "sessions", "child", "rollout.jsonl"),
+      "child history",
+    );
+    await writeFile(join(lease.home, "state.sqlite"), "fixture DB");
+    await writeFile(join(lease.home, "state.sqlite-wal"), "fixture WAL");
+    await symlink(persistent.home, join(lease.home, "external-chat"));
+    await Promise.all([lease.dispose(), lease.dispose()]);
+    await expect(stat(lease.home)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(
+      await readFile(join(persistent.home, "sessions", "chat-thread"), "utf8"),
+    ).toBe("chat history");
+    expect(test.clients[1].release).toHaveBeenCalledTimes(1);
+    const next = await test.service.acquire({ isolated: true });
+    expect(next.home).not.toBe(lease.home);
+    await next.dispose();
+  });
+
+  it("переносит refresh из isolated профиля в vault до удаления и следующего chat turn", async () => {
+    const test = await fixture();
+    const lease = await test.service.acquire({ isolated: true });
+    await writeFile(
+      join(lease.home, "auth.json"),
+      oauth("fixture-isolated-rotated"),
+    );
+    await lease.dispose();
+    await expect(stat(lease.home)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(test.getRow()?.revision).toBe(2);
+    const chat = await test.service.acquire();
+    expect(chat.home).toBe(join(test.stateRoot, "runtime"));
+    expect(await readFile(join(chat.home, "auth.json"), "utf8")).toBe(
+      oauth("fixture-isolated-rotated"),
+    );
+    await chat.dispose();
+  });
+
+  it("ожидает отложенный refresh и удаляет isolated history даже при ошибке его сохранения", async () => {
+    const test = await fixture();
+    const lease = await test.service.acquire({ isolated: true });
+    await mkdir(join(lease.home, "sessions", "child"), { recursive: true });
+    await writeFile(
+      join(lease.home, "sessions", "child", "rollout.jsonl"),
+      "child history",
+    );
+    await writeFile(join(lease.home, "auth.json"), oauth("fixture-rotated"));
+    let rejectRefresh: ((error: Error) => void) | undefined;
+    const pendingRefresh = new Promise<never>((_resolve, reject) => {
+      rejectRefresh = reject;
+    });
+    const query = test.clients[0].query.getMockImplementation()!;
+    let refreshStarted = false;
+    test.clients[0].query.mockImplementation(
+      async (sql: string, values?: unknown[]) => {
+        if (sql.startsWith("UPDATE")) {
+          refreshStarted = true;
+          return pendingRefresh;
+        }
+        return query(sql, values);
+      },
+    );
+    const disposal = expect(lease.dispose()).rejects.toThrow(
+      "Не удалось сохранить",
+    );
+    await vi.waitFor(() => expect(refreshStarted).toBe(true));
+    expect((await stat(lease.home)).isDirectory()).toBe(true);
+    expect(test.isLocked()).toBe(true);
+    rejectRefresh!(new Error("fixture delayed persistence failure"));
+    await disposal;
+    await expect(stat(lease.home)).rejects.toMatchObject({ code: "ENOENT" });
+    expect(test.isLocked()).toBe(false);
+    expect(test.clients[0].release).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["invalid-refresh", "lost-lock"])(
+    "удаляет isolated профиль при %s",
+    async (reason) => {
+      const test = await fixture();
+      const lease = await test.service.acquire({ isolated: true });
+      if (reason === "invalid-refresh")
+        await writeFile(join(lease.home, "auth.json"), "invalid fixture JSON");
+      else test.clients[0].emit("error", new Error("fixture lost DB session"));
+      await expect(lease.dispose()).rejects.toThrow("Не удалось сохранить");
+      await expect(stat(lease.home)).rejects.toMatchObject({ code: "ENOENT" });
+      expect(test.isLocked()).toBe(false);
+      expect(test.clients[0].release).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("удаляет созданный isolated профиль и освобождает lock при ошибке подготовки WIF", async () => {
+    const test = await fixture("workloadIdentity");
+    await expect(test.service.acquire({ isolated: true })).rejects.toThrow();
+    expect(await readdir(test.stateRoot)).toEqual([]);
+    expect(test.isLocked()).toBe(false);
+    expect(test.clients[0].release).toHaveBeenCalledTimes(1);
+  });
+
+  it("не удаляет каталог, которым подменили isolated home, и освобождает lock", async () => {
+    const test = await fixture("accessToken");
+    const lease = await test.service.acquire({ isolated: true });
+    const moved = join(test.stateRoot, "moved-owned-run");
+    await rename(lease.home, moved);
+    await mkdir(lease.home);
+    await writeFile(join(lease.home, "keep"), "replacement");
+    await expect(lease.dispose()).rejects.toThrow();
+    expect(await readFile(join(lease.home, "keep"), "utf8")).toBe(
+      "replacement",
+    );
+    expect(lease.environment.CODEX_ACCESS_TOKEN).toBeUndefined();
+    expect(test.isLocked()).toBe(false);
+    expect(test.clients[0].release).toHaveBeenCalledTimes(1);
   });
 });

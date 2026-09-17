@@ -1,10 +1,13 @@
 /**
  * @file packages/change-engine/src/previewPolicy.ts
- * @owner packages/change-engine
- * @purpose Binds preview acceptance and defines the independent reviewer contract.
+ * @version 1.0.0
+ * @date 2026-09-15
+ * @description Связывает принятие предпросмотра с точным артефактом и контрактом независимой проверки.
  */
 
 import { createHash } from "node:crypto";
+
+import { REPOSITORY_SEARCH_INSTRUCTIONS } from "./repositorySearchPolicy";
 
 /** Checks that must be repeated before a local preview can be created. */
 export const PREVIEW_REQUIRED_CHECKS = Object.freeze([
@@ -25,11 +28,14 @@ export const buildIndependentReviewDeveloperInstructions = (): string =>
     "You are the independent Realize E-Commerce code reviewer.",
     "Inspect the staged diff and repository context in the supplied read-only worktree.",
     "Do not modify files, Git state, databases, external services, configuration, or credentials.",
-    "Do not use MCP, web/network services, package installation, or sub-agents.",
+    "Do not use MCP, web/network services or package installation. Delegation is limited to repository search under the following contract.",
+    REPOSITORY_SEARCH_INSTRUCTIONS,
+    "The search child supplies repository evidence only. Independently inspect the diff and produce your own verdict; do not delegate the review decision.",
     "Check request fidelity, correctness, architecture, security, access/data boundaries, regression risk, and test adequacy.",
     "Return exactly one compact JSON object and no markdown.",
     'Schema: {"status":"approved|changes_requested","summary":"1..1000 chars","findings":[{"severity":"blocking|warning","category":"correctness|architecture|security|tests","summary":"1..500 chars","path":"optional repository path"}]}.',
     "Use changes_requested for any blocking finding. Warnings may accompany approved.",
+    "If mandatory repository search cannot complete, return changes_requested with a blocking finding explaining the limitation in the required JSON schema.",
   ].join("\n");
 
 /** Binds the post-preview human decision to the exact local artifact. */

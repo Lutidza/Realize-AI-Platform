@@ -76,6 +76,10 @@ export interface Config {
     pages: Page;
     categories: Category;
     media: Media;
+    'media-profiles': MediaProfile;
+    'media-originals': MediaOriginal;
+    'media-processing-sets': MediaProcessingSet;
+    'media-variants': MediaVariant;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -109,6 +113,7 @@ export interface Config {
     'realize-ai-runs': RealizeAiRun;
     'realize-ai-run-events': RealizeAiRunEvent;
     'payload-kv': PayloadKv;
+    'payload-jobs': PayloadJob;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -131,6 +136,10 @@ export interface Config {
     pages: PagesSelect<false> | PagesSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'media-profiles': MediaProfilesSelect<false> | MediaProfilesSelect<true>;
+    'media-originals': MediaOriginalsSelect<false> | MediaOriginalsSelect<true>;
+    'media-processing-sets': MediaProcessingSetsSelect<false> | MediaProcessingSetsSelect<true>;
+    'media-variants': MediaVariantsSelect<false> | MediaVariantsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -164,6 +173,7 @@ export interface Config {
     'realize-ai-runs': RealizeAiRunsSelect<false> | RealizeAiRunsSelect<true>;
     'realize-ai-run-events': RealizeAiRunEventsSelect<false> | RealizeAiRunEventsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
+    'payload-jobs': PayloadJobsSelect<false> | PayloadJobsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -186,7 +196,13 @@ export interface Config {
   };
   user: User;
   jobs: {
-    tasks: unknown;
+    tasks: {
+      processMedia: TaskProcessMedia;
+      inline: {
+        input: unknown;
+        output: unknown;
+      };
+    };
     workflows: unknown;
   };
   /**
@@ -360,11 +376,17 @@ export interface Product {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Изображения и файлы сайта. Ищите по имени файла или альтернативному тексту; откройте материал для редактирования.
+ *
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "media".
  */
 export interface Media {
   id: number;
+  /**
+   * Для JPEG, PNG и WebP. При выборе нового профиля и сохранении варианты создаются в фоне. Без профиля сохраняются исходник и копия для сайта.
+   */
+  processingProfile?: (number | null) | MediaProfile;
   alt: string;
   caption?: {
     root: {
@@ -381,6 +403,10 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
+  original?: (number | null) | MediaOriginal;
+  managedDisplay?: boolean | null;
+  focalX?: number | null;
+  focalY?: number | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -390,8 +416,62 @@ export interface Media {
   filesize?: number | null;
   width?: number | null;
   height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
+}
+/**
+ * Размеры и форматы для новых заданий. Изменения не затрагивают готовые изображения.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-profiles".
+ */
+export interface MediaProfile {
+  id: number;
+  name: string;
+  /**
+   * Латинские строчные буквы, цифры и дефис; первый символ — буква. После создания не меняется.
+   */
+  key: string;
+  purpose: 'product' | 'banner' | 'logo' | 'general';
+  enabled?: boolean | null;
+  description?: string | null;
+  variants: {
+    /**
+     * Например: small, medium, large. Одинаковое имя в разных форматах требует одинаковой ширины.
+     */
+    slot: string;
+    /**
+     * Пропорции сохраняются; маленький исходник не увеличивается.
+     */
+    width: number;
+    format: 'webp' | 'jpeg' | 'png';
+    quality?: number | null;
+    /**
+     * От 0 до 9, по умолчанию 6. Сжатие без потери качества.
+     */
+    compressionLevel?: number | null;
+    id?: string | null;
+  }[];
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-originals".
+ */
+export interface MediaOriginal {
+  id: number;
+  media?: (number | null) | Media;
+  sourceHash: string;
+  provenance: 'uploaded' | 'legacy-copy';
+  alt?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1037,6 +1117,161 @@ export interface Address {
   phone?: string | null;
   updatedAt: string;
   createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-processing-sets".
+ */
+export interface MediaProcessingSet {
+  id: number;
+  media?: (number | null) | Media;
+  original: number | MediaOriginal;
+  profile: number | MediaProfile;
+  profileName: string;
+  profileVersion: number;
+  recipe:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  sourceHash: string;
+  recipeHash: string;
+  pipelineVersion: string;
+  requestKey: string;
+  requestedBy: number | User;
+  status: 'queued' | 'processing' | 'ready' | 'failed';
+  job?: (number | null) | PayloadJob;
+  error?: string | null;
+  resultHash?: string | null;
+  manualRetries: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs".
+ */
+export interface PayloadJob {
+  id: number;
+  /**
+   * Input data provided to the job
+   */
+  input?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  taskStatus?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  completedAt?: string | null;
+  totalTried?: number | null;
+  /**
+   * If hasError is true this job will not be retried
+   */
+  hasError?: boolean | null;
+  /**
+   * If hasError is true, this is the error that caused it
+   */
+  error?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Task execution log
+   */
+  log?:
+    | {
+        executedAt: string;
+        completedAt: string;
+        taskSlug: 'inline' | 'processMedia';
+        taskID: string;
+        input?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        output?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        state: 'failed' | 'succeeded';
+        error?:
+          | {
+              [k: string]: unknown;
+            }
+          | unknown[]
+          | string
+          | number
+          | boolean
+          | null;
+        id?: string | null;
+      }[]
+    | null;
+  taskSlug?: ('inline' | 'processMedia') | null;
+  queue?: string | null;
+  waitUntil?: string | null;
+  processing?: boolean | null;
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-variants".
+ */
+export interface MediaVariant {
+  id: number;
+  set: number | MediaProcessingSet;
+  variantKey: string;
+  slot: string;
+  format: 'webp' | 'jpeg' | 'png';
+  contentHash: string;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1990,6 +2225,22 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
+        relationTo: 'media-profiles';
+        value: number | MediaProfile;
+      } | null)
+    | ({
+        relationTo: 'media-originals';
+        value: number | MediaOriginal;
+      } | null)
+    | ({
+        relationTo: 'media-processing-sets';
+        value: number | MediaProcessingSet;
+      } | null)
+    | ({
+        relationTo: 'media-variants';
+        value: number | MediaVariant;
+      } | null)
+    | ({
         relationTo: 'forms';
         value: number | Form;
       } | null)
@@ -2368,8 +2619,13 @@ export interface CategoriesSelect<T extends boolean = true> {
  * via the `definition` "media_select".
  */
 export interface MediaSelect<T extends boolean = true> {
+  processingProfile?: T;
   alt?: T;
   caption?: T;
+  original?: T;
+  managedDisplay?: T;
+  focalX?: T;
+  focalY?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
@@ -2379,8 +2635,92 @@ export interface MediaSelect<T extends boolean = true> {
   filesize?: T;
   width?: T;
   height?: T;
-  focalX?: T;
-  focalY?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-profiles_select".
+ */
+export interface MediaProfilesSelect<T extends boolean = true> {
+  name?: T;
+  key?: T;
+  purpose?: T;
+  enabled?: T;
+  description?: T;
+  variants?:
+    | T
+    | {
+        slot?: T;
+        width?: T;
+        format?: T;
+        quality?: T;
+        compressionLevel?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-originals_select".
+ */
+export interface MediaOriginalsSelect<T extends boolean = true> {
+  media?: T;
+  sourceHash?: T;
+  provenance?: T;
+  alt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-processing-sets_select".
+ */
+export interface MediaProcessingSetsSelect<T extends boolean = true> {
+  media?: T;
+  original?: T;
+  profile?: T;
+  profileName?: T;
+  profileVersion?: T;
+  recipe?: T;
+  sourceHash?: T;
+  recipeHash?: T;
+  pipelineVersion?: T;
+  requestKey?: T;
+  requestedBy?: T;
+  status?: T;
+  job?: T;
+  error?: T;
+  resultHash?: T;
+  manualRetries?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media-variants_select".
+ */
+export interface MediaVariantsSelect<T extends boolean = true> {
+  set?: T;
+  variantKey?: T;
+  slot?: T;
+  format?: T;
+  contentHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -3262,6 +3602,38 @@ export interface PayloadKvSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-jobs_select".
+ */
+export interface PayloadJobsSelect<T extends boolean = true> {
+  input?: T;
+  taskStatus?: T;
+  completedAt?: T;
+  totalTried?: T;
+  hasError?: T;
+  error?: T;
+  log?:
+    | T
+    | {
+        executedAt?: T;
+        completedAt?: T;
+        taskSlug?: T;
+        taskID?: T;
+        input?: T;
+        output?: T;
+        state?: T;
+        error?: T;
+        id?: T;
+      };
+  taskSlug?: T;
+  queue?: T;
+  waitUntil?: T;
+  processing?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
@@ -3395,6 +3767,18 @@ export interface CollectionsWidget {
     [k: string]: unknown;
   };
   width: 'full';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "TaskProcessMedia".
+ */
+export interface TaskProcessMedia {
+  input: {
+    setID: number;
+  };
+  output: {
+    resultHash: string;
+  };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

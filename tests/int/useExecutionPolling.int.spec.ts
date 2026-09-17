@@ -1,7 +1,7 @@
 /**
  * @file tests/int/useExecutionPolling.int.spec.ts
- * @version 1.0.1
- * @date 2026-09-11
+ * @version 1.0.2
+ * @date 2026-09-15
  * @description Проверяет отмену polling диалога и защиту новых событий от поздних ответов.
  */
 
@@ -10,9 +10,10 @@ import type {
   ConversationDetailDTO,
   ExecutionJobDTO,
 } from "@realize/ai-contracts";
-import { StrictMode, useState } from "react";
+import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useExecutionPolling } from "../../packages/payload-ai-plugin/src/admin/useExecutionPolling";
+import { useConversationDetailState } from "../../packages/payload-ai-plugin/src/admin/useConversationDetailState.hook";
 
 const mocks = vi.hoisted(() => ({ request: vi.fn() }));
 vi.mock("../../packages/payload-ai-plugin/src/admin/realizeAIAPI", () => ({
@@ -80,17 +81,17 @@ const conversation = (
 });
 
 const setup = (initial = conversation()) => {
-  const detailRef = { current: initial as ConversationDetailDTO | undefined };
   const setError = vi.fn();
   const hook = renderHook(
     () => {
-      const [detail, setDetail] = useState(detailRef.current);
+      const { detail, detailRef, setDetail } =
+        useConversationDetailState(initial);
       useExecutionPolling({ detail, detailRef, setDetail, setError });
-      return { detail, setDetail };
+      return { detail, detailRef, setDetail };
     },
     { wrapper: StrictMode },
   );
-  return { ...hook, detailRef, setError };
+  return { ...hook, detailRef: hook.result.current.detailRef, setError };
 };
 
 beforeEach(() => {
@@ -138,7 +139,6 @@ describe("Обновление состояния выполнения", () => {
       sequence: 2,
     });
     act(() => {
-      detailRef.current = newer;
       result.current.setDetail(newer);
     });
     await act(async () => complete(conversation("running")));

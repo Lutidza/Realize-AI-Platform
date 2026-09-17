@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useDataOperations.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.0.1
+ * @date 2026-09-15
  * @description Связывает общие DataOperation actions с состоянием выбранного диалога.
  */
 
@@ -26,11 +26,10 @@ export const useDataOperations = ({
         if (!current || current.conversation.id !== operation.conversationID)
           return current;
         const next = upsertDataOperation(current, operation);
-        detailRef.current = next;
         return next;
       });
     },
-    [detailRef, setDetail],
+    [setDetail],
   );
   return useDataOperationActions({
     commit,

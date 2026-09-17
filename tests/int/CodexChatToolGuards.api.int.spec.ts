@@ -2,8 +2,8 @@
 
 /**
  * @file tests/int/CodexChatToolGuards.api.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.1.1
+ * @date 2026-09-16
  * @description Проверяет запреты новых операций чата и сохранение отказа, отмены и отката.
  */
 
@@ -15,6 +15,10 @@ import {
 } from "@realize/ai-contracts";
 import type { PayloadRequest } from "payload";
 import { afterAll, describe, expect, it, vi } from "vitest";
+import {
+  CONVERSATIONS_SLUG,
+  DATA_OPERATIONS_SLUG,
+} from "../../packages/payload-ai-plugin/src/constants";
 import { createAIEndpoints } from "../../packages/payload-ai-plugin/src/endpoints";
 import { requireCodexChatTool } from "../../packages/payload-ai-plugin/src/endpoints/requireCodexChatTool.service";
 import type { SanitizedRealizeAIPluginOptions } from "../../packages/payload-ai-plugin/src/types";
@@ -43,48 +47,70 @@ const request = (
   tools: CodexChatSettingsDto["tools"] | null,
   authorized = true,
 ) => {
+  const userID = randomUUID();
   const payload = {
     db: { defaultIDType: "number" },
     logger: { error: vi.fn() },
-    find: vi.fn(async () => ({
-      docs: tools
-        ? [
-            {
-              id: 1,
-              provider: "codex",
-              enabled: true,
-              credentialEnvelope: encryptIntegrationCredential({
-                binding: { provider: "codex", connectionKey: "codex:primary" },
-                encryptionKey: KEY,
-                plaintext: JSON.stringify({
-                  auth_mode: "apikey",
-                  OPENAI_API_KEY: "synthetic-guard-api-key-123456",
-                }),
-              }),
-              configuration: {
-                authMode: "apiKey",
-                agent: {
-                  ...CODEX_AGENT_SETTINGS_DEFAULTS,
-                  execution: {
-                    ...CODEX_AGENT_SETTINGS_DEFAULTS.execution,
-                    enabled: true,
-                  },
-                  preview: {
-                    ...CODEX_AGENT_SETTINGS_DEFAULTS.preview,
-                    enabled: true,
-                  },
-                  release: {
-                    ...CODEX_AGENT_SETTINGS_DEFAULTS.release,
-                    enabled: true,
-                  },
-                  sourcePromotion: { enabled: true },
-                },
-                chat: { ...CODEX_CHAT_SETTINGS_DEFAULTS, tools },
+    // Approve/apply читают существующую операцию и её владельца перед запретом записи.
+    find: vi.fn(async ({ collection }: { collection: string }) => ({
+      docs:
+        collection === DATA_OPERATIONS_SLUG
+          ? [
+              {
+                id: 1,
+                conversation: 1,
+                kind: "catalog.assignCategory.v1",
+                requestedBy: userID,
               },
-            },
-          ]
-        : [],
-      totalDocs: tools ? 1 : 0,
+            ]
+          : collection === CONVERSATIONS_SLUG
+            ? [{ id: 1, createdBy: userID }]
+            : tools
+              ? [
+                  {
+                    id: 1,
+                    provider: "codex",
+                    enabled: true,
+                    credentialEnvelope: encryptIntegrationCredential({
+                      binding: {
+                        provider: "codex",
+                        connectionKey: "codex:primary",
+                      },
+                      encryptionKey: KEY,
+                      plaintext: JSON.stringify({
+                        auth_mode: "apikey",
+                        OPENAI_API_KEY: "synthetic-guard-api-key-123456",
+                      }),
+                    }),
+                    configuration: {
+                      authMode: "apiKey",
+                      agent: {
+                        ...CODEX_AGENT_SETTINGS_DEFAULTS,
+                        execution: {
+                          ...CODEX_AGENT_SETTINGS_DEFAULTS.execution,
+                          enabled: true,
+                        },
+                        preview: {
+                          ...CODEX_AGENT_SETTINGS_DEFAULTS.preview,
+                          enabled: true,
+                        },
+                        release: {
+                          ...CODEX_AGENT_SETTINGS_DEFAULTS.release,
+                          enabled: true,
+                        },
+                        sourcePromotion: { enabled: true },
+                      },
+                      chat: { ...CODEX_CHAT_SETTINGS_DEFAULTS, tools },
+                    },
+                  },
+                ]
+              : [],
+      totalDocs:
+        collection === DATA_OPERATIONS_SLUG ||
+        collection === CONVERSATIONS_SLUG ||
+        tools
+          ? 1
+          : 0,
     })),
     create: vi.fn(),
     update: vi.fn(),
@@ -95,7 +121,7 @@ const request = (
     routeParams: { id: "1" },
     json: vi.fn(async () => ({})),
     payload,
-    user: authorized ? { id: randomUUID() } : null,
+    user: authorized ? { id: userID } : null,
   } as unknown as PayloadRequest;
   return { req, payload };
 };

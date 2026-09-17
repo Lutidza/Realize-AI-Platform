@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/deriveChangePlan.service.ts
- * @version 1.0.1
- * @date 2026-09-11
+ * @version 2.0.1
+ * @date 2026-09-15
  * @description Готовит ограниченный план изменения кода и исключает операции с данными.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -60,7 +60,7 @@ export const deriveChangePlan = (
     throw new ChangePlanError(
       readiness.reason === "too_short"
         ? "План слишком короткий. Попросите ассистента перечислить шаги, пути и проверки."
-        : "В ответе нет точных путей проекта. Уточните, какие файлы нужно изменить, или подготовьте операцию с данными CMS, если задача касается содержимого.",
+        : "В ответе нет корректного плана изменения файлов. Попросите ассистента подготовить явный список файлов с описанием каждой правки; ссылки на прочитанные источники не задают область изменения.",
     );
   }
   const affectedPaths = extractChangePlanPaths(plan);
@@ -68,15 +68,14 @@ export const deriveChangePlan = (
     .match(NPM_CHECK)
     ?.map((value) => value.toLocaleLowerCase("en-US"));
   const classification = classify(plan, affectedPaths);
-  const checks = [
-    ...new Set([
-      ...DEFAULT_CODE_CHECKS,
-      ...(classification.type === "SCHEMA_CHANGE"
-        ? ["npm run payload:migrate:status"]
-        : []),
-      ...(detectedChecks || []),
-    ]),
+  const additionalChecks = [
+    ...(classification.type === "SCHEMA_CHANGE"
+      ? ["npm run payload:migrate:status"]
+      : []),
+    ...(detectedChecks || []),
   ].sort();
+  // Обязательные проверки сохраняют порядок от быстрых к сборке; дополнительные не зависят от порядка упоминаний.
+  const checks = [...new Set([...DEFAULT_CODE_CHECKS, ...additionalChecks])];
   const normalizedIntent = originalRequest.replace(/\s+/g, " ").slice(0, 500);
   const title = (normalizedIntent || "Изменение из AI-диалога").slice(0, 120);
   return {

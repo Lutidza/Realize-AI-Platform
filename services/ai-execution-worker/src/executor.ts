@@ -1,8 +1,8 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.0.1
- * @date 2026-09-11
- * @description Выполняет разрешённую реализацию через выбранную интеграцию Codex и проверяет результат.
+ * @version 1.1.1
+ * @date 2026-09-15
+ * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
 
 import { createHash } from "node:crypto";
@@ -18,6 +18,7 @@ import type { CodexConnectionResolver } from "@realize/payload-ai-control/server
 import { runExecutionCheck } from "./checkRunner";
 import type { ExecutionWorkerConfig } from "./config";
 import { ExecutionJobRepository } from "./jobRepository";
+import { sanitizeExecutionOutput } from "./sanitizeExecutionOutput.util";
 import type { ClaimedExecutionJob, WorkerCheckResult } from "./types";
 import { withWorkspaceDependencies } from "./workspaceDependencies";
 import {
@@ -33,25 +34,19 @@ class ValidationFailure extends Error {
   }
 }
 
-const sanitizeSummary = (value: string, roots: string[]): string => {
-  let result = value;
-  for (const root of roots) result = result.replaceAll(root, "[workspace]");
-  return result.slice(0, 4_000);
-};
-
 const runAgent = async (input: {
   config: ExecutionWorkerConfig;
   codex: CodexConnectionResolver;
   job: ClaimedExecutionJob;
   workspace: string;
-}): Promise<string> => {
-  const lease = await input.codex.acquire();
+  onSummary: (summary: string) => void;
+}): Promise<void> => {
+  const lease = await input.codex.acquire({ isolated: true });
   const adapter = new OpenAICodexAdapter({
     codexBinary: input.config.codexBinary,
     environment: lease.environment,
     signal: lease.signal,
   });
-  let finalSummary = "";
   let failure: string | undefined;
   let timedOut = false;
   const timer = setTimeout(() => {
@@ -68,7 +63,8 @@ const runAgent = async (input: {
         changeRequestID: String(input.job.changeRequestID),
         checks: input.job.checks,
       }),
-      ephemeral: true,
+      // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
+      ephemeral: false,
       model: lease.model,
       prompt: `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
       runID: input.job.executionKey,
@@ -76,7 +72,7 @@ const runAgent = async (input: {
     })) {
       const normalized = event as AgentEvent;
       if (normalized.type === "assistant.completed") {
-        finalSummary = normalized.content;
+        input.onSummary(normalized.content);
       } else if (normalized.type === "run.failed") {
         failure = normalized.message;
       } else if (normalized.type === "run.cancelled" && !timedOut) {
@@ -89,7 +85,6 @@ const runAgent = async (input: {
   }
   if (timedOut) throw new Error("Codex implementation turn timed out.");
   if (failure) throw new Error(failure);
-  return finalSummary || "Codex completed the isolated implementation turn.";
 };
 
 /** Исполняет уже арендованное задание и сохраняет каждый итоговый переход. */
@@ -101,6 +96,7 @@ export const executeClaimedJob = async (input: {
 }): Promise<void> => {
   let validationPhase = false;
   let workspace = "";
+  let workerSummary: string | undefined;
   try {
     if (
       !verifyExecutionCapability({
@@ -119,11 +115,20 @@ export const executeClaimedJob = async (input: {
       workspaceRoot: input.config.workspaceRoot,
     });
     await input.repository.markRunning(input.job);
-    const workerSummary = await runAgent({
+    await runAgent({
       config: input.config,
       codex: input.codex,
       job: input.job,
       workspace,
+      onSummary: (value) => {
+        // Это пояснение модели, а не свидетельство успешного diff/check; последующая ошибка его не теряет.
+        workerSummary = value.trim()
+          ? sanitizeExecutionOutput(value, [
+              input.config.repositoryRoot,
+              workspace,
+            ])
+          : undefined;
+      },
     });
     const diff = await captureWorktreeDiff(workspace, input.job);
 
@@ -164,16 +169,17 @@ export const executeClaimedJob = async (input: {
       input.job,
       diff,
       evidenceHash,
-      sanitizeSummary(workerSummary, [input.config.repositoryRoot, workspace]),
+      workerSummary,
     );
   } catch (error) {
-    const summary = sanitizeSummary(
+    const summary = sanitizeExecutionOutput(
       error instanceof Error ? error.message : "Execution worker failed.",
       [input.config.repositoryRoot, workspace].filter(Boolean),
     );
     await input.repository.fail(input.job, {
       blocked: error instanceof WorktreePolicyError,
       summary,
+      workerSummary,
       validationFailure: validationPhase || error instanceof ValidationFailure,
     });
   }

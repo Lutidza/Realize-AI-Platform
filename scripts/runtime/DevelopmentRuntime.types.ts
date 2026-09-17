@@ -1,15 +1,17 @@
 /**
  * @file scripts/runtime/DevelopmentRuntime.types.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-15
  * @description Описывает дочерние процессы и границы совместного запуска разработки.
  */
 
-/** Исполнитель завершается после текущего задания; остальные сервисы — всей группой. */
+/** Исполнители завершаются после текущего задания; остальные сервисы — всей группой. */
 export type DevelopmentProcess = {
-  name: "web" | "control-plane" | "execution-worker";
+  name: "web" | "control-plane" | "execution-worker" | "media-jobs";
   args: string[];
   drain?: boolean;
+  /** Media читает БД напрямую и не зависит от HTTP готовности ранее запущенных сервисов. */
+  waitForReady?: boolean;
   readyUrl?: string;
 };
 

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/pagePublicationActions.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-14
+ * @version 1.1.1
+ * @date 2026-09-15
  * @description Проверяет CAS/review payload, точные повторы создания с новым ID и отдельную доставку публикации.
  */
 import type { ConversationDetailDTO } from "@realize/ai-contracts";
@@ -26,9 +26,9 @@ const optionsFor = () => {
     setError: vi.fn(),
     setPending: vi.fn(),
   };
-  options.setDetail.mockImplementation((updater) =>
-    updater(options.detailRef.current),
-  );
+  options.setDetail.mockImplementation((updater) => {
+    options.detailRef.current = updater(options.detailRef.current);
+  });
   return options;
 };
 describe("HTTP действия публикации через Data Lane", () => {

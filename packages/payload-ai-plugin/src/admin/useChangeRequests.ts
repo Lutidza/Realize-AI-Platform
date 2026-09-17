@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useChangeRequests.ts
- * @version 2026-08-28
+ * @version 1.0.1
+ * @date 2026-09-15
  * @description Управляет plan/execution/preview/release actions с общим pending owner.
  */
 
@@ -52,7 +53,6 @@ export const useChangeRequests = ({
             return current;
           }
           const next = upsertChange(current, change);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -86,7 +86,6 @@ export const useChangeRequests = ({
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, decided);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -97,7 +96,7 @@ export const useChangeRequests = ({
         setIsPlanActionPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setIsPlanActionPending],
+    [setDetail, setError, setIsPlanActionPending],
   );
 
   const executeChangeRequest = useCallback(
@@ -116,7 +115,6 @@ export const useChangeRequests = ({
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, queued);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -127,7 +125,7 @@ export const useChangeRequests = ({
         setIsPlanActionPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setIsPlanActionPending],
+    [setDetail, setError, setIsPlanActionPending],
   );
 
   const decideImplementation = useCallback(
@@ -160,7 +158,6 @@ export const useChangeRequests = ({
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, decided);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -171,7 +168,7 @@ export const useChangeRequests = ({
         setIsPlanActionPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setIsPlanActionPending],
+    [setDetail, setError, setIsPlanActionPending],
   );
 
   const deployPreview = useCallback(
@@ -195,7 +192,6 @@ export const useChangeRequests = ({
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, queued);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -206,7 +202,7 @@ export const useChangeRequests = ({
         setIsPlanActionPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setIsPlanActionPending],
+    [setDetail, setError, setIsPlanActionPending],
   );
 
   const decidePreview = useCallback(
@@ -237,7 +233,6 @@ export const useChangeRequests = ({
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, decided);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -248,7 +243,7 @@ export const useChangeRequests = ({
         setIsPlanActionPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setIsPlanActionPending],
+    [setDetail, setError, setIsPlanActionPending],
   );
 
   const prepareRelease = useCallback(
@@ -272,7 +267,6 @@ export const useChangeRequests = ({
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, queued);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -283,7 +277,7 @@ export const useChangeRequests = ({
         setIsPlanActionPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setIsPlanActionPending],
+    [setDetail, setError, setIsPlanActionPending],
   );
 
   const decideRelease = useCallback(
@@ -322,7 +316,6 @@ export const useChangeRequests = ({
         setDetail((current) => {
           if (!current) return current;
           const next = upsertChange(current, decided);
-          detailRef.current = next;
           return next;
         });
       } catch (cause) {
@@ -333,7 +326,7 @@ export const useChangeRequests = ({
         setIsPlanActionPending(undefined);
       }
     },
-    [detailRef, setDetail, setError, setIsPlanActionPending],
+    [setDetail, setError, setIsPlanActionPending],
   );
 
   return {

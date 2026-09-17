@@ -1,0 +1,27 @@
+/**
+ * @file src/components/admin/media/MediaListView.module.css
+ * @version 1.0.0
+ * @date 2026-09-14
+ * @description Размещает переключатель представлений в публичном слоте списка Payload.
+ * @see documentation/specifications/media-management.md
+ */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  margin-block: var(--ui-space-4);
+  color: var(--ui-color-text);
+}
+
+.toolbar p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}

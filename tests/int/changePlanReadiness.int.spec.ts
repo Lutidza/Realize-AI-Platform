@@ -1,7 +1,7 @@
 /**
  * @file tests/int/changePlanReadiness.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-15
  * @description Проверяет общую готовность code plan, серверные отказы и безопасную DTO-проекцию.
  */
 
@@ -15,8 +15,20 @@ import { describe, expect, it } from "vitest";
 import { toMessageDTO } from "../../packages/payload-ai-plugin/src/endpoints/mappers";
 import { redactText } from "../../packages/payload-ai-plugin/src/endpoints/redaction";
 
-const codePlan =
-  "Обновить src/components/Header/index.tsx, проверить навигацию и npm run typecheck.";
+const codePlan = [
+  "Обновить навигацию и выполнить npm run typecheck.",
+  "```realize-code-plan",
+  JSON.stringify({
+    version: "1.0",
+    files: [
+      {
+        path: "src/components/Header/index.tsx",
+        change: "Добавить кнопку открытия навигации.",
+      },
+    ],
+  }),
+  "```",
+].join("\n");
 const dataProposal = [
   codePlan,
   "```realize-data-operation",
@@ -49,6 +61,18 @@ describe("shared code plan readiness", () => {
       expected: { status: "needs_clarification", reason: "missing_paths" },
     },
     {
+      name: "actual refusal with a README source citation",
+      content:
+        "Не удалось открыть [README.md](/tmp/workspace/README.md). Передавать концепт главной страницы coding worker преждевременно: точные изменения не подготовлены.",
+      expected: { status: "needs_clarification", reason: "missing_paths" },
+    },
+    {
+      name: "legacy prose edit plan without explicit block",
+      content:
+        "Изменить src/components/Header/index.tsx и README.md, затем выполнить npm run typecheck.",
+      expected: { status: "needs_clarification", reason: "missing_paths" },
+    },
+    {
       name: "short answer with a path",
       content: "Изменить src/a.ts",
       expected: { status: "needs_clarification", reason: "too_short" },
@@ -76,6 +100,9 @@ describe("shared code plan readiness", () => {
     },
   ])("matches the create-plan guard for $name", ({ content, expected }) => {
     expect(assessChangePlanReadiness(content)).toEqual(expected);
+    expect(
+      toMessageDTO({ id: 1, role: "assistant", content }).changePlan,
+    ).toEqual(expected);
     const derive = () =>
       deriveChangePlan({ originalRequest: "Изменить страницу", plan: content });
     if (expected.status === "ready") {
