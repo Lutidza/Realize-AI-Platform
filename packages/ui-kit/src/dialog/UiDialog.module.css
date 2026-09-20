@@ -1,0 +1,176 @@
+/**
+ * @file packages/ui-kit/src/dialog/UiDialog.module.css
+ * @version 1.1.0
+ * @date 2026-09-18
+ * @description Ограничивает общий диалог viewport и сохраняет размеры при любом host CSS.
+ */
+
+.portal {
+  position: relative;
+  z-index: 1000;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ui-color-text) 35%, transparent);
+  backdrop-filter: blur(3px);
+}
+.content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  width: min(600px, calc(100vw - 40px));
+  max-width: calc(100vw - 40px);
+  max-height: calc(100dvh - 48px);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 0;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--ui-shadow-surface);
+  color: var(--ui-color-text);
+}
+.content[data-size="wide"] {
+  width: min(1040px, calc(100vw - 40px));
+}
+.content[data-size="compact"] {
+  width: min(400px, calc(100vw - 24px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 32px);
+  border-radius: var(--ui-radius-lg);
+}
+.content[data-placement="notification"] {
+  inset: auto max(20px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom)) auto;
+  transform: none;
+  box-shadow: 0 16px 56px
+    color-mix(in srgb, var(--ui-color-text) 15%, transparent);
+  animation: noticeEnter var(--ui-duration) ease-out;
+}
+.overlay[data-placement="notification"] {
+  background: color-mix(in srgb, var(--ui-color-text) 10%, transparent);
+  backdrop-filter: none;
+}
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-4);
+  flex-shrink: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--ui-color-border);
+}
+.heading {
+  flex: 1;
+  min-width: 0;
+}
+.title {
+  font-size: 20px;
+  font-weight: 650;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+.title:focus {
+  outline: none;
+}
+.description {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ui-color-muted);
+}
+.close {
+  width: 32px;
+  min-height: 32px;
+  padding: 5px;
+}
+.body {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
+}
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--ui-space-3);
+  flex-shrink: 0;
+  padding: 16px 24px;
+  border-top: 1px solid var(--ui-color-border);
+}
+.content[data-size="compact"] .header {
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-5);
+  border-bottom: 0;
+}
+.content[data-size="compact"] .title {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.content[data-size="compact"] .description {
+  margin-top: 5px;
+  font-size: 13px;
+}
+.content[data-size="compact"] .body {
+  padding: 0 var(--ui-space-5) var(--ui-space-4);
+}
+.content[data-size="compact"] .footer {
+  padding: 0 var(--ui-space-5) var(--ui-space-5);
+  border-top: 0;
+}
+@keyframes noticeEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .content[data-placement="notification"] {
+    animation: none;
+  }
+}
+@media (max-width: 600px) {
+  .content:not([data-size="compact"]) {
+    inset: 0;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+  .header {
+    padding: 16px;
+  }
+  .title {
+    font-size: 18px;
+  }
+  .body {
+    flex: 1;
+    padding: 16px;
+  }
+  .footer {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+  .content[data-size="compact"][data-placement="notification"] {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}

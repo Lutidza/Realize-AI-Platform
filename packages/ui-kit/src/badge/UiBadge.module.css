@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/badge/UiBadge.module.css
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-18
  * @description Оформляет статусы едиными радиусами, цветами и отступами.
  */
 
@@ -38,4 +38,38 @@
   border-radius: 50%;
   background: currentColor;
   box-shadow: 0 0 8px currentColor;
+}
+
+.badge[data-accent] {
+  --badge-accent: var(--ui-color-primary);
+  min-height: 24px;
+  padding: 4px 9px;
+  color: color-mix(in srgb, var(--badge-accent) 75%, var(--ui-color-text));
+  background: color-mix(
+    in srgb,
+    var(--badge-accent) 16%,
+    var(--ui-color-surface)
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--badge-accent) 30%, transparent);
+  font-weight: 650;
+  line-height: 16px;
+}
+.badge[data-accent="blue"] {
+  --badge-accent: var(--ui-color-info);
+}
+.badge[data-accent="cyan"] {
+  --badge-accent: var(--ui-color-secondary);
+}
+.badge[data-accent="green"] {
+  --badge-accent: var(--ui-color-success);
+}
+.badge[data-accent="amber"] {
+  --badge-accent: var(--ui-color-warning);
+}
+.badge[data-accent="rose"] {
+  --badge-accent: var(--ui-color-danger);
+}
+.badge > svg {
+  flex-shrink: 0;
 }

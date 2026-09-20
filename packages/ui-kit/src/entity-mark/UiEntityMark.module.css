@@ -1,0 +1,30 @@
+/**
+ * @file packages/ui-kit/src/entity-mark/UiEntityMark.module.css
+ * @version 1.0.0
+ * @date 2026-09-18
+ * @description Задаёт одинаковую геометрию иконок и аватарок объектов без собственной палитры.
+ */
+.mark[data-accent][data-size] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  vertical-align: middle;
+}
+.mark[data-accent][data-size="medium"] {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

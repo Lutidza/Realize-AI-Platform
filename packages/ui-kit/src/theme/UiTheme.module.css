@@ -1,11 +1,13 @@
 /**
  * @file packages/ui-kit/src/theme/UiTheme.module.css
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.4.0
+ * @date 2026-09-18
  * @description Задаёт общие цвета, размеры и эффекты светлой и тёмной темы.
  */
 
 .theme {
+  --ui-font-family: var(--font-geist-sans, Arial), sans-serif;
+  --ui-font-monospace: var(--font-geist-mono, monospace);
   --ui-color-bg: #f8f9fc;
   --ui-color-surface: #ffffff;
   --ui-color-surface-raised: #f1f1f9;
@@ -15,7 +17,18 @@
   --ui-color-primary: #7544de;
   --ui-color-secondary: #078d9c;
   --ui-color-on-accent: #ffffff;
+  --ui-color-navigation: #151020;
+  --ui-color-navigation-text: #dfd5f2;
+  --ui-color-navigation-accent: #b68aff;
+  --ui-gradient-navigation: linear-gradient(
+    180deg,
+    #281740,
+    #171023 55%,
+    #100d1b
+  );
   --ui-color-success: #16815b;
+  --ui-color-info: #315fc3;
+  --ui-color-warning: #895800;
   --ui-color-danger: #be3451;
   --ui-color-glow-primary: rgb(133 80 245 / 16%);
   --ui-color-glow-secondary: rgb(39 210 230 / 10%);
@@ -40,6 +53,7 @@
   --ui-space-5: 20px;
   --ui-space-6: 24px;
   --ui-space-8: 32px;
+  --ui-layout-gap: var(--ui-space-4);
   --ui-control-height: 42px;
   --ui-duration: 160ms;
   width: 100%;
@@ -58,6 +72,8 @@
   --ui-color-primary: #b190ff;
   --ui-color-secondary: #52dde5;
   --ui-color-success: #5dd6aa;
+  --ui-color-info: #90b2ff;
+  --ui-color-warning: #efbf58;
   --ui-color-danger: #ff8fa6;
   --ui-color-glow-primary: rgb(143 78 255 / 24%);
   --ui-color-glow-secondary: rgb(30 210 233 / 13%);
@@ -73,4 +89,78 @@
   --ui-shadow-glow: 0 0 28px rgb(138 75 255 / 12%);
   --ui-focus-ring: 0 0 0 3px rgb(179 142 255 / 30%);
   color-scheme: dark;
+}
+
+/* Низкая специфичность сохраняет типографику компонентов; scope не затрагивает host. */
+.baseline {
+  box-sizing: border-box;
+  font-family: var(--ui-font-family);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: start;
+}
+:where(.baseline) *,
+:where(.baseline) *::before,
+:where(.baseline) *::after {
+  box-sizing: border-box;
+}
+:where(.baseline)
+  :where(h1, h2, h3, h4, h5, h6, p, ul, ol, dl, dd, figure, blockquote) {
+  margin: 0;
+}
+:where(.baseline) :where(h1, h2, h3, h4, h5, h6) {
+  font-family: inherit;
+  line-height: inherit;
+}
+:where(.baseline) :where(button, input, select, textarea) {
+  font-family: inherit;
+}
+:where(.baseline) :where(code, pre, kbd) {
+  font-family: var(--ui-font-monospace);
+}
+
+/* Единый тонкий scrollbar для панелей навигации, не затрагивающий рабочий контент. */
+.theme
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  ) {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ui-color-muted) 45%, transparent)
+    transparent;
+}
+
+.theme
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  )::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.theme
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  )::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.theme
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  )::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ui-color-muted) 45%, transparent);
 }

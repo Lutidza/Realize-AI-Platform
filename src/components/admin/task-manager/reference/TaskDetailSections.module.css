@@ -1,0 +1,252 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskDetailSections.module.css
+ * @version 1.0.0
+ * @date 2026-09-17
+ * @description Компоновка связей, досье и передачи задач на токенах общего UI-кита.
+ */
+
+.stack,
+.section {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+.section + .section {
+  padding-top: var(--ui-space-6);
+  border-top: 1px solid var(--ui-color-border);
+}
+.stack h3,
+.stack h4,
+.stack p {
+  margin: 0;
+}
+.stack h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  font-size: 15px;
+  font-weight: 650;
+}
+.stack h4 {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ui-color-muted);
+}
+.muted,
+.empty {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.empty {
+  padding-block: var(--ui-space-2);
+}
+.stack label {
+  display: grid;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.linkRow,
+.headingRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  justify-content: space-between;
+  min-width: 0;
+}
+.linkRow {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  padding: var(--ui-space-1);
+}
+.taskLink {
+  justify-content: flex-start;
+  min-width: 0;
+  text-align: left;
+  white-space: normal;
+  height: auto;
+}
+.taskLink span {
+  overflow-wrap: anywhere;
+}
+.taskLink svg {
+  flex-shrink: 0;
+}
+.linkForm {
+  display: grid;
+  grid-template-columns: 125px minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--ui-space-2);
+}
+.inlineForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--ui-space-2);
+}
+.twoColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-3);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+.conversation,
+.handoff {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-surface);
+}
+.conversation summary {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  cursor: pointer;
+  padding: var(--ui-space-3);
+  font-size: 13px;
+}
+.conversation summary > span:first-of-type {
+  flex: 1;
+}
+.conversation summary:focus-visible,
+.fileTree summary:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 2px;
+}
+.conversationBody {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: 0 var(--ui-space-3) var(--ui-space-3);
+}
+.message {
+  display: grid;
+  gap: var(--ui-space-2);
+  border-left: 2px solid var(--ui-color-primary);
+  padding: var(--ui-space-3);
+  background: var(--ui-color-bg);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.message strong {
+  font-size: 12px;
+}
+.handoff {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  font-size: 13px;
+}
+.dossier {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  min-height: 420px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  overflow: hidden;
+}
+.fileTree {
+  background: var(--ui-color-bg);
+  padding: var(--ui-space-2);
+  border-right: 1px solid var(--ui-color-border);
+}
+.fileTree details {
+  margin-top: var(--ui-space-2);
+}
+.fileTree summary {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-height: 30px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.fileTree summary small {
+  margin-left: auto;
+  color: var(--ui-color-muted);
+}
+.folderFiles {
+  padding-left: var(--ui-space-4);
+}
+.fileButton {
+  width: 100%;
+  justify-content: flex-start;
+  padding: var(--ui-space-2);
+  font-size: 12px;
+  min-height: 32px;
+  height: auto;
+  gap: var(--ui-space-2);
+}
+.fileButton svg {
+  flex-shrink: 0;
+}
+.fileButton span {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.fileButton[aria-pressed="true"] {
+  background: var(--ui-color-surface-raised);
+  color: var(--ui-color-primary);
+}
+.filePreview {
+  min-width: 0;
+  background: var(--ui-color-surface);
+}
+.filePreview header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-4);
+  border-bottom: 1px solid var(--ui-color-border);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.filePreview pre {
+  margin: 0;
+  padding: var(--ui-space-4);
+  font:
+    12px/1.8 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.filePreview > .empty {
+  padding: var(--ui-space-4);
+}
+
+@media (max-width: 1050px) {
+  .linkForm {
+    grid-template-columns: 120px minmax(0, 1fr);
+  }
+  .linkForm > button {
+    justify-self: start;
+  }
+  .dossier {
+    grid-template-columns: 160px minmax(0, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .twoColumns,
+  .linkForm,
+  .inlineForm,
+  .dossier {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fileTree {
+    border-right: 0;
+    border-bottom: 1px solid var(--ui-color-border);
+    max-height: 230px;
+    overflow-y: auto;
+  }
+  .headingRow {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+}

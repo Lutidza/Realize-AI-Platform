@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeRepository.ts
- * @version 2026-08-22
+ * @version 1.0.0
+ * @date 2026-09-17
  * @description Сохраняет Change Requests и append-only approval decisions.
  */
 
@@ -160,7 +161,7 @@ export class ChangeRepository {
           { type: { equals: type } },
         ],
       },
-      { limit: 1, sort: "-createdAt" },
+      { limit: 1, sort: ["-createdAt", "-id"] },
     );
     return result.docs[0];
   }

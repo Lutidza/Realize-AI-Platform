@@ -1,14 +1,17 @@
 /**
  * @file services/ai-execution-worker/src/independentReviewer.ts
- * @version 1.0.2
- * @date 2026-09-15
+ * @version 1.0.3
+ * @date 2026-09-16
  * @description Запускает отдельную read-only проверку через выбранную интеграцию Codex.
  */
 
 import { createHash, randomUUID } from "node:crypto";
 
 import type { AgentEvent } from "@realize/ai-contracts";
-import { buildIndependentReviewDeveloperInstructions } from "@realize/change-engine";
+import {
+  buildIndependentReviewDeveloperInstructions,
+  buildRepositorySearchTaskPrompt,
+} from "@realize/change-engine";
 import { OpenAICodexAdapter } from "@realize/codex-adapter";
 import type { CodexConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 
@@ -150,15 +153,17 @@ export const runIndependentReview = async (input: {
       // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
       ephemeral: false,
       model: lease.reviewModel,
-      prompt: [
-        `Change Request: ${input.job.changeRequestID}.`,
-        `Base commit: ${input.job.baseCommit}.`,
-        `Accepted diff SHA-256: ${input.job.sourceDiffHash}.`,
-        `Approved paths: ${JSON.stringify(input.job.allowedPaths)}.`,
-        `Original request: ${input.job.originalRequest}`,
-        `Approved plan: ${input.job.plan}`,
-        "Inspect git diff --cached and relevant repository context, then return the required JSON verdict.",
-      ].join("\n\n"),
+      prompt: buildRepositorySearchTaskPrompt(
+        [
+          `Change Request: ${input.job.changeRequestID}.`,
+          `Base commit: ${input.job.baseCommit}.`,
+          `Accepted diff SHA-256: ${input.job.sourceDiffHash}.`,
+          `Approved paths: ${JSON.stringify(input.job.allowedPaths)}.`,
+          `Original request: ${input.job.originalRequest}`,
+          `Approved plan: ${input.job.plan}`,
+          "Inspect git diff --cached and relevant repository context, then return the required JSON verdict.",
+        ].join("\n\n"),
+      ),
       runID,
       sandboxProfile: "review-readonly",
     })) {

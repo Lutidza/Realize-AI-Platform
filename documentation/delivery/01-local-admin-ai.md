@@ -1,7 +1,7 @@
 # Локальный запуск и чат в Payload Admin
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 15 сентября 2026 года
+- **Дата сверки:** 17 сентября 2026 года
 
 Этот runbook описывает существующий e-commerce baseline. Capability/config
 foundation, hidden Payload persistence и aggregate Config API уже реализованы.
@@ -20,6 +20,7 @@ foundation, hidden Payload persistence и aggregate Config API уже реали
 - PostgreSQL;
 - установленный Codex CLI и включённое подключение Codex в Admin для чата;
 - для code execution — отдельный локальный workspace root вне репозитория;
+- для local preview — Chromium версии, соответствующей установленному Playwright;
 - секреты только в локальном `.env`, который не коммитится.
 
 Проверка toolchain:
@@ -28,6 +29,17 @@ foundation, hidden Payload persistence и aggregate Config API уже реали
 npm run verify:runtime
 npm ci
 ```
+
+Для local preview установите браузер от имени пользователя execution worker:
+
+```bash
+npx playwright install chromium
+```
+
+После обновления Playwright повторите установку: пакет использует конкретную
+ревизию браузера. Worker проверяет реальный headless launch/close до подготовки
+promotion worktree, сборки и review. Ошибка окружения сохраняется отдельным
+результатом проверки; одного наличия executable недостаточно.
 
 ## 2. Конфигурация
 
@@ -516,7 +528,9 @@ Execution worktree создаётся строго из подтверждённ
   профиль удаляется после закрытия процесса и синхронизации credential;
   постоянная история чата не затрагивается;
 - обязательный поиск делегируется native помощнику с ограниченными путями и
-  заданием на чтение. Родитель получает его результат и закрывает сессию;
+  заданием на чтение. Сервер явно поручает этот поиск в turn input исполнителя
+  и reviewer, сохраняя исходный запрос, план и ограничения developer policy.
+  Родитель получает его результат и закрывает сессию;
   внешний monitor и отдельный `codex exec` в этом этапе не запускаются;
 - для trusted check phase worker материализует установленный `node_modules` как
   реальную локальную директорию worktree и удаляет её после проверок; внешний
@@ -547,6 +561,19 @@ Execution worktree создаётся строго из подтверждённ
 - preview использует exact standalone build, новый sanitized DB clone,
   loopback URL и Playwright/Chromium smoke; URL показывается только после
   readiness и успешного smoke;
+- для изменения, целиком ограниченного `src/app/(reference)/reference/`,
+  worker выводит URL из единственного изменённого статического `page.tsx` и
+  проверяет эту страницу, например `/reference/realize-ai`. Допустимые route
+  groups исключаются из URL; неоднозначный или динамический маршрут отклоняется.
+  Для остальных scope smoke сохраняет `/`. Readiness всегда проверяется по
+  `/api/health/ready` того же origin; переход на другой URL не считается успехом;
+- технически неуспешный preview можно повторить кнопкой «Повторить preview»,
+  пока действуют принятие реализации и execution evidence. Новая попытка
+  сохраняет историю предыдущей и повторяет полный набор проверок и review.
+  Сервер атомарно сверяет version, diff/evidence, base commit и approval binding;
+  повтор с тем же idempotency key не создаёт новую попытку. Блокировка review,
+  принятое/отклонённое preview, активный runtime или истёкшее подтверждение
+  повтор этим действием не допускают;
 - artifact/commit/reviewer/check hashes доступны в карточке Change Request;
   принятие или отклонение preview является отдельным hash-bound решением;
 - rejection и TTL очищают process, DB clone, worktree и server-owned branch,

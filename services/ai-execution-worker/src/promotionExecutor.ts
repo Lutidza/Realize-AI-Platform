@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/promotionExecutor.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-09-17
  * @description Проверяет принятый diff, выполняет независимый Codex review и запускает local preview.
  */
 
@@ -17,6 +17,8 @@ import {
 } from "./independentReviewer";
 import { dropPreviewDatabase } from "./previewDatabase";
 import { runPreviewBrowserSmoke } from "./previewBrowserSmoke";
+import { runPreviewBrowserPreflight } from "./previewBrowserPreflight.service";
+import { resolvePreviewTargetPath } from "./previewTarget.util";
 import type { PromotionRepository } from "./promotionRepository";
 import {
   commitPromotion,
@@ -78,13 +80,26 @@ export const executeClaimedPromotion = async (input: {
   let runtime: LocalPreviewRuntime | undefined;
   let workspace = "";
   try {
+    const targetPath = resolvePreviewTargetPath(input.job);
+    const preflight = await runPreviewBrowserPreflight();
+    const checks: WorkerCheckResult[] = [preflight];
+    await input.repository.addCheckResult(
+      input.job,
+      preflight,
+      1,
+      "preview_validation",
+    );
+    if (preflight.status === "failed") {
+      throw new PromotionValidationError(
+        `Preview Chromium preflight failed: ${preflight.outputSummary || "browser unavailable"}`,
+      );
+    }
     workspace = await preparePromotionWorktree({
       job: input.job,
       repositoryRoot: input.config.repositoryRoot,
       workspaceRoot: input.config.promotionWorkspaceRoot,
     });
     await input.repository.markRunningChecks(input.job);
-    const checks: WorkerCheckResult[] = [];
     await withWorkspaceDependencies(
       input.config.repositoryRoot,
       workspace,
@@ -99,7 +114,7 @@ export const executeClaimedPromotion = async (input: {
           await input.repository.addCheckResult(
             input.job,
             result,
-            index + 1,
+            index + 2,
             "preview_validation",
           );
           if (result.status === "failed") {
@@ -132,6 +147,7 @@ export const executeClaimedPromotion = async (input: {
       commit,
       config: input.config,
       job: input.job,
+      targetPath,
       workspace,
     });
 

@@ -1,0 +1,154 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskHierarchy.module.css
+ * @version 2.1.1
+ * @date 2026-09-18
+ * @description Оформляет контекст пространства и плоские строки навигатора задач токенами общего UI-kit.
+ * @see documentation/specifications/task-management-execution.md
+ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  padding: 0;
+}
+.sidebar[data-variant="flyout"] {
+  height: auto;
+  padding: 0;
+}
+.sidebar .contextAction {
+  width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 5px;
+  flex-shrink: 0;
+  color: var(--ui-color-muted);
+}
+.context {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 38px;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+.contextIcon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  color: var(--ui-color-muted);
+}
+.contextLabel,
+.contextOpen > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sidebar .contextOpen {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  justify-content: flex-start;
+  padding: 4px 3px;
+  font-weight: 500;
+}
+.search {
+  margin: 6px 2px 8px;
+}
+.tree {
+  min-width: 0;
+}
+.treeList {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.node {
+  min-width: 0;
+}
+.nodeRow {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  border-radius: var(--ui-radius-sm);
+}
+.nodeRow[data-active="true"] {
+  background: color-mix(in srgb, var(--ui-color-primary) 8%, transparent);
+}
+.nodeRow[data-hidden="true"] .nodeSelect {
+  color: var(--ui-color-muted);
+}
+.sidebar .nodeSelect {
+  justify-content: flex-start;
+  flex: 1;
+  gap: 7px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 7px 6px;
+  color: var(--ui-color-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  text-align: left;
+}
+.nodeSelect > svg {
+  flex-shrink: 0;
+  color: var(--ui-color-muted);
+}
+.nodeName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.count {
+  flex-shrink: 0;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.empty {
+  margin: 0;
+  padding: 10px;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.bottom {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--ui-color-border);
+}
+.demoNote {
+  margin: 0 0 8px;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+@media (pointer: coarse) {
+  .sidebar .contextAction,
+  .sidebar .nodeSelect,
+  .sidebar .contextOpen {
+    min-height: 44px;
+    height: auto;
+  }
+  .sidebar .contextAction {
+    width: 44px;
+  }
+  .context {
+    height: 44px;
+  }
+  .contextIcon {
+    flex-basis: 44px;
+  }
+}

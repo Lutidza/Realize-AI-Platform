@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.1.1
- * @date 2026-09-15
+ * @version 1.1.2
+ * @date 2026-09-16
  * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
 
@@ -10,6 +10,7 @@ import { createHash } from "node:crypto";
 import type { AgentEvent } from "@realize/ai-contracts";
 import {
   buildCodeExecutionDeveloperInstructions,
+  buildRepositorySearchTaskPrompt,
   verifyExecutionCapability,
 } from "@realize/change-engine";
 import { OpenAICodexAdapter } from "@realize/codex-adapter";
@@ -66,7 +67,9 @@ const runAgent = async (input: {
       // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
       ephemeral: false,
       model: lease.model,
-      prompt: `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
+      prompt: buildRepositorySearchTaskPrompt(
+        `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
+      ),
       runID: input.job.executionKey,
       sandboxProfile: "code-workspace-write",
     })) {

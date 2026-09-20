@@ -1,7 +1,8 @@
 /**
  * @file services/ai-execution-worker/src/promotionRepository.ts
- * @owner services/ai-execution-worker
- * @purpose Claims preview promotions atomically and persists review, checks and runtime evidence.
+ * @version 1.0.0
+ * @date 2026-09-17
+ * @description Атомарно получает preview jobs и сохраняет проверки, review и runtime evidence.
  */
 
 import type { Pool, PoolClient, QueryResultRow } from "pg";
@@ -19,6 +20,7 @@ type PromotionRow = QueryResultRow & {
   acceptance_bound_hash: string | null;
   acceptance_decision: string | null;
   acceptance_diff_hash: string | null;
+  acceptance_expires_at: Date | string | null;
   allowed_paths: unknown;
   artifacts_expire_at: Date | string;
   base_commit: string;
@@ -33,6 +35,8 @@ type PromotionRow = QueryResultRow & {
   diff_truncated: boolean;
   execution_job_id: number;
   execution_status: string;
+  execution_base_commit: string;
+  execution_evidence_hash: string | null;
   expires_at: Date | string;
   id: number;
   original_request: string;
@@ -89,12 +93,22 @@ const invalidPromotionReason = (row: PromotionRow): string | undefined => {
     row.diff_truncated ||
     !row.diff ||
     !row.diff_hash ||
-    row.diff_hash !== row.source_diff_hash
+    row.diff_hash !== row.source_diff_hash ||
+    !row.execution_evidence_hash ||
+    row.execution_evidence_hash !== row.source_evidence_hash ||
+    row.execution_base_commit !== row.base_commit
   ) {
     return "Source execution artifact is incomplete or no longer hash-bound.";
   }
-  if (new Date(row.artifacts_expire_at).getTime() <= Date.now()) {
+  if (!(new Date(row.artifacts_expire_at).getTime() > Date.now())) {
     return "Source execution artifact expired before promotion.";
+  }
+  if (
+    !row.acceptance_expires_at ||
+    !(new Date(row.acceptance_expires_at).getTime() > Date.now()) ||
+    !(new Date(row.expires_at).getTime() > Date.now())
+  ) {
+    return "Implementation acceptance or preview permission expired before promotion.";
   }
   if (
     row.acceptance_decision !== "approved" ||
@@ -144,20 +158,29 @@ export class PromotionRepository {
                 jobs.diff,
                 jobs.diff_hash,
                 jobs.diff_truncated,
+                jobs.base_commit AS execution_base_commit,
+                jobs.evidence_hash AS execution_evidence_hash,
                 jobs.status AS execution_status,
                 acceptance.bound_hash AS acceptance_bound_hash,
                 acceptance.decision AS acceptance_decision,
-                acceptance.diff_hash AS acceptance_diff_hash
+                acceptance.diff_hash AS acceptance_diff_hash,
+                acceptance.expires_at AS acceptance_expires_at
            FROM realize_ai_deployments AS deployments
            JOIN realize_ai_change_requests AS changes
              ON changes.id = deployments.change_request_id
            JOIN realize_ai_execution_jobs AS jobs
              ON jobs.id = deployments.execution_job_id
-           LEFT JOIN realize_ai_approvals AS acceptance
-             ON acceptance.change_request_id = deployments.change_request_id
-            AND acceptance.type = 'IMPLEMENTATION_ACCEPTANCE'
+            AND jobs.change_request_id = deployments.change_request_id
+           LEFT JOIN LATERAL (
+             SELECT bound_hash, decision, diff_hash, expires_at
+               FROM realize_ai_approvals
+              WHERE change_request_id = deployments.change_request_id
+                AND type = 'IMPLEMENTATION_ACCEPTANCE'
+              ORDER BY created_at DESC, id DESC
+              LIMIT 1
+           ) AS acceptance ON true
           WHERE deployments.status = 'queued'
-          ORDER BY deployments.created_at ASC
+          ORDER BY deployments.created_at ASC, deployments.id ASC
           FOR UPDATE OF deployments, changes SKIP LOCKED
           LIMIT 1`,
       );

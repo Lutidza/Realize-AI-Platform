@@ -1,9 +1,10 @@
 /**
  * @file src/payload.config.ts
- * @version 1.1.1
- * @date 2026-09-16
- * @description Настраивает активную схему Payload, PostgreSQL и native обработку Media.
+ * @version 1.2.1
+ * @date 2026-09-17
+ * @description Настраивает Payload, обработку Media и переход к системному прототипу задач.
  * @see documentation/specifications/media-management.md
+ * @see documentation/specifications/task-management.md
  */
 
 import { postgresAdapter } from "@payloadcms/db-postgres";
@@ -51,6 +52,11 @@ const shouldPushDevelopmentSchema =
 export default buildConfig({
   admin: {
     user: Users.slug,
+    components: {
+      beforeNavLinks: [
+        "/src/components/admin/task-manager/TaskManagerReferenceEntry.component#TaskManagerReferenceEntry",
+      ],
+    },
   },
   collections: [
     Users,

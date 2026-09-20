@@ -1,0 +1,69 @@
+/**
+ * @file packages/ui-kit/src/dialog/UiConfirmation.module.css
+ * @version 1.0.0
+ * @date 2026-09-18
+ * @description Оформляет маркер, краткое содержание и действия общего подтверждения токенами темы.
+ * @see documentation/architecture/ui-kit.md
+ */
+.marker {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--ui-radius-md);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 10%,
+    var(--ui-color-surface)
+  );
+  color: var(--ui-color-primary);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 12%, transparent);
+}
+.marker[data-tone="danger"] {
+  color: var(--ui-color-danger);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-danger) 9%,
+    var(--ui-color-surface)
+  );
+}
+.marker[data-tone="neutral"] {
+  color: var(--ui-color-muted);
+  background: var(--ui-color-surface-raised);
+}
+.subject,
+.description {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.subject {
+  color: var(--ui-color-text);
+  font-weight: 500;
+}
+.description {
+  margin-top: var(--ui-space-2);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+.spinner {
+  animation: spin 800ms linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (any-pointer: coarse) {
+  .actions > button {
+    min-height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

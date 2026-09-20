@@ -1,0 +1,156 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskQueue.module.css
+ * @version 1.0.1
+ * @date 2026-09-18
+ * @description Оформляет карточки очереди и состояния агентов.
+ */
+
+.queue {
+  display: grid;
+  gap: var(--ui-layout-gap);
+}
+.queueIntro {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ui-layout-gap);
+}
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 1.3px;
+  color: var(--ui-color-primary);
+  font-weight: 600;
+}
+.queueIntro h2 {
+  margin: 5px 0;
+}
+.queueIntro p {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+}
+.agentStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--ui-layout-gap);
+}
+.agentTile {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  padding: var(--ui-layout-gap);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.agentTile > svg {
+  color: var(--ui-color-primary);
+  flex-shrink: 0;
+}
+.agentTile strong {
+  font-size: 13px;
+}
+.agentTile small {
+  display: block;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.agentDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ui-color-success);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.agentDot[data-busy="true"] {
+  background: var(--ui-color-primary);
+}
+.queueList {
+  display: grid;
+  gap: var(--ui-layout-gap);
+}
+.queueItem {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  padding: var(--ui-layout-gap);
+}
+.queueTask {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.queueTask > svg {
+  color: var(--ui-color-primary);
+  flex-shrink: 0;
+}
+.queueTask > div {
+  flex: 1;
+}
+.queueTitle {
+  text-align: left;
+  white-space: normal;
+  color: var(--ui-color-text);
+  justify-content: flex-start;
+  font-size: 13px;
+}
+.queueTask small {
+  display: block;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.queueReason {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  padding: 9px 0 12px 30px;
+}
+.queueBottom {
+  border-top: 1px solid var(--ui-color-border);
+  padding-top: var(--ui-layout-gap);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+.queueBottom > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+.queueActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+@media (max-width: 1100px) {
+  .agentStrip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .queueIntro,
+  .queueBottom {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .queueTask {
+    flex-wrap: wrap;
+  }
+  .queueReason {
+    padding-left: 0;
+  }
+  .agentTile {
+    min-width: 0;
+  }
+  .agentTile strong {
+    overflow-wrap: anywhere;
+  }
+  .agentStrip {
+    grid-template-columns: 1fr;
+  }
+}
+.empty {
+  padding: var(--ui-layout-gap);
+  color: var(--ui-color-muted);
+}

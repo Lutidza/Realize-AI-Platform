@@ -1,13 +1,16 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/deploymentRepository.ts
- * @owner packages/payload-ai-plugin
- * @purpose Persists local-preview deployment jobs and reads their bounded evidence.
+ * @version 1.0.0
+ * @date 2026-09-17
+ * @description Сохраняет попытки preview и атомарно переводит их Change Request в очередь.
  */
 
 import type { Payload, PayloadRequest } from "payload";
+import { sql, type PostgresAdapter } from "@payloadcms/db-postgres";
 
 import { CHECK_RESULTS_SLUG, DEPLOYMENTS_SLUG } from "../constants";
 import type { AIDocument } from "./repository";
+import { EndpointError } from "./http";
 
 type FindResult = { docs: AIDocument[]; totalDocs: number };
 type UntypedLocalAPI = {
@@ -22,11 +25,61 @@ export class DeploymentRepository {
   private readonly defaultIDType: "number" | "text";
 
   constructor(
-    payload: Payload,
+    private readonly payload: Payload,
     private readonly req: PayloadRequest,
   ) {
     this.api = payload as unknown as UntypedLocalAPI;
     this.defaultIDType = payload.db.defaultIDType;
+  }
+
+  /** Блокирует CR до повторного чтения и создания попытки в общей Payload transaction. */
+  async lockChangeRequest(changeRequestID: string): Promise<void> {
+    const transaction = await this.transaction();
+    await transaction.execute(
+      sql`SELECT id FROM realize_ai_change_requests
+          WHERE id = ${this.documentID(changeRequestID)} FOR UPDATE`,
+    );
+  }
+
+  /** SQL CAS связывает постановку в очередь с версией, проверенной под row lock. */
+  async queueChangeRequest(input: {
+    changeRequestID: string;
+    expectedState: string;
+    expectedVersion: number;
+  }): Promise<void> {
+    const transaction = await this.transaction();
+    const result = await transaction.execute(
+      sql`UPDATE realize_ai_change_requests
+             SET state = 'preview_queued', version = version + 1,
+                 blocked_reason = NULL, updated_at = now()
+           WHERE id = ${this.documentID(input.changeRequestID)}
+             AND state = ${input.expectedState}
+             AND version = ${input.expectedVersion}
+           RETURNING id`,
+    );
+    if (result.rows.length !== 1)
+      throw new EndpointError(
+        "CONFLICT",
+        "Preview queue state changed concurrently.",
+        409,
+      );
+  }
+
+  private async transaction() {
+    const adapter = this.payload.db as Pick<
+      PostgresAdapter,
+      "name" | "sessions"
+    >;
+    const transactionID = await this.req.transactionID;
+    const transaction =
+      transactionID == null
+        ? undefined
+        : adapter.sessions?.[String(transactionID)]?.db;
+    if (adapter.name !== "postgres" || !transaction)
+      throw new Error(
+        "Preview queue requires an active PostgreSQL transaction.",
+      );
+    return transaction;
   }
 
   async createDeployment(input: {
@@ -90,7 +143,7 @@ export class DeploymentRepository {
   ): Promise<AIDocument | undefined> {
     const result = await this.find(
       { changeRequest: { equals: this.documentID(changeRequestID) } },
-      { limit: 1, sort: "-createdAt" },
+      { limit: 1, sort: ["-createdAt", "-id"] },
     );
     return result.docs[0];
   }

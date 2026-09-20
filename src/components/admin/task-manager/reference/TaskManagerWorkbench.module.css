@@ -1,0 +1,137 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskManagerWorkbench.module.css
+ * @version 2.2.0
+ * @date 2026-09-18
+ * @description Оформляет навигацию проекта и рабочую область внутри общей системной оболочки.
+ */
+
+.workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.viewPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.contextCreate {
+  min-height: 34px;
+  padding: 7px 12px;
+  font-size: 12px;
+  border-radius: 9px;
+}
+@media (max-width: 600px) {
+  .contextCreate span {
+    display: none;
+  }
+  .contextCreate {
+    width: 34px;
+    padding: 7px;
+  }
+}
+@media (pointer: coarse) {
+  .contextCreate {
+    min-height: 44px;
+  }
+}
+@media (max-width: 600px) and (pointer: coarse) {
+  .contextCreate {
+    width: 44px;
+  }
+}
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-layout-gap);
+  flex-wrap: wrap;
+}
+.search {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
+  max-width: 300px;
+}
+.search > svg {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 12px;
+  color: var(--ui-color-muted);
+  pointer-events: none;
+}
+.search input {
+  padding-left: 36px;
+}
+.toolbar .sort {
+  width: 160px;
+}
+.visibleCount {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.filters {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ui-layout-gap);
+  flex-wrap: wrap;
+}
+.filters label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  flex: 1;
+  min-width: 140px;
+  max-width: 240px;
+}
+.columnOptions {
+  display: grid;
+  gap: 15px;
+}
+.columnOptions label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.columnOptions input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--ui-color-primary);
+}
+.viewContent {
+  min-width: 0;
+}
+.stateBar {
+  display: flex;
+  gap: var(--ui-layout-gap);
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+.stateBar [data-error="true"] {
+  color: var(--ui-color-danger);
+}
+.stateBar > span:last-child {
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .search {
+    max-width: none;
+    flex-basis: 100%;
+  }
+  .toolbar .sort {
+    width: 145px;
+  }
+  .visibleCount {
+    margin-left: 0;
+  }
+  .stateBar > span:last-child {
+    display: none;
+  }
+}

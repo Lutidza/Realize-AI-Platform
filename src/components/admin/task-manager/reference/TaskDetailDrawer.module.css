@@ -1,0 +1,520 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskDetailDrawer.module.css
+ * @version 2.0.0
+ * @date 2026-09-17
+ * @description Оформляет двухколоночную карточку задачи и её адаптивную компоновку.
+ */
+
+.portal {
+  position: relative;
+  z-index: 1000;
+  font-family: var(--font-geist-sans, Arial), Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.portal *,
+.portal *::before,
+.portal *::after {
+  box-sizing: border-box;
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ui-color-text) 35%, transparent);
+  backdrop-filter: blur(3px);
+}
+.dialog {
+  position: fixed;
+  inset: 30px 3vw;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 1450px;
+  margin: 0 auto;
+  overflow: hidden;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  box-shadow: var(--ui-shadow-surface);
+  color: var(--ui-color-text);
+}
+.dialog:focus {
+  outline: none;
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  min-height: 58px;
+  padding: var(--ui-space-2) var(--ui-space-5);
+  border-bottom: 1px solid var(--ui-color-border);
+  flex-shrink: 0;
+}
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.breadcrumb svg {
+  flex-shrink: 0;
+}
+.breadcrumb span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  flex-shrink: 0;
+}
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  flex: 1;
+  min-height: 0;
+}
+.main {
+  overflow-y: auto;
+  min-width: 0;
+  padding: var(--ui-space-6) var(--ui-space-8) 48px;
+  overscroll-behavior: contain;
+}
+.titleBlock {
+  margin-bottom: var(--ui-space-5);
+}
+.kicker {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.kicker > span:last-child {
+  margin-left: var(--ui-space-2);
+}
+.title {
+  margin: var(--ui-space-4) 0 var(--ui-space-2);
+  font-size: clamp(22px, 2.3vw, 30px);
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+.title:focus {
+  outline: none;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+}
+.overview {
+  display: grid;
+  gap: var(--ui-space-6);
+}
+.fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-4) var(--ui-space-6);
+}
+.fields > label,
+.fieldSummary {
+  display: grid;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+.fields > label > span,
+.fieldSummary > span {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.fieldSummary strong {
+  display: flex;
+  align-items: center;
+  min-height: var(--ui-control-height);
+  font-size: 13px;
+  font-weight: 500;
+}
+.section {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding-top: var(--ui-space-5);
+  border-top: 1px solid var(--ui-color-border);
+}
+.section h3,
+.activity h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+.section p {
+  margin: 0;
+}
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  align-items: center;
+}
+.avatar {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  width: 27px;
+  height: 27px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--ui-color-surface-raised);
+  color: var(--ui-color-primary);
+  font-size: 10px;
+  font-weight: 650;
+}
+.avatar[data-kind="agent"] {
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-color-secondary);
+}
+.criterion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+.criterion span[data-done="true"] {
+  color: var(--ui-color-muted);
+  text-decoration: line-through;
+}
+.progress {
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  overflow: hidden;
+  background: var(--ui-color-surface-raised);
+  color: var(--ui-color-success);
+}
+.progress::-webkit-progress-bar {
+  background: var(--ui-color-surface-raised);
+}
+.progress::-webkit-progress-value {
+  background: var(--ui-color-success);
+}
+.progress::-moz-progress-bar {
+  background: var(--ui-color-success);
+}
+.activity {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  border-left: 1px solid var(--ui-color-border);
+  background: var(--ui-color-bg);
+}
+.activityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ui-space-5);
+  border-bottom: 1px solid var(--ui-color-border);
+}
+.activityHeader > span {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.activityEntries {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  flex: 1;
+  padding: var(--ui-space-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.activityItem {
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  padding: var(--ui-space-3);
+  background: var(--ui-color-surface);
+}
+.activityAuthor {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  align-items: center;
+}
+.activityAuthor strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.activityAuthor time {
+  color: var(--ui-color-muted);
+  font-size: 11px;
+}
+.activityItem p {
+  margin: var(--ui-space-3) 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.commentForm {
+  display: grid;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-4);
+  border-top: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface);
+}
+.commentForm > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+}
+.commentForm span {
+  display: inline-flex;
+  gap: var(--ui-space-1);
+  align-items: center;
+}
+.muted {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.notice {
+  min-height: 30px;
+  padding: var(--ui-space-2) var(--ui-space-5);
+  font-size: 11px;
+  color: var(--ui-color-muted);
+  border-top: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface);
+}
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 1100px) {
+  .dialog {
+    inset: 20px 2vw;
+  }
+  .columns {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+  .main {
+    padding: var(--ui-space-5);
+  }
+}
+@media (max-width: 850px) {
+  .dialog {
+    inset: 12px;
+  }
+  .columns {
+    display: block;
+    overflow-y: auto;
+  }
+  .main {
+    overflow: visible;
+  }
+  .activity {
+    border-left: 0;
+    border-top: 1px solid var(--ui-color-border);
+  }
+  .activityEntries {
+    max-height: 350px;
+  }
+}
+@media (max-width: 500px) {
+  .dialog {
+    inset: 0;
+    border-radius: 0;
+  }
+  .topbar {
+    padding-inline: var(--ui-space-3);
+  }
+  .topbarActions {
+    gap: var(--ui-space-1);
+  }
+  .main {
+    padding: var(--ui-space-4);
+  }
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ui-space-3);
+  }
+  .notice {
+    padding-inline: var(--ui-space-3);
+  }
+}
+
+.taskActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2);
+  margin-top: var(--ui-space-4);
+}
+.tabContent {
+  padding-top: var(--ui-space-5);
+}
+.participantGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-4);
+}
+.roleField {
+  display: grid;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+.roleField > span:first-child {
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+.description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.75;
+}
+.linkButton {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
+  min-width: 0;
+  height: auto;
+  overflow-wrap: anywhere;
+}
+.linkButton > svg {
+  flex-shrink: 0;
+}
+.childRow {
+  display: flex;
+  gap: var(--ui-space-2);
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+}
+.workChecklist,
+.gitCard {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+}
+.workChecklist strong {
+  font-size: 13px;
+}
+.workItem {
+  display: grid;
+  gap: var(--ui-space-2);
+}
+.workItemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-3);
+  margin-left: 24px;
+  align-items: center;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.criterion {
+  padding-block: var(--ui-space-1);
+  line-height: 1.6;
+}
+.criterion input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 3px 0 0;
+  accent-color: var(--ui-color-primary);
+}
+.bindings {
+  display: grid;
+  gap: var(--ui-space-3);
+  margin: 0;
+  font-size: 13px;
+}
+.bindings > div {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: var(--ui-space-3);
+}
+.bindings dt {
+  color: var(--ui-color-muted);
+}
+.bindings dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.gitKind {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+.gitLink {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  color: var(--ui-color-primary);
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.gitLink:hover {
+  text-decoration: underline;
+}
+.gitLink svg {
+  flex-shrink: 0;
+}
+.gitRevision {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: var(--ui-color-muted);
+  margin: 0;
+}
+.empty {
+  padding: var(--ui-space-4);
+  color: var(--ui-color-muted);
+  background: var(--ui-color-bg);
+  border-radius: var(--ui-radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.notice[data-error="true"] {
+  color: var(--ui-color-danger);
+}
+@media (max-width: 600px) {
+  .participantGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sectionHeader,
+  .childRow {
+    flex-wrap: wrap;
+  }
+  .taskActions {
+    gap: var(--ui-space-1);
+  }
+}

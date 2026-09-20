@@ -1,9 +1,18 @@
 /**
  * @file packages/change-engine/src/repositorySearchPolicy.ts
- * @version 1.0.0
- * @date 2026-09-15
+ * @version 1.0.1
+ * @date 2026-09-16
  * @description Задаёт ограниченное делегирование поиска в изолированных сессиях исполнения и проверки.
  */
+
+/** Добавляет явное поручение поиска в turn input, сохраняя исходное задание и ограничения developer policy. */
+export const buildRepositorySearchTaskPrompt = (task: string): string =>
+  [
+    "Use a native repository-search sub-agent for the bounded read-only repository discovery required by this task.",
+    "Follow the repository-search contract in the developer instructions: delegate only search, wait for the actual findings, and close the child before completing your task.",
+    "Do not delegate edits, validation commands, or the independent review verdict. This search request does not expand the approved scope or sandbox permissions.",
+    task,
+  ].join("\n\n");
 
 /** Общий контракт поиска; фактические разрешения задаёт sandbox родительской сессии. */
 export const REPOSITORY_SEARCH_INSTRUCTIONS = [

@@ -1,0 +1,52 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskParticipants.module.css
+ * @version 1.0.0
+ * @date 2026-09-17
+ * @description Оформляет аватары людей и агентов.
+ */
+
+.participants {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+.avatar {
+  width: 25px;
+  height: 25px;
+  border: 2px solid var(--ui-color-surface);
+  border-radius: 50%;
+  background: color-mix(
+    in srgb,
+    var(--ui-color-secondary) 13%,
+    var(--ui-color-surface)
+  );
+  color: var(--ui-color-secondary);
+  font-size: 8px;
+  font-weight: 600;
+  margin-left: -4px;
+}
+.avatar:first-child {
+  margin-left: 0;
+}
+.avatar[data-agent="true"] {
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 12%,
+    var(--ui-color-surface)
+  );
+  color: var(--ui-color-primary);
+}
+.muted {
+  color: var(--ui-color-muted);
+}
+.runBadge {
+  white-space: nowrap;
+}
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  font-size: 10px;
+}

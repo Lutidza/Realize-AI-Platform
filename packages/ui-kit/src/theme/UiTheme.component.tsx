@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/theme/UiTheme.component.tsx
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-17
  * @description Применяет семантические токены UI-кита к дочернему интерфейсу.
  */
 
@@ -9,10 +9,15 @@ import type { UiThemeProps } from "./UiTheme.types";
 import styles from "./UiTheme.module.css";
 
 /** Ограничивает тему поддеревом; не меняет глобальные стили приложения. */
-export const UiTheme = ({ className = "", mode, ...props }: UiThemeProps) => (
+export const UiTheme = ({
+  className = "",
+  mode,
+  baseline = false,
+  ...props
+}: UiThemeProps) => (
   <div
     {...props}
-    className={`${styles.theme} ${className}`}
+    className={`${styles.theme} ${baseline ? styles.baseline : ""} ${className}`}
     data-ui-theme={mode}
   />
 );

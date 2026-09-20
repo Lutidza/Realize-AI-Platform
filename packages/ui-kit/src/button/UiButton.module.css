@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/button/UiButton.module.css
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-18
  * @description Оформляет общие варианты кнопок через семантические токены UI-кита.
  */
 
@@ -49,30 +49,33 @@
 }
 
 .secondary {
-  background:
-    linear-gradient(var(--ui-color-surface), var(--ui-color-surface))
-      padding-box,
-    linear-gradient(
-        135deg,
-        color-mix(in srgb, var(--ui-color-primary) 45%, var(--ui-color-border)),
-        color-mix(
-          in srgb,
-          var(--ui-color-secondary) 30%,
-          var(--ui-color-border)
-        )
-      )
-      border-box;
+  border-color: color-mix(in srgb, var(--ui-color-border) 70%, transparent);
+  background: var(--ui-color-surface-raised);
   color: var(--ui-color-text);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--ui-color-text) 4%, transparent);
 }
 
 .secondary:hover:not(:disabled) {
-  background:
-    linear-gradient(
-        var(--ui-color-surface-raised),
-        var(--ui-color-surface-raised)
-      )
-      padding-box,
-    var(--ui-gradient-accent) border-box;
+  border-color: color-mix(
+    in srgb,
+    var(--ui-color-primary) 22%,
+    var(--ui-color-border)
+  );
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 8%,
+    var(--ui-color-surface-raised)
+  );
+}
+
+.secondary:active:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 13%,
+    var(--ui-color-surface-raised)
+  );
+  box-shadow: inset 0 1px 2px
+    color-mix(in srgb, var(--ui-color-text) 6%, transparent);
 }
 
 .ghost {
@@ -124,9 +127,12 @@
 }
 
 .button:disabled {
+  cursor: not-allowed;
+}
+
+.button:disabled:not([data-disabled-appearance="preserved"]) {
   opacity: 0.5;
   box-shadow: none;
-  cursor: not-allowed;
 }
 
 @media (prefers-reduced-motion: reduce) {

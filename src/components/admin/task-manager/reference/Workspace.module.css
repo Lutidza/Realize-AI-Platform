@@ -1,0 +1,677 @@
+/**
+ * @file src/components/admin/task-manager/reference/Workspace.module.css
+ * @version 1.3.0
+ * @date 2026-09-18
+ * @description Оформляет каталог и настройки сред токенами общего интерфейса Realize.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-layout-gap);
+}
+.pageHeader h1 {
+  margin: 4px 0 6px;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.pageHeader p,
+.sectionIntro p {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.eyebrow {
+  font-size: 10px;
+  font-weight: 650;
+  color: var(--ui-color-muted);
+  letter-spacing: 0.08em;
+}
+.catalogToolbar {
+  display: flex;
+  gap: var(--ui-layout-gap);
+  justify-content: space-between;
+}
+.search {
+  flex: 1;
+  max-width: 430px;
+  min-width: 0;
+}
+.catalogToolbar > select {
+  max-width: 220px;
+}
+.catalog {
+  min-width: 0;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  overflow: hidden;
+}
+.catalogHeader,
+.catalogRow {
+  display: grid;
+  grid-template-columns:
+    minmax(240px, 2fr) minmax(115px, 1fr) minmax(120px, 1fr)
+    minmax(105px, 0.9fr) 150px;
+  align-items: center;
+  gap: var(--ui-layout-gap);
+  padding: var(--ui-layout-gap);
+}
+.catalogHeader {
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  background: var(--ui-color-surface-raised);
+}
+.catalogRow + .catalogRow {
+  border-top: 1px solid var(--ui-color-border);
+}
+.identity,
+.settingsIdentity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.identity > div,
+.settingsIdentity > div {
+  min-width: 0;
+}
+.identity p {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+.identity small {
+  display: block;
+  font-size: 11px;
+  color: var(--ui-color-muted);
+  margin-top: 5px;
+}
+.page .nameButton {
+  min-height: 0;
+  padding: 0;
+  display: block;
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspaceAvatar,
+.switcherAvatar,
+.colorChoice {
+  --workspace-accent: var(--ui-color-primary);
+}
+[data-color="blue"].workspaceAvatar,
+[data-color="blue"].switcherAvatar,
+[data-color="blue"].colorChoice {
+  --workspace-accent: var(--ui-color-info);
+}
+[data-color="green"].workspaceAvatar,
+[data-color="green"].switcherAvatar,
+[data-color="green"].colorChoice {
+  --workspace-accent: var(--ui-color-success);
+}
+[data-color="amber"].workspaceAvatar,
+[data-color="amber"].switcherAvatar,
+[data-color="amber"].colorChoice {
+  --workspace-accent: var(--ui-color-warning);
+}
+[data-color="rose"].workspaceAvatar,
+[data-color="rose"].switcherAvatar,
+[data-color="rose"].colorChoice {
+  --workspace-accent: var(--ui-color-danger);
+}
+.workspaceAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  color: var(--workspace-accent);
+  background: color-mix(
+    in srgb,
+    var(--workspace-accent) 12%,
+    var(--ui-color-surface)
+  );
+}
+.metric {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 12px;
+}
+.metric strong {
+  display: block;
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+}
+.metric small {
+  color: var(--ui-color-muted);
+  font-size: 11px;
+}
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 46px 20px;
+  text-align: center;
+  color: var(--ui-color-muted);
+}
+.empty h1,
+.empty h2 {
+  color: var(--ui-color-text);
+  font-size: 18px;
+  font-weight: 600;
+}
+.empty p {
+  font-size: 13px;
+}
+.settingsCard {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  width: 100%;
+  max-width: 940px;
+  padding: var(--ui-layout-gap);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+}
+.settingsStack {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.sectionIntro h2 {
+  font-size: 17px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.formFields {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.fieldset {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+.field input,
+.field textarea,
+.field select {
+  width: 100%;
+  min-width: 0;
+}
+.field small {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ui-color-muted);
+  line-height: 1.5;
+}
+.appearance {
+  display: flex;
+  gap: var(--ui-layout-gap);
+  align-items: flex-start;
+}
+.appearance > .workspaceAvatar {
+  margin-top: 25px;
+  width: 58px;
+  height: 58px;
+}
+.appearanceFields {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.choices legend {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.choices button[aria-pressed="true"] {
+  border-color: var(--ui-color-primary);
+  background: color-mix(in srgb, var(--ui-color-primary) 12%, transparent);
+}
+.colorChoice > span {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: var(--workspace-accent);
+}
+.formActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+.saveBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 20px;
+  border-top: 1px solid var(--ui-color-border);
+}
+.saveBar > span {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.error,
+.success,
+.accessNote {
+  padding: 12px 15px;
+  border-radius: var(--ui-radius-sm);
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.error {
+  color: var(--ui-color-danger);
+  background: color-mix(in srgb, var(--ui-color-danger) 8%, transparent);
+}
+.success {
+  color: var(--ui-color-success);
+  background: color-mix(in srgb, var(--ui-color-success) 8%, transparent);
+}
+.accessNote {
+  color: var(--ui-color-muted);
+  background: var(--ui-color-surface-raised);
+}
+.accessNote > button {
+  display: flex;
+  margin-top: 8px;
+}
+.error ul {
+  padding-inline-start: 18px;
+}
+.addMember {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+.addMember > button {
+  min-height: 42px;
+}
+.memberList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+}
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  min-width: 0;
+}
+.memberRow + .memberRow {
+  border-top: 1px solid var(--ui-color-border);
+}
+.memberAvatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--ui-color-surface-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--ui-color-muted);
+}
+.memberName {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+}
+.memberName strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.memberName small {
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.memberRow > select {
+  width: 170px;
+  min-width: 0;
+}
+.ownerBadge {
+  color: var(--ui-color-primary);
+  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ui-color-primary) 8%, transparent);
+}
+.roleGuide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.roleGuide dt {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.roleGuide dd {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ui-color-muted);
+}
+.archiveSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+}
+.switcher {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  border-radius: var(--ui-radius-sm);
+  transition: background-color 160ms ease;
+}
+.switcher:is(:hover, :focus-within, [data-state="open"]) {
+  background: var(--ui-color-surface-raised);
+}
+.switcher .switcherTrigger {
+  flex: 1;
+  justify-content: flex-start;
+  height: 40px;
+  min-height: 40px;
+  padding: 4px 6px;
+  gap: 8px;
+  min-width: 0;
+  width: 0;
+  border: 0;
+  background: transparent;
+}
+.switcher .switcherTrigger:hover,
+.switcher .switcherSettings:hover {
+  background: transparent;
+}
+.switcherAvatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: color-mix(
+    in srgb,
+    var(--workspace-accent) 13%,
+    var(--ui-color-surface)
+  );
+  color: var(--workspace-accent);
+}
+.switcherText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 0;
+  text-align: left;
+}
+.switcherText small {
+  color: var(--ui-color-muted);
+  font-size: 10px;
+  line-height: 13px;
+  font-weight: 400;
+}
+.switcherText strong {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  color: var(--ui-color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.switcher[data-variant="toolbar"] {
+  width: min(100%, 260px);
+}
+.switcher[data-variant="toolbar"] .switcherTrigger {
+  height: 36px;
+  min-height: 36px;
+  padding: 3px 8px;
+}
+.switcher[data-variant="toolbar"] .switcherText small {
+  display: none;
+}
+.switcher[data-variant="toolbar"] .switcherText strong {
+  font-size: 13px;
+}
+.switcher .switcherSettings {
+  width: 32px;
+  height: 40px;
+  min-height: 40px;
+  padding: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--ui-color-muted);
+  flex-shrink: 0;
+}
+.switcher .switcherSettings:hover {
+  color: var(--ui-color-primary);
+}
+.switcherMenu {
+  --workspace-row-height: 40px;
+  z-index: 900;
+  width: 300px;
+  max-width: calc(100vw - 16px);
+  max-height: var(--radix-dropdown-menu-content-available-height);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  box-shadow: var(--ui-shadow-surface);
+  outline: none;
+}
+/* Внешняя поверхность не обрезает указатель. Прокручивается только средняя область. */
+.switcherBody {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(var(--radix-dropdown-menu-content-available-height) - 2px);
+  padding: 6px;
+  box-sizing: border-box;
+  min-height: 0;
+}
+.switcherSearch {
+  padding: 4px 4px 8px;
+  flex-shrink: 0;
+}
+.switcherList {
+  min-height: 0;
+  max-height: calc(5 * var(--workspace-row-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.switcherItem,
+.showMore {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  height: var(--workspace-row-height);
+  min-height: var(--workspace-row-height);
+  box-sizing: border-box;
+  font-size: 13px;
+  line-height: 18px;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.switcherItem > span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.switcherItem > svg {
+  flex-shrink: 0;
+  color: var(--ui-color-muted);
+}
+.switcherItem[data-highlighted],
+.showMore[data-highlighted] {
+  background: var(--ui-color-surface-raised);
+}
+.showMore {
+  justify-content: center;
+  color: var(--ui-color-primary);
+  font-size: 12px;
+}
+.showMore > span {
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.menuSeparator {
+  height: 1px;
+  background: var(--ui-color-border);
+  margin: 5px 4px;
+  flex-shrink: 0;
+}
+.smallEmpty {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+@media (max-width: 1200px) {
+  .catalogHeader {
+    display: none;
+  }
+  .catalogRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  }
+  .catalogRow .identity {
+    grid-column: 1 / -1;
+  }
+  .catalogRow .rowActions {
+    grid-column: 3;
+    grid-row: 2 / 4;
+  }
+}
+@media (max-width: 700px) {
+  .pageHeader {
+    flex-direction: column;
+  }
+  .pageHeader h1 {
+    font-size: 23px;
+  }
+  .catalogToolbar {
+    flex-direction: column;
+  }
+  .catalogToolbar > select {
+    max-width: none;
+    width: 100%;
+  }
+  .search {
+    max-width: none;
+  }
+  .catalogRow {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .catalogRow .rowActions {
+    grid-row: auto;
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .saveBar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .saveBar .formActions {
+    width: 100%;
+  }
+  .addMember {
+    grid-template-columns: 1fr;
+  }
+  .memberRow {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .memberName {
+    flex-basis: calc(100% - 45px);
+  }
+  .memberRow > select {
+    flex: 1;
+    width: auto;
+  }
+  .roleGuide {
+    grid-template-columns: 1fr;
+  }
+}
+@media (pointer: coarse) {
+  .switcher .switcherSettings {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+  }
+  .switcher .switcherTrigger {
+    height: 44px;
+    min-height: 44px;
+  }
+  .switcherMenu {
+    --workspace-row-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switcher {
+    transition: none;
+  }
+}

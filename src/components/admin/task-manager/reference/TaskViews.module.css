@@ -1,0 +1,368 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskViews.module.css
+ * @version 1.1.2
+ * @date 2026-09-18
+ * @description Задаёт компоновку списка, таблицы и доски с едиными доступными контролами.
+ */
+
+.views {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.treeToolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--ui-layout-gap);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}
+.treeToolbar label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.treeToolbar select {
+  width: 190px;
+  min-height: 34px;
+  font-size: 12px;
+}
+.taskNameRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 2px;
+}
+.taskNameRow .treeToggle,
+.treeSpacer {
+  flex: 0 0 26px;
+  width: 26px;
+}
+.taskNameRow .treeToggle {
+  height: 30px;
+}
+.taskTable tr[data-context="true"] {
+  background: var(--ui-color-bg);
+  color: var(--ui-color-muted);
+}
+.taskGroups {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-layout-gap);
+}
+.groupHeading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--ui-layout-gap);
+  min-height: 38px;
+}
+.groupHeading h2 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+}
+.count {
+  font-size: 12px;
+  color: var(--ui-color-muted);
+  min-width: 22px;
+  text-align: center;
+}
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ui-color-muted);
+}
+[data-status="in_progress"] .statusDot {
+  background: var(--ui-color-primary);
+}
+[data-status="ready"] .statusDot {
+  background: var(--ui-color-secondary);
+}
+[data-status="review"] .statusDot {
+  background: #bd891c;
+}
+[data-status="done"] .statusDot {
+  background: var(--ui-color-success);
+}
+.taskGroup {
+  min-width: 0;
+}
+.tableScroll {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 10px;
+}
+.taskTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.taskTable th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ui-color-muted);
+  padding: 11px 10px;
+  background: var(--ui-color-bg);
+  white-space: nowrap;
+}
+.taskTable td {
+  padding: 7px 8px;
+  border-top: 1px solid var(--ui-color-border);
+  height: 62px;
+}
+.taskTable tr:hover {
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 3%,
+    var(--ui-color-surface)
+  );
+}
+.taskTable tr[data-selected="true"] {
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 7%,
+    var(--ui-color-surface)
+  );
+}
+.taskTable .selectionCell {
+  width: 36px;
+  text-align: center;
+  padding-left: 12px;
+  padding-right: 6px;
+}
+.views input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--ui-color-primary);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.nameCell {
+  min-width: 260px;
+  width: 100%;
+}
+.nameCell .taskTitle {
+  text-align: left;
+  width: 100%;
+  justify-content: flex-start;
+  white-space: normal;
+  line-height: 1.5;
+  font-size: 13px;
+  font-weight: 500;
+}
+.taskTitle > span:first-of-type {
+  flex: 1;
+}
+.taskTitle small {
+  display: block;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  font-weight: 400;
+  margin-top: 4px;
+}
+.taskTitle svg {
+  flex-shrink: 0;
+}
+.childCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+}
+.taskTable .inlineStatus {
+  width: 126px;
+}
+.taskTable .inlinePriority {
+  width: 116px;
+}
+.taskTable .inlineDate {
+  width: 137px;
+}
+.taskTable select,
+.taskTable input[type="date"] {
+  font-size: 12px;
+  min-height: 34px;
+}
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.rowActions button {
+  color: var(--ui-color-muted);
+}
+.progressCell {
+  min-width: 86px;
+  white-space: nowrap;
+}
+.progressCell progress {
+  display: block;
+  width: 70px;
+  height: 5px;
+  margin-bottom: 6px;
+  accent-color: var(--ui-color-primary);
+}
+.progressCell small {
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.groupEmpty {
+  margin: 0;
+  padding: var(--ui-layout-gap);
+  font-size: 13px;
+  color: var(--ui-color-muted);
+}
+.board {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-layout-gap);
+  overflow: auto;
+}
+.boardColumn {
+  flex: 1 0 290px;
+  min-width: 290px;
+  max-width: 340px;
+  border-radius: 12px;
+  background: var(--ui-color-bg);
+  padding: var(--ui-layout-gap);
+  border: 1px solid var(--ui-color-border);
+}
+.boardColumn .groupHeading {
+  margin-bottom: var(--ui-layout-gap);
+  padding-left: 6px;
+}
+.boardColumn .groupHeading > button {
+  margin-left: auto;
+}
+.boardCards {
+  display: grid;
+  gap: var(--ui-layout-gap);
+}
+.taskCard {
+  padding: var(--ui-layout-gap);
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+}
+.taskCard[data-selected="true"] {
+  border-color: var(--ui-color-primary);
+}
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.cardTop label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cardTop [data-priority="high"],
+.cardTop [data-priority="urgent"] {
+  color: var(--ui-color-danger);
+}
+.taskCard .cardTitle {
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  font-size: 14px;
+  line-height: 1.55;
+  width: 100%;
+}
+.cardTags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.cardTags:empty {
+  display: none;
+}
+.cardMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+.cardMeta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cardProgress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ui-color-muted);
+}
+.cardProgress progress {
+  width: 100%;
+  height: 5px;
+  accent-color: var(--ui-color-primary);
+}
+.cardFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--ui-color-border);
+  padding-top: 10px;
+}
+.bulkBar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px;
+  background: var(--ui-color-surface-raised);
+  border: 1px solid var(--ui-color-primary);
+  border-radius: 10px;
+  font-size: 13px;
+  box-shadow: var(--ui-shadow-control);
+}
+.bulkBar select {
+  width: 190px;
+}
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 70px 20px;
+  color: var(--ui-color-muted);
+}
+.empty h3,
+.empty p {
+  margin: 0;
+}
+.srOnly {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

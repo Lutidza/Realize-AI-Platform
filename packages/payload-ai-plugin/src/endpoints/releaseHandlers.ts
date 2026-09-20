@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/releaseHandlers.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.1.1
+ * @date 2026-09-17
  * @description Ставит accepted preview в OCI-очередь и хранит отдельное release approval.
  */
 
@@ -20,6 +20,7 @@ import {
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
 import { requireCodexChatTool } from "./requireCodexChatTool.service";
+import { readWorkerPresence } from "../integrations/runtime/readWorkerPresence.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import {
   consumeRateLimit,
@@ -36,6 +37,7 @@ import { ReleaseRepository } from "./releaseRepository";
 import { idempotencyKeyFor, readBody, withHandler } from "./request";
 import { requireAcceptedPreviewBinding } from "./previewAcceptanceGuard";
 import { SourcePromotionRepository } from "./sourcePromotionRepository";
+import { releaseWorkerUnavailableReason } from "./releaseWorkerReadiness.validator";
 
 const stringArray = (value: unknown): string[] =>
   Array.isArray(value)
@@ -515,6 +517,14 @@ export const createReleaseHandlers = (
       deployment,
       expectedVersion: input.expectedVersion,
     });
+
+    const workerReason = releaseWorkerUnavailableReason(
+      await readWorkerPresence(req),
+      changeRequestID,
+    );
+    if (workerReason) {
+      throw new EndpointError("CONFLICT", workerReason, 409);
+    }
 
     const candidateKey = createReleaseCandidateKey({
       changeRequestID,

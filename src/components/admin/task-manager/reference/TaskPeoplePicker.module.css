@@ -1,0 +1,152 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskPeoplePicker.module.css
+ * @version 1.0.0
+ * @date 2026-09-17
+ * @description Компоновка компактного выбора участников на токенах UI-кита.
+ */
+.picker {
+  position: relative;
+  min-width: 0;
+}
+.picker summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-2);
+  min-height: var(--ui-control-height);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  cursor: pointer;
+  list-style: none;
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface);
+  font-size: 12px;
+}
+.picker summary::-webkit-details-marker {
+  display: none;
+}
+.picker summary:hover {
+  background: var(--ui-color-surface-raised);
+}
+.picker summary:focus-visible {
+  outline: none;
+  box-shadow: var(--ui-focus-ring);
+}
+.selection {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+.selection > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.avatars {
+  display: flex;
+  padding-left: var(--ui-space-1);
+}
+.avatars > span,
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  background: var(--ui-color-surface-raised);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 650;
+}
+.avatars > span {
+  margin-left: -4px;
+}
+.avatar[data-kind="agent"],
+.avatars > span[data-kind="agent"] {
+  color: var(--ui-color-primary);
+}
+.popover {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  z-index: 10;
+  inset: calc(100% + 4px) 0 auto;
+  min-width: min(290px, 100%);
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-surface);
+}
+.popover[data-placement="top"] {
+  inset: auto 0 calc(100% + 4px);
+}
+.search {
+  flex-shrink: 0;
+  position: relative;
+  margin-bottom: var(--ui-space-2);
+}
+.search > svg {
+  position: absolute;
+  left: var(--ui-space-3);
+  top: 14px;
+  color: var(--ui-color-muted);
+}
+.search input {
+  padding-left: var(--ui-space-8);
+}
+.options {
+  min-height: 0;
+  flex: 1 1 auto;
+  max-height: 230px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-2);
+  border-radius: var(--ui-radius-sm);
+  cursor: pointer;
+}
+.option:hover {
+  background: var(--ui-color-surface-raised);
+}
+.option input {
+  accent-color: var(--ui-color-primary);
+  margin: 0;
+}
+.option > span:last-child {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.option strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.option small {
+  font-size: 10px;
+  color: var(--ui-color-muted);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.hint,
+.empty {
+  color: var(--ui-color-muted);
+  font-size: 10px;
+  padding: var(--ui-space-2);
+  margin: 0;
+}
+.hint {
+  flex-shrink: 0;
+  border-top: 1px solid var(--ui-color-border);
+  margin-top: var(--ui-space-1);
+}
+.muted {
+  color: var(--ui-color-muted);
+}

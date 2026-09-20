@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/button/UiButton.component.tsx
- * @version 1.1.1
- * @date 2026-09-15
+ * @version 1.2.0
+ * @date 2026-09-18
  * @description Отображает общую кнопку с вариантами и состояниями UI-кита.
  */
 
@@ -14,6 +14,7 @@ export const UiButton = ({
   size = "default",
   type = "button",
   variant = "primary",
+  disabledAppearance = "muted",
   ...props
 }: UiButtonProps) => (
   <button
@@ -21,6 +22,7 @@ export const UiButton = ({
     {...props}
     className={getUiButtonClassName({ className, size, variant })}
     data-ui="button"
+    data-disabled-appearance={disabledAppearance}
     type={type}
   />
 );

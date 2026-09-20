@@ -1,0 +1,72 @@
+/**
+ * @file packages/ui-kit/src/input/UiSearchInput.module.css
+ * @version 1.0.0
+ * @date 2026-09-18
+ * @description Оформляет поисковые поля общей поверхностью и состоянием focus вместо локальных обёрток.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  box-sizing: border-box;
+  min-width: 0;
+  height: 38px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-color-muted);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-surface-raised) 75%,
+    var(--ui-color-surface)
+  );
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+.search:hover {
+  background: var(--ui-color-surface-raised);
+}
+.search:focus-within {
+  background: var(--ui-color-surface);
+  border-color: color-mix(
+    in srgb,
+    var(--ui-color-primary) 48%,
+    var(--ui-color-border)
+  );
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--ui-color-primary) 10%, transparent);
+  color: var(--ui-color-primary);
+}
+.search > svg {
+  flex-shrink: 0;
+  pointer-events: none;
+}
+.search .input {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 18px;
+}
+.search[data-density="compact"] {
+  height: 34px;
+  padding-inline: 9px;
+  gap: 7px;
+}
+.search[data-density="compact"] .input {
+  font-size: 12px;
+}
+@media (pointer: coarse) {
+  .search,
+  .search[data-density="compact"] {
+    height: 44px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .search {
+    transition: none;
+  }
+}

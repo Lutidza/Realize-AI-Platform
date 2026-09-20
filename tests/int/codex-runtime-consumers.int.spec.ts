@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codex-runtime-consumers.int.spec.ts
- * @version 1.1.1
- * @date 2026-09-15
+ * @version 1.1.2
+ * @date 2026-09-16
  * @description Проверяет интеграцию, сохранение пояснений при отказе и границы отдельного этапа исполнения.
  */
 
@@ -130,7 +130,23 @@ describe("Codex reviewer integration consumer", () => {
     expect(test.input.codex.acquire).toHaveBeenCalledExactlyOnceWith({
       isolated: true,
     });
-    const instructions = mock.turn.mock.calls[0]?.[0].developerInstructions;
+    const turn = mock.turn.mock.calls[0]?.[0];
+    expect(turn.prompt).toContain("Use a native repository-search sub-agent");
+    expect(turn.prompt).toContain("bounded read-only repository discovery");
+    expect(turn.prompt).toContain("wait for the actual findings");
+    expect(turn.prompt).toContain("close the child");
+    expect(turn.prompt).toContain("Do not delegate edits, validation commands");
+    expect(turn.prompt).toContain(
+      `Original request: ${test.input.job.originalRequest}`,
+    );
+    expect(turn.prompt).toContain(`Approved plan: ${test.input.job.plan}`);
+    expect(turn.prompt).toContain(
+      `Accepted diff SHA-256: ${test.input.job.sourceDiffHash}.`,
+    );
+    expect(turn.prompt).toContain(
+      `Approved paths: ${JSON.stringify(test.input.job.allowedPaths)}.`,
+    );
+    const instructions = turn.developerInstructions;
     expect(instructions).toContain(
       "separate native repository-search sub-agent",
     );
@@ -388,9 +404,18 @@ describe("Codex implementation integration consumer", () => {
     });
     await executeClaimedJob(test.executionInput);
     const input = mock.turn.mock.calls[0]?.[0];
-    expect(input.prompt).toBe(
-      `приступай\n\nApproved implementation plan:\n${plan}`,
+    expect(input.prompt).toContain("Use a native repository-search sub-agent");
+    expect(input.prompt).toContain("bounded read-only repository discovery");
+    expect(input.prompt).toContain("wait for the actual findings");
+    expect(input.prompt).toContain("close the child");
+    expect(input.prompt).toContain(
+      "Do not delegate edits, validation commands",
     );
+    expect(
+      input.prompt.endsWith(
+        `приступай\n\nApproved implementation plan:\n${plan}`,
+      ),
+    ).toBe(true);
     expect(input.sandboxProfile).toBe("code-workspace-write");
     expect(input.developerInstructions).toContain(
       "separate from the earlier planning chat",
@@ -417,5 +442,6 @@ describe("Codex implementation integration consumer", () => {
       "do not delegate writes, checks or the verdict",
     );
     expect(test.executionInput.job.plan).toBe(plan);
+    expect(test.executionInput.job.originalRequest).toBe("приступай");
   });
 });

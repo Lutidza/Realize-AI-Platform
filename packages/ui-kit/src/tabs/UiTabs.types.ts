@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/tabs/UiTabs.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-17
  * @description Описывает управляемые вкладки с сохраняемым содержимым панелей.
  */
 
@@ -21,4 +21,5 @@ export type UiTabsProps = {
   value: string;
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  appearance?: "pills" | "underline";
 };

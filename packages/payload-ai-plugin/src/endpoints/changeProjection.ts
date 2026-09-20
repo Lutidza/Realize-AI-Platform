@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeProjection.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.1
+ * @date 2026-09-17
  * @description Собирает Change Request DTO с execution, preview, source и release evidence.
  */
 
@@ -16,6 +16,8 @@ import { ExecutionRepository } from "./executionRepository";
 import { toChangeRequestDTO } from "./mappers";
 import { ReleaseRepository } from "./releaseRepository";
 import { SourcePromotionRepository } from "./sourcePromotionRepository";
+import { previewPromotionReason } from "./previewPromotionGuard";
+import { releaseWorkerUnavailableReason } from "./releaseWorkerReadiness.validator";
 
 const jobReason = (job: AIDocument, acceptance?: AIDocument): string => {
   if (acceptance?.decision === "approved") {
@@ -219,23 +221,25 @@ export const projectChangeRequest = async (input: {
     }
   }
 
-  let previewReason: string | undefined;
-  if (deployment) {
-    previewReason = deploymentReason(deployment, input.previewAcceptance);
-  } else if (!input.options.preview.enabled) {
-    previewReason = "Local preview worker отключён конфигурацией.";
-  } else if (input.acceptance?.decision !== "approved") {
-    previewReason = "Сначала примите точный diff и его check evidence.";
-  } else if (!job || job.status !== "completed") {
-    previewReason = "Verified implementation artifact отсутствует.";
-  } else if (job.diffTruncated === true || !job.diffHash || !job.evidenceHash) {
-    previewReason = "Нельзя promoted сокращённый или неполный diff artifact.";
-  } else if (input.change.state !== "changes_accepted") {
-    previewReason = "Change Request не находится в состоянии changes_accepted.";
-  } else if (Date.parse(String(job.artifactsExpireAt || "")) <= Date.now()) {
-    previewReason =
-      "Implementation artifact истёк; требуется новое выполнение.";
-  }
+  const previewEligibilityReason = previewPromotionReason({
+    acceptance: input.acceptance,
+    change: input.change,
+    deployment,
+    job,
+    previewAcceptance: input.previewAcceptance,
+  });
+  const previewEnabled =
+    input.options.execution.enabled &&
+    input.options.preview.enabled &&
+    !previewEligibilityReason;
+  let previewReason: string | undefined =
+    !input.options.preview.enabled || !input.options.execution.enabled
+      ? "Local preview worker отключён конфигурацией."
+      : previewEnabled
+        ? undefined
+        : deployment && deployment.status !== "failed"
+          ? deploymentReason(deployment, input.previewAcceptance)
+          : previewEligibilityReason;
 
   let candidateReason: string | undefined;
   if (releaseCandidate) {
@@ -281,6 +285,11 @@ export const projectChangeRequest = async (input: {
   }
 
   const presence = await presenceRead;
+  if (!releaseCandidate && !candidateReason)
+    candidateReason = releaseWorkerUnavailableReason(
+      presence,
+      String(input.change.id),
+    );
   const worker = mapWorkerAvailability(presence, {
     operation: "execution",
     assignedInstanceKey,
@@ -328,7 +337,7 @@ export const projectChangeRequest = async (input: {
     executionJob: job,
     executionReason,
     previewAcceptance: input.previewAcceptance,
-    previewEnabled: !deployment && !previewReason,
+    previewEnabled,
     previewReason,
     releaseApproval: input.releaseApproval,
     releaseCandidate,

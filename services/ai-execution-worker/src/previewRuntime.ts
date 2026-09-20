@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/previewRuntime.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.0.1
+ * @date 2026-09-17
  * @description Запускает изолированный loopback preview с копией БД и запретом AI runtime.
  * @owner services/ai-execution-worker
  * @purpose Starts and safely stops an exact-build loopback preview with a sanitized DB clone.
@@ -134,6 +134,7 @@ export const startLocalPreview = async (input: {
   commit: PromotionCommit;
   config: ExecutionWorkerConfig;
   job: ClaimedPreviewDeployment;
+  targetPath: string;
   workspace: string;
 }): Promise<LocalPreviewRuntime> => {
   const runtimeRoot = safeRuntimeRoot({
@@ -168,7 +169,8 @@ export const startLocalPreview = async (input: {
     await cp(publicSource, publicTarget, { force: true, recursive: true });
     await cp(staticSource, staticTarget, { force: true, recursive: true });
     const port = await findPort(input.config);
-    const previewURL = `http://${input.config.previewHost}:${port}`;
+    const origin = `http://${input.config.previewHost}:${port}`;
+    const previewURL = new URL(input.targetPath, origin).href;
     const log = await open(join(runtimeRoot, "preview.log"), "a", 0o600);
     const child = spawn(process.execPath, [serverFile], {
       cwd: standalone,
@@ -178,7 +180,7 @@ export const startLocalPreview = async (input: {
         databaseURL: cloned.databaseURL,
         host: input.config.previewHost,
         port,
-        previewURL,
+        previewURL: origin,
       }),
       stdio: ["ignore", log.fd, log.fd],
     });
@@ -187,7 +189,7 @@ export const startLocalPreview = async (input: {
     await log.close();
     if (!processID) throw new Error("Preview process did not receive a PID.");
     const healthSummary = await waitForReadiness(
-      previewURL,
+      origin,
       input.config.previewStartupTimeoutMs,
     );
     return {

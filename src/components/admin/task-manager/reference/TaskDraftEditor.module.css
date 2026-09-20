@@ -1,0 +1,369 @@
+/**
+ * @file src/components/admin/task-manager/reference/TaskDraftEditor.module.css
+ * @version 1.2.0
+ * @date 2026-09-18
+ * @description Компоновка полного черновика задачи с разделами и адаптивными полями.
+ */
+
+.avatarEditor {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+}
+.avatarControls {
+  display: grid;
+  gap: 4px;
+}
+.avatarControls > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.avatarControls small {
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.editor,
+.stack {
+  display: grid;
+  gap: var(--ui-space-5);
+  min-width: 0;
+}
+.taskIdentity {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-space-4);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  font-size: 13px;
+}
+.field > span {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  font-weight: 550;
+}
+.field input,
+.field select,
+.field textarea {
+  min-width: 0;
+}
+.fieldHint {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.locationContext {
+  margin: 0;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-color-muted);
+  background: var(--ui-color-bg);
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.field [aria-invalid="true"] {
+  border-color: var(--ui-color-danger);
+}
+.twoColumns,
+.threeColumns {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+.twoColumns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.threeColumns {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.fullWidth {
+  grid-column: 1 / -1;
+}
+.tabContent {
+  padding-top: var(--ui-space-5);
+  min-height: 320px;
+}
+.section {
+  display: grid;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+.section + .section {
+  border-top: 1px solid var(--ui-color-border);
+  padding-top: var(--ui-space-5);
+}
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  min-width: 0;
+}
+.sectionHeading > div {
+  min-width: 0;
+}
+.sectionHeading h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+}
+.sectionHeading p {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: var(--ui-space-1) 0 0;
+}
+.counter {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.callout {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border: 1px solid var(--ui-color-border);
+  background: var(--ui-color-bg);
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 0;
+}
+.empty {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: var(--ui-space-2) 0;
+}
+.error {
+  color: var(--ui-color-danger);
+  margin: var(--ui-space-1) 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.errorSummary {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  border: 1px solid var(--ui-color-danger);
+  border-radius: var(--ui-radius-sm);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-danger) 6%,
+    var(--ui-color-surface)
+  );
+  font-size: 13px;
+}
+.errorSummary ul {
+  padding-left: var(--ui-space-5);
+  margin: var(--ui-space-2) 0 0;
+}
+.errorSummary li {
+  margin: var(--ui-space-1) 0;
+}
+.criterionRow {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: var(--ui-space-2);
+  align-items: center;
+}
+.criterionRow > input[type="checkbox"],
+.checkbox input,
+.selectionRow input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ui-color-primary);
+  flex-shrink: 0;
+  margin: 0;
+}
+.rowActions {
+  display: flex;
+  gap: var(--ui-space-1);
+  align-items: center;
+  flex-shrink: 0;
+}
+.checklist {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-4);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  min-width: 0;
+  background: var(--ui-color-surface);
+}
+.listHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+.listHeading > input {
+  flex: 1;
+  min-width: 0;
+}
+.checklistItem {
+  display: grid;
+  gap: var(--ui-space-3);
+  padding-bottom: var(--ui-space-3);
+  border-bottom: 1px solid var(--ui-color-border);
+}
+.itemMetadata {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--ui-space-3);
+  margin-left: 26px;
+  align-items: end;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  min-height: var(--ui-control-height);
+  font-size: 12px;
+  cursor: pointer;
+}
+.progress {
+  width: 100%;
+  height: 4px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--ui-radius-sm);
+  overflow: hidden;
+  background: var(--ui-color-surface-raised);
+  color: var(--ui-color-success);
+}
+.progress::-webkit-progress-bar {
+  background: var(--ui-color-surface-raised);
+}
+.progress::-webkit-progress-value {
+  background: var(--ui-color-success);
+}
+.progress::-moz-progress-bar {
+  background: var(--ui-color-success);
+}
+.selectionList {
+  display: grid;
+  align-content: start;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: var(--ui-space-2);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+}
+.selectionRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3);
+  border-radius: var(--ui-radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.selectionRow:hover {
+  background: var(--ui-color-bg);
+}
+.selectionRow input {
+  margin-top: 3px;
+}
+.selectionRow > span {
+  display: grid;
+  gap: var(--ui-space-1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.selectionRow small {
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-4);
+  width: 100%;
+}
+.footer p {
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  margin: 0;
+}
+.footerActions {
+  display: flex;
+  gap: var(--ui-space-2);
+}
+.discard {
+  display: grid;
+  gap: var(--ui-space-4);
+}
+.discard p {
+  margin: 0;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .taskIdentity {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .threeColumns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .itemMetadata {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .checkbox {
+    grid-column: 1 / -1;
+  }
+  .footer p {
+    display: none;
+  }
+  .footer {
+    justify-content: flex-end;
+  }
+}
+@media (max-width: 500px) {
+  .twoColumns,
+  .threeColumns,
+  .itemMetadata {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .criterionRow {
+    grid-template-columns: 18px minmax(0, 1fr);
+  }
+  .criterionRow > .rowActions {
+    grid-column: 2;
+    justify-content: flex-end;
+  }
+  .listHeading {
+    flex-wrap: wrap;
+  }
+  .listHeading > input {
+    flex-basis: 100%;
+  }
+  .listHeading > .rowActions {
+    margin-left: auto;
+  }
+  .checklist {
+    padding: var(--ui-space-3);
+  }
+  .itemMetadata {
+    margin-left: 0;
+  }
+  .sectionHeading {
+    align-items: flex-start;
+  }
+  .sectionHeading > .rowActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .footerActions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}

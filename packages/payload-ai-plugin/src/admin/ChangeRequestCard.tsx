@@ -1,8 +1,9 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/ChangeRequestCard.tsx
- * @version 1.0.1
- * @date 2026-09-15
+ * @version 1.0.2
+ * @date 2026-09-17
  * @description Отображает plan, implementation, preview, source promotion и release gates.
+ * @see documentation/delivery/01-local-admin-ai.md
  */
 
 "use client";
@@ -360,7 +361,11 @@ export const ChangeRequestCard = ({
           </div>
           <button disabled={pending} onClick={onDeployPreview} type="button">
             <Play size={15} fill="currentColor" />
-            {pending ? "Ставим в очередь…" : "Создать preview"}
+            {pending
+              ? "Ставим в очередь…"
+              : change.preview.deployment
+                ? "Повторить preview"
+                : "Создать preview"}
           </button>
         </div>
       ) : null}
