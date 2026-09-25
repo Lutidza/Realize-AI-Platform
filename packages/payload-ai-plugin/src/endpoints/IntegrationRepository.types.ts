@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/IntegrationRepository.types.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-23
  * @description Задаёт внутренние контракты persistence общих подключений интеграций.
  */
 
@@ -12,6 +12,8 @@ import type {
   IntegrationProviderID,
 } from "@realize/ai-contracts";
 import type { AIDocument } from "./repository";
+import type { McpServerConfiguration } from "../../../ai-contracts/src/McpServer.types";
+import type { IntegrationEventAction } from "../../../ai-contracts/src/IntegrationEvent.types";
 
 export type IntegrationFindResult = { docs: AIDocument[]; totalDocs: number };
 export type IntegrationLocalAPI = {
@@ -26,7 +28,9 @@ export type SaveIntegrationRecordInput = {
   actorID: number | string;
   category: IntegrationCategory;
   configuration:
-    GitHubIntegrationConfigurationDTO | CodexIntegrationConfigurationDTO;
+    | GitHubIntegrationConfigurationDTO
+    | CodexIntegrationConfigurationDTO
+    | McpServerConfiguration;
   connectionKey: string;
   credentialEnvelope?: string | null;
   credentialUpdatedAt?: string | null;
@@ -58,7 +62,7 @@ export type RecordGitHubTestInput = RecordIntegrationTestInput & {
 
 /** Запись безопасного audit; отсутствие provider сохраняет прежний GitHub entrypoint. */
 export type RecordIntegrationEventInput = {
-  action: "disconnected" | "saved" | "tested";
+  action: IntegrationEventAction;
   actorID: number | string;
   idempotencyKey: string;
   metadata?: Record<string, unknown>;

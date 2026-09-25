@@ -5,6 +5,8 @@
 /.playwright-mcp
 /.release
 /.runtime
+# Локальные копии временных сборок с восстановленным абсолютным путём.
+/home/
 /.data/media
 /artifacts
 /coverage

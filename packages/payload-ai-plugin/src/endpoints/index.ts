@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 2.1.0
- * @date 2026-09-14
+ * @version 2.2.0
+ * @date 2026-09-23
  * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
@@ -38,6 +38,7 @@ import {
 import { createRunEventsHandler } from "./stream";
 import { createWorkflowContinueHandler } from "../chat-context/workflowContinueHandler.controller";
 import { createWorkflowRunEndpoints } from "./workflowRunEndpoints.controller";
+import { createMcpEndpoints } from "../integrations/mcp/mcpEndpoints.controller";
 
 export const createAIEndpoints = (
   options: SanitizedRealizeAIPluginOptions,
@@ -69,6 +70,7 @@ export const createAIEndpoints = (
   );
 
   return [
+    ...createMcpEndpoints(options),
     ...createPagePublicationEndpoints(options),
     ...createPageDiscoveryEndpoints(options),
     ...createWorkflowRunEndpoints(options),

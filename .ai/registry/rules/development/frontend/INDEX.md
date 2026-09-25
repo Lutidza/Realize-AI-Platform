@@ -9,6 +9,17 @@ coverage:
   - .ai/rules/development/frontend/
   - .ai/checks/development/frontend/
 entries:
+  - entry_id: design-workshop-review
+    entry_type: supporting_check
+    status: active
+    primary_artifact: .ai/checks/development/frontend/CHECK-DESIGN-WORKSHOP-REVIEW.md
+    owner_layer: .ai/checks/development/frontend/
+    owner_roles: [.ai/roles/design/workshop-director/INDEX.md, .ai/roles/developer/frontend/INDEX.md]
+    related_rules: [.ai/rules/development/frontend/RULE-REFERENCE-PATTERN-SCAN-BEFORE-IMPLEMENTATION.md, .ai/rules/development/frontend/RULE-REUSE-BEFORE-LOCAL-IMPLEMENTATION.md, .ai/rules/development/frontend/RULE-NO-LOCAL-VISUAL-CONTRACT.md]
+    related_workflows: [.ai/workflows/frontend/design-workshop/WORKFLOW.md, .ai/workflows/frontend/next-react/guardrail/WORKFLOW.md]
+    related_codex_artifacts: [.codex/skills/design-workshop/SKILL.md]
+    routing_tags: [frontend, design, workshop, reference, theme, components]
+    trigger: "Создание или проверка референса, макета, дизайн-системы, набора компонентов или темы в Мастерской; применяется по фактическому типу результата."
   - entry_id: next-react-frontend-boundaries
     entry_type: active_rule
     status: active

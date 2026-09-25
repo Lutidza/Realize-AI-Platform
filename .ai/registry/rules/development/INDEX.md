@@ -158,12 +158,12 @@ entries:
         .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md,
       ]
     enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
-    related_rules: []
+    related_rules: [.ai/rules/worker-runtime/RULE-WORKER-DIALOG-COORDINATION.md]
     related_checks:
       [.ai/checks/pre-implementation/CHECK-SEARCH-SCOPE-DISCIPLINE.md]
     related_workflows: []
     related_codex_artifacts: []
-    related_tools: [rg]
+    related_tools: [rg, .ai/tools/agent-search/]
     routing_tags: [development, search, scope]
     trigger: "Before repository search for work_task prep, source of truth, owner-layer, similar implementation, drift or references."
 ```

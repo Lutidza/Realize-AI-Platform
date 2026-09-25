@@ -62,6 +62,22 @@ rollback_required
 - Если нужен commit/push, destructive action, secrets или scope
   expansion, подключается профильный workflow и требуется отдельный gate.
 
+## Контекст через Internal MCP (`context_pack`)
+
+При доступном `realize-internal` используй маршрут S1 из
+[MCP workflow](../../ai-operations/mcp-tooling/WORKFLOW.md):
+`ai_capabilities_list` → `ai_context_resolve` → `ai_instructions_get` для
+нужных источников. Начальный `AGENTS.md` и доступность клиента проверяются
+обычным способом. Metadata resolver-а не означает, что агент прочитал текст:
+получи необходимые порции, проверь hashes, coverage, issues и применимость
+правил до выбора owners/checks. Непрочитанные ссылки остаются непрочитанными;
+семантические противоречия требуют разбора агентом.
+
+Если MCP недоступен, читай те же `AGENTS.md`, registry и исходные документы
+напрямую и укажи fallback. Приоритет инструкций, границы задачи и профильные
+разрешения сохраняются. Этот маршрут не запускает workers, проверки или Git
+delivery и не предоставляет дополнительных прав.
+
 ## Маршрутизация DoD (`dod_routing`)
 
 Критерии готовности (`DoD`) в этом workflow являются маршрутизацией по

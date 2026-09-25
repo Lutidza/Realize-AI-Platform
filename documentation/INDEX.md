@@ -27,7 +27,7 @@ Codex-адаптеры — в `.codex/**`.
 2. [Структура проекта](architecture/project-structure.md) — фактические owners.
 3. [Master spec Realize v1.0](REALIZE_AI_COMMERCE_MASTER_SPEC_v1.0_RU.md) — target specification.
 4. [Delivery runbooks](delivery/INDEX.md) — эксплуатация текущего baseline.
-5. [MCP tooling](architecture/mcp-tooling.md) — project-specific adapter state.
+5. [MCP tooling](architecture/mcp-tooling.md) — внешние adapters, внутренний MCP и запуск Admin manager.
 6. [Architecture Decision Log](architecture/decisions/INDEX.md).
 
 Подключение аккаунта ChatGPT или API key и требования к исполнителям:
@@ -50,6 +50,13 @@ Codex-адаптеры — в `.codex/**`.
 
 ## Проекты развития
 
+- [Мастерская дизайна](specifications/design-workshop.md)
+  — проект общего инструмента референсов, компонентов и тем для Admin,
+  ChatGPT и IDE; сравнение подходов, агентский процесс и этапы runtime.
+- [Внутренний MCP Realize](specifications/internal-mcp.md)
+  — контракт реализованных A+G+S1 и последующих S2–S5/B/P/C этапов MCP;
+  [план реализации](specifications/internal-mcp-implementation-plan.md) и
+  [аудит проекта и двух слоёв ИИ](reports/PROJECT-AI-MCP-AUDIT-2026-09-20.md).
 - [Task manager для людей и ИИ-агентов](specifications/task-management.md)
   — ТЗ 0.9 и интерактивный референс: рабочие среды, проекты, папки, списки,
   полный редактор задач, участники, чеклисты, связи и модель исполнения.

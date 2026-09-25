@@ -35,6 +35,9 @@ plugin/connector и project-specific `.codex/config.toml`.
   совместимости и источника. Permission boundaries и secrets policy сохраняются.
 - При изменении контракта синхронизируй прямые rules/checks/workflow/docs;
   отдельный evolution proposal для уже запрошенной правки не нужен.
+- Для S1 используй маршрут bootstrap/context в MCP workflow: проверяй
+  фактическую доставку текста, hashes, coverage и fallback. Resolver остаётся
+  у repository/context owner; каталог tools — у MCP transport owner.
 
 Продуктовый execution worker не получает MCP permissions от этих development
 инструкций. Code defects передавай соответствующему developer owner.

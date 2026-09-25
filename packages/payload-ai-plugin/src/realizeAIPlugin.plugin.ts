@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/realizeAIPlugin.plugin.ts
- * @version 1.5.0
- * @date 2026-09-14
+ * @version 1.7.0
+ * @date 2026-09-24
  * @description Подключает коллекции, endpoints и Admin views плагина Payload.
  */
 
@@ -15,6 +15,7 @@ import { createAICollections } from "./collections";
 import { createAIEndpoints } from "./endpoints";
 import { lockPageDraftWrites } from "./endpoints/lockPageDraftWrites.hook";
 import { sanitizeOptions } from "./options";
+import { installMcpPresetsAfterLogin } from "./integrations/mcp/installMcpPresetsAfterLogin.hook";
 import type { RealizeAIPluginOptions } from "./types";
 
 export type { RealizeAIPluginOptions } from "./types";
@@ -48,11 +49,15 @@ export const realizeAIPlugin = (
       "realizeAgentLayerSettings",
       "realizeWorkflowRuns",
       "realizeWorkflowRun",
+      "realizeMcpServers",
+      "realizeMcpServer",
     ].find((key) => key in views);
     if (conflictingView) {
       throw new Error(`Realize Admin view key collision: ${conflictingView}`);
     }
     const integrationsRoute = options.admin.integrationsRoute;
+    const mcpServersRoute = options.admin.mcpServersRoute;
+    const mcpServerRoute = `${mcpServersRoute}/:serverID` as `/${string}`;
     const integrationSettingsRoute =
       `${integrationsRoute.replace(/\/$/, "")}/:provider` as `/${string}`;
     const chatWindowRoute =
@@ -71,6 +76,8 @@ export const realizeAIPlugin = (
       workflowRunRoute,
       integrationsRoute,
       integrationSettingsRoute,
+      mcpServersRoute,
+      mcpServerRoute,
     ]) {
       const normalizedRoute = route.replace(/\/$/, "");
       if (
@@ -121,6 +128,7 @@ export const realizeAIPlugin = (
               clientProps: {
                 group: options.admin.group,
                 integrationsRoute: options.admin.integrationsRoute,
+                mcpServersRoute,
                 route: options.admin.route,
               },
               path: "@realize/payload-ai-control/client#RealizeAINavLink",
@@ -128,6 +136,22 @@ export const realizeAIPlugin = (
           ],
           views: {
             ...views,
+            realizeMcpServers: {
+              Component: {
+                path: "@realize/payload-ai-control/mcp-servers-rsc#McpServersView",
+                serverProps: { mcpServersRoute, mode: "list" },
+              },
+              exact: true,
+              path: mcpServersRoute,
+            },
+            realizeMcpServer: {
+              Component: {
+                path: "@realize/payload-ai-control/mcp-servers-rsc#McpServersView",
+                serverProps: { mcpServersRoute, mode: "detail" },
+              },
+              exact: true,
+              path: mcpServerRoute,
+            },
             realizeAI: {
               Component: "@realize/payload-ai-control/rsc#RealizeAIView",
               exact: true,
@@ -196,24 +220,36 @@ export const realizeAIPlugin = (
       },
       collections: [
         ...existingCollections.map((collection) =>
-          collection.slug === "pages" && options.pageDraft
+          collection.slug === options.userCollection && collection.auth
             ? {
                 ...collection,
                 hooks: {
                   ...collection.hooks,
-                  beforeOperation: [
-                    lockPageDraftWrites,
-                    ...(collection.hooks?.beforeOperation || []),
+                  afterLogin: [
+                    ...(collection.hooks?.afterLogin || []),
+                    installMcpPresetsAfterLogin(options),
                   ],
                 },
               }
-            : collection,
+            : collection.slug === "pages" && options.pageDraft
+              ? {
+                  ...collection,
+                  hooks: {
+                    ...collection.hooks,
+                    beforeOperation: [
+                      lockPageDraftWrites,
+                      ...(collection.hooks?.beforeOperation || []),
+                    ],
+                  },
+                }
+              : collection,
         ),
         ...createAICollections(options),
       ],
       custom: {
         ...(incomingConfig.custom || {}),
         [REALIZE_AI_SERVER_RUNTIME_KEY]: {
+          userCollection: options.userCollection,
           pageDraft: options.pageDraft,
           canUseChat: options.access.canUseChat,
           canManageData: options.access.canManageData,

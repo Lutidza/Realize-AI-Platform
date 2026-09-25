@@ -12,6 +12,10 @@ runtime_tool: .ai/tools/agent-runtime
 
 ## Command contract
 
+Применяется к явной operator-задаче на сервисы или managed external режиму с
+project monitor. Для direct/native/обычного external режима верни
+`monitor_service_lifecycle_check: not_required`; запускать команды не нужно.
+
 Status:
 
 ```bash
@@ -24,11 +28,16 @@ Start/reuse only on explicit operator need:
 npm --prefix .ai/tools/agent-runtime run runtime -- monitor-service-start --mode=preview --json
 ```
 
-Worker/group preflight before launch:
+Managed worker preflight before launch:
 
 ```bash
-npm --prefix .ai/tools/agent-runtime run runtime -- worker-launch-preflight --session-id=<session-id> --group-id=<group-id> --json
+npm --prefix .ai/tools/agent-runtime run runtime -- worker-launch-preflight --session-id=<session-id> --json
 ```
+
+Только для настоящей managed группы добавляется `--group-id=<group-id>`.
+Pass/fail определяется JSON команды. При `pass=false` managed launch запрещён;
+если monitor не был условием задания, допустим direct/native режим по активным
+правилам. Переключение режима не превращает проваленный preflight в `pass`.
 
 ## Pass contract
 

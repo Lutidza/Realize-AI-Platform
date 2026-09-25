@@ -105,6 +105,29 @@ storefront.
 
 Browser не вызывает Codex напрямую. Chat-поток: Payload Admin → authenticated
 Payload endpoint → server-only control-plane client → Codex adapter.
+
+Внутренний MCP A+G+S1 имеет отдельный composition root `services/internal-mcp/src`.
+Общие schemas/DTO — `packages/ai-contracts/src/Mcp*`, `mcp*.config.ts` и
+`aiInstruction*.config.ts`/`AiInstructions.types.ts`;
+registry, clients, Pages facade и receipts —
+`packages/payload-ai-plugin/src/integrations/mcp/`, Admin — соседний
+`admin/mcp-servers/`. Repository read policy принадлежит
+`services/ai-control-plane/src`, там же размещён S1 resolver/read инструкций;
+machine Git status/diff — `.ai/tools/git-delivery/src/read/`.
+Каталог capabilities принадлежит MCP adapter; локальный credential helper —
+`scripts/runtime/readLocalMcpHeaders.*.mjs`. Lifecycle и запуск описаны в
+[MCP tooling](mcp-tooling.md); эти ports не предоставляют worker-у новые права.
+Предустановки описаны в `mcpServerPresets.config.ts` у ai-contracts, установка и
+login hook — у существующего plugin MCP owner. Они используют прежний registry,
+не создавая отдельную БД конфигурации. Форма ChatGPT принадлежит Admin MCP
+detail; клиентские ключи находятся в зашифрованном integration vault, а
+доверенный host profile и master key — в операторском окружении.
+`McpChatGpt.service.ts` владеет atomic save/disconnect,
+`McpChatGptCredentials.service.ts` использует общий vault,
+`McpChatGptRuntime.service.ts` проверяет boot/revision/ACL, а
+`services/internal-mcp/src/McpChatGptSupervisor.service.ts` ведёт fixed child
+и private health socket. Секреты не входят в browser DTO.
+
 Data-поток: versioned assistant intent → Payload-owned selector resolution и
 dry-run → hash-bound approval → transactional Local API write с access/hooks и
 optimistic lock → audit/outbox → отдельное rollback approval → exact
@@ -169,9 +192,10 @@ release/profile, каталог для chat users, сохранение snapshot
 и собирает provider prompt под существующей read-only policy.
 Новые run columns не создаются: используется существующее `turnContext`.
 
-База знаний, eval и выполнение декларативных
-workflows пока не реализованы. Capability/check bindings остаются metadata;
-доступ к инструментам и approvals задают существующие серверные owners.
+База знаний и eval остаются отдельными направлениями. Декларативные workflows
+уже исполняются через перечисленные выше compiler/runtime и Payload owners;
+набор поддержанных capability/check bindings определяется их фактическими
+dispatchers. Доступ к инструментам и approvals задают существующие серверные owners.
 
 ## Delivery и эксплуатация
 

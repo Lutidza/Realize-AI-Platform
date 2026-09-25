@@ -25,6 +25,7 @@ runtime_sources:
 │   └── state-machine.md
 ├── roles/
 │   ├── role-groups.md
+│   ├── design/workshop-director/INDEX.md
 │   ├── developer/
 │   │   ├── frontend/INDEX.md
 │   │   └── backend/INDEX.md
@@ -47,7 +48,8 @@ runtime_sources:
 │   ├── delivery/
 │   │   └── git/commit-push/WORKFLOW.md
 │   └── frontend/
-│       └── next-react/guardrail/WORKFLOW.md
+│       ├── next-react/guardrail/WORKFLOW.md
+│       └── design-workshop/WORKFLOW.md
 ├── templates/
 ├── tools/
 │   ├── agent-runtime/

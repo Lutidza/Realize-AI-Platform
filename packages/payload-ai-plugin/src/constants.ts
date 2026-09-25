@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/constants.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-20
  * @description Хранит стабильные runtime/config collection и route identifiers plugin.
  */
 
@@ -56,6 +56,7 @@ export const AI_COLLECTION_SLUGS = [
 
 export const DEFAULT_ADMIN_ROUTE = "/ai";
 export const DEFAULT_INTEGRATIONS_ROUTE = "/integrations";
+export const DEFAULT_MCP_SERVERS_ROUTE = "/mcp-servers";
 export const DEFAULT_API_ROUTE = "/realize-ai";
 export const REALIZE_AI_SERVER_RUNTIME_KEY = "realizeAIControl" as const;
 

@@ -20,6 +20,10 @@ related_workflows:
 
 ## Маршрут
 
+Серверный MCP status/diff использует отдельный ограниченный read port по
+Git-правилу и ADR-0017. Этот workflow по-прежнему описывает development
+Git-воркера; machine port не заменяет его inspect и не предоставляет delivery.
+
 Прочитай [правило Git](../../../../rules/git/RULE-GIT-DELIVERY.md).
 Используй `inspect`, `commit`, `push` или `commit_push`; подключай только
 проверки выбранного действия. Передача задания и текущая доступность вызова —

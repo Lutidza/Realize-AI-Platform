@@ -10,6 +10,16 @@ runtime_sources:
 
 ## Активные роли
 
+### Дизайн и Мастерская
+
+Файл: [Workshop Director](design/workshop-director/INDEX.md).
+
+Выбирается для создания и развития референсов, интерфейсных макетов,
+компонентов и тем, выбора дизайн-направления и передачи результата между
+Admin, ChatGPT и IDE. Реализацию ведёт вместе с Developer Frontend, изменение
+данных/прав — с Developer Backend. Обычная локальная CSS-правка отдельной
+дизайн-координации не требует. Role card не запускает дополнительных агентов.
+
 ### Developer Frontend
 
 Файл: `.ai/roles/developer/frontend/INDEX.md`.

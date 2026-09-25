@@ -19,6 +19,7 @@
     "dev": "cross-env NODE_OPTIONS=--no-deprecation node --import=tsx/esm scripts/runtime/startDevelopment.controller.ts",
     "dev:web": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "media:worker": "cross-env NODE_OPTIONS=--no-deprecation payload run scripts/runtime/runMediaJobs.controller.ts",
+    "mcp:serve": "cross-env NODE_OPTIONS=--no-deprecation node --import=tsx/esm services/internal-mcp/src/runMcp.controller.ts",
     "ai:control-plane": "cross-env NODE_OPTIONS=--no-deprecation node --import=tsx/esm services/ai-control-plane/src/server.ts",
     "ai:execution-worker": "cross-env NODE_OPTIONS=--no-deprecation node --import=tsx/esm services/ai-execution-worker/src/worker.ts",
     "build": "node scripts/runtime/buildProduction.controller.mjs",
@@ -49,6 +50,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
     "@next/env": "16.3.1",
     "@payloadcms/admin-bar": "^3.88.0",
     "@payloadcms/db-postgres": "^3.88.0",
@@ -99,7 +103,8 @@
     "sharp": "^0.35.3",
     "sonner": "^2.0.7",
     "stripe": "^22.3.1",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "^3.6.0",
+    "zod": "4.6.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",

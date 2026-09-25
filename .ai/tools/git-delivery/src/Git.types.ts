@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/Git.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-23
  * @description Определяет настройки ограниченного Git executor и доверенную сетевую авторизацию.
  */
 
@@ -17,6 +17,10 @@ export type GitOptions = {
 };
 
 export type GitRunOptions = {
+  signal?: AbortSignal;
+  /** Машинное чтение исключает пользовательские конфигурации, сеть и исполняемые фильтры. */
+  machineRead?: boolean;
+  acceptedExitCodes?: readonly number[];
   input?: string;
   env?: Record<string, string>;
   network?: GitNetworkEnvironment;

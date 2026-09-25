@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/integrations.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-09-23
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
  * @description Задаёт browser-safe контракты каталога интеграций без secret material.
@@ -12,7 +12,7 @@ import type { GitCommitAuthor } from "./GitCommitAuthor.types";
 import type { CodexIntegrationConnectionDTO } from "./CodexIntegration.types";
 
 /** Стабильные идентификаторы провайдеров с реализованными серверными адаптерами. */
-export type IntegrationProviderID = "github" | "codex";
+export type IntegrationProviderID = "github" | "codex" | "mcp";
 
 /** Группирует каталог провайдеров без зависимости UI от persistence. */
 export type IntegrationCategory = "development" | "ai";
@@ -55,7 +55,7 @@ export type IntegrationProviderDescriptorDTO = {
   capabilities: string[];
   category: IntegrationCategory;
   description: string;
-  id: IntegrationProviderID;
+  id: Exclude<IntegrationProviderID, "mcp">;
   name: string;
 };
 

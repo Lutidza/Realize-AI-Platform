@@ -18,3 +18,6 @@ React components, Tailwind/shadcn UI, rendered DOM and browser behavior.
 
 - `next-react/guardrail/` - pre-implementation и self-review guardrail для
   `src/app/(app)/**`, `src/components/**`, `src/providers/**` и package UI.
+- [Мастерская дизайна](design-workshop/WORKFLOW.md) — координация брифа,
+  направления, версий и review для референсов, компонентов и тем;
+  реализацию UI передаёт действующему `next-react/guardrail`.

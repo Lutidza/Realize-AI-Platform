@@ -1,14 +1,13 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/catalog/IntegrationCatalog.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-09-23
  * @description Задаёт контракты поиска, фильтров и карточек каталога интеграций.
  */
 
 import type {
   IntegrationCatalogDTO,
   IntegrationProviderDescriptorDTO,
-  IntegrationProviderID,
 } from "@realize/ai-contracts";
 import type { ComponentType, SVGProps } from "react";
 import type { useIntegrationCatalog } from "./useIntegrationCatalog.hook";
@@ -29,6 +28,6 @@ export type IntegrationCatalogViewProps = {
   filters: ReturnType<typeof useIntegrationCatalog>;
 };
 export type IntegrationPresentationRegistry = Record<
-  IntegrationProviderID,
+  IntegrationProviderDescriptorDTO["id"],
   { Logo: ComponentType<SVGProps<SVGSVGElement>> }
 >;

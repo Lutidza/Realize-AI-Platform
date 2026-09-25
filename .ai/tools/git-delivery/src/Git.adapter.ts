@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/Git.adapter.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-09-23
  * @description Ограниченный запуск Git без shell; унаследованные GIT_* не меняют выбранную рабочую копию.
  */
 
@@ -94,6 +94,13 @@ export class Git {
 
   /** Возвращает точные байты stdout, включая бинарные blobs, с теми же пределами исполнения. */
   async runBytes(args: string[], options: GitRunOptions = {}): Promise<Buffer> {
+    if (options.signal?.aborted)
+      throw new GitFailure(
+        "git_timeout",
+        "Чтение Git отменено.",
+        null,
+        "timeout",
+      );
     if (process.platform !== "linux") {
       throw new GitFailure(
         "unsupported_platform",
@@ -128,7 +135,7 @@ export class Git {
         "Вход Git превышает допустимый размер.",
       );
     }
-    const env: NodeJS.ProcessEnv = {};
+    const env: Record<string, string | undefined> = {};
     for (const key of SYSTEM_ENVIRONMENT) {
       if (process.env[key] !== undefined) env[key] = process.env[key];
     }
@@ -147,6 +154,32 @@ export class Git {
     }
     env.GIT_OPTIONAL_LOCKS = "0";
     env.GIT_TERMINAL_PROMPT = "0";
+    if (options.machineRead) {
+      if (
+        options.network ||
+        ![
+          "rev-parse",
+          "symbolic-ref",
+          "ls-tree",
+          "ls-files",
+          "cat-file",
+          "diff",
+        ].includes(args[0])
+      ) {
+        throw new GitFailure(
+          "git_arguments_invalid",
+          "Операция не разрешена машинному чтению.",
+        );
+      }
+      env.GIT_CONFIG_GLOBAL = "/dev/null";
+      env.GIT_CONFIG_NOSYSTEM = "1";
+      env.GIT_NO_REPLACE_OBJECTS = "1";
+      env.GIT_NO_LAZY_FETCH = "1";
+      env.GIT_ALLOW_PROTOCOL = "";
+      env.GIT_PAGER = "cat";
+      env.LC_ALL = "C";
+      delete env.SSH_AUTH_SOCK;
+    }
     if (options.network !== undefined) {
       const network = options.network;
       const allowed =
@@ -189,10 +222,27 @@ export class Git {
     return await new Promise<Buffer>((resolvePromise, reject) => {
       const child = spawn(
         this.command,
-        ["--literal-pathspecs", "-c", "core.fsmonitor=false", ...args],
+        [
+          "--literal-pathspecs",
+          "-c",
+          "core.fsmonitor=false",
+          ...(options.machineRead
+            ? [
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "diff.external=",
+                "-c",
+                "core.attributesFile=/dev/null",
+                "-c",
+                "submodule.recurse=false",
+              ]
+            : []),
+          ...args,
+        ],
         {
           cwd: this.root,
-          env,
+          env: { ...env, NODE_ENV: process.env.NODE_ENV },
           shell: false,
           detached: true,
           stdio: [
@@ -218,6 +268,7 @@ export class Git {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
+        options.signal?.removeEventListener("abort", abort);
         stderrDiagnostic.fill(0);
         if (error) reject(error);
         else resolvePromise(value ?? Buffer.alloc(0));
@@ -243,6 +294,17 @@ export class Git {
           ),
         );
       }, this.timeoutMs);
+      const abort = () =>
+        stop(
+          new GitFailure(
+            "git_timeout",
+            "Чтение Git отменено.",
+            null,
+            "timeout",
+          ),
+        );
+      options.signal?.addEventListener("abort", abort, { once: true });
+      if (options.signal?.aborted) abort();
 
       child.stdout!.on("data", (chunk: Buffer) => {
         if (failure) return;
@@ -301,7 +363,10 @@ export class Git {
       });
       child.on("close", (code) => {
         if (failure) return finish(failure);
-        if (code !== 0) {
+        if (
+          code === null ||
+          !(options.acceptedExitCodes ?? [0]).includes(code)
+        ) {
           return finish(
             new GitFailure(
               "git_command_failed",

@@ -73,6 +73,12 @@ Change Engine, а не вызывает executor напрямую. Installation 
 выбрать или дополнительно сузить доступную capability и добавить check, но не
 может убрать системный gate, расширить scope или зарегистрировать executable.
 
+Предложенные presets и настройка pipeline
+[Мастерской дизайна](../../../design-workshop.md#pipeline) должны использовать
+этот configuration lifecycle и редактор workflow. Domain capabilities,
+artifact inputs и versioned publisher инструкций ещё требуется реализовать;
+наличие новых `.ai`/`.codex` файлов не добавляет их в активный AIConfigRelease.
+
 ## 10.6. Детерминированная компиляция
 
 Configuration compiler канонизирует JSON с упорядоченными object keys и

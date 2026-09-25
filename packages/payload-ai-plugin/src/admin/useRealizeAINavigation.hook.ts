@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useRealizeAINavigation.hook.ts
- * @version 1.4.0
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-20
  * @description Определяет доступность и активность пунктов навигации AI и интеграций.
  */
 
@@ -19,6 +19,7 @@ import type {
 export const useRealizeAINavigation = ({
   group,
   integrationsRoute,
+  mcpServersRoute,
   route,
 }: RealizeAINavLinkProps): RealizeAINavigationGroup[] => {
   const { user } = useAuth();
@@ -47,6 +48,11 @@ export const useRealizeAINavigation = ({
           id: "nav-realize-integrations",
           label: "Интеграции",
           route: integrationsRoute,
+        },
+        {
+          id: "nav-realize-mcp-servers",
+          label: "MCP-серверы",
+          route: mcpServersRoute,
         },
         {
           id: "nav-realize-ai-settings",

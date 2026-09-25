@@ -1,11 +1,60 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.0.0
- * @date 2026-09-14
+ * @version 2.3.0
+ * @date 2026-09-25
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
 export * from "./agent";
+export type {
+  McpChatGptConfiguration,
+  McpChatGptConnectionDto,
+  McpChatGptStatus,
+  McpChatGptObservation,
+  SaveMcpChatGptInput,
+} from "./McpChatGpt.types";
+export type {
+  McpServerType,
+  McpManagementSource,
+  McpDirection,
+  McpReadGrants,
+  McpLimits,
+  McpHostedConfiguration,
+  McpHttpConfiguration,
+  McpMetadataConfiguration,
+  McpServerConfiguration,
+  McpActionDto,
+  McpServerActionsDto,
+  McpServerDescriptorDto,
+  McpHostProfileDto,
+  McpObservedStateDto,
+  McpServerSummaryDto,
+  McpClientDto,
+  McpDiscoveredToolDto,
+  McpServerDetailDto,
+  McpServerListDto,
+  McpServerListQuery,
+  CreateMcpServerInput,
+  McpServerPreset,
+  McpServerPresetDto,
+  McpInstallPresetsDto,
+  UpdateMcpServerInput,
+  McpRevisionInput,
+  SetMcpServerEnabledInput,
+  IssueMcpClientInput,
+  McpOneTimeTokenDto,
+  McpServerMutationDto,
+  McpProbeResultDto,
+  McpApplyResultDto,
+  McpAuditEventDto,
+  McpAuditListDto,
+} from "./McpServer.types";
+export {
+  MCP_REALIZE_TOOLS,
+  MCP_DEFAULT_LIMITS,
+  MCP_SERVER_DESCRIPTORS,
+} from "./mcpServer.config";
+export { MCP_SERVER_PRESETS } from "./mcpServerPresets.config";
 export * from "./aiConfiguration";
 export * from "./aiConfigurationAPI";
 export * from "./aiConfigurationInputValidation";

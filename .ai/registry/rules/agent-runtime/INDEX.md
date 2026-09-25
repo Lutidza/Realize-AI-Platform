@@ -24,7 +24,20 @@ entries:
     related_codex_artifacts: [.codex/skills/codex-external-worker-session/SKILL.md]
     related_tools: [.ai/tools/agent-runtime/runtime/runtime.sqlite, .ai/tools/agent-monitor/]
     routing_tags: [agent-runtime, worker-session, lifecycle, autonomous]
-    trigger: "Handoff, final answer or pause when active worker sessions or active autonomous grant exist."
+    trigger: "Lifecycle фактически запущенных worker-ов; native handles среды, external process handles, managed writer только при явном выборе этого режима."
+  - entry_id: agent-monitor-service-lifecycle
+    entry_type: active_rule
+    status: active
+    primary_artifact: .ai/rules/agent-runtime/RULE-AGENT-MONITOR-SERVICE-LIFECYCLE.md
+    owner_layer: .ai/rules/agent-runtime/
+    owner_roles: [.ai/roles/process-tools-operations/scope-contour-owner/INDEX.md]
+    related_rules: [.ai/rules/agent-runtime/RULE-WORKER-SESSION-LIFECYCLE-AND-AUTONOMOUS-MODE.md]
+    related_checks: [.ai/checks/agent-runtime/CHECK-AGENT-MONITOR-SERVICE-LIFECYCLE.md, .ai/checks/worker-runtime/CHECK-WORKER-MONITOR-VISIBILITY.md]
+    related_workflows: [.ai/workflows/ai-operations/agent-monitor-service-lifecycle/WORKFLOW.md]
+    related_codex_artifacts: [.codex/skills/codex-external-worker-session/SKILL.md]
+    related_tools: [.ai/tools/agent-runtime/, .ai/tools/agent-monitor/]
+    routing_tags: [agent-runtime, monitor, lifecycle, managed]
+    trigger: "Явная operator-задача на monitor/gateway или managed external запуск с project monitor; direct/native/обычный external: not_required."
   - entry_id: agent-runtime-maintenance-report
     entry_type: supporting_check
     status: active

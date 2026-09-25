@@ -36,8 +36,14 @@ runtime_sources:
 
 - `recommerce-playwright`;
 - `recommerce-tailwind`;
-- `recommerce-next-devtools`.
+- `recommerce-next-devtools`;
+- `realize-internal` — локальный developer MCP для Repo/Git/S1.
 
 `recommerce-payload` не входит в current contract, потому что Payload MCP
 endpoint не реализован. Stale MCP entries нельзя восстанавливать без MCP
 tooling workflow, security decision и runtime evidence.
+
+Realize Internal MCP реализован отдельным процессом и Admin manager.
+Текущая client entry использует отдельный developer bootstrap, а не managed
+Admin instance. Запуск, доверенные профили и private credential helper описаны
+в [MCP tooling](../documentation/architecture/mcp-tooling.md).

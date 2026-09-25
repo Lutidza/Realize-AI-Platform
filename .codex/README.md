@@ -16,17 +16,39 @@ adapter и не создаёт отдельный источник систем�
 - agent TOML содержит только поддерживаемые runtime fields;
 - workflow prompts повторяют доменную структуру связанного `.ai` workflow.
 
+## Мастерская дизайна
+
+Для референсов, компонентов и тем доступен
+[design-workshop](skills/design-workshop/SKILL.md). Он связывает каноническую
+роль и процесс `.ai` с действующим frontend workflow. Skill не добавляет
+инструменты записи в ChatGPT или предустановленные профили в БД Admin.
+
 ## MCP
 
 Текущие project-specific adapters:
 
 - `recommerce-playwright`;
 - `recommerce-tailwind`;
-- `recommerce-next-devtools`.
+- `recommerce-next-devtools`;
+- `realize-internal` — локальный developer endpoint с Repo/Git/S1 reads.
 
 Payload MCP не объявлен: в приложении нет `/api/mcp`. Реализованный
 `/api/realize-ai` является product API и не должен подключаться через
 `mcp-remote` без отдельного MCP security contract.
+
+Отдельный Realize Internal MCP реализован в `services/internal-mcp`.
+Managed instances управляются из «MCP-серверы» в Admin. Текущая client entry
+подключает отдельный developer bootstrap на `127.0.0.1:4319`, установленный
+локально как `realize-mcp.service`; он не использует БД или Pages grants.
+Режимы, инструменты S1 и fallback описаны в
+[MCP tooling](../documentation/architecture/mcp-tooling.md).
+
+`http_headers_helper` вызывает `scripts/runtime/readLocalMcpHeaders.controller.mjs`
+на exact Node локальной установки и получает ключ из `REALIZE_MCP_CLIENT_TOKEN`
+или закрытого `~/.local/share/realize-ai-cms/internal-mcp.env`. Значение не
+хранится в TOML. На другой машине нужны собственные service/credential и
+актуальный путь runtime. Новые tools доступны после открытия новой Codex
+сессии; наличие config проверяется отдельно от фактического подключения.
 
 Availability проверяется фактически. Codex runtime может требовать зеркалировать
 project entries в активный user config, но session-provided tools/plugins не

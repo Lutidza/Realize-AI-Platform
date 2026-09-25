@@ -26,6 +26,8 @@ runtime_sources:
 - MCP/tooling contour: `.ai/workflows/ai-operations/mcp-tooling/`.
 - Next/React frontend guardrail:
   `.ai/workflows/frontend/next-react/guardrail/`.
+- Мастерская дизайна — бриф, направление, версии и передача между каналами:
+  [.ai/workflows/frontend/design-workshop/WORKFLOW.md](frontend/design-workshop/WORKFLOW.md).
 - Git: чтение состояния, commit и push — `.ai/workflows/delivery/git/commit-push/`.
 
 ## Planned taxonomy

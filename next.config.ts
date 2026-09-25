@@ -1,7 +1,7 @@
 /**
  * @file next.config.ts
- * @version 1.2.0
- * @date 2026-09-15
+ * @version 1.2.2
+ * @date 2026-09-24
  * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
@@ -11,8 +11,14 @@ import type { NextConfig } from "next";
 import { VERIFIED_TYPES_ENVIRONMENT_NAME } from "./scripts/runtime/runProductionBuild.service.mjs";
 
 const nextConfig: NextConfig = {
+  // Отдельный cache для одноразовой browser-проверки, без конфликта с запущенным приложением.
+  ...(process.env.REALIZE_NEXT_DIST_DIR
+    ? { distDir: process.env.REALIZE_NEXT_DIST_DIR }
+    : {}),
   agentRules: false,
   output: "standalone",
+  // Payload загружает ESM entry sharp, который tracing может пропустить в standalone.
+  outputFileTracingIncludes: { "/*": ["./node_modules/sharp/**/*"] },
   experimental: {
     // Next считает page-data/static workers через os.cpus(), независимо от affinity процесса.
     cpus: 2,

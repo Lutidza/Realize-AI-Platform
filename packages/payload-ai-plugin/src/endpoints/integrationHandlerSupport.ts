@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/integrationHandlerSupport.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-23
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
  * @description Поддерживает транзакции, повторы и получение API credential обработчиками интеграций.
@@ -22,6 +22,7 @@ import { PRIMARY_GITHUB_CONNECTION_KEY } from "../integrations/providers";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { EndpointError } from "./http";
 import { relationID } from "./mappers";
+import type { IntegrationEventAction } from "../../../ai-contracts/src/IntegrationEvent.types";
 
 type HandlerRequest = Parameters<PayloadEndpointHandler>[0];
 
@@ -52,13 +53,15 @@ export const runIntegrationTransaction = async <T>(
 /** Prevents an idempotency key from crossing provider, action or actor scope. */
 export const requireMatchingIntegrationReplay = (
   event: Record<string, unknown>,
-  action: "disconnected" | "saved" | "tested",
+  action: IntegrationEventAction,
   actorID: number | string,
   provider: IntegrationProviderID = "github",
   requestHash?: string,
+  connectionKey = `${provider}:primary`,
 ): void => {
   if (
     event.provider !== provider ||
+    event.connectionKey !== connectionKey ||
     event.action !== action ||
     relationID(event.actor) !== String(actorID) ||
     (requestHash !== undefined &&

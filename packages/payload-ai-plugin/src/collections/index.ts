@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/index.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-23
  * @description Компонует runtime, integration и installation config collections.
  */
 
@@ -25,6 +25,8 @@ import { createMessagesCollection } from "./messages";
 import { createExecutionJobsCollection } from "./executionJobs";
 import { createIntegrationEventsCollection } from "./integrationEvents";
 import { createIntegrationsCollection } from "./integrations";
+import { createMcpClientsCollection } from "./McpClients.collection";
+import { createMcpRuntimeReceiptsCollection } from "./McpRuntimeReceipts.collection";
 import { createRunEventsCollection } from "./runEvents";
 import { createWorkerPresenceCollection } from "./workerPresence.collection";
 import { createRunsCollection } from "./runs";
@@ -53,6 +55,8 @@ export const createAICollections = (
   createSourcePromotionsCollection(options),
   createIntegrationsCollection(options),
   createIntegrationEventsCollection(options),
+  createMcpClientsCollection(options),
+  createMcpRuntimeReceiptsCollection(options),
   createCheckResultsCollection(options),
   createRunsCollection(options),
   createRunEventsCollection(options),

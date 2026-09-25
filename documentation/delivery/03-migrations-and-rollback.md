@@ -1,7 +1,7 @@
 # Миграции и rollback
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 15 сентября 2026 года
+- **Дата сверки:** 25 сентября 2026 года (MCP migration, ChatGPT receipt и локальная установка)
 
 ## 1. Канонический порядок миграций
 
@@ -45,6 +45,10 @@
     приватные исходники, наборы, варианты и native Payload Jobs.
 20. `20260915_082031_media_nullable_backlinks` — nullable обратные связи Media
     для штатного удаления с очисткой файлов в `afterDelete`.
+21. `20260923_120805_internal_mcp` — приватные inbound clients, runtime receipts,
+    audit actions и связи native locks для управления MCP.
+22. `20260925_093817_chatgpt_tunnel_status` — nullable JSON наблюдения ChatGPT
+    в существующем runtime receipt; клиентские credentials остаются в vault.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -53,7 +57,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-На пустой PostgreSQL все двадцать миграций должны применяться по порядку.
+В пустой PostgreSQL применяется вся последовательность из 22 миграций.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 
@@ -191,6 +195,40 @@ upgrade клона и сохранность прежних строк. Авто
 не выдаёт его; автоматическое освобождение orphan storage и проверка облачного
 хранилища относятся к следующему эксплуатационному этапу. Откат приложения
 сохраняет данные и расширенную схему.
+
+### MCP: сохранение ключей и истории
+
+Добавочная migration `20260925_093817_chatgpt_tunnel_status` создана native
+`payload migrate:create` по canonical receipt collection. Up добавляет только
+nullable JSON колонку, down удаляет только наблюдение (не keys/config/audit).
+При rollback приложения расширенную схему сохраняют; down не требуется.
+Encrypted connector keys резервируются вместе с integration registry и отдельно
+сохраняемым master key установки.
+
+Источник добавочной MCP миграции —
+[internal-mcp.mjs](../../scripts/migrations/internal-mcp.mjs), запускаемый через
+`payload migrate:create internal_mcp --file <абсолютный путь template>`.
+TS/SQL/snapshot/index создаёт установленный Payload/Drizzle generator.
+Существующие GitHub/Codex records сохраняются. Неизвлекаемые verifiers входят
+в резервную копию БД вместе с registry и audit; plaintext ключей в БД нет.
+
+Generated down блокируется `MCP_ROLLBACK_BLOCKED`, если имеются MCP clients,
+receipts, instance records или audit events. Эти данные нельзя удалять ради
+rollback. Откат приложения сохраняет расширенную схему. Empty down/up и отказ
+на populated схеме проверены на отдельной PostgreSQL 18.6. Runtime запускается
+только после штатного применения миграций и не использует schema push.
+
+24 сентября 2026 года локальная systemd установка обновлена с 20 до 21
+миграции: применена только `20260923_120805_internal_mcp`. До применения
+проверены восстановление private backup и миграция на отдельной копии БД.
+Сравнение всех прежних полей и строк 118 таблиц подтвердило их сохранность
+на копии и в локальной установке. Внешний production этим обновлением не затронут.
+
+25 сентября локальная установка обновлена до 22 миграций: после private backup
+применена `20260925_093817_chatgpt_tunnel_status`. Проверены upgrade и down/up
+нового nullable поля на отдельной БД, production build и браузерный сценарий
+на точной standalone-сборке. Ключи и настройки остальных интеграций не менялись.
+Предыдущая сборка сохранена для отката приложения без удаления схемы.
 
 ## 2. Existing database adoption
 

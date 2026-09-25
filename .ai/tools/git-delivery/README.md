@@ -12,6 +12,14 @@ Push получает подключение из БД интеграций и �
 
 ## Git-воркер
 
+Для server-to-server MCP предусмотрен отдельный ограниченный machine read port
+по [ADR-0017](../../../documentation/architecture/decisions/ADR-0017-internal-mcp-and-server-management.md).
+Он размещается у этого обработчика, выполняет только status/diff с доверенными
+root/scope/deadline и проверяет пути до чтения bytes. Индекс, hooks, сеть и
+delivery не затрагиваются; модель на каждый read RPC не запускается. Доступность
+порта подтверждается его реализацией и protocol tests. Development-агент
+не использует его вместо описанного ниже inspect через отдельного воркера.
+
 Из корня проекта после установки зависимостей и подготовки профиля:
 
 ```sh

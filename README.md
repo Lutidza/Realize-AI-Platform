@@ -153,6 +153,7 @@ docker compose ps
 | `npm run dev`                        | Совместный запуск приложения, Media и локальных AI-сервисов      |
 | `npm run dev:web`                    | Запуск только Next.js                                            |
 | `npm run media:worker`               | Штатные задания обработки Media, один исполнитель на БД          |
+| `npm run mcp:serve`                  | Явный запуск внутреннего loopback MCP                            |
 | `npm run lint`                       | Проверка кода ESLint                                             |
 | `npm run typecheck`                  | Проверка типов TypeScript                                        |
 | `npm run check:headers -- <файлы>`   | [Шапки выбранных исходников](.ai/tools/source-headers/README.md) |
@@ -168,6 +169,10 @@ docker compose ps
 Полный список команд находится в [package.json](package.json).
 
 ## Дополнительные возможности
+
+- **Внутренний MCP.** В «Настройки → MCP-серверы» доступны экземпляры Realize,
+  входящие клиентские ключи, проверка и применение настроек. Отдельный listener
+  читает разрешённые Repo/Git/Pages; [запуск и operator profiles](documentation/architecture/mcp-tooling.md).
 
 - **ИИ в панели управления.** Включается на вкладке «Агент» в
   `/admin/integrations/codex` после подключения аккаунта. Там же задаются модели,

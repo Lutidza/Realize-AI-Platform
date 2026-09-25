@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/realizeAIAPI.ts
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.1.0
+ * @date 2026-09-20
  * @description Передаёт запросы Admin DTO и сохраняет безопасные признаки HTTP-ошибок.
  */
 
@@ -16,8 +16,9 @@ export const REALIZE_AI_API_ROOT = "/api/realize-ai";
 export const requestRealizeAI = async <T>(
   path: string,
   init?: RequestInit,
+  apiRoot = REALIZE_AI_API_ROOT,
 ): Promise<T> => {
-  const response = await fetch(`${REALIZE_AI_API_ROOT}${path}`, {
+  const response = await fetch(`${apiRoot}${path}`, {
     ...init,
     credentials: "same-origin",
     headers: {

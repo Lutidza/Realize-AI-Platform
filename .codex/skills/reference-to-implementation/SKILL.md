@@ -7,6 +7,10 @@ description: >-
 
 # От референса к реализации
 
+Для целостного дизайн-проекта, темы или передачи версии между каналами
+используй также [design-workshop](../design-workshop/SKILL.md). Он координирует
+этапы; literal comparison и реализация остаются в этом процессе.
+
 Skill применяется для сравнения reference с текущей реализацией, включая
 Next.js routes, React components, Tailwind/shadcn UI, theme and browser
 behavior.

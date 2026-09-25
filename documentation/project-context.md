@@ -1,7 +1,7 @@
 # Контекст проекта: Realize
 
 - **Статус:** current implementation
-- **Дата сверки:** 14 сентября 2026 года
+- **Дата сверки:** 25 сентября 2026 года (MCP A+G+S1, предустановки и настройка ChatGPT в Admin)
 
 ## Цель проекта
 
@@ -25,7 +25,18 @@ content/data/schema/design/code/delivery от профильных commerce-мо
 - Tests/evidence: Vitest и Playwright.
 - В execution worker MCP не является разрешённым runtime capability. В
   project Codex adapter настроены отдельные development MCP для browser/UI/Next
-  tooling; Payload MCP endpoint сейчас отсутствует.
+  tooling и локального Realize Internal; Payload MCP endpoint сейчас отсутствует.
+- Отдельный `services/internal-mcp` предоставляет loopback `/mcp`: bootstrap
+  repository-only либо managed instances из «Настройки → MCP-серверы».
+  Реализованы Repo/Git/Pages read, client keys, CAS/replay и подтверждённое apply.
+  S1 добавляет bounded resolver исходных инструкций, чтение по hash и каталог
+  разрешённых capabilities. Смысловая применимость требует review; прямое
+  чтение тех же источников остаётся fallback. Локальный development Codex
+  подключён к отдельному bootstrap service без Pages и БД;
+  инструкции запуска — [MCP tooling](architecture/mcp-tooling.md).
+  Предустановки добавляются при manager login или явной установке без сброса
+  настроек. В форме ChatGPT клиент сохраняет Tunnel ID и ключ в зашифрованный
+  vault выбранного instance; managed supervisor ведёт Secure MCP Tunnel; реальная облачная приёмка ждёт данных аккаунта/tunnel.
 
 ## Активный контур приложения
 
@@ -423,6 +434,23 @@ Capability/check metadata не расширяют полномочия и сам
 не подтверждают выполнение проверок.
 Payload Admin и Config API не редактируют системные `.ai/**`, `.codex/**`,
 license/security policy или executable registry.
+
+## Мастерская дизайна: инструкции и целевой runtime
+
+В `.ai` добавлены роль Workshop Director, workflow Мастерской, шаблон брифа
+и supporting check качества; Codex использует адаптер
+`.codex/skills/design-workshop/SKILL.md`. Они переиспользуют существующий
+reference-to-frontend процесс. Роль, workflow, check и skill доступны через
+S1 resolver/read; `.ai/templates` исключён его текущей policy, поэтому нужные
+поля брифа включены в workflow, а локальный шаблон необязателен.
+Автоматической загрузки этих файлов в installation
+AIConfigRelease или пользовательский ChatGPT-профиль пока нет.
+
+[Спецификация Мастерской](specifications/design-workshop.md) описывает целевой
+общий сервис для Admin, ChatGPT и IDE, версии, preview, темы и расширение
+существующего редактора workflow. Runtime DesignProject/Revision, MCP writes,
+дизайн-presets в клиентской БД и `/system/workshop` не реализованы.
+В текущей системной навигации `workshop` остаётся скрытым пунктом.
 
 ## Правило синхронизации для AI-агентов
 

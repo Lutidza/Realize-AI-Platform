@@ -1,12 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/integrationEvents.ts
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-09-23
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
  * @description Хранит append-only redacted audit событий управления интеграциями.
  */
 
 import type { CollectionConfig } from "payload";
+import { INTEGRATION_EVENT_ACTIONS } from "../../../ai-contracts/src/integrationEvents.constants";
 
 import { INTEGRATION_EVENTS_SLUG } from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
@@ -40,7 +42,7 @@ export const createIntegrationEventsCollection = (
       {
         index: true,
         name: "action",
-        options: ["saved", "tested", "disconnected"],
+        options: [...INTEGRATION_EVENT_ACTIONS],
         required: true,
         type: "select",
       },

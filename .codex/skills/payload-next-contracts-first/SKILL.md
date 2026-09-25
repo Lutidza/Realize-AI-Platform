@@ -22,6 +22,10 @@ layer.
    `.ai/checks/development/backend/**`.
 6. `.ai/roles/developer/frontend/INDEX.md`, если меняется frontend consumer.
 
+При доступном Internal MCP эти же источники можно получить по S1-маршруту
+`.ai/workflows/ai-operations/mcp-tooling/WORKFLOW.md`. Metadata не заменяет
+чтение текста; при недоступности MCP используй прямое чтение без смены policy.
+
 ## Порядок
 
 1. Определи изменяемый contract: Payload collection/field, hook, access rule,

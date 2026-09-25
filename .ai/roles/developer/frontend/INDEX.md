@@ -10,11 +10,13 @@ runtime_sources:
   - .ai/checks/development/frontend/
 related_workflows:
   - .ai/workflows/frontend/next-react/guardrail/WORKFLOW.md
+  - .ai/workflows/frontend/design-workshop/WORKFLOW.md
 related_skills:
   - .codex/skills/next-react-frontend-architecture/SKILL.md
   - .codex/skills/dto-contracts-first/SKILL.md
   - .codex/skills/frontend-runtime-evidence/SKILL.md
   - .codex/skills/reference-to-implementation/SKILL.md
+  - .codex/skills/design-workshop/SKILL.md
   - .codex/skills/feature-decomposition-guard/SKILL.md
 ```
 
@@ -34,3 +36,7 @@ related_skills:
 
 Роль не владеет schema/migrations/indexing или agent-monitor tooling.
 Наличие role card не требует отдельного worker или guardrail audit.
+
+Для целостного дизайн-проекта, набора компонентов или темы используй также
+[Workshop Director](../../design/workshop-director/INDEX.md). Он связывает
+бриф, направление и передачу версии; инженерные владельцы UI остаются прежними.

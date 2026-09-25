@@ -1,11 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/options.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-09-20
  * @description Проверяет plugin options, включая source, release и integration security gates.
  */
 
-import { DEFAULT_ADMIN_ROUTE, DEFAULT_INTEGRATIONS_ROUTE } from "./constants";
+import {
+  DEFAULT_ADMIN_ROUTE,
+  DEFAULT_INTEGRATIONS_ROUTE,
+  DEFAULT_MCP_SERVERS_ROUTE,
+} from "./constants";
 import { resolve } from "node:path";
 import type {
   RealizeAIPluginOptions,
@@ -19,6 +23,12 @@ export const sanitizeOptions = (
   const route = options.admin?.route || DEFAULT_ADMIN_ROUTE;
   const integrationsRoute =
     options.admin?.integrationsRoute || DEFAULT_INTEGRATIONS_ROUTE;
+  const mcpServersRoute = (
+    options.admin?.mcpServersRoute || DEFAULT_MCP_SERVERS_ROUTE
+  ).replace(/\/$/, "") as `/${string}`;
+  if (!/^\/(?!\/)[A-Za-z0-9_/-]+$/.test(mcpServersRoute)) {
+    throw new Error("Realize MCP servers route must be a relative Admin path.");
+  }
   if (!route.startsWith("/") || route === "/") {
     throw new Error(
       'Realize AI admin route must begin with "/" and contain a segment.',
@@ -91,6 +101,7 @@ export const sanitizeOptions = (
     admin: {
       group: options.admin?.group || "AI & Delivery",
       integrationsRoute,
+      mcpServersRoute,
       route,
     },
     enabled: options.enabled ?? false,

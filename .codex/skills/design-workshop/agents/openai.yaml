@@ -1,0 +1,4 @@
+interface:
+  display_name: "Мастерская дизайна"
+  short_description: "Референсы, компоненты и темы для Realize"
+  default_prompt: "Используй $design-workshop для создания или доработки дизайна с проверяемым результатом."

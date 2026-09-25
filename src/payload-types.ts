@@ -109,6 +109,8 @@ export interface Config {
     'realize-ai-source-promotions': RealizeAiSourcePromotion;
     'realize-ai-integrations': RealizeAiIntegration;
     'realize-ai-integration-events': RealizeAiIntegrationEvent;
+    'ai-mcp-clients': AiMcpClient;
+    'ai-mcp-runtime-receipts': AiMcpRuntimeReceipt;
     'realize-ai-check-results': RealizeAiCheckResult;
     'realize-ai-runs': RealizeAiRun;
     'realize-ai-run-events': RealizeAiRunEvent;
@@ -169,6 +171,8 @@ export interface Config {
     'realize-ai-source-promotions': RealizeAiSourcePromotionsSelect<false> | RealizeAiSourcePromotionsSelect<true>;
     'realize-ai-integrations': RealizeAiIntegrationsSelect<false> | RealizeAiIntegrationsSelect<true>;
     'realize-ai-integration-events': RealizeAiIntegrationEventsSelect<false> | RealizeAiIntegrationEventsSelect<true>;
+    'ai-mcp-clients': AiMcpClientsSelect<false> | AiMcpClientsSelect<true>;
+    'ai-mcp-runtime-receipts': AiMcpRuntimeReceiptsSelect<false> | AiMcpRuntimeReceiptsSelect<true>;
     'realize-ai-check-results': RealizeAiCheckResultsSelect<false> | RealizeAiCheckResultsSelect<true>;
     'realize-ai-runs': RealizeAiRunsSelect<false> | RealizeAiRunsSelect<true>;
     'realize-ai-run-events': RealizeAiRunEventsSelect<false> | RealizeAiRunEventsSelect<true>;
@@ -2083,7 +2087,18 @@ export interface RealizeAiIntegrationEvent {
   provider: string;
   connectionKey: string;
   idempotencyKey: string;
-  action: 'saved' | 'tested' | 'disconnected';
+  action:
+    | 'saved'
+    | 'tested'
+    | 'disconnected'
+    | 'mcp_created'
+    | 'mcp_updated'
+    | 'mcp_enabled'
+    | 'mcp_client_issued'
+    | 'mcp_client_rotated'
+    | 'mcp_client_revoked'
+    | 'mcp_apply_requested'
+    | 'mcp_discovered';
   status: 'passed' | 'failed';
   actor: number | User;
   summary: string;
@@ -2096,6 +2111,81 @@ export interface RealizeAiIntegrationEvent {
     | number
     | boolean
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-mcp-clients".
+ */
+export interface AiMcpClient {
+  id: number;
+  serverID: string;
+  clientID: string;
+  principalID: string;
+  displayName: string;
+  verifier: string;
+  grants:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  actor?: (number | null) | User;
+  createdBy: number | User;
+  expiresAt: string;
+  revokedAt?: string | null;
+  revision: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-mcp-runtime-receipts".
+ */
+export interface AiMcpRuntimeReceipt {
+  id: number;
+  serverID: string;
+  hostProfileID?: string | null;
+  bootID?: string | null;
+  serviceIdentity?: string | null;
+  requestedRevision?: number | null;
+  appliedRevision?: number | null;
+  configHash?: string | null;
+  appliedSnapshot?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  discoveredTools?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  discoveredRevision?: number | null;
+  chatgptTunnel?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  observedAt?: string | null;
+  status: 'unknown' | 'pending' | 'applying' | 'applied' | 'restart_required' | 'failed';
+  reason?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -2351,6 +2441,14 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'realize-ai-integration-events';
         value: number | RealizeAiIntegrationEvent;
+      } | null)
+    | ({
+        relationTo: 'ai-mcp-clients';
+        value: number | AiMcpClient;
+      } | null)
+    | ({
+        relationTo: 'ai-mcp-runtime-receipts';
+        value: number | AiMcpRuntimeReceipt;
       } | null)
     | ({
         relationTo: 'realize-ai-check-results';
@@ -3531,6 +3629,47 @@ export interface RealizeAiIntegrationEventsSelect<T extends boolean = true> {
   actor?: T;
   summary?: T;
   metadata?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-mcp-clients_select".
+ */
+export interface AiMcpClientsSelect<T extends boolean = true> {
+  serverID?: T;
+  clientID?: T;
+  principalID?: T;
+  displayName?: T;
+  verifier?: T;
+  grants?: T;
+  actor?: T;
+  createdBy?: T;
+  expiresAt?: T;
+  revokedAt?: T;
+  revision?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "ai-mcp-runtime-receipts_select".
+ */
+export interface AiMcpRuntimeReceiptsSelect<T extends boolean = true> {
+  serverID?: T;
+  hostProfileID?: T;
+  bootID?: T;
+  serviceIdentity?: T;
+  requestedRevision?: T;
+  appliedRevision?: T;
+  configHash?: T;
+  appliedSnapshot?: T;
+  discoveredTools?: T;
+  discoveredRevision?: T;
+  chatgptTunnel?: T;
+  observedAt?: T;
+  status?: T;
+  reason?: T;
   updatedAt?: T;
   createdAt?: T;
 }

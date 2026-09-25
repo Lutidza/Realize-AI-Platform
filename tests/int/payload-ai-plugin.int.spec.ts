@@ -1,7 +1,7 @@
 /**
  * @file tests/int/payload-ai-plugin.int.spec.ts
- * @version 1.4.0
- * @date 2026-09-11
+ * @version 1.4.1
+ * @date 2026-09-24
  * @description Проверяет регистрацию и доступ к разделам конфигурации и интеграций Payload.
  */
 
@@ -262,6 +262,8 @@ describe("realizeAIPlugin", () => {
       "realize-ai-source-promotions",
       "realize-ai-integrations",
       "realize-ai-integration-events",
+      "ai-mcp-clients",
+      "ai-mcp-runtime-receipts",
       "realize-ai-check-results",
       "realize-ai-runs",
       "realize-ai-run-events",

@@ -65,6 +65,29 @@ tool_need
 - какой fallback допустим;
 - является ли отсутствие tool blocker-ом.
 
+## S1: bootstrap и контекст проекта
+
+`realize-internal` — project-specific loopback MCP из `.codex/config.toml`.
+Текущая локальная установка использует отдельный developer bootstrap service;
+это не managed instance из Admin. Запуск, credential helper и ограничения — в
+[MCP tooling](../../../../documentation/architecture/mcp-tooling.md).
+
+1. Проверь наличие инструментов в текущем клиенте. Новая запись config не
+   добавляет их в уже открытую сессию автоматически.
+2. Вызови `ai_capabilities_list`: учитывай grants, зависимости, `unavailable`
+   и `not_probed`; каталог не выдаёт разрешений на будущие вызовы.
+3. Передай `ai_context_resolve` краткую задачу, kind и относительные target
+   paths. Они уточняют выбор источников, но не удаляют обязательное ядро.
+4. Прочитай применимые источники через `ai_instructions_get` с их
+   `expectedSha256`, передавая `nextLine` как следующий `startLine` до конца
+   нужного документа.
+   При изменении hash обнови контекст. Проверь issues, coverage и отложенные
+   ссылки; расширь чтение по фактическому владельцу, если обход ограничен.
+5. Разреши применимость и prose-конфликты по иерархии инструкций среды и
+   исходным документам. Resolver извлекает ссылки, не интерпретирует все правила.
+6. При отказе MCP прочитай те же источники напрямую и запиши fallback.
+   Git inspection/delivery остаётся на действующем Git workflow.
+
 ## Project-specific MCP config
 
 Project-specific MCP config живёт в `.codex/config.toml`. Изменять его можно
