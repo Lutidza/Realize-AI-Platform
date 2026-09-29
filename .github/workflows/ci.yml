@@ -1,5 +1,5 @@
 # @file .github/workflows/ci.yml
-# @version 1.1.1
+# @version 1.1.2
 # @date 2026-09-30
 # @description Проверяет приложение и полную приёмку поиска с отдельными БД, corpus и Admin UI.
 name: CI
@@ -30,10 +30,10 @@ jobs:
     env:
       DATABASE_URI: postgres://realize:realize@127.0.0.1:5432/realize_ci
       DATABASE_URL: postgres://realize:realize@127.0.0.1:5432/realize_ci
-      NEXT_PUBLIC_SERVER_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
-      PAYLOAD_PUBLIC_SERVER_URL: http://127.0.0.1:3000
-      PAYLOAD_PUBLIC_SITE_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      PAYLOAD_PUBLIC_SERVER_URL: http://localhost:3000
+      PAYLOAD_PUBLIC_SITE_URL: http://localhost:3000
       PAYLOAD_SECRET: ci-only-payload-secret-with-at-least-32-characters
       REALIZE_AI_ENABLED: "false"
       REALIZE_INTEGRATIONS_ENCRYPTION_KEY: BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwc=
@@ -129,5 +129,16 @@ jobs:
 
       - name: Browser smoke tests
         env:
-          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
         run: npm run test:e2e
+
+      - name: Preserve browser smoke evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: browser-smoke
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
