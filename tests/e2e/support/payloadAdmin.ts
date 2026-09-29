@@ -1,7 +1,8 @@
 /**
  * @file tests/e2e/support/payloadAdmin.ts
- * @version 2026-08-18
- * @description Provisions and removes an exact temporary Payload admin for browser tests.
+ * @version 1.0.1
+ * @date 2026-09-30
+ * @description Создаёт и удаляет точного временного администратора и принадлежащие ему тестовые интеграции.
  */
 
 import { randomUUID } from "node:crypto";
@@ -79,14 +80,36 @@ export const provisionPayloadAdmin = async (
   return { email, id, password };
 };
 
-/** Removes only the user created by the matching browser-test fixture. */
+/** Удаляет пользователя и owned fixtures одной транзакцией; несовпадение email ничего не удаляет. */
 export const removePayloadAdmin = async (
   fixture: PayloadAdminFixture,
 ): Promise<void> => {
   await withPayloadTestDatabase(async (database) => {
-    await database.query(
-      'DELETE FROM "users" WHERE "id" = $1 AND "email" = $2',
-      [fixture.id, fixture.email],
-    );
+    await database.query("BEGIN");
+    try {
+      const matched = await database.query(
+        'SELECT "id" FROM "users" WHERE "id" = $1 AND "email" = $2 FOR UPDATE',
+        [fixture.id, fixture.email],
+      );
+      if (matched.rowCount) {
+        await database.query(
+          'DELETE FROM "realize_ai_integration_events" WHERE "actor_id" = $1',
+          [fixture.id],
+        );
+        // Internal MCP может создаться при первом обращении fixture admin к Admin.
+        await database.query(
+          'DELETE FROM "realize_ai_integrations" WHERE "created_by_id" = $1',
+          [fixture.id],
+        );
+        await database.query(
+          'DELETE FROM "users" WHERE "id" = $1 AND "email" = $2',
+          [fixture.id, fixture.email],
+        );
+      }
+      await database.query("COMMIT");
+    } catch (cause) {
+      await database.query("ROLLBACK");
+      throw cause;
+    }
   });
 };

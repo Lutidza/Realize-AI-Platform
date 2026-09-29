@@ -1,11 +1,12 @@
 /**
  * @file tests/e2e/support/adminAIChatScenario.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.0.1
+ * @date 2026-09-30
  * @description Предоставляет deterministic chat, execution, preview, source и release fixtures.
  */
 
 import type {
+  AIChatConfigurationCatalogDTO,
   AIStreamEvent,
   ChangeRequestDTO,
   ConversationDTO,
@@ -478,6 +479,12 @@ export const installAdminAIChatScenario = async (page: Page): Promise<void> => {
         mode: "local-development",
         state: "ready",
       });
+    } else if (path.endsWith("/config/runtime")) {
+      await fulfillJSON(route, {
+        activePointer: null,
+        release: null,
+        profiles: [],
+      } satisfies AIChatConfigurationCatalogDTO);
     } else if (path.endsWith("/conversations")) {
       await fulfillJSON(route, [conversation]);
     } else if (path.endsWith(`/conversations/${conversationID}`)) {

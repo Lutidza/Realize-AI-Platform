@@ -1,10 +1,15 @@
 /**
  * @file tests/e2e/admin-ai-change-api.e2e.spec.ts
- * @version 2026-08-22
- * @description Проверяет real Payload persistence и exact release approval без agent run.
+ * @version 1.0.1
+ * @date 2026-09-30
+ * @description Проверяет отказ isolated runtime и durable plan flow при настроенном агенте без agent run.
  */
 
-import type { APIResponse, ChangeRequestDTO } from "@realize/ai-contracts";
+import type {
+  APIResponse,
+  ChangeRequestDTO,
+  RuntimeStatusDTO,
+} from "@realize/ai-contracts";
 import { expect, test } from "@playwright/test";
 
 import {
@@ -113,7 +118,7 @@ const cleanupPlan = async (conversationID: number): Promise<void> =>
     );
   });
 
-test("creates, approves and safely gates one durable code plan", async ({
+test("respects isolated runtime and otherwise verifies durable plan approval", async ({
   page,
 }) => {
   let admin: PayloadAdminFixture | undefined;
@@ -127,6 +132,14 @@ test("creates, approves and safely gates one durable code plan", async ({
     const loginPayload = (await login.json()) as { token?: string };
     expect(loginPayload.token).toBeTruthy();
     const authorization = `JWT ${loginPayload.token}`;
+    const runtimeResponse = await page.request.get("/api/realize-ai/status", {
+      headers: { Authorization: authorization },
+    });
+    expect(runtimeResponse.status()).toBe(200);
+    const runtime =
+      (await runtimeResponse.json()) as APIResponse<RuntimeStatusDTO>;
+    expect(runtime.ok).toBe(true);
+    if (!runtime.ok) throw new Error("Runtime status is unavailable.");
     seeded = await seedPlanMessages(admin.id);
 
     const createdResponse = await page.request.post(
@@ -140,6 +153,31 @@ test("creates, approves and safely gates one durable code plan", async ({
       },
     );
     const createdBody = await createdResponse.text();
+    if (
+      runtime.data.state === "disabled" &&
+      runtime.data.reason ===
+        "Запуск агента недоступен в изолированном окружении проверки или preview."
+    ) {
+      expect(createdResponse.status(), createdBody).toBe(409);
+      expect(JSON.parse(createdBody)).toMatchObject({
+        ok: false,
+        error: { code: "AI_DISABLED" },
+      });
+      const conversationID = seeded.conversationID;
+      const persisted = await withPayloadTestDatabase((database) =>
+        database.query<{ count: string }>(
+          'SELECT count(*)::text AS count FROM "realize_ai_change_requests" WHERE "conversation_id" = $1',
+          [conversationID],
+        ),
+      );
+      expect(persisted.rows[0]?.count).toBe("0");
+      test.info().annotations.push({
+        type: "runtime",
+        description: "isolated: rejected writes leave no durable plan",
+      });
+      return;
+    }
+    expect(runtime.data.state).toBe("ready");
     expect(createdResponse.status(), createdBody).toBe(201);
     const createdEnvelope = JSON.parse(
       createdBody,

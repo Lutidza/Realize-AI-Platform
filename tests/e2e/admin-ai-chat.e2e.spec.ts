@@ -1,12 +1,15 @@
 /**
  * @file tests/e2e/admin-ai-chat.e2e.spec.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-09-30
  * @description Проверяет chat, execution, preview, draft PR и OCI release approval UI.
  */
 
 import { expect, test } from "@playwright/test";
-import { CODEX_CHAT_SETTINGS_DEFAULTS } from "@realize/ai-contracts";
+import {
+  CODEX_CHAT_SETTINGS_DEFAULTS,
+  type ChatCapabilitiesDto,
+} from "@realize/ai-contracts";
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -51,10 +54,19 @@ test("сохраняет чат между страницами Admin и пол�
         body: JSON.stringify({
           ok: true,
           data: {
-            attachments: { available: false },
-            projectFiles: { available: false },
+            attachments: {
+              available: false,
+              mimeTypes: [],
+              extensions: [],
+              maxFiles: 0,
+              maxImageBytes: 0,
+              maxTextBytes: 0,
+              maxTotalBytes: 0,
+            },
+            projectFiles: { available: false, maxFiles: 0 },
             webSearch: { available: false },
-          },
+            pageDrafts: { available: false },
+          } satisfies ChatCapabilitiesDto,
           correlationID: "e2e",
         }),
       }),
