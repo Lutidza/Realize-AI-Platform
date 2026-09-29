@@ -287,21 +287,66 @@ Pagination: сортировка детерминированная; opaque curs
 
 ## 9. Контракты инструментов A
 
+`repo_search intent=text` сохраняет literal контракт. Для TS/JS family добавлены
+`definitions` (точное имя объявления), `references` (синтаксические usages без
+symbol binding) и `imports` (binding/alias или literal часть module specifier;
+`*` перечисляет module specifiers выбранного файла). По умолчанию import resolution
+не выполняется. Pure TypeScript parser принимает только текст после того же
+strict reader, без CompilerHost/Program и вычисления expressions.
+
+Opt-in `resolveImports: true` допустим только с `intent=imports` и точным TS/JS
+`path`. Optional `maxDepth` — 1–12, default 8, только при resolveImports.
+Shared resolver читает bounded tsconfig/workspace metadata и targets через
+прежний strict reader. Binding приоритетнее module substring во всём seed;
+binding ведёт к исходному объявлению, namespace/module query — к файлу.
+Match добавляет `resolution` со status, nullable reason/target и bounded chain;
+target/steps содержат path,line,column,kind, optional name/fileSha256.
+Top-level `resolution` сообщает precision=static_imports, maxDepth, maxFiles=128,
+maxReadBytes=4194304, filesRead, bytesRead, probes, blockedCandidates,
+unresolvedMatches и exhausted. Колонки сохраняют Unicode code points от 1.
+Scope и secret/link checks не ослабляются; внешние зависимости не читаются.
+Неподдерживаемая конфигурация, cycles/ambiguity и другие unresolved причины
+явны; этот контракт не обещает полный TypeScript symbol binding.
+
+Snapshot разрешения включает sources/config hashes, статусы отсутствующих и
+закрытых кандидатов, workspace listings. ResolveImports/maxDepth входят в cursor
+binding; новая страница повторно проверяет граф. При превышении scan budget
+nextCursor/snapshotHash=null, truncated=true, truncationReason=scan_budget.
+Маленький limit ограничивает страницу, не является лимитом чтения;
+точный binding сокращает обход. Operation диагностики остаётся `imports`,
+новые enum/migrations не требуются. Фактические bytes включают чтение до отказа
+content validator или отмены; код, пути и query в события не добавляются.
+
+Navigation-файл ограничен 512 KiB; parser не меняет allowlist, secret filtering
+и descriptor checks. Optional `syntax` содержит enum kind и bounded
+name/moduleSpecifier/importedName. Optional `navigation` сообщает precision=syntax,
+languages=typescript_javascript, maxFileBytes и counters parsedFiles,
+prefilteredFiles, unsupportedFiles, skippedFiles, syntaxErrorFiles. Prefilter
+исключает AST только при отсутствии query и escapes; ошибки в других файлах
+тем самым не объявляются проверенными. Ненулевые skippedFiles/syntaxErrorFiles
+означают неполноту анализа отдельно от `truncated`, описывающего pagination/scan.
+Snapshot включает hashes прочитанных кандидатов и fingerprints unsupported/
+отклонённых entries; intent входит в cursor binding. Новые схемы принимают старые
+text ответы и diagnostic events. Web/collectors обновляются вместе до доставки
+событий с новыми operation values; миграция БД не нужна. Подробный алгоритм,
+семантика координат, маршруты агентов и benchmark — в
+[архитектуре поиска](../architecture/repository-search.md).
+
 Все входные object schemas строгие, unknown keys запрещены. Общие необязательные поля не превращаются в произвольный request context. Все перечисленные инструменты имеют `readOnlyHint:true`, `destructiveHint:false`, `idempotentHint:true`, `openWorldHint:false`; чтение может вернуть новые данные при изменении источника.
 
 Каждый успешный результат имеет `schemaVersion:"1.0"`, `ok:true`, `data`, `requestID`, `observedAt`. Ошибка имеет `ok:false`, `error:{code,message,retryable}`, `requestID`. Обе формы — явные output schemas. В MCP возвращаются structuredContent и краткий согласованный text content; результаты не содержат raw Payload documents. Текст не копирует большой JSON целиком.
 
-| Tool                  | Строгий input и defaults                                                                                                                | Data result                                                                                                                                                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `realize_get_context` | `{}`                                                                                                                                    | Project name/version; server version; auth scopes; single-installation mode; enabled modules и `ready/not_configured/unavailable`; фактический разрешённый tool catalog; repository branch/HEAD/dirty только при repo grant |
-| `repo_list_files`     | `path` default пустой root; `depth` 1–5 default 1; `limit` 1–100 default 50; `cursor?`                                                  | Разрешённые entries `{path,type,size?}`, `nextCursor`, `truncated`, `policyVersion`; directory names тоже проходят policy                                                                                                   |
-| `repo_read_file`      | `path`; `startLine` ≥1 default 1; `lineCount` 1–400 default 200; `expectedSha256?`                                                      | `path`, UTF-8 `text`, `startLine/endLine`, `nextLine`, `truncated`, полный version identity; границы строк явно включительные                                                                                               |
-| `repo_search`         | `query` literal 1–256 chars; `path` default root; `caseSensitive` default false; `limit` 1–100 default 50; `cursor?`                    | Matches `{path,line,column,snippet,fileSha256}`, `nextCursor`, `truncated`, причина ограничения; snippet ≤500 chars; regex и executable glob не принимаются                                                                 |
-| `repo_git_status`     | `limit` 1–100 default 50; `cursor?`                                                                                                     | `branch:null                                                                                                                                                                                                                | string`, `head:null                                                                                                                                    | string`, `detached`, `unborn`, разрешённые `{path,indexStatus,worktreeStatus}`, conflict status, `nextCursor`, `truncated`, snapshot fingerprint |
-| `repo_git_diff`       | `scope:"index"                                                                                                                          | "working_tree"`; `paths`1–20 точных относительных файлов;`contextLines`0–5 default 3;`limitBytes`1024–65536 default 32768;`cursor?`                                                                                         | Bounded unified diff, scope, разрешённые paths, before/after identities, `nextCursor`, `truncated`; binary/untracked не превращаются в synthetic patch |
-| `pages_list`          | `query` после trim 0–128 chars default пусто; safe integer `page` 1–999999 default 1                                                    | Существующий DTO поиска Pages, limit 20, страницы, ID/title/slug и разрешённая metadata; без произвольных collection/where/depth                                                                                            |
-| `pages_get`           | `pageID` как валидируемый string ID                                                                                                     | Существующий PageDraftContextDTO: identity, updatedAt, fingerprint, adapterVersion, разрешённые text fields; до 128 полей/64 KiB текстовой проекции и optional knowledge до 48 KiB, с общим wire budget                     |
-| `pages_get_structure` | `pageID`; safe integer `offset` 0–10000 default 0, кратный 32; `fingerprint?`, `catalogHash?` как Hash256, оба обязательны при offset>0 | Штатный DTO порции структуры, до 32 placements, next offset, fingerprints; без произвольного дерева Payload                                                                                                                 |
+| Tool                  | Строгий input и defaults                                                                                                                                                                                                                  | Data result                                                                                                                                                                                                                 |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `realize_get_context` | `{}`                                                                                                                                                                                                                                      | Project name/version; server version; auth scopes; single-installation mode; enabled modules и `ready/not_configured/unavailable`; фактический разрешённый tool catalog; repository branch/HEAD/dirty только при repo grant |
+| `repo_list_files`     | `path` default пустой root; `depth` 1–5 default 1; `limit` 1–100 default 50; `cursor?`                                                                                                                                                    | Разрешённые entries `{path,type,size?}`, `nextCursor`, `truncated`, `policyVersion`; directory names тоже проходят policy                                                                                                   |
+| `repo_read_file`      | `path`; `startLine` ≥1 default 1; `lineCount` 1–400 default 200; `expectedSha256?`                                                                                                                                                        | `path`, UTF-8 `text`, `startLine/endLine`, `nextLine`, `truncated`, полный version identity; границы строк явно включительные                                                                                               |
+| `repo_search`         | `intent` text (default), definitions, references, imports; `query` 1–256 code points; `path` default root; `caseSensitive` default false; `limit` 1–100 default 50; `cursor?`; `resolveImports?`, `maxDepth?` только для адресных imports | Matches `{path,line,column,snippet,fileSha256,syntax?,resolution?}`, `navigation?`, `resolution?`, snapshot и page window; snippet ≤500 code points; regexp не принимается                                                  |
+| `repo_git_status`     | `limit` 1–100 default 50; `cursor?`                                                                                                                                                                                                       | `branch:null                                                                                                                                                                                                                | string`, `head:null                                                                                                                                    | string`, `detached`, `unborn`, разрешённые `{path,indexStatus,worktreeStatus}`, conflict status, `nextCursor`, `truncated`, snapshot fingerprint |
+| `repo_git_diff`       | `scope:"index"                                                                                                                                                                                                                            | "working_tree"`; `paths`1–20 точных относительных файлов;`contextLines`0–5 default 3;`limitBytes`1024–65536 default 32768;`cursor?`                                                                                         | Bounded unified diff, scope, разрешённые paths, before/after identities, `nextCursor`, `truncated`; binary/untracked не превращаются в synthetic patch |
+| `pages_list`          | `query` после trim 0–128 chars default пусто; safe integer `page` 1–999999 default 1                                                                                                                                                      | Существующий DTO поиска Pages, limit 20, страницы, ID/title/slug и разрешённая metadata; без произвольных collection/where/depth                                                                                            |
+| `pages_get`           | `pageID` как валидируемый string ID                                                                                                                                                                                                       | Существующий PageDraftContextDTO: identity, updatedAt, fingerprint, adapterVersion, разрешённые text fields; до 128 полей/64 KiB текстовой проекции и optional knowledge до 48 KiB, с общим wire budget                     |
+| `pages_get_structure` | `pageID`; safe integer `offset` 0–10000 default 0, кратный 32; `fingerprint?`, `catalogHash?` как Hash256, оба обязательны при offset>0                                                                                                   | Штатный DTO порции структуры, до 32 placements, next offset, fingerprints; без произвольного дерева Payload                                                                                                                 |
 
 `pages_get_structure` переиспользует текущий strict parser; Page ID проверяется существующим parseIdentifier (не произвольная строка). Для list допускается пустой query по browser catalog contract; native pages_search с обязательным непустым query не подставляется вместо list parser. Альтернативная пагинация не вводится. Слишком большой text snapshot не выдаётся как полный; используется явная ошибка лимита и отдельное структурное чтение.
 

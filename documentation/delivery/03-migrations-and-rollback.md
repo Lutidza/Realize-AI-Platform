@@ -340,3 +340,30 @@ backward-compatible с предыдущим application digest либо имет
 проверенный data rollback/restore plan. Автоматический restore dump при failed
 readiness намеренно не выполняется, чтобы не перезаписать данные без решения
 оператора.
+
+## Диагностика поиска агентов
+
+`20260927_070914_search_observations` добавляет закрытую коллекцию временной
+диагностики и её индексы. `20260928_102009_search_observation_state` добавляет
+закрытый singleton управления диагностикой и связь в `payload_locked_documents_rels`.
+Обе миграции применяются через `npm run payload:migrate` до запуска обновлённых
+web/control plane/managed MCP. Исходники генерации:
+[search-observations.mjs](../../scripts/migrations/search-observations.mjs) и
+[search-observation-state.mjs](../../scripts/migrations/search-observation-state.mjs).
+TS/JSON/index и Payload types создаются штатными генераторами.
+
+Поисковые snapshots построены от опубликованной схемы
+`20260925_093817_chatgpt_tunnel_status`; миграции других возможностей не требуются.
+Идентификаторы ранее подготовленных поисковых миграций сохранены, их SQL совпадает
+с исходным. При наличии соответствующих migration receipts повторное создание
+таблиц не требуется. Snapshot JSON соответствует составу этого выпуска.
+
+`down` первой миграции блокируется при сохранённых событиях с
+`SEARCH_OBSERVATIONS_ROLLBACK_BLOCKED`. `down` управления блокируется при
+revision больше 1 с `SEARCH_STATE_ROLLBACK_BLOCKED`: настройки, ручная очистка
+и durable cutoff являются сохранёнными решениями. Не удалять события и не
+сбрасывать revision ради отката. Откат приложения сохраняет таблицы.
+
+На свежем/default state переходы `down`/`up` проверяет `npm run check:search`
+только в одноразовых БД; миграция управления не удаляет события поиска.
+Контракт хранения и retention — в [архитектуре поиска](../architecture/repository-search.md).

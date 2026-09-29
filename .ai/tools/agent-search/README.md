@@ -1,4 +1,4 @@
-# Agent Search Tool
+# Поиск по репозиторию для агентов
 
 ```yaml
 artifact_id: agent-search-tool
@@ -9,22 +9,263 @@ runtime_check: .ai/checks/pre-implementation/CHECK-SEARCH-SCOPE-DISCIPLINE.md
 status: active
 ```
 
-## Commands
+Локальный CLI с `rg` и синтаксической навигацией TS/JS: читает рабочее дерево без индекса, LLM, сети и
+фоновых процессов. Нужны Node.js проектной версии, установленный ripgrep и
+локальные зависимости CLI из его lock-файла:
 
 ```bash
-npm --prefix .ai/tools/agent-search run search -- --mode=code "catalog"
-npm --prefix .ai/tools/agent-search run search -- --mode=payload Product
-npm --prefix .ai/tools/agent-search run search -- --mode=next-routes searchParams
-npm --prefix .ai/tools/agent-search run search -- --mode=ui SearchProfiles
-npm --prefix .ai/tools/agent-search run search -- --mode=search-layer elastic
-npm --prefix .ai/tools/agent-search run search -- --mode=migrations up
-npm --prefix .ai/tools/agent-search run search -- --mode=docs project-contract
-npm --prefix .ai/tools/agent-search run search -- --mode=code-docs "company details"
-npm --prefix .ai/tools/agent-search run search -- --mode=ai RULE-SEARCH-SCOPE-DISCIPLINE
-npm --prefix .ai/tools/agent-search run search -- --mode=codex frontend-runtime-evidence
-npm --prefix .ai/tools/agent-search run search -- --mode=ai-active RULE-NO-HISTORICAL-NOISE
-npm --prefix .ai/tools/agent-search run search -- --mode=reference --reason=visual-reference company-create-wizard
-npm --prefix .ai/tools/agent-search run search -- --mode=special --path=.gitignore --reason=ignore-policy node_modules
+npm --prefix .ai/tools/agent-search ci --ignore-scripts --no-audit --no-fund
 ```
 
-Use `--dry-run=true` to print the resolved `rg` command without running it.
+Для сопоставления glob используется `picomatch` с включёнными скрытыми путями;
+скомпилированные шаблоны переиспользуются в текущем процессе.
+Корень определяется по расположению CLI,
+поэтому запуск из вложенного каталога не меняет область поиска.
+
+Диагностика работает автоматически: CLI пишет обезличенные замеры в собственный
+ignored `runtime/search-observations.sqlite`, существующий control plane
+доставляет их в Admin → «Диагностика поиска». Страница обновляется сама.
+Очередь ограничена 100 событиями за 7 дней и 1 MiB SQLite. При занятости/отказе
+буфера поиск продолжается с прежним stdout и exit code. Сеть, PostgreSQL,
+секреты и модель на пути CLI не нужны. Тексты запросов, пути и код не сохраняются.
+На той же странице доступны срок и предел хранения, автоочистка, ручная очистка
+с предварительным расчётом и состояние доставки. Серверная очистка не меняет
+доступ к файлам или бюджеты поиска; очищенные события не возвращаются из буфера.
+Control plane обслуживает хранилище и сообщает heartbeat даже без новых поисков
+и без managed MCP. При остановке обоих сборщиков обслуживание ждёт запуска.
+
+Для отдельного экспорта доступен необязательный
+`--metrics-file=/абсолютный/путь/.ai-workspace/tasks/<task>/logs/<name>.json`.
+Каталог должен существовать, файл — быть новым. Экспорт использует тот же eventID,
+что автоматическая запись; для работы диагностики он не требуется.
+Единицы измерений, покрытие, ограничения и связи файлов описаны в
+[архитектуре поиска](../../../documentation/architecture/repository-search.md).
+
+Требования задаёт [правило поиска](../../rules/development/RULE-SEARCH-SCOPE-DISCIPLINE.md),
+точные профили и пределы — [конфигурация](src/searchProfiles.config.mjs).
+`--help` показывает все профили из той же конфигурации.
+
+## Экономная выдача
+
+Команды ниже выполняются из корня проекта. Прямой запуск Node исключает
+служебный вывод npm; эквивалентный вход —
+`npm --prefix .ai/tools/agent-search run --silent search -- ...`.
+
+Когда известно только имя, начни со списка путей без чтения содержимого:
+
+```bash
+node .ai/tools/agent-search/bin/agent-search.mjs --mode=ui --output=paths '*Button*'
+```
+
+Для определения потребителей достаточно списка файлов с совпадениями:
+
+```bash
+node .ai/tools/agent-search/bin/agent-search.mjs --mode=code --intent=references --output=files UiButton
+```
+
+Затем получи фрагменты конкретного владельца:
+
+```bash
+node .ai/tools/agent-search/bin/agent-search.mjs --mode=ui --within=packages/ui-kit/src/button/UiButton.component.tsx --intent=definitions --limit=8 UiButton
+```
+
+Не выполняй все три команды автоматически: выбирай ту, которая закрывает
+текущий вопрос. Поиск не вызывает модель; отдельный worker нужен только для
+полезной самостоятельной задачи анализа, по действующим правилам координации.
+
+## Аргументы
+
+| Параметр                  | Контракт                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------ |
+| `--mode=code`             | Область поиска; имена и источники — в конфигурации и `--help`                              |
+| `--intent=text`           | `text` (по умолчанию), `definitions`, `references`, `imports`; syntax только TS/JS family  |
+| `--resolve-imports`       | Явный переход от `imports` к исходному объявлению; требует `--from` и `output=matches`     |
+| `--from=relative/file.ts` | Стартовый TS/JS файл разрешения imports внутри профиля и фильтров                          |
+| `--max-depth=8`           | Предел цепочки разрешения imports: 1–12; без `--resolve-imports` недопустим                |
+| `--output=matches`        | Короткие строки `path:line:byte-column:фрагмент`; координаты от 1                          |
+| `--output=files`          | Только пути файлов, содержащих запрос                                                      |
+| `--output=paths`          | Имена по glob, без чтения содержимого; запрос по умолчанию `*`                             |
+| `--regex`                 | Regexp ripgrep; по умолчанию запрос литеральный                                            |
+| `--fixed=true\|false`     | Явный выбор литерального поиска или regexp; не совмещается с `--regex`                     |
+| `--ignoreCase=true`, `-i` | Поиск без учёта регистра; в `paths` применяется к glob запроса                             |
+| `--path=relative/path`    | Дополнительная область профиля; повторяемый параметр, требует `--reason`                   |
+| `--within=relative/path`  | Сужение до файла/каталога внутри выбранной области; повторяемый параметр, причина не нужна |
+| `--reason=...`            | Причина расширения; также обязательна для `domain`, `search-layer`, `reference`, `special` |
+| `--ext=ts,tsx`            | Расширения через запятую или повторяемый параметр; `docs` допускает только `md`            |
+| `--glob='*.service.ts'`   | Дополнительные glob; положительные объединяются, `!` исключает; пересечение с `--ext`      |
+| `--limit=40`              | Число результатов, от 1 до 500                                                             |
+| `--max-bytes=8192`        | Бюджет stdout результата в UTF-8, от 512 до 65536 байтов, включая отметку лимита           |
+| `--timeout-ms=10000`      | Общее время перечисления и поиска, от 1 до 60000 мс; завершение может добавить до 250 мс   |
+| `--dry-run`               | Проверка области и печать безопасно quoted аргументов без запуска rg                       |
+| `--`                      | Конец флагов; позволяет искать текст, начинающийся с `-`                                   |
+
+Syntax modes принимают точное имя без regexp, `imports` также literal часть
+module specifier; `imports '*'` перечисляет зависимости выбранного файла.
+`--output=files` работает с navigation; `paths` используется только с `text`.
+References — синтаксические употребления, а не связанные символы. Alias устанавливай
+через imports; для перехода к объявлению включай resolution адресно:
+
+```bash
+node .ai/tools/agent-search/bin/agent-search.mjs --intent=imports \
+  --resolve-imports --from=services/internal-mcp/src/executeMcpTool.service.ts \
+  --limit=5 searchRepository
+```
+
+Выдача содержит `=> target:line:byte-column [kind]` и промежуточные re-exports
+либо `[unresolved:reason]`. Точный binding приоритетнее substring других module
+specifiers в стартовом файле; `*` и запрос пути ведут к файлу модуля.
+Relative/paths aliases, index и workspace exports читаются адресно с request cache.
+`--within`, профиль, ext/glob и ignore действуют также на targets; `--from`
+сам по себе не запрещает разрешённые соседние файлы. Root tsconfig/package
+доступны как metadata, другие JSON — в исходном профиле и его ignore/exclusions.
+Конфигурация не расширяет права доступа и не исполняется.
+
+Разрешение ограничено 128 файлами/4 MiB, 1024 probes и глубиной 8 (максимум 12),
+плюс общими временем/байтами/числом результатов. Один проход имён сохраняет
+ignore-контекст: максимум 10 000 путей/2 MiB. При неполноте уточняй binding или
+известную цель; CLI cursor не выдаёт. Причины external_dependency, forbidden,
+unsupported_configuration, ambiguous, cycle и другие видны в результате.
+Это статическая навигация TS/JS, не полная семантика compiler и не rename engine.
+Footer разрешения объединяет coverage parser и фактические files/bytes/unresolved;
+обычные intents не читают зависимые исходники и metadata.
+
+TypeScript 6.0.3 загружается только для navigation, без постоянного AST/index.
+Parsed/prefiltered/unsupported/skipped/syntax-errors выводятся в footer; файл
+больше 512 KiB или с ошибкой syntax не разбирается. Ненулевые skipped/syntax-errors
+означают неполное покрытие, даже если result limit не достигнут. Используй text
+или точное чтение известного файла вместо повторения того же запроса.
+Для non-ASCII запросов без учёта регистра prefilter отключён: контекстный Unicode
+регистр проверяется по имени в AST, чтобы не потерять совпадения.
+Полная семантика, метрики и benchmark — в [архитектуре поиска](../../../documentation/architecture/repository-search.md).
+
+`--output=paths` принимает glob запроса вместо текста/regexp. Фильтры расширений,
+дополнительных glob и профиля сохраняются. Порядок результатов зависит от обхода
+ripgrep: это не ранжирование по релевантности. Для воспроизводимого сравнения
+ограничивай область; полный обход ради сортировки не выполняется.
+Glob `**/*.md` включает документы внутри `.ai/`, `.codex/` и других скрытых
+каталогов, если они разрешены профилем. Исключения также учитывают скрытые пути.
+Пользовательские glob исполняются одним matcher до чтения содержимого во всех
+режимах. Поддерживаются `*`, `**`, `?`, классы `[ab]`/`[!x]`, списки `{ts,tsx}`,
+диапазоны символов `{a..c}` и POSIX-классы `[[:alpha:]]`. Круглые скобки и `|`
+буквальные; glob не является regexp запроса. Его не следует механически
+переносить в `rg --glob`: у движков разный синтаксис.
+
+В `reference` и `special` ищутся только явно переданные `--path`. В остальных
+профилях `--path` добавляет область. `--within` сужает полученную область без
+смены профиля и его исключений. Каждый выбранный путь должен совпадать с
+разрешённым корнем или находиться внутри него после разрешения symlink;
+соседний каталог и общий предок отклоняются. Несколько `--within` объединяются,
+повторные и вложенные пути не дублируют поиск. Отсутствующий путь — ошибка.
+`--within` и положительный glob не возвращают файлы, исключённые ignore-правилами
+исходных корней. Существующий, но игнорируемый путь даёт пустую выдачу.
+Сужение не заменяет обязательные `--path`/`--reason` для специальных областей
+и lock-файлов. Legacy-профили `domain` и `search-layer` читают quarantined RealizeCore
+и не объявляют его действующим владельцем приложения.
+
+```bash
+node .ai/tools/agent-search/bin/agent-search.mjs --mode=search-layer --reason=legacy-search-audit --output=files elastic
+node .ai/tools/agent-search/bin/agent-search.mjs --mode=special --path=package-lock.json --reason=dependency-audit --limit=5 payload
+node .ai/tools/agent-search/bin/agent-search.mjs --mode=docs --output=paths '*ADR*.md'
+node .ai/tools/agent-search/bin/agent-search.mjs --mode=ai-active --within=.ai/rules --output=paths '**/*.md'
+```
+
+## Границы
+
+- Все пути существуют внутри репозитория. Абсолютные пути, `..`, symlink наружу,
+  корень репозитория и совокупность всех `.ai-workspace/tasks` отклоняются.
+  Внутренний symlink разрешается в настоящий путь; вложенные symlink не обходятся.
+- Отсутствующий путь встроенного профиля пропускается с предупреждением.
+  Отсутствие всех путей или неверный явный `--path`/`--within` — ошибка.
+- По умолчанию исключены quarantine/reference, исторические отчёты,
+  `.ai/agents-evolution`, `.ai/research`, материалы задач и generated runtime.
+  Адресный `reference`/`special` разрешает читать нужный материал, в том числе
+  игнорируемый Git каталог одной задачи.
+- Зависимости, сборки, env-файлы, ключи, дампы, SQLite/JSONL и известные бинарные
+  форматы исключены во всех профилях. Lock-файлы доступны только точным путём
+  с причиной. Положительный пользовательский glob не отменяет эти ограничения.
+- `RIPGREP_CONFIG_PATH` игнорируется; аргументы передаются через `spawn` без
+  shell. Настройки поиска пользователя не добавляют внешние команды или области.
+  Это trusted developer CLI, а не защищённый MCP-доступ к враждебному filesystem.
+
+## Лимиты и завершение
+
+Сначала `rg --files` перечисляет кандидатов из исходных корней, пересекающихся
+с выбранной областью. Это сохраняет контекст `.gitignore`, `.ignore`, `.rgignore`
+при сужении. CLI применяет `--within`, расширения и пользовательские glob к
+именам до поиска содержимого. Содержимое отфильтрованных файлов не читается.
+
+Для `files`/`matches` отобранные имена передаются в `rg` пакетами до 64 файлов
+и 64 KiB путей. Во время обработки пакета чтение списка кандидатов приостановлено:
+полный список файлов не накапливается. Одновременно работают не более двух
+процессов rg. Лимиты количества, байтов и времени общие для всего запроса.
+При остановке CLI закрывает все процессы; после SIGTERM при необходимости
+следует SIGKILL. SIGINT/SIGTERM, адресованные CLI, также завершают оба процесса.
+
+Длинная строка сокращается до 240 Unicode code points вокруг первого совпадения,
+с отметками `…`. Координата столбца остаётся байтовой координатой оригинала.
+Управляющие символы экранируются. JSON frame больше 1 MiB вызывает явную ошибку;
+для такого файла сначала используй `--output=files`, затем адресное чтение.
+
+Бюджет stdout не является точным числом токенов: оно зависит от модели и текста.
+Предупреждения и ошибки идут отдельно в stderr; вывод ошибки rg ограничен
+2048 байтами. `--help` и `--dry-run` — диагностические режимы вне бюджета выдачи.
+Dry-run показывает выбранные `paths`, исходные `candidate-roots`, запрос и
+команду перечисления. Фильтрация кандидатов, поиск содержимого пакетами и
+остановка по бюджету принадлежат CLI, а не копируемой shell-команде.
+
+| Код   | Результат                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------- |
+| `0`   | Найдены результаты либо выдана явно неполная выборка по лимиту; также help/dry-run                       |
+| `1`   | Поиск завершён, совпадений нет                                                                           |
+| `2`   | Неверные аргументы/пути, ошибка rg, превышение времени или размера frame; результат может быть частичным |
+| `130` | Поиск отменён сигналом                                                                                   |
+
+## Проверки
+
+```bash
+npm --prefix .ai/tools/agent-search run --silent test
+```
+
+Тесты используют настоящий `rg` и временные fixtures в
+`.ai-workspace/tasks/<date>-agent-search-test-<suffix>/tmp/`. Собственные fixtures
+удаляются после каждого теста. Отдельный управляемый процесс проверяет таймаут
+и принудительную остановку; он не подменяет функциональные проверки поиска.
+Регрессии покрывают скрытые каталоги, согласованность glob между режимами,
+исключения явных скрытых файлов, сохранение ignore при `--within`, отбор до
+чтения содержимого и остановку обоих процессов.
+
+Полная приёмка из корня проекта:
+
+```bash
+npm run check:search
+```
+
+Она последовательно запускает CLI, repository/доставку, два корпуса CLI/MCP,
+managed MCP и PostgreSQL проверки, затем настоящий browser сценарий диагностики.
+Обязательные тесты с `skip`, `todo`, ошибкой или пустым набором означают отказ
+приёмки. Пройденный отдельный benchmark не заменяет эту команду.
+
+Локально нужны проектные Node/npm, корневые зависимости, зависимости CLI,
+`rg`, PostgreSQL binaries (`pg_config`, `initdb`, `postgres`), `mkfifo` и Chromium
+для установленной версии Playwright. Native fixture поддерживает Linux без root;
+`SEARCH_ACCEPTANCE_PG_BIN` позволяет указать каталог PostgreSQL binaries.
+Установка браузера: `npx playwright install chromium`.
+
+Runner создаёт свою PostgreSQL на свободном loopback порту, новые уникальные БД
+и отдельный Next в disposable копии исходников. Рабочие `DATABASE_URI`, `DATABASE_URL`,
+`.env`, порт 3000 и очередь CLI не используются. Временные процессы, БД и копия
+удаляются при завершении; JSON отчёты, ограниченные журналы и browser evidence
+остаются в новом `.ai-workspace/tasks/<date>-search-acceptance-<suffix>/`.
+SIGINT/SIGTERM проходят через cleanup; после SIGKILL или аварии ОС автоматическое
+завершение runner-а невозможно.
+
+В [общем CI](../../../.github/workflows/ci.yml) шаг `Verify agent search`
+устанавливает зависимости CLI и выполняет адресные ESLint/Prettier/headers,
+включая `acceptance` и benchmark controllers. `Search acceptance` запускает
+полный контур после установки Chromium; отчёты сохраняются на 7 дней.
+Только в CI разрешён явный `SEARCH_ACCEPTANCE_DATABASE_URI` к сервису
+`127.0.0.1:5432/realize_ci`. Runner создаёт и удаляет собственные fixture databases,
+не меняя исходную БД сервиса. Значения рабочей БД не подставляй.
+
+Разделение первого и повторных измерений, критерии качества и ограничения
+описаны в [архитектуре](../../../documentation/architecture/repository-search.md#воспроизводимая-оценка).

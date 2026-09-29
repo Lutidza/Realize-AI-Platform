@@ -1,7 +1,7 @@
 /**
  * @file tests/int/payload-ai-plugin.int.spec.ts
- * @version 1.4.1
- * @date 2026-09-24
+ * @version 1.5.0
+ * @date 2026-09-30
  * @description Проверяет регистрацию и доступ к разделам конфигурации и интеграций Payload.
  */
 
@@ -243,6 +243,8 @@ describe("realizeAIPlugin", () => {
 
     expect(slugs).toEqual([
       "existing",
+      "realize-ai-search-observations",
+      "realize-ai-search-state",
       "realize-ai-conversations",
       "realize-ai-messages",
       "realize-ai-chat-attachments",

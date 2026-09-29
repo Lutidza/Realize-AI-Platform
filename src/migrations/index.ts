@@ -20,6 +20,8 @@ import * as migration_20260915_080818_media_processing_profiles from './20260915
 import * as migration_20260915_082031_media_nullable_backlinks from './20260915_082031_media_nullable_backlinks';
 import * as migration_20260923_120805_internal_mcp from './20260923_120805_internal_mcp';
 import * as migration_20260925_093817_chatgpt_tunnel_status from './20260925_093817_chatgpt_tunnel_status';
+import * as migration_20260927_070914_search_observations from './20260927_070914_search_observations';
+import * as migration_20260928_102009_search_observation_state from './20260928_102009_search_observation_state';
 
 export const migrations = [
   {
@@ -130,6 +132,16 @@ export const migrations = [
   {
     up: migration_20260925_093817_chatgpt_tunnel_status.up,
     down: migration_20260925_093817_chatgpt_tunnel_status.down,
-    name: '20260925_093817_chatgpt_tunnel_status'
+    name: '20260925_093817_chatgpt_tunnel_status',
+  },
+  {
+    up: migration_20260927_070914_search_observations.up,
+    down: migration_20260927_070914_search_observations.down,
+    name: '20260927_070914_search_observations',
+  },
+  {
+    up: migration_20260928_102009_search_observation_state.up,
+    down: migration_20260928_102009_search_observation_state.down,
+    name: '20260928_102009_search_observation_state'
   },
 ];

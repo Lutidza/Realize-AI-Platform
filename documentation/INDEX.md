@@ -29,6 +29,8 @@ Codex-адаптеры — в `.codex/**`.
 4. [Delivery runbooks](delivery/INDEX.md) — эксплуатация текущего baseline.
 5. [MCP tooling](architecture/mcp-tooling.md) — внешние adapters, внутренний MCP и запуск Admin manager.
 6. [Architecture Decision Log](architecture/decisions/INDEX.md).
+7. [Поиск для агентов и диагностика](architecture/repository-search.md) — CLI/MCP,
+   измерения, история Admin и ограничения покрытия.
 
 Подключение аккаунта ChatGPT или API key и требования к исполнителям:
 [интеграция Codex](architecture/codex-integration.md).

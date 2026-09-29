@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/mcpToolCatalog.config.ts
- * @version 1.0.0
- * @date 2026-09-24
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Задаёт единый каталог регистраций, read grants и зависимостей MCP.
  */
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
@@ -56,7 +56,8 @@ export const mcpToolCatalog: Record<
     fallback: "direct_project_read",
   },
   repo_search: {
-    description: "Буквальный поиск в разрешённых файлах без shell и записи.",
+    description:
+      "Поиск: intent=text (default), definitions/references/imports для TS/JS. References — синтаксис, не связанные символы. Для перехода по imports задайте resolveImports=true, точный path файла и maxDepth (default 8, max 12); query — binding/module либо * для списка модулей. Возвращает target, chain и явные причины unresolved в разрешённом scope. Проверяйте navigation/resolution: пропуски ограничивают покрытие. Без исполнения, node_modules и постоянного индекса.",
     grant: "repository:read",
     dependency: "repository",
     fallback: "direct_project_read",

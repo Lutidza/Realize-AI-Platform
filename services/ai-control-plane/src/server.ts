@@ -1,11 +1,12 @@
 /**
  * @file services/ai-control-plane/src/server.ts
- * @version 1.3.0
- * @date 2026-09-13
+ * @version 1.4.0
+ * @date 2026-09-27
  * @description Предоставляет loopback control plane для read-only запуска выбранной интеграции Codex.
  */
 
 import { config as loadEnvironment } from "dotenv";
+import { LocalSearchObservationCollector } from "./LocalSearchObservationCollector.service";
 
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -49,6 +50,14 @@ const cleanupAssets = setInterval(
 );
 cleanupAssets.unref();
 const runtime = createCodexRuntime();
+const searchCollector =
+  process.env.REALIZE_AI_RUNTIME_ISOLATED === "true"
+    ? undefined
+    : new LocalSearchObservationCollector(
+        workspaceRoot,
+        runtime.searchObservations,
+        (event) => console.warn(JSON.stringify(event)),
+      );
 const activeAdapters = new Map<string, OpenAICodexAdapter>();
 const executions = new Map<string, Promise<void>>();
 const store = new RunStore();
@@ -377,6 +386,7 @@ const shutdown = (): void => {
     [...activeAdapters].map(([runID, adapter]) => adapter.cancelRun(runID)),
   )
     .then(() => Promise.allSettled(executions.values()))
+    .then(() => searchCollector?.close())
     .then(() => runtime.dispose())
     .then(() => process.exit(0));
   setTimeout(() => process.exit(1), 5_000).unref();

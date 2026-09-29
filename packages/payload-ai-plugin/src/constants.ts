@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/constants.ts
- * @version 1.2.0
- * @date 2026-09-20
+ * @version 1.4.0
+ * @date 2026-09-28
  * @description Хранит стабильные runtime/config collection и route identifiers plugin.
  */
 
@@ -31,6 +31,8 @@ export const ACTIVE_AI_CONFIG_POINTERS_SLUG =
 export const AI_CONFIG_EVENTS_SLUG = "realize-ai-config-events" as const;
 
 export const AI_COLLECTION_SLUGS = [
+  "realize-ai-search-observations",
+  "realize-ai-search-state",
   CONVERSATIONS_SLUG,
   CHANGE_REQUESTS_SLUG,
   APPROVALS_SLUG,

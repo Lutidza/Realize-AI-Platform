@@ -1,11 +1,13 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/index.ts
- * @version 1.2.0
- * @date 2026-09-23
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Компонует runtime, integration и installation config collections.
  */
 
 import type { CollectionConfig } from "payload";
+import { createSearchObservationsCollection } from "./SearchObservations.collection";
+import { createSearchObservationStateCollection } from "./SearchObservationState.collection";
 
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createActiveAIConfigPointersCollection } from "./activeAIConfigPointers";
@@ -36,6 +38,8 @@ import { createSourcePromotionsCollection } from "./sourcePromotions";
 export const createAICollections = (
   options: SanitizedRealizeAIPluginOptions,
 ): CollectionConfig[] => [
+  createSearchObservationsCollection(options),
+  createSearchObservationStateCollection(options),
   createConversationsCollection(options),
   createMessagesCollection(options),
   createChatAttachmentsCollection(options),

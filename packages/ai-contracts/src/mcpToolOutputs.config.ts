@@ -1,11 +1,19 @@
 /**
  * @file packages/ai-contracts/src/mcpToolOutputs.config.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.5.0
+ * @date 2026-09-30
  * @description Задаёт закрытые wire schemas ответов MCP, включая существующие проекции Pages.
  * @see documentation/specifications/internal-mcp.md
  */
 import { z } from "zod";
+import {
+  importResolutionSchema,
+  importResolutionCoverageSchema,
+} from "./importResolution.schemas";
+import {
+  repositorySyntaxMatch,
+  repositoryNavigationCoverage,
+} from "./repositoryNavigation.schemas";
 import {
   aiContextOutputSchema,
   aiCapabilitiesOutputSchema,
@@ -189,9 +197,13 @@ export const mcpToolDataSchemas = {
         column: integer,
         snippet: z.string(),
         fileSha256: hash,
+        syntax: repositorySyntaxMatch.optional(),
+        resolution: importResolutionSchema.optional(),
       }),
     ),
     snapshotHash: hash.nullable(),
+    navigation: repositoryNavigationCoverage.optional(),
+    resolution: importResolutionCoverageSchema.optional(),
     ...pageWindow,
   }),
   repo_git_status: z.strictObject({

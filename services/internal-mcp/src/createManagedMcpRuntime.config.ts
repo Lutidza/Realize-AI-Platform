@@ -1,9 +1,14 @@
 /**
  * @file services/internal-mcp/src/createManagedMcpRuntime.config.ts
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Собирает managed listener из существующего Payload registry и operator binding.
  */
+import type { SearchObservationDatabase } from "../../../packages/payload-ai-plugin/src/search-observability/SearchObservationStore.types";
+import {
+  SearchObservationCollector,
+  SearchObservationStore,
+} from "@realize/payload-ai-control/server/search-observability";
 import { createLocalReq, type Payload } from "payload";
 import { z } from "zod";
 import { McpRepository } from "../../../packages/payload-ai-plugin/src/integrations/mcp/Mcp.repository";
@@ -73,7 +78,12 @@ export async function createManagedMcpRuntime(
   );
   let timer: ReturnType<typeof setInterval> | undefined;
   let tick: Promise<void> | undefined;
+  const searchCollector = new SearchObservationCollector(
+    new SearchObservationStore(payload.db as SearchObservationDatabase),
+    (event) => payload.logger.warn(event),
+  );
   const options: McpRuntimeOptions = {
+    observeSearch: searchCollector.record,
     port: configuration.port,
     policy,
     authorize: async (credential) => {
@@ -127,6 +137,7 @@ export async function createManagedMcpRuntime(
         }
       : undefined,
     close: async () => {
+      await searchCollector.close();
       if (timer) clearInterval(timer);
       await tick;
       await tunnel.stop();

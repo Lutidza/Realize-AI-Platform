@@ -90,6 +90,8 @@ export interface Config {
     carts: Cart;
     orders: Order;
     transactions: Transaction;
+    'realize-ai-search-observations': RealizeAiSearchObservation;
+    'realize-ai-search-state': RealizeAiSearchState;
     'realize-ai-conversations': RealizeAiConversation;
     'realize-ai-messages': RealizeAiMessage;
     'realize-ai-chat-attachments': RealizeAiChatAttachment;
@@ -152,6 +154,8 @@ export interface Config {
     carts: CartsSelect<false> | CartsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
+    'realize-ai-search-observations': RealizeAiSearchObservationsSelect<false> | RealizeAiSearchObservationsSelect<true>;
+    'realize-ai-search-state': RealizeAiSearchStateSelect<false> | RealizeAiSearchStateSelect<true>;
     'realize-ai-conversations': RealizeAiConversationsSelect<false> | RealizeAiConversationsSelect<true>;
     'realize-ai-messages': RealizeAiMessagesSelect<false> | RealizeAiMessagesSelect<true>;
     'realize-ai-chat-attachments': RealizeAiChatAttachmentsSelect<false> | RealizeAiChatAttachmentsSelect<true>;
@@ -1296,6 +1300,49 @@ export interface FormSubmission {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-observations".
+ */
+export interface RealizeAiSearchObservation {
+  id: number;
+  storageKey: string;
+  origin: string;
+  source: string;
+  outcome: string;
+  observedAt: string;
+  durationMs: number;
+  event:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-state".
+ */
+export interface RealizeAiSearchState {
+  id: number;
+  singletonKey: string;
+  state:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "realize-ai-conversations".
  */
 export interface RealizeAiConversation {
@@ -2371,6 +2418,14 @@ export interface PayloadLockedDocument {
         value: number | Transaction;
       } | null)
     | ({
+        relationTo: 'realize-ai-search-observations';
+        value: number | RealizeAiSearchObservation;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-search-state';
+        value: number | RealizeAiSearchState;
+      } | null)
+    | ({
         relationTo: 'realize-ai-conversations';
         value: number | RealizeAiConversation;
       } | null)
@@ -3167,6 +3222,31 @@ export interface TransactionsSelect<T extends boolean = true> {
   cart?: T;
   amount?: T;
   currency?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-observations_select".
+ */
+export interface RealizeAiSearchObservationsSelect<T extends boolean = true> {
+  storageKey?: T;
+  origin?: T;
+  source?: T;
+  outcome?: T;
+  observedAt?: T;
+  durationMs?: T;
+  event?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-state_select".
+ */
+export interface RealizeAiSearchStateSelect<T extends boolean = true> {
+  singletonKey?: T;
+  state?: T;
   updatedAt?: T;
   createdAt?: T;
 }

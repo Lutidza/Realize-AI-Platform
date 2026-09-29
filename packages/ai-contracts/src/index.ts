@@ -1,11 +1,12 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.3.0
- * @date 2026-09-25
+ * @version 2.4.0
+ * @date 2026-09-30
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
 export * from "./agent";
+export { mcpToolInputs } from "./mcpToolInputs.config";
 export type {
   McpChatGptConfiguration,
   McpChatGptConnectionDto,
@@ -204,3 +205,16 @@ export {
   parsePagePublicationEvidence,
   parsePagePublicationPreview,
 } from "./parsePagePublication.validator";
+
+export {
+  searchObservationSchema,
+  searchObservationQuerySchema,
+} from "./searchObservation.schemas";
+export type {
+  SearchObservation,
+  SearchObservationPage,
+  SearchObservationQuery,
+} from "./SearchObservation.types";
+export * from "./searchObservationManagement.constants";
+export * from "./searchObservationManagement.schemas";
+export type * from "./SearchObservationManagement.types";

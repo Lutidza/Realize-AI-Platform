@@ -1,9 +1,10 @@
 /**
  * @file services/internal-mcp/src/executeMcpTool.service.ts
- * @version 1.1.1
- * @date 2026-09-24
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Направляет разрешённые read tools владельцам контекста, репозитория, Git и Pages.
  */
+import type { RepositorySearchMetrics } from "../../ai-control-plane/src/RepositoryQueries.types";
 import { mcpToolInputs } from "../../../packages/ai-contracts/src/mcpToolInputs.config";
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
 import { listRepositoryFiles } from "../../ai-control-plane/src/listRepositoryFiles.service";
@@ -28,6 +29,7 @@ export async function executeMcpTool(
   options: McpRuntimeOptions,
   cursors: RepositoryCursorService,
   signal: AbortSignal,
+  searchMetrics?: RepositorySearchMetrics,
 ): Promise<unknown> {
   if (
     principal.discoveryOnly ||
@@ -44,6 +46,7 @@ export async function executeMcpTool(
         cursors,
         signal,
         responseBytes: principal.limits.responseBytes,
+        searchMetrics,
       }
     : null;
   if (name === "realize_get_context") {

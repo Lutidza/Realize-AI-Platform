@@ -55,6 +55,14 @@ project entries в активный user config, но session-provided tools/plu
 записываются сюда автоматически. Secrets, tokens и runtime state в `.codex/`
 запрещены.
 
+## Приёмка поиска
+
+После изменения инструмента или диагностики используй
+[процедуру search-acceptance](prompts/search-acceptance.md).
+Она запускает `npm run check:search` с отдельными БД/процессами и проверяет
+полноту отчёта по каноническому правилу `.ai`. Для обычного поиска этот запуск
+не требуется; дополнительная модель или search-worker не нужны.
+
 ## Синхронизация
 
 Изменение MCP config требует проверки:

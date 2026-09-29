@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/useRealizeAINavigation.hook.ts
- * @version 1.5.0
- * @date 2026-09-20
+ * @version 1.6.0
+ * @date 2026-09-27
  * @description Определяет доступность и активность пунктов навигации AI и интеграций.
  */
 
@@ -38,6 +38,11 @@ export const useRealizeAINavigation = ({
           id: "nav-realize-workflow-runs",
           label: "Запуски процессов",
           route: `${route.replace(/\/$/, "")}/runs` as `/${string}`,
+        },
+        {
+          id: "nav-realize-search",
+          label: "Диагностика поиска",
+          route: `${route.replace(/\/$/, "")}/search` as `/${string}`,
         },
       ],
     },

@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/readRepositoryFile.service.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.2.0
+ * @date 2026-09-28
  * @description Читает проверенный descriptor и вычисляет hash из тех же байтов.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -77,6 +77,8 @@ export async function readRepositoryFile(
   options: RepositoryReadOptions & {
     allowBinary?: boolean;
     maximumBytes?: number;
+    /** Считает фактическое чтение, включая bytes впоследствии отклонённого содержимого. */
+    onReadBytes?: (bytes: number) => void;
   } = {},
 ): Promise<RepositoryFile> {
   parseRepositoryPath(path);
@@ -149,6 +151,7 @@ export async function readRepositoryFile(
           length,
         );
         if (!chunk.bytesRead) break;
+        options.onReadBytes?.(chunk.bytesRead);
         length += chunk.bytesRead;
       }
       const after = await handle.stat({ bigint: true });

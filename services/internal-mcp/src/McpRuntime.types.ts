@@ -1,9 +1,10 @@
 /**
  * @file services/internal-mcp/src/McpRuntime.types.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Описывает доверенные порты авторизации и предметного чтения MCP listener.
  */
+import type { SearchObservation } from "@realize/ai-contracts";
 import type { McpLimits } from "../../../packages/ai-contracts/src/McpServer.types";
 import type {
   McpToolInput,
@@ -35,6 +36,7 @@ export type McpRuntimeOptions = {
   authorize: (credential: string) => Promise<McpPrincipal>;
   pages?: McpPagesPort;
   close?: () => Promise<void>;
+  observeSearch?: (event: SearchObservation) => void;
   log?: (event: {
     requestID: string;
     tool: string;

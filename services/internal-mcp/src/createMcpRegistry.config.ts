@@ -1,10 +1,12 @@
 /**
  * @file services/internal-mcp/src/createMcpRegistry.config.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Регистрирует единую поверхность обеих protocol eras с повторной авторизацией вызова.
  */
 import { randomUUID } from "node:crypto";
+import { buildSearchObservation } from "./buildSearchObservation.mapper";
+import type { RepositorySearchMetrics } from "../../ai-control-plane/src/RepositoryQueries.types";
 import { McpServer } from "@modelcontextprotocol/server";
 import { ZodError } from "zod";
 import type { z } from "zod";
@@ -52,11 +54,24 @@ export function createMcpRegistry(
       async (input, call) => {
         const requestID = randomUUID();
         const started = Date.now();
+        const searchMetrics: RepositorySearchMetrics | undefined =
+          name === "repo_search" && options.observeSearch
+            ? {
+                started: performance.now(),
+                firstMatchMs: null,
+                candidateFiles: null,
+                filesRead: 0,
+                bytesRead: 0,
+                excludedFiles: 0,
+              }
+            : undefined;
+        let effectiveResponseBytes = principal.limits.responseBytes;
         let release: (() => void) | undefined;
         let result;
         let code = "OK";
         try {
           const current = await options.authorize(credential);
+          effectiveResponseBytes = current.limits.responseBytes;
           if (current.discoveryOnly)
             throw new McpError(
               "FORBIDDEN",
@@ -84,6 +99,7 @@ export function createMcpRegistry(
             options,
             cursors,
             signal,
+            searchMetrics,
           );
           if (signal.aborted)
             throw new McpError(
@@ -165,6 +181,23 @@ export function createMcpRegistry(
           durationMs: Date.now() - started,
           bytes: Buffer.byteLength(JSON.stringify(result)),
         });
+        if (searchMetrics) {
+          try {
+            options.observeSearch?.(
+              buildSearchObservation(
+                input,
+                searchMetrics,
+                result,
+                requestID,
+                new Date(started).toISOString(),
+                code,
+                effectiveResponseBytes,
+              ),
+            );
+          } catch {
+            /* Сбой наблюдателя не изменяет результат поиска. */
+          }
+        }
         return result;
       },
     );
