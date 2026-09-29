@@ -27,5 +27,16 @@ Node.js `24.18.0` является официальным LTS release и име�
 - CI явно проверяет Node/npm до install;
 - локальная среда с другой patch/version получает понятную ошибку runtime check;
 - dependency upgrades выполняются только отдельным evidence-backed security
-  gate; текущий baseline выровнен на совместимые Next `16.3.1`, Payload `3.88.0`
+  gate; текущий baseline выровнен на совместимые Next `16.3.7`, Payload `3.88.0`
   и React `19.2.8`.
+
+Next и его env/ESLint packages используют линию `16.3.7`; image processing —
+sharp `0.35.5`. Эти версии включают исправления безопасности и поддерживают
+закреплённый Node.js. Точные транзитивные версии принадлежат `package-lock.json`.
+
+Root override закрепляет `undici` на `7.29.1` для Payload и jsdom: Payload
+`3.88.0` требует уязвимую `7.29.0`, а
+[официальный patch release](https://github.com/nodejs/undici/releases/tag/v7.29.1)
+закрывает security advisories в той же minor-линии. При обновлении Payload
+нужно повторно проверить необходимость override; установка и CI не используют
+`--force` или `--legacy-peer-deps`.

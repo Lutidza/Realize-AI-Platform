@@ -2,8 +2,8 @@
 
 /**
  * @file tests/int/migration-adoption.int.spec.ts
- * @version 1.1.1
- * @date 2026-09-16
+ * @version 1.1.2
+ * @date 2026-09-30
  * @description Проверяет semantic schema comparison и fail-closed migration adoption.
  */
 
@@ -43,6 +43,10 @@ const expectedMigrations = [
   "20260914_083749_page_publication_operations",
   "20260915_080818_media_processing_profiles",
   "20260915_082031_media_nullable_backlinks",
+  "20260923_120805_internal_mcp",
+  "20260925_093817_chatgpt_tunnel_status",
+  "20260927_070914_search_observations",
+  "20260928_102009_search_observation_state",
 ];
 
 describe("migration adoption evidence", () => {
