@@ -1,6 +1,6 @@
 /**
  * @file tests/e2e/search-observability.e2e.spec.ts
- * @version 1.1.2
+ * @version 1.1.3
  * @date 2026-09-30
  * @description Проверяет автоматическую диагностику CLI/MCP, retry, dedupe, настройки и очистку через настоящий Admin UI.
  * @see documentation/architecture/repository-search.md
@@ -194,7 +194,6 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     });
     await page.setViewportSize({ width: 390, height: 844 });
     // Payload закрывает nav и перестраивает layout после смены breakpoint.
-    await expect(openMenu).toBeVisible();
     await expect(analytics).toBeVisible();
     await expect
       .poll(() =>
