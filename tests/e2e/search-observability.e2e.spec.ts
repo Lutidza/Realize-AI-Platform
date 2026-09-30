@@ -1,6 +1,6 @@
 /**
  * @file tests/e2e/search-observability.e2e.spec.ts
- * @version 1.1.0
+ * @version 1.1.1
  * @date 2026-09-30
  * @description Проверяет автоматическую диагностику CLI/MCP, retry, dedupe, настройки и очистку через настоящий Admin UI.
  * @see documentation/architecture/repository-search.md
@@ -91,11 +91,11 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     await source.selectOption("");
     await expect(history.locator("details")).toHaveCount(2);
 
-    // Контролируемые замеры проверяют числа графика; первые два события выше доставлены настоящими CLI/MCP.
+    // Отдельная операция отделяет контрольные числа от реальных definitions CLI/MCP выше.
     const now = Date.now();
     const samples = [100, 300, 50, 50, 50, 50].map((durationMs, index) =>
       searchObservationFixture({
-        operation: "definitions",
+        operation: "references",
         durationMs,
         observedAt: new Date(
           now - (index < 2 ? 13 : 1) * 3600000,
@@ -109,7 +109,8 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
       name: "Операция",
       exact: true,
     });
-    await operation.selectOption("definitions");
+    await operation.selectOption("references");
+    await expect(history.locator("details")).toHaveCount(6);
     const analytics = page.getByRole("region", {
       name: "Аналитика эффективности поиска",
       exact: true,
