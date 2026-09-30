@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/SearchObservationStore.repository.ts
- * @version 1.2.0
- * @date 2026-09-28
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Хранит диагностику по действующей политике, сохраняя dedupe и границу очищенной истории.
  * @see documentation/architecture/repository-search.md
  */
@@ -20,6 +20,7 @@ import type {
 } from "./SearchObservationStore.types";
 import { SearchObservationControl } from "./SearchObservationControl.repository";
 import { withSearchObservationTransaction } from "./withSearchObservationTransaction.adapter";
+import { readSearchObservationAnalytics } from "./readSearchObservationAnalytics.repository";
 
 export class SearchObservationStore {
   readonly control: SearchObservationControl;
@@ -89,11 +90,18 @@ export class SearchObservationStore {
       this.database,
       async (client) => {
         const state = await this.control.load(client);
+        const now = Date.now();
         const oldest = Math.max(
-          Date.now() -
+          now -
             Math.min(Number(query.hours), state.settings.retentionDays * 24) *
               3600000,
           state.clearedBefore ? Date.parse(state.clearedBefore) : 0,
+        );
+        const analytics = await readSearchObservationAnalytics(
+          client,
+          query,
+          now,
+          oldest,
         );
         const params: unknown[] = [new Date(oldest)];
         const conditions = ["observed_at >= $1"];
@@ -105,6 +113,10 @@ export class SearchObservationStore {
             params.push(value);
             conditions.push(`${column} = $${params.length}`);
           }
+        }
+        if (query.operation) {
+          params.push(query.operation);
+          conditions.push(`event->>'operation' = $${params.length}`);
         }
         if (query.slow) {
           params.push(SEARCH_OBSERVATION_POLICY.slowMs);
@@ -130,6 +142,7 @@ export class SearchObservationStore {
         );
         const items = result.rows.slice(0, 25).map(mapSearchObservation);
         return {
+          analytics,
           items,
           next: result.rows.length > 25 ? items.at(-1)!.id : null,
           summary: {

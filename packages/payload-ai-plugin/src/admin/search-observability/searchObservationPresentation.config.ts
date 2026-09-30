@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/searchObservationPresentation.config.ts
- * @version 1.2.0
- * @date 2026-09-28
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Даёт понятные подписи полноте, продолжению и ограничениям поиска.
  */
 import type {
@@ -9,6 +9,22 @@ import type {
   SearchObservationRuntimeStatus,
   SearchObservationMutationResult,
 } from "@realize/ai-contracts";
+export const searchOperationLabels: Record<
+  SearchObservation["operation"],
+  string
+> = {
+  matches: "Текстовые совпадения",
+  files: "Файлы с совпадениями",
+  paths: "Поиск путей",
+  definitions: "Объявления",
+  references: "Использования",
+  imports: "Импорты",
+};
+export const searchTrendLabels = {
+  averageMs: "Среднее время",
+  completePercent: "Эффективность",
+  averageBytesRead: "Объём чтения",
+} as const;
 export const searchRuntimeLabels: Record<
   SearchObservationRuntimeStatus["state"],
   string

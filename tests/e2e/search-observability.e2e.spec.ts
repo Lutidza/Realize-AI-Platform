@@ -1,13 +1,14 @@
 /**
  * @file tests/e2e/search-observability.e2e.spec.ts
- * @version 1.0.0
- * @date 2026-09-29
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет автоматическую диагностику CLI/MCP, retry, dedupe, настройки и очистку через настоящий Admin UI.
  * @see documentation/architecture/repository-search.md
  */
 import { test, expect } from "@playwright/test";
 import { createSearchObservationRuntime } from "./support/searchObservationRuntime.fixture";
 import { provisionPayloadAdmin } from "./support/payloadAdmin";
+import { searchObservationFixture } from "../int/searchObservation.fixture";
 
 test("CLI/MCP diagnostics arrive automatically, recover and remain consistent after cleanup", async ({
   page,
@@ -90,6 +91,124 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     await source.selectOption("");
     await expect(history.locator("details")).toHaveCount(2);
 
+    // Контролируемые замеры проверяют числа графика; первые два события выше доставлены настоящими CLI/MCP.
+    const now = Date.now();
+    const samples = [100, 300, 50, 50, 50, 50].map((durationMs, index) =>
+      searchObservationFixture({
+        operation: "definitions",
+        durationMs,
+        observedAt: new Date(
+          now - (index < 2 ? 13 : 1) * 3600000,
+        ).toISOString(),
+        outcome: index === 1 ? "partial" : index === 5 ? "error" : "complete",
+        bytesRead: index < 2 ? 400 : 100,
+      }),
+    );
+    await runtime.store.append(samples, "import");
+    const operation = page.getByRole("combobox", {
+      name: "Операция",
+      exact: true,
+    });
+    await operation.selectOption("definitions");
+    const analytics = page.getByRole("region", {
+      name: "Аналитика эффективности поиска",
+      exact: true,
+    });
+    const comparison = analytics.getByRole("region", {
+      name: "Показатели до и после",
+      exact: true,
+    });
+    await expect(
+      comparison.getByRole("row", { name: /Среднее время/ }),
+    ).toContainText("200 мс");
+    await expect(
+      comparison.getByRole("row", { name: /Среднее время/ }),
+    ).toContainText("50 мс");
+    await expect(
+      comparison.getByRole("row", { name: /Среднее время/ }),
+    ).toContainText("+75 %");
+    await expect(
+      comparison.getByRole("row", { name: /Эффективность/ }),
+    ).toContainText("+25 п. п.");
+    const graph = analytics.getByRole("group", {
+      name: "Среднее время: график по времени",
+      exact: true,
+    });
+    await expect(graph).toBeVisible();
+    await graph.getByRole("button").first().focus();
+    await expect(graph.getByRole("button").first()).toBeFocused();
+    await expect(analytics).toContainText("запросов: 2");
+    await page
+      .getByRole("combobox", { name: "Результат", exact: true })
+      .selectOption("error");
+    await expect(history.locator("details")).toHaveCount(1);
+    await expect(
+      comparison.getByRole("row", { name: /Запросов/ }),
+    ).toContainText("2");
+    await expect(
+      comparison.getByRole("row", { name: /Запросов/ }),
+    ).toContainText("4");
+    await page
+      .getByRole("combobox", { name: "Результат", exact: true })
+      .selectOption("");
+    const dateInput = page.getByLabel("Дата и время оптимизации", {
+      exact: true,
+    });
+    const localDate = await page.evaluate(
+      (timestamp) => {
+        const date = new Date(timestamp);
+        const part = (value: number) => String(value).padStart(2, "0");
+        return (
+          date.getFullYear() +
+          "-" +
+          part(date.getMonth() + 1) +
+          "-" +
+          part(date.getDate()) +
+          "T" +
+          part(date.getHours()) +
+          ":" +
+          part(date.getMinutes())
+        );
+      },
+      now - 12 * 3600000,
+    );
+    await dateInput.fill(localDate);
+    await page
+      .getByRole("button", { name: "Сравнить до и после", exact: true })
+      .click();
+    await expect(
+      comparison.getByRole("row", { name: /Среднее время/ }),
+    ).toContainText("+75 %");
+    await page
+      .getByRole("combobox", { name: "Показатель на графике", exact: true })
+      .selectOption("completePercent");
+    await expect(
+      analytics.getByRole("group", {
+        name: "Эффективность: график по времени",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await analytics.screenshot({
+      path: testInfo.outputPath("search-analytics-desktop.png"),
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(analytics).toBeVisible();
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await analytics.screenshot({
+      path: testInfo.outputPath("search-analytics-mobile.png"),
+    });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page
+      .getByRole("button", { name: "Сбросить дату", exact: true })
+      .click();
+    await expect(dateInput).toHaveValue("");
+    await operation.selectOption("");
+    await expect(history.locator("details")).toHaveCount(8);
+
     await page
       .getByRole("spinbutton", { name: "Срок хранения, дней", exact: true })
       .fill("2");
@@ -124,13 +243,13 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     const dialog = page.getByRole("alertdialog", {
       name: "Очистить историю поиска?",
     });
-    await expect(dialog).toContainText("Сохранённых записей к удалению: 2");
+    await expect(dialog).toContainText("Сохранённых записей к удалению: 8");
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
     await expect(
       page.getByRole("button", { name: "Очистить историю", exact: true }),
     ).toBeFocused();
-    expect((await runtime.store.list({ hours: "24" })).summary.count).toBe(2);
+    expect((await runtime.store.list({ hours: "24" })).summary.count).toBe(8);
     await page
       .getByRole("button", { name: "Очистить историю", exact: true })
       .click();
@@ -140,12 +259,16 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
       .poll(
         async () => (await runtime.store.list({ hours: "24" })).summary.count,
       )
-      .toBe(3);
+      .toBe(9);
     await dialog.getByRole("button", { name: "Подтвердить очистку" }).click();
     await expect(dialog).not.toBeVisible();
     await expect(history.locator("details")).toHaveCount(1);
     const after = await runtime.store.list({ hours: "24" });
     expect(after.items[0].event.eventID).toBe(newer.event.eventID);
+    expect(after.analytics.summary.count).toBe(1);
+    expect(after.analytics.comparison.unavailableReason).toBe(
+      "history_limited",
+    );
     const replayed = runtime.delivered();
     for (const event of events) runtime.replay(event);
     await expect.poll(runtime.delivered).toBeGreaterThanOrEqual(replayed + 2);

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/searchObservationEndpoints.controller.ts
- * @version 1.1.0
- * @date 2026-09-28
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Авторизует историю и строго ограниченный импорт диагностики CLI.
  */
 import type { SearchObservationDatabase } from "./SearchObservationStore.types";
@@ -49,7 +49,8 @@ export function createSearchObservationEndpoints(
             ).list(query.data),
             correlationID,
           );
-        } catch {
+        } catch (error) {
+          if (error instanceof EndpointError) throw error;
           throw new EndpointError(
             "INTEGRATION_UNAVAILABLE",
             "Хранилище диагностики поиска недоступно.",

@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/searchObservation.schemas.ts
- * @version 1.1.0
- * @date 2026-09-28
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Проверяет обезличенную диагностику поиска без запросов, путей и фрагментов кода.
  * @see documentation/architecture/repository-search.md
  */
@@ -90,6 +90,8 @@ export const searchObservationSchema = z.strictObject({
 
 export const searchObservationQuerySchema = z.strictObject({
   source: z.enum(["cli", "mcp"]).optional(),
+  operation: searchObservationSchema.shape.operation.optional(),
+  compareAt: z.iso.datetime().optional(),
   outcome: z.enum(["complete", "partial", "error", "cancelled"]).optional(),
   hours: z.enum(["1", "24", "168"]).default("24"),
   before: z

@@ -1,17 +1,27 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/SearchObservationsClient.component.tsx
- * @version 1.2.0
- * @date 2026-09-28
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Показывает автоматически поступающие замеры, фильтры и действующие пределы поиска.
  */
 "use client";
-import { UiButton, UiNotice, UiSelect, UiSurface } from "@realize/ui-kit";
+import {
+  UiButton,
+  UiInput,
+  UiNotice,
+  UiSelect,
+  UiSurface,
+} from "@realize/ui-kit";
 import { AdminUiTheme } from "../AdminUiTheme.component";
 import type { SearchObservationsClientProps } from "./SearchObservations.types";
 import { useSearchObservations } from "./useSearchObservations.hook";
 import { SearchObservationDetails } from "./SearchObservationDetails.component";
 import { SearchObservationManagement } from "./SearchObservationManagement.component";
-import { searchOutcomeLabels } from "./searchObservationPresentation.config";
+import { SearchObservationAnalytics } from "./SearchObservationAnalytics.component";
+import {
+  searchOutcomeLabels,
+  searchOperationLabels,
+} from "./searchObservationPresentation.config";
 import styles from "./SearchObservations.module.css";
 
 export function SearchObservationsClient({
@@ -44,10 +54,6 @@ export function SearchObservationsClient({
           Прямые вызовы rg и другие внешние инструменты в эту историю не
           попадают.
         </UiNotice>
-        <SearchObservationManagement
-          apiURL={apiURL}
-          onChange={history.refresh}
-        />
         <p className={styles.muted}>
           {history.hasPrevious
             ? "Просмотр истории. Нажмите «Обновить», чтобы вернуться к новым событиям."
@@ -72,15 +78,15 @@ export function SearchObservationsClient({
               </UiSelect>
             </label>
             <label>
-              Результат
+              Операция
               <UiSelect
-                value={history.filters.outcome}
+                value={history.filters.operation}
                 onChange={(event) =>
-                  history.filter("outcome", event.target.value)
+                  history.filter("operation", event.target.value)
                 }
               >
-                <option value="">Все результаты</option>
-                {Object.entries(searchOutcomeLabels).map(([value, label]) => (
+                <option value="">Все операции</option>
+                {Object.entries(searchOperationLabels).map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
                   </option>
@@ -100,17 +106,47 @@ export function SearchObservationsClient({
                 <option value="168">7 дней</option>
               </UiSelect>
             </label>
-            <label>
-              Длительность
-              <UiSelect
-                value={history.filters.slow}
-                onChange={(event) => history.filter("slow", event.target.value)}
-              >
-                <option value="">Все запросы</option>
-                <option value="true">От 1 секунды</option>
-              </UiSelect>
-            </label>
           </div>
+          <form
+            className={styles.comparisonControls}
+            onSubmit={(event) => {
+              event.preventDefault();
+              history.applyComparison();
+            }}
+          >
+            <label>
+              Дата и время оптимизации
+              <UiInput
+                type="datetime-local"
+                value={history.comparisonDraft}
+                onChange={(event) =>
+                  history.setComparisonDraft(event.target.value)
+                }
+                aria-invalid={Boolean(history.comparisonError)}
+                aria-describedby="search-comparison-help"
+              />
+            </label>
+            <UiButton type="submit" variant="secondary">
+              Сравнить до и после
+            </UiButton>
+            <UiButton
+              type="button"
+              variant="secondary"
+              onClick={history.clearComparison}
+              disabled={!history.filters.compareAt && !history.comparisonDraft}
+            >
+              Сбросить дату
+            </UiButton>
+          </form>
+          <p id="search-comparison-help" className={styles.muted}>
+            Без даты сравниваются первая и вторая половины периода. С датой —
+            равные окна до и после неё.
+          </p>
+          {history.comparisonError ? (
+            <UiNotice tone="danger" role="alert">
+              {history.comparisonError}
+            </UiNotice>
+          ) : null}
           {history.error ? (
             <UiNotice tone="danger" role="alert">
               {history.error}
@@ -119,6 +155,43 @@ export function SearchObservationsClient({
           {history.loading ? <p role="status">Загружаем диагностику…</p> : null}
           {data ? (
             <>
+              <SearchObservationAnalytics
+                analytics={data.analytics}
+                retentionDays={data.policy.retentionDays}
+              />
+              <h2 className={styles.historyHeading}>История запросов</h2>
+              <div className={styles.filters}>
+                <label>
+                  Результат
+                  <UiSelect
+                    value={history.filters.outcome}
+                    onChange={(event) =>
+                      history.filter("outcome", event.target.value)
+                    }
+                  >
+                    <option value="">Все результаты</option>
+                    {Object.entries(searchOutcomeLabels).map(
+                      ([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ),
+                    )}
+                  </UiSelect>
+                </label>
+                <label>
+                  Длительность
+                  <UiSelect
+                    value={history.filters.slow}
+                    onChange={(event) =>
+                      history.filter("slow", event.target.value)
+                    }
+                  >
+                    <option value="">Все запросы</option>
+                    <option value="true">От 1 секунды</option>
+                  </UiSelect>
+                </label>
+              </div>
               <dl className={styles.summary}>
                 <div>
                   <dt>Запросов за период</dt>
@@ -142,9 +215,10 @@ export function SearchObservationsClient({
                 </div>
               </dl>
               <p className={styles.muted}>
-                Статистика по выбранным фильтрам. При потере отдельных замеров
-                число событий может быть меньше числа вызовов. Хранение:{" "}
-                {data.policy.retentionDays} дней, максимум{" "}
+                Фильтры результата и длительности применяются только к истории и
+                её сводке. График и эффективность учитывают все исходы. При
+                потере отдельных замеров число событий может быть меньше числа
+                вызовов. Хранение: {data.policy.retentionDays} дней, максимум{" "}
                 {data.policy.capacity.toLocaleString("ru-RU")} событий; очередь
                 runtime: {data.policy.queueCapacity}. При переполнении метрики
                 пропускаются, поиск продолжается.
@@ -181,6 +255,10 @@ export function SearchObservationsClient({
             </>
           ) : null}
         </UiSurface>
+        <SearchObservationManagement
+          apiURL={apiURL}
+          onChange={history.refresh}
+        />
       </main>
     </AdminUiTheme>
   );

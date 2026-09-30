@@ -1,6 +1,6 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.4.0
+ * @version 2.5.0
  * @date 2026-09-30
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
@@ -216,5 +216,6 @@ export type {
   SearchObservationQuery,
 } from "./SearchObservation.types";
 export * from "./searchObservationManagement.constants";
+export type * from "./SearchObservationAnalytics.types";
 export * from "./searchObservationManagement.schemas";
 export type * from "./SearchObservationManagement.types";

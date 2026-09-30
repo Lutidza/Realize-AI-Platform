@@ -1,10 +1,11 @@
 /**
  * @file packages/ai-contracts/src/SearchObservation.types.ts
- * @version 1.0.0
- * @date 2026-09-27
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Определяет публичную диагностику поиска и страницы истории Admin.
  */
 import type { z } from "zod";
+import type { SearchObservationAnalytics } from "./SearchObservationAnalytics.types";
 import type {
   searchObservationSchema,
   searchObservationQuerySchema,
@@ -15,6 +16,7 @@ export type SearchObservationQuery = z.infer<
   typeof searchObservationQuerySchema
 >;
 export type SearchObservationPage = {
+  analytics: SearchObservationAnalytics;
   items: {
     id: string;
     origin: "runtime" | "import";

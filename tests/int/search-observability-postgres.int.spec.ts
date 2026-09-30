@@ -1,12 +1,12 @@
 /**
  * @file tests/int/search-observability-postgres.int.spec.ts
- * @version 1.0.2
- * @date 2026-09-28
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет diagnostics schema, права, retention, dedupe и hard capacity на отдельной PostgreSQL.
  */
 // @vitest-environment node
 import type { SearchObservationDatabase } from "../../packages/payload-ai-plugin/src/search-observability/SearchObservationStore.types";
-import { beforeAll, afterAll, describe, expect, it } from "vitest";
+import { beforeAll, afterAll, describe, expect, it, vi } from "vitest";
 import { Client } from "pg";
 import { createLocalReq, type Payload } from "payload";
 import {
@@ -149,6 +149,168 @@ describe.skipIf(!process.env.SEARCH_TEST_DATABASE_URI)(
         ),
       ).toBe(false);
       expect(second.next).toBeNull();
+    });
+    it("aggregates all observations, compares equal windows and ignores history-only filters", async () => {
+      const now = Math.floor(Date.now() / 1000) * 1000;
+      const clock = vi.spyOn(Date, "now").mockReturnValue(now);
+      const split = now - 12 * 3600000;
+      const values = [
+        {
+          durationMs: 100,
+          bytesRead: null,
+          outcome: "complete",
+          time: split - 3600000,
+          returnedCount: 0,
+        },
+        {
+          durationMs: 300,
+          bytesRead: 0,
+          outcome: "partial",
+          time: split - 3600000,
+        },
+        { durationMs: 50, bytesRead: 100, outcome: "complete", time: split },
+        {
+          durationMs: 50,
+          bytesRead: 300,
+          outcome: "complete",
+          time: split + 3600000,
+        },
+        {
+          durationMs: 50,
+          bytesRead: null,
+          outcome: "complete",
+          time: split + 3600000,
+        },
+        { durationMs: 50, bytesRead: 0, outcome: "error", time: now - 1000 },
+      ] as const;
+      const events = values.map((value) =>
+        searchObservationFixture({
+          operation: "definitions",
+          durationMs: value.durationMs,
+          bytesRead: value.bytesRead,
+          outcome: value.outcome,
+          observedAt: new Date(value.time).toISOString(),
+          returnedCount: "returnedCount" in value ? value.returnedCount : 1,
+          outputBytes: value.durationMs,
+        }),
+      );
+      try {
+        await store.append(events, "import");
+        const query = {
+          hours: "24",
+          operation: "definitions",
+          source: "cli",
+        } as const;
+        const page = await store.list(query);
+        expect(page.analytics.summary).toMatchObject({
+          count: 6,
+          complete: 4,
+          partial: 1,
+          errors: 1,
+          empty: 1,
+          averageMs: 100,
+          p95Ms: 250,
+          averageBytesRead: 100,
+          measuredReads: 4,
+          averageOutputBytes: 100,
+        });
+        expect(page.analytics.summary.completePercent).toBeCloseTo(
+          (100 * 4) / 6,
+        );
+        expect(page.analytics.comparison).toMatchObject({
+          unavailableReason: null,
+          speedImprovementPercent: 75,
+          completeChangePoints: 25,
+          readReductionPercent: null,
+          before: {
+            metrics: { count: 2, averageMs: 200, completePercent: 50 },
+          },
+          after: { metrics: { count: 4, averageMs: 50, completePercent: 75 } },
+        });
+        const filtered = await store.list({
+          ...query,
+          outcome: "error",
+          slow: "true",
+          before: "1",
+        });
+        expect(filtered.items).toEqual([]);
+        expect(filtered.analytics).toEqual(page.analytics);
+        expect(
+          (await store.list({ ...query, source: "mcp" })).analytics.summary
+            .count,
+        ).toBe(0);
+        expect(
+          (await store.list({ ...query, operation: "references" })).analytics
+            .summary.count,
+        ).toBe(0);
+        const custom = await store.list({
+          ...query,
+          compareAt: new Date(now - 3600000).toISOString(),
+        });
+        expect(
+          Date.parse(custom.analytics.comparison.before.to) -
+            Date.parse(custom.analytics.comparison.before.from),
+        ).toBe(3600000);
+        expect(
+          Date.parse(custom.analytics.comparison.after.to) -
+            Date.parse(custom.analytics.comparison.after.from),
+        ).toBe(3600000);
+        expect(custom.analytics.comparison.unavailableReason).toBe(
+          "missing_samples",
+        );
+      } finally {
+        clock.mockRestore();
+        await sql.query(
+          "DELETE FROM realize_ai_search_observations WHERE event->>'eventID' = ANY($1::text[])",
+          [events.map((event) => event.eventID)],
+        );
+      }
+    });
+    it("keeps analytics independent of pagination and excludes future observations", async () => {
+      const now = Date.now();
+      const events = Array.from({ length: 30 }, (_, index) =>
+        searchObservationFixture({
+          operation: "references",
+          durationMs: index < 29 ? 10 : 1000,
+          observedAt: new Date(now - 1000).toISOString(),
+        }),
+      );
+      const future = searchObservationFixture({
+        operation: "references",
+        observedAt: new Date(now + 60000).toISOString(),
+        durationMs: 5000,
+      });
+      try {
+        await store.append([...events, future], "import");
+        const first = await store.list({
+          hours: "24",
+          operation: "references",
+        });
+        expect(first.items).toHaveLength(25);
+        expect(first.summary.count).toBe(31);
+        expect(first.analytics.summary).toMatchObject({
+          count: 30,
+          averageMs: 43,
+        });
+        const next = await store.list({
+          hours: "24",
+          operation: "references",
+          before: first.next!,
+        });
+        expect(next.items).toHaveLength(6);
+        expect(next.analytics.summary).toEqual(first.analytics.summary);
+        expect(
+          first.analytics.series.reduce(
+            (count, point) => count + point.metrics.count,
+            0,
+          ),
+        ).toBe(30);
+      } finally {
+        await sql.query(
+          "DELETE FROM realize_ai_search_observations WHERE event->>'eventID' = ANY($1::text[])",
+          [[...events, future].map((event) => event.eventID)],
+        );
+      }
     });
     it("prunes expired rows and bounds concurrent writers to 10000 rows", async () => {
       const event = searchObservationFixture();
