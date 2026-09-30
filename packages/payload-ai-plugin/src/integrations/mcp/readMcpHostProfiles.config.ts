@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/readMcpHostProfiles.config.ts
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Читает доверенные host ceilings отдельно от конфигурации, редактируемой в Admin.
  */
 import { isAbsolute } from "node:path";
@@ -24,6 +24,7 @@ const profilesSchema = z
         .min(1)
         .max(32),
       pagesRead: z.boolean().default(false),
+      workshop: z.boolean().default(false),
       controlTokenEnv: z.string().regex(/^REALIZE_MCP_CONTROL_[A-Z0-9_]+$/),
       maximumLimits: mcpLimitsSchema.default({ ...MCP_DEFAULT_LIMITS }),
       tunnelClientPath: z.string().max(4096).refine(isAbsolute).optional(),
@@ -64,6 +65,7 @@ export function mapMcpHostProfile(profile: McpHostProfile): McpHostProfileDto {
     repositoryGrantAllowed:
       profile.repositoryServerIDs.length > 0 && profile.repositoryRoot !== null,
     pagesGrantAllowed: profile.pagesRead,
+    workshopGrantAllowed: profile.workshop === true,
     maximumLimits: { ...profile.maximumLimits },
     reason: ready
       ? null

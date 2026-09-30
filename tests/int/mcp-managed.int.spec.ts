@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-managed.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Проверяет MCP registry, grants и Pages на отдельной PostgreSQL с настоящим Payload.
  */
 // @vitest-environment node
@@ -209,6 +209,9 @@ describe.skipIf(!enabled)("managed MCP on isolated PostgreSQL", () => {
     expect(first.clientGrantOptions).toEqual({
       repositoryRead: false,
       pagesRead: false,
+      workshopRead: false,
+      workshopWrite: false,
+      workshopPreview: false,
     });
     expect(first.configuration).toEqual(MCP_SERVER_PRESETS[0]!.configuration);
     const changed = (
@@ -460,10 +463,10 @@ describe.skipIf(!enabled)("managed MCP on isolated PostgreSQL", () => {
     );
     expect(result.status).toBe("passed");
     expect(result.tools.map((tool) => tool.name).sort()).toEqual(
-      [...MCP_REALIZE_TOOLS].sort(),
+      MCP_REALIZE_TOOLS.filter((name) => !name.startsWith("workshop_")).sort(),
     );
     expect((await fresh()).discoveredTools.length).toBe(
-      MCP_REALIZE_TOOLS.length,
+      MCP_REALIZE_TOOLS.filter((name) => !name.startsWith("workshop_")).length,
     );
     await (
       await management()

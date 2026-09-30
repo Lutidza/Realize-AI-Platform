@@ -1,11 +1,20 @@
 /**
  * @file packages/ai-contracts/src/mcpToolOutputs.config.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.4.0
+ * @date 2026-09-28
  * @description Задаёт закрытые wire schemas ответов MCP, включая существующие проекции Pages.
  * @see documentation/specifications/internal-mcp.md
  */
 import { z } from "zod";
+import {
+  importResolutionSchema,
+  importResolutionCoverageSchema,
+} from "./importResolution.schemas";
+import { mcpWorkshopOutputs } from "./mcpWorkshop.schemas";
+import {
+  repositorySyntaxMatch,
+  repositoryNavigationCoverage,
+} from "./repositoryNavigation.schemas";
 import {
   aiContextOutputSchema,
   aiCapabilitiesOutputSchema,
@@ -110,6 +119,7 @@ const identity = z.union([
   }),
 ]);
 export const mcpToolDataSchemas = {
+  ...mcpWorkshopOutputs,
   ai_context_resolve: aiContextOutputSchema,
   ai_capabilities_list: aiCapabilitiesOutputSchema,
   ai_instructions_get: z.strictObject({
@@ -137,7 +147,7 @@ export const mcpToolDataSchemas = {
     installation: z.strictObject({ mode: z.literal("single"), id: z.string() }),
     modules: z.array(
       z.strictObject({
-        id: z.enum(["repository", "pages"]),
+        id: z.enum(["repository", "pages", "workshop"]),
         status: z.enum(["ready", "not_configured", "unavailable"]),
         reasonCode: z.string().nullable(),
       }),
@@ -189,9 +199,13 @@ export const mcpToolDataSchemas = {
         column: integer,
         snippet: z.string(),
         fileSha256: hash,
+        syntax: repositorySyntaxMatch.optional(),
+        resolution: importResolutionSchema.optional(),
       }),
     ),
     snapshotHash: hash.nullable(),
+    navigation: repositoryNavigationCoverage.optional(),
+    resolution: importResolutionCoverageSchema.optional(),
     ...pageWindow,
   }),
   repo_git_status: z.strictObject({

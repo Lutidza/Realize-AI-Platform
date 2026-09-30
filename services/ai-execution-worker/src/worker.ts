@@ -1,8 +1,9 @@
 /**
  * @file services/ai-execution-worker/src/worker.ts
- * @version 1.3.0
- * @date 2026-09-11
- * @description Обрабатывает execution, preview, source/release durable queues и integrations.
+ * @version 1.4.0
+ * @date 2026-09-25
+ * @description Обрабатывает Code Lane и независимую от моделей очередь capture preview Мастерской.
+ * @see documentation/specifications/design-workshop.md
  */
 
 import { Pool } from "pg";
@@ -29,6 +30,7 @@ import { executeClaimedRelease } from "./releaseExecutor";
 import { ReleaseWorkerRepository } from "./releaseRepository";
 import { executeClaimedSourcePromotion } from "./sourcePromotionExecutor";
 import { SourcePromotionWorkerRepository } from "./sourcePromotionRepository";
+import { createDesignPreviewRuntime } from "./design-workshop/createDesignPreviewRuntime.config";
 
 // Приоритет локального окружения Next сохраняется без замены переменных оператора.
 loadEnvironment({ path: ".env.local", quiet: true });
@@ -65,6 +67,7 @@ const integrations = new GitHubConnectionService(
 );
 let stopping = false;
 let lastCleanupAt = 0;
+let workshop: Awaited<ReturnType<typeof createDesignPreviewRuntime>>;
 
 const wait = async (milliseconds: number): Promise<void> => {
   await new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
@@ -72,6 +75,11 @@ const wait = async (milliseconds: number): Promise<void> => {
 
 const run = async (): Promise<void> => {
   await heartbeat.start();
+  try {
+    workshop = await createDesignPreviewRuntime(pool, config);
+  } catch {
+    console.error("[ai-execution-worker] workshop preview unavailable");
+  }
   console.log(
     `[ai-execution-worker] started worker=${config.workerID}; workspace=${config.workspaceRoot}`,
   );
@@ -81,6 +89,7 @@ const run = async (): Promise<void> => {
       lastCleanupAt = Date.now();
       try {
         await presenceRepository.cleanup();
+        await workshop?.cleanup();
         await cleanupPreviewRuntimes({
           config,
           repository: promotionRepository,
@@ -99,6 +108,7 @@ const run = async (): Promise<void> => {
       preview: settings.previewEnabled,
       sourcePromotion: settings.sourcePromotionEnabled,
       release: settings.releaseEnabled,
+      ...(workshop ? { workshopPreview: true } : {}),
     });
     // Восстановление heartbeat обязательно до нового claim после потери БД.
     if (!(await heartbeat.sync()) || !heartbeat.canClaim || stopping) {
@@ -114,6 +124,15 @@ const run = async (): Promise<void> => {
         `[ai-execution-worker] claimed execution=${job.executionKey}; change=${job.changeRequestID}`,
       );
       await executeClaimedJob({ config, codex, job, repository });
+      continue;
+    }
+    const designPreview =
+      !stopping && heartbeat.canClaim && workshop
+        ? await workshop.queue.claimNext(heartbeat.instanceKey)
+        : undefined;
+    if (designPreview && workshop) {
+      await heartbeat.busyWorkshopPreview();
+      await workshop.executor.execute(designPreview);
       continue;
     }
     const promotion =
@@ -189,5 +208,6 @@ void run()
   })
   .finally(async () => {
     await heartbeat.finish(process.exitCode === 1);
+    await workshop?.close();
     await Promise.all([pool.end(), heartbeatPool.end()]);
   });

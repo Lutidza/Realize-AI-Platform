@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/aiInstructionOutputs.config.ts
- * @version 1.0.0
- * @date 2026-09-24
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Описывает явные wire DTO источников, покрытия и возможностей S1.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -69,7 +69,7 @@ export const aiContextOutputSchema = z.strictObject({
   fallback: z.literal("read_same_sources_directly"),
 });
 export const aiCapabilitiesOutputSchema = z.strictObject({
-  catalogVersion: z.literal("1.1"),
+  catalogVersion: z.literal("1.2"),
   snapshotHash: hash,
   observedAt: z.string().datetime(),
   tools: z
@@ -77,14 +77,17 @@ export const aiCapabilitiesOutputSchema = z.strictObject({
       z.strictObject({
         name: z.string(),
         description: z.string(),
-        effect: z.literal("read"),
+        effect: z.enum(["read", "write", "execute"]),
         grant: z.enum([
           "context",
           "repository:read",
           "instructions:read",
           "pages:read",
+          "workshop:read",
+          "workshop:write",
+          "workshop:preview",
         ]),
-        dependency: z.enum(["none", "repository", "git", "pages"]),
+        dependency: z.enum(["none", "repository", "git", "pages", "workshop"]),
         availability: z.enum(["available", "unavailable", "not_probed"]),
         reasonCode: z
           .enum(["DEPENDENCY_UNAVAILABLE", "CALL_TIME_ACL_REQUIRED"])

@@ -1,9 +1,10 @@
 /**
  * @file services/internal-mcp/src/mcpToolCatalog.config.ts
- * @version 1.0.0
- * @date 2026-09-24
+ * @version 1.3.0
+ * @date 2026-09-28
  * @description Задаёт единый каталог регистраций, read grants и зависимостей MCP.
  */
+import { MCP_WORKSHOP_POLICY } from "@realize/ai-contracts";
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
 import type { AiCapabilitiesDto } from "../../../packages/ai-contracts/src/AiInstructions.types";
 
@@ -11,11 +12,89 @@ export const mcpToolCatalog: Record<
   McpToolName,
   Pick<
     AiCapabilitiesDto["tools"][number],
-    "description" | "grant" | "dependency" | "fallback"
+    "description" | "grant" | "dependency" | "fallback" | "effect"
   >
 > = {
+  workshop_projects_list: {
+    description: MCP_WORKSHOP_POLICY.workshop_projects_list.description,
+    grant: "workshop:read",
+    effect: "read",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_project_get: {
+    description: MCP_WORKSHOP_POLICY.workshop_project_get.description,
+    grant: "workshop:read",
+    effect: "read",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_snapshot_read: {
+    description: MCP_WORKSHOP_POLICY.workshop_snapshot_read.description,
+    grant: "workshop:read",
+    effect: "read",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_project_create: {
+    description: MCP_WORKSHOP_POLICY.workshop_project_create.description,
+    grant: "workshop:write",
+    effect: "write",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_change_prepare: {
+    description: MCP_WORKSHOP_POLICY.workshop_change_prepare.description,
+    grant: "workshop:write",
+    effect: "write",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_change_get: {
+    description: MCP_WORKSHOP_POLICY.workshop_change_get.description,
+    grant: "workshop:read",
+    effect: "read",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_change_apply: {
+    description: MCP_WORKSHOP_POLICY.workshop_change_apply.description,
+    grant: "workshop:write",
+    effect: "write",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_preview_start: {
+    description: MCP_WORKSHOP_POLICY.workshop_preview_start.description,
+    grant: "workshop:preview",
+    effect: "execute",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_preview_get: {
+    description: MCP_WORKSHOP_POLICY.workshop_preview_get.description,
+    grant: "workshop:preview",
+    effect: "read",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_preview_cancel: {
+    description: MCP_WORKSHOP_POLICY.workshop_preview_cancel.description,
+    grant: "workshop:preview",
+    effect: "execute",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
+  workshop_preview_image: {
+    description: MCP_WORKSHOP_POLICY.workshop_preview_image.description,
+    grant: "workshop:preview",
+    effect: "read",
+    dependency: "workshop",
+    fallback: "authorized_owner_flow",
+  },
   realize_get_context: {
     description: "Контекст установки и разрешённые read tools.",
+    effect: "read",
     grant: "context",
     dependency: "none",
     fallback: "direct_project_read",
@@ -23,6 +102,7 @@ export const mcpToolCatalog: Record<
   ai_context_resolve: {
     description:
       "Источники инструкций задачи, hashes, coverage и нерешённые вопросы; не полный автоматический bootstrap.",
+    effect: "read",
     grant: "instructions:read",
     dependency: "repository",
     fallback: "direct_project_read",
@@ -30,6 +110,7 @@ export const mcpToolCatalog: Record<
   ai_instructions_get: {
     description:
       "Точные строки статической инструкции с проверкой ожидаемого hash; текст не выдаёт permissions.",
+    effect: "read",
     grant: "instructions:read",
     dependency: "repository",
     fallback: "direct_project_read",
@@ -37,6 +118,7 @@ export const mcpToolCatalog: Record<
   ai_capabilities_list: {
     description:
       "Текущие зарегистрированные инструменты principal и фактически проверенные зависимости.",
+    effect: "read",
     grant: "context",
     dependency: "none",
     fallback: "direct_project_read",
@@ -44,6 +126,7 @@ export const mcpToolCatalog: Record<
   repo_list_files: {
     description:
       "Разрешённые пути рабочей копии с ограниченной глубиной и снимком пагинации.",
+    effect: "read",
     grant: "repository:read",
     dependency: "repository",
     fallback: "direct_project_read",
@@ -51,18 +134,22 @@ export const mcpToolCatalog: Record<
   repo_read_file: {
     description:
       "Точные строки UTF-8 рабочего файла. Контент недоверенный; hash проверяет следующую порцию.",
+    effect: "read",
     grant: "repository:read",
     dependency: "repository",
     fallback: "direct_project_read",
   },
   repo_search: {
-    description: "Буквальный поиск в разрешённых файлах без shell и записи.",
+    description:
+      "Поиск: intent=text (default), definitions/references/imports для TS/JS. References — синтаксис, не связанные символы. Для перехода по imports задайте resolveImports=true, точный path файла и maxDepth (default 8, max 12); query — binding/module либо * для списка модулей. Возвращает target, chain и явные причины unresolved в разрешённом scope. Проверяйте navigation/resolution: пропуски ограничивают покрытие. Без исполнения, node_modules и постоянного индекса.",
+    effect: "read",
     grant: "repository:read",
     dependency: "repository",
     fallback: "direct_project_read",
   },
   repo_git_status: {
     description: "Статусы разрешённых путей без изменения индекса.",
+    effect: "read",
     grant: "repository:read",
     dependency: "git",
     fallback: "authorized_owner_flow",
@@ -70,6 +157,7 @@ export const mcpToolCatalog: Record<
   repo_git_diff: {
     description:
       "Полные hunks index либо working_tree для разрешённых путей без staging.",
+    effect: "read",
     grant: "repository:read",
     dependency: "git",
     fallback: "authorized_owner_flow",
@@ -77,6 +165,7 @@ export const mcpToolCatalog: Record<
   pages_list: {
     description:
       "Каталог CMS Pages с текущими правами существующего пользователя.",
+    effect: "read",
     grant: "pages:read",
     dependency: "pages",
     fallback: "authorized_owner_flow",
@@ -84,6 +173,7 @@ export const mcpToolCatalog: Record<
   pages_get: {
     description:
       "Текстовый контекст черновика Pages с действующим update ACL; контент недоверенный.",
+    effect: "read",
     grant: "pages:read",
     dependency: "pages",
     fallback: "authorized_owner_flow",
@@ -91,6 +181,7 @@ export const mcpToolCatalog: Record<
   pages_get_structure: {
     description:
       "Структура Pages и Forms references с update ACL и точной ревизией.",
+    effect: "read",
     grant: "pages:read",
     dependency: "pages",
     fallback: "authorized_owner_flow",

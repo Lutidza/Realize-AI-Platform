@@ -1,7 +1,7 @@
 # Миграции и rollback
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 25 сентября 2026 года (MCP migration, ChatGPT receipt и локальная установка)
+- **Дата сверки:** 25 сентября 2026 года (MCP/ChatGPT, W1a и очередь capture Мастерской)
 
 ## 1. Канонический порядок миграций
 
@@ -49,6 +49,19 @@
     audit actions и связи native locks для управления MCP.
 22. `20260925_093817_chatgpt_tunnel_status` — nullable JSON наблюдения ChatGPT
     в существующем runtime receipt; клиентские credentials остаются в vault.
+23. `20260925_133735_design_workshop` — четыре закрытые коллекции проектов,
+    immutable snapshots, prepared changes и idempotency receipts; применена
+    в работающей локальной установке 25 сентября 2026 года.
+24. `20260925_170325_design_preview` — закрытая очередь capture jobs, lease,
+    evidence и PNG; проверена только на отдельной БД, в основной ещё pending.
+25. `20260926_112722_workshop_mcp` — канал MCP и авторизация preview Мастерской.
+26. `20260927_070914_search_observations` — закрытая временная диагностика поиска;
+    `up`, защищённый `down` и восстановление проверены на отдельной БД;
+    применена в локальной установке 27 сентября 2026 года.
+27. `20260928_102009_search_observation_state` — закрытые настройки хранения,
+    durable cutoff очистки, heartbeat и bounded журнал операций; проверена
+    полная fixture цепочка, CAS/конкуренция и защищённый `down`/`up`; применена
+    в локальной установке 28 сентября 2026 года.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -57,7 +70,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-В пустой PostgreSQL применяется вся последовательность из 22 миграций.
+В пустой PostgreSQL применяется вся последовательность из 27 миграций.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 
@@ -195,6 +208,53 @@ upgrade клона и сохранность прежних строк. Авто
 не выдаёт его; автоматическое освобождение orphan storage и проверка облачного
 хранилища относятся к следующему эксплуатационному этапу. Откат приложения
 сохраняет данные и расширенную схему.
+
+### Мастерская: сохранение версий и receipts
+
+Источник миграции W1a —
+[design-workshop.mjs](../../scripts/migrations/design-workshop.mjs).
+Она генерируется командой `payload migrate:create design_workshop --file
+<абсолютный путь template>` из canonical collections. SQL/schema snapshot,
+TS и index создаёт установленный генератор Payload/Drizzle; template проверяет
+предшественника и добавочный scope из четырёх таблиц, затем добавляет guard
+для down. Эти коллекции не редактируются через native Admin, поэтому
+`lockDocuments: false`; сериализацией API управляют транзакционные locks.
+
+Up не меняет существующие строки. Down под exclusive locks разрешён только
+при пустых четырёх таблицах; иначе выдаётся `WORKSHOP_ROLLBACK_BLOCKED`.
+Откат приложения оставляет расширенную схему и историю; удалять проекты,
+версии или receipts ради успешного down нельзя. Бинарных файлов этого
+подэтапа нет: backup дизайн-проектов входит в backup PostgreSQL.
+
+Локальное обновление до этой версии проверено восстановлением custom-format
+backup на отдельном PostgreSQL и применением единственной pending migration.
+На клоне и основной БД сверены прежние поля и строки всех 120 таблиц.
+Перед установкой создан свежий backup с mode `0600`, предыдущая сборка сохранена
+для application rollback. Основная БД содержит 23 записи migration history;
+проверочные пользователи и дизайн-проекты создавались только на клоне.
+
+### Мастерская: очередь sandbox capture
+
+Источник следующей миграции —
+[design-preview.mjs](../../scripts/migrations/design-preview.mjs).
+Native `payload migrate:create design_preview --file <абсолютный путь template>`
+добавляет единственную таблицу `realize_design_preview_jobs`, её enums,
+индексы и связь с users. Существующие таблицы и строки не переписываются;
+generic CRUD закрыт, `lockDocuments: false`. Job DTO и PNG выдаёт только
+авторизованный facade, actor и fencing metadata остаются приватными.
+
+Down под exclusive lock отказывается работать при любом сохранённом задании:
+`WORKSHOP_PREVIEW_ROLLBACK_BLOCKED`. Отмена или TTL не разрешают удаление
+истории ради rollback; откат приложения сохраняет таблицу. Bounded PNG входят
+в backup PostgreSQL, временный sandbox staging не является резервной копией.
+Перед обновлением worker применяют миграцию и проверяют Linux prerequisites
+из [локального runbook](01-local-admin-ai.md). Старый worker новую очередь
+не обслуживает. В отсутствие migration/toolchain новая версия не объявляет
+capability `workshopPreview`, API start отвечает unavailable.
+
+Основная установка пока содержит 23 migration records. Проверки очереди
+выполняются только на disposable БД с 24 миграциями; поставка в основную
+установку и обновление её production bundle в этот срез не входят.
 
 ### MCP: сохранение ключей и истории
 
@@ -340,3 +400,43 @@ backward-compatible с предыдущим application digest либо имет
 проверенный data rollback/restore plan. Автоматический restore dump при failed
 readiness намеренно не выполняется, чтобы не перезаписать данные без решения
 оператора.
+
+## Диагностика поиска агентов
+
+`20260927_070914_search_observations` добавляет закрытую коллекцию временной
+аналитики и её индексы. Источник —
+[`search-observations.mjs`](../../scripts/migrations/search-observations.mjs),
+TS/JSON/index созданы официальным Payload generator. Применить до запуска
+managed MCP и Admin новой версии. `down` блокируется при сохранённых событиях
+с `SEARCH_OBSERVATIONS_ROLLBACK_BLOCKED`; удалять данные ради успешного отката
+не следует. Контракт и retention:
+[архитектура поиска](../architecture/repository-search.md).
+
+27 сентября локальная установка получила только эту независимую миграцию
+через `payload.db.migrate({ migrations: [searchMigration] })`: 23 прежних
+записи и одна новая, без schema push. Миграции 24–25 Мастерской остаются pending.
+Тот же переход с 23 миграций предварительно проверен на отдельной БД.
+Это адресная активация диагностики; порядок полного выпуска сохраняется
+в `src/migrations/index.ts`.
+
+`20260928_102009_search_observation_state` добавляет только закрытый singleton
+управления диагностикой и его связь в `payload_locked_documents_rels`.
+Источник — [`search-observation-state.mjs`](../../scripts/migrations/search-observation-state.mjs);
+TS/JSON/index и Payload types создаются официальными генераторами. Default
+retention/capacity совместимы с прежней версией. Таблица должна существовать до
+запуска обновлённых web/control plane/managed MCP. Native migration API допускает
+адресное применение этой независимой миграции, сохраняя pending Workshop;
+для нового окружения применяется полная цепочка из index.
+
+`down` отказывает с `SEARCH_STATE_ROLLBACK_BLOCKED`, если revision больше 1:
+настройки, ручная очистка и её durable cutoff являются сохранёнными решениями.
+Откат приложения оставляет таблицу. Не сбрасывать revision и не удалять state
+ради успешного rollback. На свежем/default state `down`/`up` допустимы и
+проверяются только в disposable БД; события поиска эта миграция не удаляет.
+
+28 сентября выполнен адресный upgrade локальной установки: 24 прежних receipt
+сохранены, добавлен один state receipt, история событий не изменилась.
+Перед apply создан private PostgreSQL custom dump с mode 0600 вне репозитория,
+проверены каталог и полное чтение архива. Переход 24 → 25 через native migration
+API предварительно выполнен на отдельной БД; Workshop 24–25 остаются pending.
+Полная цепочка 27 миграций также проверена в disposable PostgreSQL.

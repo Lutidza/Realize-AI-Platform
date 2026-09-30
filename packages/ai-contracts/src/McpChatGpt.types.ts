@@ -1,13 +1,13 @@
 /**
  * @file packages/ai-contracts/src/McpChatGpt.types.ts
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Описывает настройку ChatGPT без чтения клиентских credentials.
  * @see documentation/specifications/internal-mcp.md
  */
 import type {
   McpActionDto,
-  McpReadGrants,
+  McpClientGrants,
   McpRevisionInput,
 } from "./McpServer.types";
 
@@ -30,7 +30,7 @@ export type McpChatGptConnectionDto = {
   tunnelID: string | null;
   clientID: string | null;
   hasApiKey: boolean;
-  grants: McpReadGrants;
+  grants: McpClientGrants;
   expiresAt: string | null;
   status: McpChatGptStatus;
   observedAt: string | null;
@@ -40,6 +40,6 @@ export type McpChatGptConnectionDto = {
 export type SaveMcpChatGptInput = McpRevisionInput & {
   tunnelID: string;
   apiKey?: string;
-  grants: McpReadGrants;
+  grants: McpClientGrants;
   expiresAt: string;
 };

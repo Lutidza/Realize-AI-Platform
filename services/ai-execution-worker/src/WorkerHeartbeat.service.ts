@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/WorkerHeartbeat.service.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-25
  * @description Поддерживает heartbeat независимо от долгого задания и запрещает claim после ошибки записи.
  */
 
@@ -68,6 +68,13 @@ export class WorkerHeartbeat {
 
   async busy(kind: WorkerJobKind, changeRequestID: string): Promise<void> {
     this.currentJob = { kind, changeRequestID };
+    if (this.state !== "draining") this.state = "busy";
+    await this.sync();
+  }
+
+  /** Design job не маскируется под Change Request и не раскрывается через прежний chat DTO. */
+  async busyWorkshopPreview(): Promise<void> {
+    this.currentJob = null;
     if (this.state !== "draining") this.state = "busy";
     await this.sync();
   }

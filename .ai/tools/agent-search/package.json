@@ -7,9 +7,14 @@
     "node": ">=24.2.0"
   },
   "scripts": {
-    "search": "node ./bin/agent-search.mjs"
+    "search": "node ./bin/agent-search.mjs",
+    "test": "node --test test/*.test.mjs"
   },
   "bin": {
     "agent-search": "./bin/agent-search.mjs"
+  },
+  "dependencies": {
+    "picomatch": "4.0.7",
+    "typescript": "6.0.3"
   }
 }

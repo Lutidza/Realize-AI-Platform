@@ -1,9 +1,11 @@
 # Мастерская дизайна Realize — продукт и агентский процесс
 
-Версия **0.1**, 2026-09-25. Статус: **Draft specification**.
+Версия **0.7**, 2026-09-25. Статус: **W1a и первый UI установлены; файловое ядро, durable jobs и capture preview реализованы в исходниках**.
 Требования к общей Мастерской, трём каналам и предустановке заданы пользователем.
-Ниже предложены устройство, контракты и порядок реализации. Они не означают,
-что runtime Мастерской или запись через ChatGPT уже доступны.
+Backend W1a и первый интерфейс установлены в основную локальную админку
+`http://localhost:3000/system/workshop`. Production bundle проверен на отдельной
+копии БД перед установкой; миграция сохранила прежние данные.
+Целевой runtime, AI-диалог и запись через ChatGPT ещё не доступны.
 
 ## 1. Результат
 
@@ -38,7 +40,10 @@
 
 | Возможность | Фактическое состояние | Как использовать |
 | --- | --- | --- |
-| Мастерская в навигации | `workshop` с `hiddenByDefault: true` в `src/components/admin/system-shell/systemAdmin.navigation.tsx`; готового редактора дизайна нет | Подключить будущий раздел к общей оболочке |
+| Мастерская в навигации | `workshop` ведёт на `/system/workshop` и виден по умолчанию; `SystemAdminPayloadEntry` добавляет вход в Payload | Пользовательские настройки видимости сохраняются; скрытый пункт доступен через «Ещё» |
+| Первый интерфейс | Каталог, создание, бриф/материалы/текстовые файлы, review/apply и история в `packages/payload-ai-plugin/src/admin/design-workshop/` | Работает через W1a API; host подключает общий shell и auth; preview/AI-диалог ещё отсутствуют |
+| Хранилище макетов W1a | `packages/payload-ai-plugin/src/design-workshop/`: личные проекты, versioned snapshots, prepare/apply, CAS и durable receipts; migration применена локально | Общий backend для следующих Admin/MCP адаптеров; исходники макета хранятся в БД и не исполняются |
+| Файловое ядро и capture W1b | `services/ai-execution-worker/src/design-workshop/`: exact revision, manifest, receipt/recovery, очередь с lease и React/Chromium capture; подключены к общему worker и API | Новая migration ещё не установлена в основной БД; UI-кнопки, MCP tools и интерактивный preview отсутствуют |
 | Task Manager | Общий интерактивный референс в `src/components/admin/task-manager/reference/`; публичный и защищённый маршруты | Первый сценарий доработки; не выдавать fixtures за реальные задачи |
 | Темы интерфейса | `packages/ui-kit/src/theme/` и общая системная оболочка; Payload использует отдельный адаптер; frontend имеет своих владельцев | Общие semantic tokens и явные адаптеры целей |
 | Инструкции референсов | Есть [reference-to-frontend workflow](../../.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md#reference-to-frontend) | Сохранить как процесс исследования и реализации UI |
@@ -70,6 +75,35 @@
 дизайн-системой, работающим preview и проверяемыми итерациями. Один длинный
 system prompt не заменяет эти механизмы. Это наше проектное решение по итогам
 сравнения, а не утверждение о внутренней архитектуре конкурентов.
+
+### 3.1. Критерии конкурентного качества
+
+Повторная сверка официальных документов 25 сентября 2026 года:
+[Lovable Build mode](https://docs.lovable.dev/features/agent-mode) описывает
+агентное изменение и проверку приложения;
+[preview toolbar](https://docs.lovable.dev/features/preview-toolbar) — выбор
+элементов, текстовые правки, рисунки и комментарии. Эти возможности входят
+в baseline сравнения. [v0 Design Systems 2.0](https://v0.app/docs/design-systems-2)
+опирается на реальные компоненты и tokens команды.
+
+Требование «лучше конкурентов» проверяется на одинаковых задачах; оно не
+означает уже достигнутого превосходства. Для Realize обязательны:
+
+| Сценарий оценки | Критерий приёмки |
+| --- | --- |
+| Task Manager: правка из GPT, продолжение в Admin | Одна revision, сохранённый brief и замечания; без ручного переноса файлов и повторного объяснения задачи |
+| Специализированная работа | Профили исследования, UX, визуального дизайна, реализации и проверки имеют доступные tools и понятные результаты этапов; можно менять pipeline через существующий Config |
+| Качество макета | Иерархия, typography, плотность, состояния, responsive и accessibility проверены по общей rubric, включая 390/768/1440 и клавиатуру |
+| Точная итерация | Замечание привязано к версии и элементу; незатронутые решения сохраняются; preview соответствует новой версии, ошибка не маскируется старым результатом |
+| Стоимость и управление | Видны исполнитель, статус и известный расход; детерминированное применение подготовленных GPT файлов не запускает дополнительного Codex агента |
+| CMS и переносимость | Тема использует установленные tokens/components, проверяется для выбранных Admin/frontend adapters и применяется обратимо |
+| Надёжность | Повтор запроса, потеря соединения, конкурентная правка и рестарт не повреждают предыдущий результат; чужие проекты и секреты недоступны |
+
+Сравнительный прогон фиксирует дату/версию конкурента, одинаковый brief,
+число исправляющих итераций, время до проверенного preview, известный расход
+и оценку дизайна по одной rubric. Документация конкурента подтверждает только
+описанную возможность; она не является нашим browser benchmark. Специализация
+ролей не требует пяти отдельных платных model calls на каждую правку.
 
 ## 4. Объекты и режимы
 
@@ -117,8 +151,28 @@ flowchart LR
 его в Мастерской. Карточка показывает текущую версию, стадию, preview, замечания
 и следующий доступный шаг. В полноэкранном разделе: библиотека проектов,
 чат/материалы, preview, инспектор компонентов/tokens, версии и проверки.
-На узком экране области переключаются вкладками. Предлагаемый новый маршрут
-`/system/workshop` использует system shell; сейчас он не реализован.
+На узком экране области переключаются вкладками. Маршрут `/system/workshop`
+реализован в system shell; полный набор областей остаётся целевым.
+
+Первый UI-срез над W1a: `/system/workshop` — личный каталог, а
+`/system/workshop/[projectId]` — бриф, материалы, текстовые файлы и история.
+Сервер проверяет admin до открытия страницы; API отдельно проверяет permission
+и владельца каждого проекта. Публичная ссылка не даёт доступ к чужому проекту.
+Входы находятся в Payload «Рабочая область» и в системной навигации. Сохранённые
+пользователем настройки видимости разделов не сбрасываются.
+
+Редактирование создаёт несохранённый draft в памяти вкладки. Сохранение проходит
+через подготовку кандидата, просмотр изменённых значений и явное применение
+показанного кандидата. Повтор после сетевой ошибки использует тот же ключ
+операции; конфликт версий сохраняет ввод и требует явного обновления базы.
+Переход на другую страницу предупреждает о несохранённых изменениях.
+Явная отмена черновика требует подтверждения и возвращает открытую сохранённую
+версию без записи в БД. Возврат в каталог использует общую контекстную строку shell.
+Историческая версия открывается только для чтения; взятие её за основу создаёт
+draft относительно текущей версии и сохраняется обычным prepare/apply.
+Текст файлов отображается как текст, без исполнения HTML/JS/SVG в Admin.
+UI не называет сохранённый snapshot работающим preview, не показывает
+неподключённый чат как действующий и не инициирует model calls.
 
 **ChatGPT.** Приложение находит или создаёт тот же дизайн-проект, читает его
 контекст и готовит правки. MCP возвращает подтверждённые receipts, ссылки на
@@ -163,7 +217,9 @@ Preview, storage, browser checks и генерация изображений т
 
 ## 7. Предлагаемая модель и владельцы
 
-Названия ниже — проект DTO/persistence, не уже существующие коллекции.
+Таблица описывает полную целевую модель. Проекты, snapshots брифа/материалов,
+revisions и prepared changes реализованы в ограниченной поставке W1a (§12).
+Остальные сущности и поля не следует считать существующим runtime.
 
 | Сущность | Существенный контракт |
 | --- | --- |
@@ -392,6 +448,255 @@ alt и назначение. Сгенерированная картинка и�
 <a id="delivery"></a>
 
 ## 12. Порядок реализации и приёмка
+
+### Контракт первой backend-поставки W1a
+
+W1 делится на хранилище версий (W1a) и изолированное файловое исполнение
+(W1b). W1a сохраняет логические текстовые файлы макета в PostgreSQL вместе
+с брифом и материалами `link`/`note`. Snapshot имеет `schemaVersion: "1.0"`.
+Снимок не исполняется; ссылки не загружаются.
+`workspace.mode = stored_draft` и server-generated binding ID
+явно отличают это состояние от будущего checkout. Нет S4 filesystem receipt,
+preview URL, фонового агента или автоматического вызова Codex.
+
+Владелец storage/API — `packages/payload-ai-plugin` (`design-workshop`),
+строгих команд/DTO — `packages/ai-contracts`, чистой подготовки снимка/diff —
+`packages/change-engine`. Источник истины — четыре приватные коллекции
+проектов, immutable revisions, prepared changes и mutation receipts.
+Встроенный CRUD коллекций закрыт; API требует настоящего Payload actor,
+отдельного `canManageDesignWorkshop` (по умолчанию false) и владения проектом.
+В текущей установке permission предоставляется Admin; проекты разных Admin
+изолированы. Общий доступ и MCP grants добавляются отдельными адаптерами.
+
+Базовый API `/api/realize-ai/workshop/projects`: создание/список, чтение
+проекта, история и чтение revision, `changes/prepare`, чтение change и
+`changes/:changeId/apply`. POST требует `Idempotency-Key`; actor, канал
+`admin`, IDs, hashes и binding задаются сервером. Prepare принимает точную
+base revision, операции put/delete и при необходимости новый бриф/материалы.
+Сохраняются кандидат и обозримый diff; prepare не меняет current revision.
+Apply одной PostgreSQL-транзакцией проверяет базу и владельца, создаёт
+immutable revision, передвигает указатель и сохраняет receipt. Повтор того
+же ключа/запроса возвращает исходный receipt даже после новых изменений;
+другой запрос с тем же ключом или устаревшая база дают 409. Отказ записи
+receipt откатывает всю транзакцию. Это атомарность DB-снимка, не файлов.
+
+Точные DTO и поля команд находятся в
+[DesignWorkshop.types.ts](../../packages/ai-contracts/src/DesignWorkshop.types.ts)
+и [designWorkshop.schemas.ts](../../packages/ai-contracts/src/designWorkshop.schemas.ts).
+Для сравнения правки возвращаются полный candidate и hash-diff; содержимое
+«до» читается по immutable base revision. Бриф и материалы изменяются тем же
+prepare/apply, отдельной mutable копии брифа нет. HTTP использует общий
+`{ ok, correlationID, data/error }` envelope и `Cache-Control: no-store`.
+
+Начальные границы: 64 текстовых файла, 128 KiB UTF-8 на файл, 1 MiB суммарно,
+20 проектов на владельца, 100 revisions и 100 prepared changes на проект.
+Prepared change действует 24 часа. Пути — логические относительные `src/`
+и `public/`, только поддержанные текстовые расширения; traversal, служебные
+и скрытые каталоги, известные служебные конфигурации/секреты/generated
+запрещены. Содержимое остаётся недоверенным кодом. Превышение quota останавливает новую запись;
+очистка, бинарные assets и совместное владение не имитируются в W1a.
+
+Миграция `20260925_133735_design_workshop` создана native Payload generator
+с [guarded template](../../scripts/migrations/design-workshop.mjs).
+Down с сохранёнными данными останавливается с `WORKSHOP_ROLLBACK_BLOCKED`.
+Миграция применена в основной локальной установке 25 сентября 2026 года.
+MCP и Admin chat остаются W2; файловое ядро и первый sandbox capture описаны ниже.
+
+По уточнению пользователя первый видимый UI выполнен перед W1b: это часть W3
+над готовым W1a, а не завершение всего W3. Бриф/материалы/файлы версионируются
+через существующий facade; оформление принадлежит UI-kit, layout/auth/nav —
+host. Сохранение исторического снимка создаёт новую версию. Запуска файлов,
+инспектора tokens, feedback records и подключения модели этот срез не добавляет.
+
+### 12.1. Контракт файловой среды W1b
+
+Первый шаг W1b — общий worker adapter материализации сохранённой версии.
+Он входит в `services/ai-execution-worker/src/design-workshop/`, без новой
+очереди или скрытого вызова модели. Persistence facade формирует источник
+из принадлежащего пользователю проекта и immutable revision. Transport не
+задаёт абсолютный путь, корень хранения, actor или hash вместо сервера.
+
+Источник — `bindingId`, `projectId`, точная revision и полный snapshot W1a.
+`packages/change-engine` проверяет canonical content hash и строит versioned
+manifest текстовых файлов с SHA-256/UTF-8 bytes. Это явный снимок исходников
+макета, а не копия произвольного текущего checkout. Git base и доверенный
+комплект зависимостей конкретного preview добавляются следующим адаптером;
+одной материализации недостаточно для объявления макета исполняемым.
+
+Operator-owned storage root находится вне основного checkout. Binding связан
+с одним проектом. Каждая revision получает собственный immutable каталог;
+редактирование остаётся в DB prepare/apply с CAS. Worker никогда не меняет
+указатель current revision и не выдаёт filesystem rename за CAS приложения.
+Read, checks и будущий preview получают одну exact revision/manifest identity.
+Публичная квитанция не содержит абсолютного host path.
+
+Worker ведёт журнал попытки: staging → prepared → published → durable receipt.
+Файлы и manifest синхронизируются до публикации целого каталога; читатель не
+видит промежуточную смесь файлов. После прерывания готовый staging или уже
+опубликованная версия проверяются по ожидаемому manifest и завершаются той же
+квитанцией. Конкурентная публикация одной версии идемпотентна; другой снимок
+под тем же revision ID, повреждение, symlink/hardlink и посторонние файлы
+отклоняются. Незавершённая активная попытка другого процесса не удаляется.
+
+Storage — воспроизводимая проекция DB, а не второе хранилище пользовательской
+истории и не полноценная песочница исполнения. Root принадлежит доверенному
+worker; недоверенный процесс с доступом записи в него не допускается.
+Материализатор не запускает JS/TS, package scripts, браузер или сеть.
+Подключение durable jobs, отзыв grant перед исполнением, sandbox preview и
+два диалоговых адаптера входят в следующую сквозную поставку; до неё новые
+возможности не рекламируются в MCP capabilities или интерфейсе как готовые.
+
+Файловое ядро реализовано и проверено в исходниках. Строгие schemas/DTO
+находятся в `packages/ai-contracts/src/designWorkspace.schemas.ts` и
+`DesignWorkspace.types.ts`; pure builder — в
+`packages/change-engine/src/designWorkspace.policy.ts`. Метод
+`DesignWorkshop.workspaceSource` заново проверяет actor/permission/owner и
+возвращает проверенный snapshot выбранной DB revision. Внутренние
+`DesignWorkspace.materialize/resolve/readFile` работают только с этой
+ограниченной проекцией. Absolute path доступен внутреннему consumer,
+но отсутствует в передаваемой квитанции.
+
+Проверены независимые конкурентные публикации и восстановление одной
+готовой попытки несколькими callers, SIGKILL на четырёх границах журнала,
+сохранение прежних файлов, точные UTF-8 bytes, отказы при подмене артефакта
+и доступе к чужому проекту. Recovery prepared/published повторно использует
+тот же каталог, а не выдаёт пересоздание за завершение прежней попытки.
+Прерванный неполный staging сохраняется; лимит — 64 попытки на binding.
+Удаление таких остатков требует будущего job owner с lease/retention.
+Проверка SIGKILL не является испытанием отказа диска или потери питания.
+
+Само файловое ядро не меняет схему, UI или работающую установку и не регистрирует
+публичных действий. Следующий срез (§12.2) подключает durable jobs и
+изолированный capture к exact revision; оба диалога затем используют
+те же project/revision и зарегистрированные действия. Профили
+агентов и настраиваемый pipeline подключаются через существующий AI Config,
+без отдельной конфигурационной системы.
+
+### 12.2. Задания и первый sandbox preview
+
+В исходниках реализован срез `react-capture-v1`: настоящая сборка React
+и рендер снимков 390/768/1440 × 900 в отдельном браузере. Это preview evidence
+точной версии, без интерактивного доступа к странице из Admin/GPT. Live preview
+и visual inspector добавляются отдельным adapter, сохраняя job/revision contract.
+Пользовательский код не выполняется внутри процесса Payload или worker.
+
+Source of truth задания — приватная Payload collection `realize-design-preview-jobs`.
+API Мастерской создаёт его по `revisionId` и `entryPath` (default-export React
+component), получает статус/снимки и отменяет. Actor, pin, параметры сборки,
+окружение и filesystem paths назначает сервер. Дополнительный permission
+`canPreviewDesignWorkshop` по умолчанию запрещён. Host предоставляет его Admin;
+MCP grants в этой поставке не меняются. Квитанция запроса идемпотентна и
+привязана к actor/project/revision/entry; scope нельзя сменить повтором ключа.
+
+Общий execution worker обслуживает новую очередь независимо от подключения
+Codex. Claim получает случайный fencing token и lease по часам PostgreSQL.
+Продление и завершение принимаются только для текущего token; отмена, отзыв
+права, истечение срока и потеря lease прекращают дочерний процесс. После
+падения задания повторяются ограниченно; запоздалый worker не заменяет
+результат новой попытки. Перед работой и выдачей результата заново проверяются
+актуальный actor, permission, owner и exact revision. Историческая revision
+допустима; изменение текущей версии не меняет уже поставленное задание.
+
+Сборка и Chromium запускаются Linux adapter: Bubblewrap без сети и host home,
+readonly snapshot и выбранные зависимости React, systemd user service с
+ограничениями времени/памяти/числа задач и удалением process group. Разрешён
+только установленный compiler/runner, без package scripts и произвольной
+команды клиента. Отсутствие sandbox/dependencies даёт unavailable, без запуска
+на host в обход изоляции. Environment не наследует секреты. Публичные ошибки
+ограничены кодом/этапом; source snippets, stderr и host paths не выдаются.
+
+Первая версия поддерживает React/ReactDOM, относительные TS/TSX/JS/CSS/JSON/SVG
+из snapshot, CSS Modules и встроенные assets. Next server modules, скачивание
+пакетов, внешние assets и произвольные installed packages не поддержаны.
+Сборка не исполняет макет. Browser работает с fixtures, без network/storage
+установки; screenshots не доказывают accessibility или прохождение всех
+сценариев. Runtime errors означают failed, а не completed с предыдущим preview.
+
+Результат хранит bounded PNG и metadata (hash, viewport, exact source pin,
+entryPath, версии renderer/esbuild/React/ReactDOM/Chromium), отдаётся после
+owner/permission проверки, с
+`no-store`, и имеет срок действия. Job status не содержит абсолютного path,
+worker PID или секретов. После срока images очищаются, идентичность запроса
+сохраняется для replay. Staging попытки содержит job/fencing identity; cleanup
+не затрагивает активный token, исходный checkout, DB revisions и чужие каталоги.
+Storage root разделён по host/port/database установки; credentials не входят
+в идентификатор, смена пароля не меняет каталог. Перед удалением попытки
+подтверждается остановка её systemd unit.
+Начальные границы: 1 активное задание на проект, 100 jobs на проект, 3 попытки,
+24 часа жизни результата, 2 MiB на снимок и 4 MiB PNG суммарно. Sandbox получает
+512 MiB памяти, один CPU, 192 задачи и не более 60 секунд. Общий heartbeat
+не раскрывает идентификатор дизайн-проекта в Code Lane чате.
+
+Проверены native migration на disposable PostgreSQL, empty down/up и отказ
+populated down, idempotency/ACL/cancel/lease/recovery, реальная sandbox сборка
+и Chromium capture, отказ при host/сети, runtime/syntax error и превышении
+PNG лимита, source hash и размеры. Реальный общий worker выполнил capture
+при отключённом Codex и восстановил задание после SIGKILL; новый fencing token
+не дал прежней попытке заменить результат. Снимки демонстрационного fixture
+просмотрены на 390/1440; это evidence renderer, а не приёмка пользовательского референса.
+Основная установка и live MCP не активируют эти возможности до их поставки.
+
+API под `/api/realize-ai/workshop/projects/:projectId`: `POST/GET previews`,
+`GET previews/:jobId`, `POST previews/:jobId/cancel`,
+`GET previews/:jobId/images/:width`. Start требует `Idempotency-Key`;
+cancel принимает пустой объект. Read DTO не выдаёт PNG/base64, actor, lease,
+worker или абсолютные пути. Отдельный image endpoint отвечает `image/png`
+с `no-store`, `nosniff` и `Cross-Origin-Resource-Policy: same-origin`.
+Native migration — `20260925_170325_design_preview`; порядок и prerequisites
+описаны в [локальном runbook](../delivery/01-local-admin-ai.md) и
+[runbook миграций](../delivery/03-migrations-and-rollback.md).
+
+### 12.3. Admin preview и managed MCP правки
+
+Следующая поставка добавляет вкладку «Предпросмотр» к существующему редактору:
+выбор React entry point сохранённой версии, start/status/cancel, три ширины,
+историю последних jobs, точный номер версии и понятные ошибки. Несохранённый
+черновик не участвует в сборке. После обновления head прежний снимок остаётся
+с явной подписью своей версии. Вкладка восстанавливает jobs после reload и
+периодически читает состояние только пока она открыта; пользовательский JS
+в origin админки не исполняется.
+
+Managed MCP получает `workshop_projects_list`, `workshop_project_get`,
+`workshop_snapshot_read`, `workshop_project_create`, `workshop_change_prepare`,
+`workshop_change_get`, `workshop_change_apply`, `workshop_preview_start`,
+`workshop_preview_get`, `workshop_preview_cancel`, `workshop_preview_image`.
+Чтение длинных материалов/файлов ограничено порциями точной revision, manifest
+и diff — страницами по 8 файлов, каталог — 1–4 проекта. Summary diff может
+сокращаться под wire budget с явным `summaryTruncated`. Create/prepare/apply/start требуют явный Idempotency-Key
+в tool input; apply также связывается с проверенным candidateHash. Автор
+подготовленной GPT версии хранится как channel `mcp`, пользователь и namespace
+receipt определяются credential. Ни shell, ни Git, ни Codex этот adapter не вызывает.
+
+В существующей Admin форме ключей/ChatGPT задаются дополнительные grants
+`workshopRead`, `workshopWrite`, `workshopPreview`. Отсутствие означает false;
+write/preview требуют read и actorBinding self; `workshopPreview` нужен и для
+чтения статуса/снимка. Operator ceiling `workshop` закрывает все Workshop tools и
+по умолчанию false. Сервер пересекает текущие и применённые grants/allowlist,
+текущие host permissions и owner ACL. Старые ключи и bootstrap listener не
+получают новые права при обновлении. Предустановки включают descriptors,
+но не автоматически действующие клиентские grants.
+
+Каждая запись выполняется общим Workshop facade под существующим MCP instance
+lock с повторной проверкой текущего grant. Client disconnect/timeout может
+оставить неопределённый для клиента исход; повторяется тот же idempotency key.
+Preview сохраняет доверенную MCP identity (server/client/client revision)
+отдельно от source pin. Worker до старта, при продлении lease и перед completion
+проверяет исходный grant: revoke, rotation, отключение сервера и снятие preview
+из allowlist прекращают исполнение. UI preview не имеет MCP identity.
+
+`workshop_preview_image` передаёт ограниченную JPEG-проекцию проверенного PNG
+как MCP image content вместе с source metadata; credentials и публичный URL
+не нужны. Размер всего wire response остаётся в прежнем лимите principal.
+Мутации и enqueue явно имеют `readOnlyHint: false`; apply и cancel также
+имеют `destructiveHint: true`. Аннотации не заменяют серверную авторизацию.
+Основание — [официальный контракт MCP-инструментов OpenAI](https://developers.openai.com/plugins/build/mcp-server).
+
+Проверки включают реальный managed HTTP transport, точные schemas/annotations,
+старые ключи без повышения прав, CAS/replay, cross-owner denial, отзыв grant
+после enqueue и во время capture, изображение в MCP response, Admin browser
+start/reload/ошибку и responsive/focus. Cloud UI ChatGPT проверяется отдельно
+от локального protocol test. Автоматический Admin AI pipeline и interactive
+inspector остаются следующими этапами.
 
 | Этап | Результат | Проверяемая граница |
 | --- | --- | --- |

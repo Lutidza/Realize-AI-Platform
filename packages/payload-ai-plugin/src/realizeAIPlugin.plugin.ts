@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/realizeAIPlugin.plugin.ts
- * @version 1.7.0
- * @date 2026-09-24
+ * @version 1.9.0
+ * @date 2026-09-27
  * @description Подключает коллекции, endpoints и Admin views плагина Payload.
  */
 
@@ -51,6 +51,7 @@ export const realizeAIPlugin = (
       "realizeWorkflowRun",
       "realizeMcpServers",
       "realizeMcpServer",
+      "realizeSearchObservations",
     ].find((key) => key in views);
     if (conflictingView) {
       throw new Error(`Realize Admin view key collision: ${conflictingView}`);
@@ -67,6 +68,8 @@ export const realizeAIPlugin = (
     const workflowRunsRoute =
       `${options.admin.route.replace(/\/$/, "")}/runs` as `/${string}`;
     const workflowRunRoute = `${workflowRunsRoute}/:rootRunID` as `/${string}`;
+    const searchObservationsRoute =
+      `${options.admin.route.replace(/\/$/, "")}/search` as `/${string}`;
     const registeredRoutes = new Set<string>();
     for (const route of [
       options.admin.route,
@@ -74,6 +77,7 @@ export const realizeAIPlugin = (
       agentLayerRoute,
       workflowRunsRoute,
       workflowRunRoute,
+      searchObservationsRoute,
       integrationsRoute,
       integrationSettingsRoute,
       mcpServersRoute,
@@ -136,6 +140,13 @@ export const realizeAIPlugin = (
           ],
           views: {
             ...views,
+            realizeSearchObservations: {
+              Component: {
+                path: "@realize/payload-ai-control/search-observations-rsc#SearchObservationsView",
+              },
+              exact: true,
+              path: searchObservationsRoute,
+            },
             realizeMcpServers: {
               Component: {
                 path: "@realize/payload-ai-control/mcp-servers-rsc#McpServersView",
@@ -255,6 +266,8 @@ export const realizeAIPlugin = (
           canManageData: options.access.canManageData,
           canManageAIConfiguration: options.access.canManageAIConfiguration,
           canManageIntegrations: options.access.canManageIntegrations,
+          canManageDesignWorkshop: options.access.canManageDesignWorkshop,
+          canPreviewDesignWorkshop: options.access.canPreviewDesignWorkshop,
           integrationEncryptionKeyEnv: options.integrations.encryptionKeyEnv,
         },
       },

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/mcp-servers/McpClients.component.tsx
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Управляет входящими ключами MCP и однократным показом нового секрета.
  */
 "use client";
@@ -11,6 +11,7 @@ import type {
   McpServerDetailDto,
   McpOneTimeTokenDto,
   McpServerMutationDto,
+  McpClientGrants,
 } from "@realize/ai-contracts";
 import {
   UiButton,
@@ -19,7 +20,7 @@ import {
   UiSurface,
   UiTextarea,
 } from "@realize/ui-kit";
-import { McpReadGrantFields } from "./McpReadGrantFields.component";
+import { McpGrantFields } from "./McpGrantFields.component";
 import styles from "./McpServers.module.css";
 
 export function McpClients({
@@ -39,8 +40,13 @@ export function McpClients({
   ) => Promise<McpOneTimeTokenDto | McpServerMutationDto | undefined>;
 }) {
   const [name, setName] = useState("");
-  const [repositoryRead, setRepositoryRead] = useState(false);
-  const [pagesRead, setPagesRead] = useState(false);
+  const [grants, setGrants] = useState<McpClientGrants>({
+    repositoryRead: false,
+    pagesRead: false,
+    workshopRead: false,
+    workshopWrite: false,
+    workshopPreview: false,
+  });
   const [expires, setExpires] = useState("");
   const [token, setToken] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -129,6 +135,9 @@ export function McpClients({
               {[
                 client.grants.repositoryRead && "Репозиторий",
                 client.grants.pagesRead && "Страницы с вашими текущими правами",
+                client.grants.workshopRead && "Мастерская: чтение",
+                client.grants.workshopWrite && "Мастерская: сохранение правок",
+                client.grants.workshopPreview && "Мастерская: preview",
               ]
                 .filter(Boolean)
                 .join(" · ")}
@@ -169,8 +178,9 @@ export function McpClients({
             void issue({
               expectedRevision: server.desiredRevision,
               displayName: name,
-              grants: { repositoryRead, pagesRead },
-              actorBinding: pagesRead ? "self" : "none",
+              grants,
+              actorBinding:
+                grants.pagesRead || grants.workshopRead ? "self" : "none",
               expiresAt: new Date(`${expires}T23:59:59Z`).toISOString(),
             }).then((result) => {
               accept(result);
@@ -206,19 +216,24 @@ export function McpClients({
                 />
               </label>
             </div>
-            <McpReadGrantFields
-              value={{ repositoryRead, pagesRead }}
+            <McpGrantFields
+              value={grants}
               allowed={server.clientGrantOptions}
-              onChange={(value) => {
-                setRepositoryRead(value.repositoryRead);
-                setPagesRead(value.pagesRead);
-              }}
+              onChange={setGrants}
             />
             <p>
               Доступ к репозиторию разрешает оператор для этого экземпляра.
-              Права на страницы проверяются при каждом вызове.
+              Права на страницы и личные проекты Мастерской проверяются при
+              каждом вызове.
             </p>
-            <UiButton type="submit" disabled={!repositoryRead && !pagesRead}>
+            <UiButton
+              type="submit"
+              disabled={
+                !grants.repositoryRead &&
+                !grants.pagesRead &&
+                !grants.workshopRead
+              }
+            >
               Выдать ключ
             </UiButton>
           </fieldset>

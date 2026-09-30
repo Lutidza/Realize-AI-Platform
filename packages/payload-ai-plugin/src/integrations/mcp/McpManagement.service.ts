@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/McpManagement.service.ts
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Координирует атомарные настройки MCP, CAS и durable replay у общего integration owner.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -86,7 +86,16 @@ export class McpManagement {
     const runtime = req.payload.config.custom?.[
       REALIZE_AI_SERVER_RUNTIME_KEY
     ] as RealizeAIServerRuntime | undefined;
+    const workshopAllowed =
+      ready &&
+      profile?.workshop === true &&
+      !!(await runtime?.canManageDesignWorkshop?.({ req }));
     const grants = {
+      workshopRead: workshopAllowed,
+      workshopWrite: workshopAllowed,
+      workshopPreview:
+        workshopAllowed &&
+        !!(await runtime?.canPreviewDesignWorkshop?.({ req })),
       repositoryRead:
         ready &&
         !!profile?.repositoryRoot &&

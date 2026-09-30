@@ -1,7 +1,7 @@
 /**
  * @file src/plugins/index.ts
- * @version 1.6.1
- * @date 2026-09-14
+ * @version 1.8.0
+ * @date 2026-09-25
  * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
 
@@ -53,6 +53,10 @@ const realizeAI = realizeAIPlugin({
     canManageAIConfiguration: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
     canManageData: ({ req }) =>
+      Boolean(req.user && checkRole(["admin"], req.user)),
+    canManageDesignWorkshop: ({ req }) =>
+      Boolean(req.user && checkRole(["admin"], req.user)),
+    canPreviewDesignWorkshop: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
     canManageIntegrations: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),

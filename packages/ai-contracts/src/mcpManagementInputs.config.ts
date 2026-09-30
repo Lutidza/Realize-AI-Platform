@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/mcpManagementInputs.config.ts
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Валидирует management inputs MCP по типу adapter и версии конфигурации.
  */
 import { z } from "zod";
@@ -15,6 +15,9 @@ const tunnelID = z
 const grants = z.strictObject({
   repositoryRead: z.boolean(),
   pagesRead: z.boolean(),
+  workshopRead: z.boolean().default(false),
+  workshopWrite: z.boolean().default(false),
+  workshopPreview: z.boolean().default(false),
 });
 export const mcpLimitsSchema = z.strictObject({
   callsPerMinute: z.number().int().min(1).max(60),

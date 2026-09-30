@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/mcp-servers/McpChatGptConnection.component.tsx
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Настраивает ChatGPT в Admin через write-only ключ, права и безопасный статус.
  * @see documentation/architecture/mcp-tooling.md
  */
@@ -9,7 +9,7 @@
 import { UiButton, UiInput, UiNotice, UiSurface } from "@realize/ui-kit";
 import type { McpChatGptConnectionProps } from "./McpServersClient.types";
 import { useMcpChatGptForm } from "./useMcpChatGptForm.hook";
-import { McpReadGrantFields } from "./McpReadGrantFields.component";
+import { McpGrantFields } from "./McpGrantFields.component";
 import styles from "./McpServers.module.css";
 
 const statusLabels = {
@@ -113,7 +113,7 @@ export function McpChatGptConnection(props: McpChatGptConnectionProps) {
                 : "Ключ будет сохранён в зашифрованном хранилище этой установки."}{" "}
               Сохранённое значение не отображается.
             </p>
-            <McpReadGrantFields
+            <McpGrantFields
               value={draft.grants}
               allowed={server.clientGrantOptions}
               onChange={(grants) => setDraft({ ...draft, grants })}
@@ -132,7 +132,9 @@ export function McpChatGptConnection(props: McpChatGptConnectionProps) {
               type="submit"
               disabled={
                 !server.enabled ||
-                (!draft.grants.repositoryRead && !draft.grants.pagesRead)
+                (!draft.grants.repositoryRead &&
+                  !draft.grants.pagesRead &&
+                  !draft.grants.workshopRead)
               }
             >
               {busy ? "Сохранение…" : "Сохранить и подключить ChatGPT"}

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/mcp-servers/McpServersClient.types.ts
- * @version 1.2.0
- * @date 2026-09-25
+ * @version 1.3.0
+ * @date 2026-09-26
  * @description Описывает состояние каталога и формы управления MCP без server-only данных.
  */
 import type {
@@ -11,7 +11,7 @@ import type {
   McpServerPresetDto,
   McpServerDetailDto,
   SaveMcpChatGptInput,
-  McpReadGrants,
+  McpClientGrants,
 } from "@realize/ai-contracts";
 
 export type McpCatalog = {
@@ -26,10 +26,10 @@ export type McpChatGptConnectionProps = {
   onSave: (input: SaveMcpChatGptInput) => Promise<void>;
   onDisconnect: () => Promise<void>;
 };
-export type McpReadGrantFieldsProps = {
-  value: McpReadGrants;
-  allowed: McpReadGrants;
-  onChange: (value: McpReadGrants) => void;
+export type McpGrantFieldsProps = {
+  value: McpClientGrants;
+  allowed: McpClientGrants;
+  onChange: (value: McpClientGrants) => void;
 };
 export type McpFormProps = {
   initial: CreateMcpServerInput;

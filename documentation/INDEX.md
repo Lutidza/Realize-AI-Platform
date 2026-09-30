@@ -29,6 +29,8 @@ Codex-адаптеры — в `.codex/**`.
 4. [Delivery runbooks](delivery/INDEX.md) — эксплуатация текущего baseline.
 5. [MCP tooling](architecture/mcp-tooling.md) — внешние adapters, внутренний MCP и запуск Admin manager.
 6. [Architecture Decision Log](architecture/decisions/INDEX.md).
+7. [Поиск для агентов и диагностика](architecture/repository-search.md) — CLI/MCP,
+   измерения, история Admin и ограничения покрытия.
 
 Подключение аккаунта ChatGPT или API key и требования к исполнителям:
 [интеграция Codex](architecture/codex-integration.md).
@@ -55,8 +57,7 @@ Codex-адаптеры — в `.codex/**`.
   ChatGPT и IDE; сравнение подходов, агентский процесс и этапы runtime.
 - [Внутренний MCP Realize](specifications/internal-mcp.md)
   — контракт реализованных A+G+S1 и последующих S2–S5/B/P/C этапов MCP;
-  [план реализации](specifications/internal-mcp-implementation-plan.md) и
-  [аудит проекта и двух слоёв ИИ](reports/PROJECT-AI-MCP-AUDIT-2026-09-20.md).
+  [план реализации](specifications/internal-mcp-implementation-plan.md).
 - [Task manager для людей и ИИ-агентов](specifications/task-management.md)
   — ТЗ 0.9 и интерактивный референс: рабочие среды, проекты, папки, списки,
   полный редактор задач, участники, чеклисты, связи и модель исполнения.
@@ -73,10 +74,6 @@ Codex-адаптеры — в `.codex/**`.
   — официальные примеры, применимые сценарии и требования к экранам.
 
 ## Исторические материалы
-
-- [Передача контекста референсов и навигации — 19 сентября 2026](reports/REFERENCE-WORKBENCH-HANDOFF-2026-09-19.md)
-  — устройство каркаса, завершённые UI-итерации, обсуждённая панель «Пользователи»
-  и точка продолжения в другом диалоге.
 
 `documentation/reports/**` и ADR с датой или номером сохраняют evidence
 выполненных решений. Отчёты не следует переписывать под текущее состояние;

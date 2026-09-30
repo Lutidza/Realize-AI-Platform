@@ -1,7 +1,7 @@
 # Контекст проекта: Realize
 
 - **Статус:** current implementation
-- **Дата сверки:** 25 сентября 2026 года (MCP A+G+S1, предустановки и настройка ChatGPT в Admin)
+- **Дата сверки:** 25 сентября 2026 года (MCP A+G+S1, ChatGPT в Admin, W1a/UI и sandbox capture Мастерской)
 
 ## Цель проекта
 
@@ -435,7 +435,7 @@ Capability/check metadata не расширяют полномочия и сам
 Payload Admin и Config API не редактируют системные `.ai/**`, `.codex/**`,
 license/security policy или executable registry.
 
-## Мастерская дизайна: инструкции и целевой runtime
+## Мастерская дизайна: хранилище версий и целевой runtime
 
 В `.ai` добавлены роль Workshop Director, workflow Мастерской, шаблон брифа
 и supporting check качества; Codex использует адаптер
@@ -448,9 +448,51 @@ AIConfigRelease или пользовательский ChatGPT-профиль �
 
 [Спецификация Мастерской](specifications/design-workshop.md) описывает целевой
 общий сервис для Admin, ChatGPT и IDE, версии, preview, темы и расширение
-существующего редактора workflow. Runtime DesignProject/Revision, MCP writes,
-дизайн-presets в клиентской БД и `/system/workshop` не реализованы.
-В текущей системной навигации `workshop` остаётся скрытым пунктом.
+существующего редактора workflow. В исходниках реализован первый backend W1a:
+`packages/payload-ai-plugin/src/design-workshop/`, четыре приватные коллекции,
+typed commands/DTO в `packages/ai-contracts`, pure snapshot policy в
+`packages/change-engine`. API `/api/realize-ai/workshop/projects` сохраняет
+личные проекты, бриф/материалы, immutable версии текстовых файлов и
+подготовленные правки с CAS/idempotency. Отдельный opt-in permission
+`canManageDesignWorkshop` в этой установке выдан Admin; доступ к проекту
+имеет только его владелец. Сохранение не вызывает модель и не требует Codex.
+
+Snapshot `1.0` хранится в PostgreSQL (`workspace.mode: stored_draft`)
+и не исполняется. Native миграция
+`20260925_133735_design_workshop` применена в основной локальной установке
+25 сентября 2026 года вместе с обновлением production bundle.
+
+В исходниках добавлено файловое ядро W1b:
+`services/ai-execution-worker/src/design-workshop/`. Authenticated facade
+выбирает owned DB revision; чистая policy строит manifest с hashes/UTF-8 bytes,
+worker материализует полную версию в private storage вне checkout.
+Атомарная публикация каталога, durable receipt и recovery не меняют DB head;
+повторное чтение проверяет реальные файлы. ACL, конкурентное восстановление,
+SIGKILL и отказы при подмене проверены на отдельной БД и файловой системе.
+В исходниках он подключён к durable очереди `realize-design-preview-jobs`
+в том же execution worker. API start/get/list/cancel/images требует владельца
+и отдельного `canPreviewDesignWorkshop` (default deny; host разрешает Admin).
+`react-capture-v1` собирает React в Bubblewrap/systemd sandbox и сохраняет
+PNG 390/768/1440 × 900 с source pin, entryPath и версиями toolchain.
+Исполнение не вызывает модель и не зависит от Codex. Lease/fencing, повторная
+проверка прав, отмена, ограниченные retries и TTL управляют процессом и artifacts;
+хранилище временных файлов разделено по установкам.
+Native migration `20260925_170325_design_preview` применена только в disposable
+БД. Основной bundle/worker ещё не обновлены. UI preview, MCP writes,
+Admin chat adapter, интерактивный inspector и дизайн-presets остаются следующими поставками.
+
+Первый UI над W1a реализован в `packages/payload-ai-plugin/src/admin/design-workshop/`
+через публичный export `@realize/payload-ai-control/workshop-client`.
+Host `src/components/admin/design-workshop/` подключает `@realize/ui-kit` shell,
+а страницы `/system/workshop` и `/system/workshop/[projectId]` проверяют Admin
+на сервере. Доступны личный каталог, создание, бриф/материалы/виртуальные файлы,
+просмотр candidate перед apply, история и восстановление снимка новой версией.
+Конфликт сохраняет ввод; обновление базы и отмена черновика требуют явного действия.
+Текст файлов не исполняется в браузере. Ссылки добавлены в системную навигацию
+(видимы по умолчанию) и Payload «Рабочая область» через `SystemAdminPayloadEntry`.
+Персональное скрытие раздела сохраняется. Точная production-сборка прошла
+браузерный сценарий на отдельной копии БД и установлена на `localhost:3000`;
+основной адрес — `/system/workshop`. Сохранение не вызывает AI-модель.
 
 ## Правило синхронизации для AI-агентов
 

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-protocol.int.spec.ts
- * @version 1.1.1
- * @date 2026-09-24
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Проверяет обе protocol eras настоящими SDK clients и Git на одноразовом checkout.
  */
 // @vitest-environment node
@@ -159,7 +159,9 @@ describe("MCP: loopback HTTP и read-only Git", () => {
       );
       const catalog = await client.listTools();
       expect(catalog.tools.map((tool) => tool.name)).toEqual(
-        MCP_REALIZE_TOOLS.filter((name) => !name.startsWith("pages_")),
+        MCP_REALIZE_TOOLS.filter(
+          (name) => !name.startsWith("pages_") && !name.startsWith("workshop_"),
+        ),
       );
       expect(
         catalog.tools.every((tool) => tool.annotations?.readOnlyHint === true),
@@ -237,7 +239,7 @@ describe("MCP: loopback HTTP и read-only Git", () => {
     ).toBe(413);
     expect(await (await fetch(`${running.origin}/health`)).json()).toEqual({
       status: "ok",
-      version: "1.1.0",
+      version: "1.2.0",
     });
   });
   it("отзыв ключа закрывает следующий вызов после discovery", async () => {
@@ -267,7 +269,9 @@ describe("MCP: loopback HTTP и read-only Git", () => {
       structuredContent: { ok: false, error: { code: "FORBIDDEN" } },
     });
     expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual(
-      MCP_REALIZE_TOOLS.filter((name) => !name.startsWith("pages_")),
+      MCP_REALIZE_TOOLS.filter(
+        (name) => !name.startsWith("pages_") && !name.startsWith("workshop_"),
+      ),
     );
     for (const method of ["GET", "DELETE"]) {
       const response = await fetch(`${running.origin}/mcp`, {
@@ -358,7 +362,9 @@ describe("MCP: loopback HTTP и read-only Git", () => {
       }),
     ).rejects.toThrow("not found");
     expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual(
-      MCP_REALIZE_TOOLS.filter((name) => !name.startsWith("pages_")),
+      MCP_REALIZE_TOOLS.filter(
+        (name) => !name.startsWith("pages_") && !name.startsWith("workshop_"),
+      ),
     );
   });
   it("различает index/working_tree, не меняет индекс и не выполняет внешние фильтры", async () => {
@@ -617,7 +623,9 @@ describe("MCP: loopback HTTP и read-only Git", () => {
         .toBe(200);
       const client = await connect("modern");
       expect((await client.listTools()).tools.map((tool) => tool.name)).toEqual(
-        MCP_REALIZE_TOOLS.filter((name) => !name.startsWith("pages_")),
+        MCP_REALIZE_TOOLS.filter(
+          (name) => !name.startsWith("pages_") && !name.startsWith("workshop_"),
+        ),
       );
       await client.close();
       child.kill("SIGTERM");

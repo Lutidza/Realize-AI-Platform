@@ -1,9 +1,9 @@
 # Внутренний MCP Realize: спецификация и техническое задание
 
-- Статус: **A+G+S1 и предустановки implemented; C настраивается в Admin, cloud acceptance pending; S2–S5/B/P target**, версия 0.7, 25 сентября 2026 года.
+- Статус: **A+G+S1, предустановки и Workshop managed tools implemented; C настраивается в Admin, cloud acceptance pending; общие S2–S5/B/P target**, версия 0.8, 26 сентября 2026 года.
 - Предмет: внутренний MCP как функциональный интерфейс системного рабочего слоя, административных возможностей Realize и единое управление несколькими MCP-серверами в Admin.
 - A+G реализованы: отдельный SDK listener, read tools и Admin manager. S1 добавляет context resolver, чтение инструкций по hash, capability discovery и подключение development Codex. Фактические команды, поддержанные adapters и ограничения описаны в [runbook](../architecture/mcp-tooling.md); приёмка — в плане. Последующие S2–S5/B/P/C инструменты остаются целевыми контрактами.
-- Основание: [аудит текущего состояния](../reports/PROJECT-AI-MCP-AUDIT-2026-09-20.md), [план работ](internal-mcp-implementation-plan.md).
+- Архитектура и эксплуатация: [MCP tooling](../architecture/mcp-tooling.md), [план работ](internal-mcp-implementation-plan.md).
 - Референс: [временное задание](../temp/realize-internal-mcp-agent-task.md). Реализация A+G начата по отдельному запросу пользователя «Приступай».
 
 ## 1. Результат и границы
@@ -12,8 +12,10 @@
 [Мастерская дизайна](design-workshop.md#tools): общий проект/версии/preview для
 Admin, ChatGPT и IDE. Её спецификация не регистрирует новые инструменты;
 workspace binding, управляемая запись и восстановление остаются в §4.6/§16.5
-этого контракта. GPT должен иметь возможность применить собственный patch
-без обязательного запуска Codex через P3.
+этого контракта. GPT применяет собственную правку сохранённого макета через
+scoped Workshop facade без запуска Codex. Это не произвольная запись в checkout:
+фактические 11 tools, grants, CAS/replay, image content и отзыв фоновых jobs
+описаны в [Workshop §12.3](design-workshop.md#123-admin-preview-и-managed-mcp-правки).
 
 **Целевой результат — через один внутренний MCP агент может пройти рабочий цикл проекта:** получить актуальные инструкции и контекст, определить область задачи, использовать существующих исполнителей, внести разрешённые изменения, выполнить проверки, собрать доказательства и передать результат на review или разрешённую доставку. Этот же транспорт предоставляет отдельные административные возможности установки через их действующих владельцев и права.
 
@@ -287,6 +289,51 @@ Pagination: сортировка детерминированная; opaque curs
 
 ## 9. Контракты инструментов A
 
+`repo_search intent=text` сохраняет literal контракт. Для TS/JS family добавлены
+`definitions` (точное имя объявления), `references` (синтаксические usages без
+symbol binding) и `imports` (binding/alias или literal часть module specifier;
+`*` перечисляет module specifiers выбранного файла). По умолчанию import resolution
+не выполняется. Pure TypeScript parser принимает только текст после того же
+strict reader, без CompilerHost/Program и вычисления expressions.
+
+Opt-in `resolveImports: true` допустим только с `intent=imports` и точным TS/JS
+`path`. Optional `maxDepth` — 1–12, default 8, только при resolveImports.
+Shared resolver читает bounded tsconfig/workspace metadata и targets через
+прежний strict reader. Binding приоритетнее module substring во всём seed;
+binding ведёт к исходному объявлению, namespace/module query — к файлу.
+Match добавляет `resolution` со status, nullable reason/target и bounded chain;
+target/steps содержат path,line,column,kind, optional name/fileSha256.
+Top-level `resolution` сообщает precision=static_imports, maxDepth, maxFiles=128,
+maxReadBytes=4194304, filesRead, bytesRead, probes, blockedCandidates,
+unresolvedMatches и exhausted. Колонки сохраняют Unicode code points от 1.
+Scope и secret/link checks не ослабляются; внешние зависимости не читаются.
+Неподдерживаемая конфигурация, cycles/ambiguity и другие unresolved причины
+явны; этот контракт не обещает полный TypeScript symbol binding.
+
+Snapshot разрешения включает sources/config hashes, статусы отсутствующих и
+закрытых кандидатов, workspace listings. ResolveImports/maxDepth входят в cursor
+binding; новая страница повторно проверяет граф. При превышении scan budget
+nextCursor/snapshotHash=null, truncated=true, truncationReason=scan_budget.
+Маленький limit ограничивает страницу, не является лимитом чтения;
+точный binding сокращает обход. Operation диагностики остаётся `imports`,
+новые enum/migrations не требуются. Фактические bytes включают чтение до отказа
+content validator или отмены; код, пути и query в события не добавляются.
+
+Navigation-файл ограничен 512 KiB; parser не меняет allowlist, secret filtering
+и descriptor checks. Optional `syntax` содержит enum kind и bounded
+name/moduleSpecifier/importedName. Optional `navigation` сообщает precision=syntax,
+languages=typescript_javascript, maxFileBytes и counters parsedFiles,
+prefilteredFiles, unsupportedFiles, skippedFiles, syntaxErrorFiles. Prefilter
+исключает AST только при отсутствии query и escapes; ошибки в других файлах
+тем самым не объявляются проверенными. Ненулевые skippedFiles/syntaxErrorFiles
+означают неполноту анализа отдельно от `truncated`, описывающего pagination/scan.
+Snapshot включает hashes прочитанных кандидатов и fingerprints unsupported/
+отклонённых entries; intent входит в cursor binding. Новые схемы принимают старые
+text ответы и diagnostic events. Web/collectors обновляются вместе до доставки
+событий с новыми operation values; миграция БД не нужна. Подробный алгоритм,
+семантика координат, маршруты агентов и benchmark — в
+[архитектуре поиска](../architecture/repository-search.md).
+
 Все входные object schemas строгие, unknown keys запрещены. Общие необязательные поля не превращаются в произвольный request context. Все перечисленные инструменты имеют `readOnlyHint:true`, `destructiveHint:false`, `idempotentHint:true`, `openWorldHint:false`; чтение может вернуть новые данные при изменении источника.
 
 Каждый успешный результат имеет `schemaVersion:"1.0"`, `ok:true`, `data`, `requestID`, `observedAt`. Ошибка имеет `ok:false`, `error:{code,message,retryable}`, `requestID`. Обе формы — явные output schemas. В MCP возвращаются structuredContent и краткий согласованный text content; результаты не содержат raw Payload documents. Текст не копирует большой JSON целиком.
@@ -296,7 +343,7 @@ Pagination: сортировка детерминированная; opaque curs
 | `realize_get_context` | `{}`                                                                                                                                    | Project name/version; server version; auth scopes; single-installation mode; enabled modules и `ready/not_configured/unavailable`; фактический разрешённый tool catalog; repository branch/HEAD/dirty только при repo grant |
 | `repo_list_files`     | `path` default пустой root; `depth` 1–5 default 1; `limit` 1–100 default 50; `cursor?`                                                  | Разрешённые entries `{path,type,size?}`, `nextCursor`, `truncated`, `policyVersion`; directory names тоже проходят policy                                                                                                   |
 | `repo_read_file`      | `path`; `startLine` ≥1 default 1; `lineCount` 1–400 default 200; `expectedSha256?`                                                      | `path`, UTF-8 `text`, `startLine/endLine`, `nextLine`, `truncated`, полный version identity; границы строк явно включительные                                                                                               |
-| `repo_search`         | `query` literal 1–256 chars; `path` default root; `caseSensitive` default false; `limit` 1–100 default 50; `cursor?`                    | Matches `{path,line,column,snippet,fileSha256}`, `nextCursor`, `truncated`, причина ограничения; snippet ≤500 chars; regex и executable glob не принимаются                                                                 |
+| `repo_search` | `intent` text (default), definitions, references, imports; `query` 1–256 code points; `path` default root; `caseSensitive` default false; `limit` 1–100 default 50; `cursor?`; `resolveImports?`, `maxDepth?` только для адресных imports | Matches `{path,line,column,snippet,fileSha256,syntax?,resolution?}`, `navigation?`, `resolution?`, snapshot и page window; snippet ≤500 code points; regexp не принимается |
 | `repo_git_status`     | `limit` 1–100 default 50; `cursor?`                                                                                                     | `branch:null                                                                                                                                                                                                                | string`, `head:null                                                                                                                                    | string`, `detached`, `unborn`, разрешённые `{path,indexStatus,worktreeStatus}`, conflict status, `nextCursor`, `truncated`, snapshot fingerprint |
 | `repo_git_diff`       | `scope:"index"                                                                                                                          | "working_tree"`; `paths`1–20 точных относительных файлов;`contextLines`0–5 default 3;`limitBytes`1024–65536 default 32768;`cursor?`                                                                                         | Bounded unified diff, scope, разрешённые paths, before/after identities, `nextCursor`, `truncated`; binary/untracked не превращаются в synthetic patch |
 | `pages_list`          | `query` после trim 0–128 chars default пусто; safe integer `page` 1–999999 default 1                                                    | Существующий DTO поиска Pages, limit 20, страницы, ID/title/slug и разрешённая metadata; без произвольных collection/where/depth                                                                                            |

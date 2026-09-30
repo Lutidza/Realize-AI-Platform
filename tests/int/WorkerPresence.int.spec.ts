@@ -1,7 +1,7 @@
 /**
  * @file tests/int/WorkerPresence.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-25
  * @description Проверяет потерю исполнителя, несколько процессов, границы заданий и lifecycle heartbeat.
  */
 
@@ -45,6 +45,28 @@ const snapshot = (...rows: WorkerPresenceRow[]) => ({ rows, readable: true });
 afterEach(() => {
   vi.useRealTimers();
   vi.restoreAllMocks();
+});
+
+it("показывает занятость Workshop без чужого Change Request и закрывает capability при drain", async () => {
+  vi.useFakeTimers();
+  const records: WorkerPresenceUpdate[] = [];
+  const heartbeat = new WorkerHeartbeat({
+    write: async (update) => {
+      records.push(structuredClone(update));
+    },
+  });
+  await heartbeat.start();
+  heartbeat.setCapabilities({ ...capabilities, workshopPreview: true });
+  await heartbeat.busyWorkshopPreview();
+  expect(records.at(-1)).toMatchObject({
+    state: "busy",
+    currentJob: null,
+    capabilities: { workshopPreview: true },
+  });
+  heartbeat.drain();
+  await heartbeat.sync();
+  expect(records.at(-1)?.capabilities.workshopPreview).not.toBe(true);
+  await heartbeat.finish(false);
 });
 
 describe("Доступность исполнителей", () => {

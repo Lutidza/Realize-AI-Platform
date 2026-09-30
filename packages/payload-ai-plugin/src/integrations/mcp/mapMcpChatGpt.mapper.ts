@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/mapMcpChatGpt.mapper.ts
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Строит безопасный статус ChatGPT с проверкой revision, срока и свежести наблюдения.
  */
 import { z } from "zod";
@@ -28,7 +28,14 @@ export function mapMcpChatGpt(
   const binding = configuration.chatgptTunnel;
   const client = clients.find((entry) => entry.clientID === binding?.clientID);
   const grants = client?.grants as
-    { repositoryRead?: boolean; pagesRead?: boolean } | undefined;
+    | {
+        repositoryRead?: boolean;
+        pagesRead?: boolean;
+        workshopRead?: boolean;
+        workshopWrite?: boolean;
+        workshopPreview?: boolean;
+      }
+    | undefined;
   const parsed = observation.safeParse(receipt?.chatgptTunnel);
   const observed = parsed.success ? parsed.data : null;
   let status: McpChatGptStatus = "not_configured";
@@ -54,6 +61,9 @@ export function mapMcpChatGpt(
     grants: {
       repositoryRead: grants?.repositoryRead === true,
       pagesRead: grants?.pagesRead === true,
+      workshopRead: grants?.workshopRead === true,
+      workshopWrite: grants?.workshopWrite === true,
+      workshopPreview: grants?.workshopPreview === true,
     },
     expiresAt: typeof client?.expiresAt === "string" ? client.expiresAt : null,
     status,

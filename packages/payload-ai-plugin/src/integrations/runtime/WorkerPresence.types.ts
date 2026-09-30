@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/runtime/WorkerPresence.types.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-25
  * @description Задаёт серверный снимок heartbeat без process IDs, путей и секретов.
  */
 
@@ -10,7 +10,9 @@ import type {
   WorkerJobKind,
 } from "@realize/ai-contracts";
 
-export type WorkerCapabilities = Record<WorkerJobKind, boolean>;
+export type WorkerCapabilities = Record<WorkerJobKind, boolean> & {
+  workshopPreview?: boolean;
+};
 export type WorkerPresenceState =
   "idle" | "busy" | "draining" | "stopped" | "error";
 export type WorkerPresenceUpdate = {

@@ -1,0 +1,208 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/search-observability/SearchObservations.module.css
+ * @version 1.2.0
+ * @date 2026-09-30
+ * @description Раскладывает диагностику в общей теме без локальных цветов и размеров controls.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-5);
+  min-width: 0;
+  padding: var(--ui-space-6) var(--gutter-h) var(--ui-space-8);
+  color: var(--ui-color-text);
+  background: var(--ui-color-bg);
+}
+.header,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+}
+.header h1,
+.surface h2 {
+  margin: 0;
+}
+.header p,
+.muted {
+  color: var(--ui-color-muted);
+}
+.surface {
+  padding: var(--ui-space-5);
+  min-width: 0;
+}
+.filters,
+.summary,
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: var(--ui-space-4);
+}
+.filters label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+}
+.summary dd {
+  font-size: 1.5rem;
+}
+.summary dd,
+.metrics dd {
+  margin: var(--ui-space-2) 0 0;
+  overflow-wrap: anywhere;
+}
+.summary dt,
+.metrics dt {
+  color: var(--ui-color-muted);
+}
+.history {
+  margin-block: var(--ui-space-5);
+}
+.record {
+  border-block-start: 1px solid var(--ui-color-border);
+  padding-block: var(--ui-space-4);
+}
+.record summary {
+  cursor: pointer;
+}
+.record summary span {
+  display: inline-block;
+  margin-inline-end: var(--ui-space-4);
+  margin-block: var(--ui-space-1);
+}
+.record summary:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 4px;
+}
+.record[open] summary {
+  margin-bottom: var(--ui-space-4);
+}
+.managementSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+.managementGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: var(--ui-space-5);
+}
+.runtime {
+  min-width: 0;
+  border-block-start: 1px solid var(--ui-color-border);
+  padding-block: var(--ui-space-3);
+}
+.runtime h3 {
+  margin: 0;
+}
+.analytics {
+  margin-block-start: var(--ui-space-6);
+}
+.analytics h3,
+.historyHeading {
+  margin-block: var(--ui-space-4);
+}
+.summary small,
+.comparisonTable small {
+  display: block;
+  color: var(--ui-color-muted);
+  margin-block-start: var(--ui-space-2);
+}
+.comparisonControls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--ui-space-3);
+  margin-block-start: var(--ui-space-4);
+}
+.comparisonControls label,
+.metricSelector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  min-width: 0;
+  max-width: 100%;
+}
+.comparisonControls input {
+  max-width: 100%;
+}
+.trend,
+.comparison {
+  border-block-start: 1px solid var(--ui-color-border);
+  margin-block-start: var(--ui-space-5);
+  padding-block-start: var(--ui-space-3);
+}
+.chartViewport,
+.comparisonTable {
+  overflow-x: auto;
+  max-width: 100%;
+}
+.chart {
+  display: block;
+  width: 100%;
+}
+.chartAfter {
+  fill: var(--ui-color-primary);
+  opacity: 0.05;
+}
+.chartGrid {
+  stroke: var(--ui-color-border);
+  stroke-width: 1;
+}
+.chartLabel {
+  fill: var(--ui-color-muted);
+  font-size: 12px;
+}
+.chartMarker {
+  stroke: var(--ui-color-muted);
+  stroke-dasharray: 5 5;
+}
+.chartLine {
+  fill: none;
+  stroke: var(--ui-color-primary);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.chartPoint {
+  fill: var(--ui-color-primary);
+  stroke: var(--ui-color-surface);
+  stroke-width: 2;
+  cursor: pointer;
+}
+.chartPoint:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 4px;
+}
+.trendDetail {
+  min-height: 1.5em;
+  overflow-wrap: anywhere;
+}
+.comparisonTable table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: start;
+}
+.comparisonTable caption {
+  text-align: start;
+  color: var(--ui-color-muted);
+  margin-block-end: var(--ui-space-3);
+}
+.comparisonTable th,
+.comparisonTable td {
+  padding: var(--ui-space-3);
+  border-block-end: 1px solid var(--ui-color-border);
+  text-align: start;
+}
+.comparisonTable:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 2px;
+}
+.historyHeading {
+  padding-block-start: var(--ui-space-5);
+  border-block-start: 1px solid var(--ui-color-border);
+}

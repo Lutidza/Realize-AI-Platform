@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/provisionMcpClient.service.ts
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Проверяет grants и выдаёт credential внутри транзакции владельца MCP.
  */
 import { createHash, randomBytes, randomUUID } from "node:crypto";
@@ -54,10 +54,14 @@ export async function provisionMcpClient(
       "Pages требует разрешённый профиль и привязку к текущему пользователю.",
       403,
     );
-  if (!input.grants.repositoryRead && !input.grants.pagesRead)
+  if (
+    !input.grants.repositoryRead &&
+    !input.grants.pagesRead &&
+    !input.grants.workshopRead
+  )
     throw new EndpointError(
       "INVALID_REQUEST",
-      "Выберите хотя бы одну разрешённую область чтения.",
+      "Выберите хотя бы одну разрешённую область доступа.",
       400,
     );
   const req = management.context.req;
@@ -74,6 +78,25 @@ export async function provisionMcpClient(
       "Текущему пользователю недоступен контекст Pages.",
       403,
     );
+  if (
+    input.grants.workshopRead ||
+    input.grants.workshopWrite ||
+    input.grants.workshopPreview
+  ) {
+    if (
+      !profile.workshop ||
+      input.actorBinding !== "self" ||
+      !input.grants.workshopRead ||
+      !(await runtime.canManageDesignWorkshop?.({ req })) ||
+      (input.grants.workshopPreview &&
+        !(await runtime.canPreviewDesignWorkshop?.({ req })))
+    )
+      throw new EndpointError(
+        "FORBIDDEN",
+        "Мастерская требует разрешённый host profile, чтение и текущие права владельца.",
+        403,
+      );
+  }
   const expires = Date.parse(input.expiresAt);
   if (
     !Number.isFinite(expires) ||

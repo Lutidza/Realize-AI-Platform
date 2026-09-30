@@ -1,0 +1,76 @@
+/**
+ * @file packages/payload-ai-plugin/src/admin/design-workshop/WorkshopPreview.module.css
+ * @version 1.0.0
+ * @date 2026-09-26
+ * @description Компонует панель capture и защищённый bitmap на токенах UI-кита.
+ * @see documentation/specifications/design-workshop.md
+ */
+.toolbar {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ui-space-3);
+}
+.toolbar > label {
+  flex: 1;
+}
+.statusRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  flex-wrap: wrap;
+}
+.statusRow > p {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-2);
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.viewports {
+  display: flex;
+  gap: var(--ui-space-2);
+  flex-wrap: wrap;
+}
+.figure {
+  margin: 0;
+  padding: var(--ui-space-4);
+  background: var(--ui-color-bg);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+  min-width: 0;
+}
+.figure > img {
+  display: block;
+  margin-inline: auto;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-sm);
+}
+.figure figcaption {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  margin-top: var(--ui-space-4);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.figure a {
+  color: var(--ui-color-primary);
+}
+.figure a:focus-visible {
+  outline: 2px solid var(--ui-color-focus);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .figure {
+    padding: var(--ui-space-2);
+  }
+}

@@ -1,6 +1,6 @@
 # MCP tooling
 
-- **Статус:** A+G+S1, предустановки и локальная подготовка ChatGPT C; облачная приёмка C ожидается, 24 сентября 2026 года
+- **Статус:** A+G+S1, предустановки, managed Workshop и локальная подготовка ChatGPT C; облачная приёмка C ожидается, 26 сентября 2026 года
 - **Source of truth Codex adapters:** `.codex/config.toml`
 
 ## Project-specific servers
@@ -93,6 +93,7 @@ REALIZE_MCP_HOST_PROFILES=<JSON-массив профилей ниже>
     "repositoryServerIDs": [],
     "allowedPorts": [4319, 4320],
     "pagesRead": true,
+    "workshop": false,
     "controlTokenEnv": "REALIZE_MCP_CONTROL_LOCAL",
     "maximumLimits": {
       "callsPerMinute": 60,
@@ -130,9 +131,28 @@ boot/revision/hash; после 30 секунд без него UI показыв
 Доступны `realize_get_context`, `repo_list_files`, `repo_read_file`, `repo_search`,
 `repo_git_status`, `repo_git_diff`, `pages_list`, `pages_get`, `pages_get_structure`,
 `ai_context_resolve`, `ai_instructions_get`, `ai_capabilities_list`.
-Всего 12 реализованных handlers; developer bootstrap регистрирует 9 без Pages.
+Ещё 11 `workshop_*` handlers реализуют каталог/чтение snapshots, создание,
+prepare/review/apply и capture preview через общий Workshop facade.
+Всего 23 handlers; developer bootstrap регистрирует прежние 9 без Pages и Workshop.
 Каталог отфильтрован по реальным grants и настроенным ports; Pages использует текущего
 пользователя и существующие Pages/Forms ACL без Codex credential и AIRun.
+
+Для Workshop оператор включает `workshop: true` в доверенном host profile
+web/MCP/worker; затем в Admin разрешают нужные `workshop_*` tools и сохраняют
+клиентские права «читать проекты», «сохранять правки», «preview». Write и preview
+требуют read, actorBinding self и текущие разрешения пользователя. Старые keys
+с отсутствующими полями получают false. Предустановка не повышает grants
+существующего подключения. Новые права начинают действовать после apply.
+Статус и изображение также требуют preview grant; отзыв/перевыпуск ключа
+останавливает его фоновые jobs. Настройки ключа OpenAI остаются в Admin vault.
+
+Каталог capabilities версии `1.2` указывает реальные effects read/write/execute.
+Данные проекта не становятся инструкциями. Create/prepare/apply/start требуют
+UUID `idempotencyKey`; повтор потерянного ответа сохраняет его. Apply требует
+проверенный `candidateHash`; при конфликте читают новую базу. Чтение файлов —
+порциями, manifest/diff — страницами. MCP image возвращает JPEG-проекцию с pin
+проверенного PNG в пределах 8–128 КиБ; Admin получает оригинальные PNG.
+Полный контракт — [Workshop §12.3](../specifications/design-workshop.md#123-admin-preview-и-managed-mcp-правки).
 
 `ai_context_resolve` обходит обязательное ядро, профильные registry и literal
 ссылки из Markdown. Пределы: 16–96 попыток чтения (по умолчанию 64), глубина 2,

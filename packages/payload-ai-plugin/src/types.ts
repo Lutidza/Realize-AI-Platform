@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/types.ts
- * @version 1.3.0
- * @date 2026-09-20
+ * @version 1.5.0
+ * @date 2026-09-25
  * @description Задаёт public plugin options для AI config, delivery и integrations.
  */
 
@@ -20,6 +20,10 @@ export type RealizeAIPluginOptions = {
     canApproveRelease: RealizeAIAccessResolver;
     canManageAIConfiguration: RealizeAIAccessResolver;
     canManageData: RealizeAIAccessResolver;
+    /** Явное право на личные drafts Мастерской; отсутствие означает запрет. */
+    canManageDesignWorkshop?: RealizeAIAccessResolver;
+    /** Отдельное разрешение на sandbox capture; отсутствие означает запрет. */
+    canPreviewDesignWorkshop?: RealizeAIAccessResolver;
     canManageIntegrations: RealizeAIAccessResolver;
     canUseChat: RealizeAIAccessResolver;
     canViewRuns: RealizeAIAccessResolver;
@@ -109,5 +113,7 @@ export type RealizeAIServerRuntime = {
   canManageData: RealizeAIAccessResolver;
   canManageAIConfiguration: RealizeAIAccessResolver;
   canManageIntegrations: RealizeAIAccessResolver;
+  canManageDesignWorkshop?: RealizeAIAccessResolver;
+  canPreviewDesignWorkshop?: RealizeAIAccessResolver;
   integrationEncryptionKeyEnv: string;
 };

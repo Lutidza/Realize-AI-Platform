@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/mapMcpServer.mapper.ts
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Формирует безопасные Admin DTO экземпляров и клиентов без verifiers и applied snapshot.
  */
 import type {
@@ -10,7 +10,7 @@ import type {
   McpServerDetailDto,
   McpObservedStateDto,
   McpActionDto,
-  McpReadGrants,
+  McpClientGrants,
 } from "../../../../ai-contracts/src/McpServer.types";
 import { z } from "zod";
 import type { AIDocument } from "../../endpoints/repository";
@@ -42,6 +42,9 @@ export function mapMcpClient(
   const grants = record.grants as {
     repositoryRead: boolean;
     pagesRead: boolean;
+    workshopRead?: boolean;
+    workshopWrite?: boolean;
+    workshopPreview?: boolean;
   };
   const owns =
     relationID(record.createdBy) === actorID &&
@@ -53,6 +56,9 @@ export function mapMcpClient(
     grants: {
       repositoryRead: grants.repositoryRead === true,
       pagesRead: grants.pagesRead === true,
+      workshopRead: grants.workshopRead === true,
+      workshopWrite: grants.workshopWrite === true,
+      workshopPreview: grants.workshopPreview === true,
     },
     actorBinding: record.actor ? "self" : "none",
     expiresAt: String(record.expiresAt),
@@ -130,7 +136,7 @@ export function mapMcpServerDetail(
   actorID: string,
   capabilities: {
     ready: boolean;
-    grants: McpReadGrants;
+    grants: McpClientGrants;
     tunnelReady?: boolean;
   },
 ): McpServerDetailDto {

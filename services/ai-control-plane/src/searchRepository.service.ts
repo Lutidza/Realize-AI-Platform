@@ -1,8 +1,8 @@
 /**
  * @file services/ai-control-plane/src/searchRepository.service.ts
- * @version 1.0.0
- * @date 2026-09-23
- * @description Выполняет ограниченный буквальный поиск с полным content snapshot разрешённых кандидатов.
+ * @version 1.3.0
+ * @date 2026-09-28
+ * @description Выполняет literal либо синтаксический поиск с безопасным чтением и привязкой к snapshot.
  */
 import type { McpToolInput } from "../../../packages/ai-contracts/src/McpTool.types";
 import type {
@@ -18,22 +18,59 @@ import {
 } from "./readRepositoryFile.service";
 import { REPOSITORY_MAX_SCAN_BYTES } from "./repositoryReadPolicy.validator";
 import { walkRepository } from "./walkRepository.service";
+import {
+  createNavigationCoverage,
+  isSyntaxSearchFile,
+  SYNTAX_MAX_FILE_BYTES,
+} from "../../../.ai/tools/agent-search/src/syntaxSearch.config.mjs";
+import { findRepositoryTextMatches } from "./findRepositoryTextMatches.util";
+import { mapRepositorySyntaxMatches } from "./mapRepositorySyntaxMatches.mapper";
 
 export async function searchRepository(
   context: RepositoryQueryContext,
   input: McpToolInput<"repo_search">,
 ) {
+  if (input.resolveImports) {
+    const { resolveRepositoryImports } =
+      await import("./resolveRepositoryImports.service");
+    return resolveRepositoryImports(context, input);
+  }
+  const navigation =
+    input.intent !== "text" ? createNavigationCoverage() : undefined;
+  const assertActive = () => assertRepositoryReadActive(context.signal);
+  assertActive();
+  // Parser загружается после проверки/чтения первого кандидата и не получает I/O policy.
+  let analyzer:
+    | typeof import("../../../.ai/tools/agent-search/src/analyzeSyntaxFile.util.mjs")
+    | undefined;
   const scan = await walkRepository(context.policy, {
     path: input.path,
     signal: context.signal,
   });
   const matches: RepositorySearchMatch[] = [];
+  const metrics = context.searchMetrics;
+  if (metrics)
+    metrics.candidateFiles = scan.entries.filter(
+      (entry) => entry.type === "file",
+    ).length;
   const snapshot: [string, string][] = [];
   let bytes = 0;
   let incomplete = scan.truncated;
-  const query = input.caseSensitive ? input.query : input.query.toLowerCase();
-  for (const entry of scan.entries.filter((entry) => entry.type === "file")) {
-    assertRepositoryReadActive(context.signal);
+  files: for (const entry of scan.entries.filter(
+    (entry) => entry.type === "file",
+  )) {
+    assertActive();
+    if (navigation && !isSyntaxSearchFile(entry.path)) {
+      navigation.unsupportedFiles++;
+      snapshot.push([entry.path, `unsupported:${entry.fingerprint}`]);
+      continue;
+    }
+    if (navigation && (entry.size ?? 0) > SYNTAX_MAX_FILE_BYTES) {
+      navigation.skippedFiles++;
+      snapshot.push([entry.path, `excluded:${entry.fingerprint}`]);
+      if (metrics) metrics.excludedFiles++;
+      continue;
+    }
     if (bytes + (entry.size ?? 0) > REPOSITORY_MAX_SCAN_BYTES) {
       incomplete = true;
       break;
@@ -41,47 +78,53 @@ export async function searchRepository(
     try {
       const file = await readRepositoryFile(context.policy, entry.path, {
         signal: context.signal,
+        ...(navigation ? { maximumBytes: SYNTAX_MAX_FILE_BYTES } : {}),
       });
       bytes += file.bytes.length;
+      if (metrics) {
+        metrics.filesRead++;
+        metrics.bytesRead += file.bytes.length;
+      }
       if (bytes > REPOSITORY_MAX_SCAN_BYTES) {
         incomplete = true;
         break;
       }
       snapshot.push([entry.path, file.sha256]);
-      const lines = file.text.split("\n");
-      for (let index = 0; index < lines.length; index++) {
-        assertRepositoryReadActive(context.signal);
-        const points = [...lines[index]];
-        // Поиск по code points сохраняет исходную колонку при Unicode lower-case expansion.
-        const normalized: string[] = [];
-        const columns: number[] = [];
-        for (let column = 0; column < points.length; column++) {
-          const point = input.caseSensitive
-            ? points[column]
-            : points[column].toLowerCase();
-          normalized.push(point);
-          for (let unit = 0; unit < point.length; unit++) columns.push(column);
+      let found: Iterable<Omit<RepositorySearchMatch, "path" | "fileSha256">>;
+      if (navigation && input.intent !== "text") {
+        analyzer ??=
+          await import("../../../.ai/tools/agent-search/src/analyzeSyntaxFile.util.mjs");
+        const analysis = analyzer.analyzeSyntaxFile(entry.path, file.text, {
+          intent: input.intent,
+          query: input.query,
+          caseSensitive: input.caseSensitive,
+          assertActive,
+        });
+        assertActive();
+        if (analysis.status === "prefiltered") {
+          navigation.prefilteredFiles++;
+          continue;
         }
-        const haystack = normalized.join("");
-        for (
-          let offset = haystack.indexOf(query);
-          offset !== -1;
-          offset = haystack.indexOf(query, offset + Math.max(1, query.length))
-        ) {
-          if (matches.length >= 10000) {
-            incomplete = true;
-            break;
-          }
-          const column = columns[offset];
-          const snippetStart = Math.max(0, column - 100);
-          matches.push({
-            path: entry.path,
-            line: index + 1,
-            column: column + 1,
-            snippet: points.slice(snippetStart, snippetStart + 500).join(""),
-            fileSha256: file.sha256,
-          });
+        if (analysis.status === "syntax_error") {
+          navigation.syntaxErrorFiles++;
+          continue;
         }
+        if (analysis.status !== "parsed") {
+          navigation.skippedFiles++;
+          continue;
+        }
+        navigation.parsedFiles++;
+        found = mapRepositorySyntaxMatches(analysis.matches);
+      } else found = findRepositoryTextMatches(file.text, input, assertActive);
+      for (const match of found) {
+        assertActive();
+        if (matches.length >= 10000) {
+          incomplete = true;
+          break files;
+        }
+        if (metrics && metrics.firstMatchMs === null)
+          metrics.firstMatchMs = performance.now() - metrics.started;
+        matches.push({ path: entry.path, ...match, fileSha256: file.sha256 });
       }
     } catch (error) {
       if (
@@ -89,6 +132,8 @@ export async function searchRepository(
         ["FORBIDDEN", "RESULT_LIMIT"].includes(error.code)
       ) {
         snapshot.push([entry.path, `excluded:${entry.fingerprint}`]);
+        if (metrics) metrics.excludedFiles++;
+        if (navigation) navigation.skippedFiles++;
         continue;
       }
       throw error;
@@ -104,6 +149,7 @@ export async function searchRepository(
       query: input.query,
       caseSensitive: input.caseSensitive,
       limit: input.limit,
+      ...(navigation ? { intent: input.intent } : {}),
     },
     snapshotHash,
     input.cursor,
@@ -112,6 +158,7 @@ export async function searchRepository(
   );
   return {
     matches: page.items,
+    ...(navigation ? { navigation } : {}),
     snapshotHash: incomplete ? null : snapshotHash,
     nextCursor: page.nextCursor,
     truncated: page.truncated,

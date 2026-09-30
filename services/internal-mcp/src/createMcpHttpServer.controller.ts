@@ -1,9 +1,10 @@
 /**
  * @file services/internal-mcp/src/createMcpHttpServer.controller.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Обслуживает loopback HTTP с Host/Origin/auth/body guards перед официальным SDK.
  */
+import { MCP_WORKSHOP_REQUEST_BYTES } from "@realize/ai-contracts";
 import { createServer } from "node:http";
 import { createMcpHandler } from "@modelcontextprotocol/server";
 import { toNodeHandler } from "@modelcontextprotocol/node";
@@ -50,7 +51,7 @@ export async function createMcpHttpServer(options: McpRuntimeOptions) {
           return fail(403, "Origin is not allowed.");
         if (req.method === "GET" && req.url === "/health") {
           res.writeHead(200, { "content-type": "application/json" });
-          res.end('{"status":"ok","version":"1.1.0"}');
+          res.end('{"status":"ok","version":"1.2.0"}');
           return;
         }
         if (req.url !== "/mcp") return fail(404, "Not found.");
@@ -61,13 +62,15 @@ export async function createMcpHttpServer(options: McpRuntimeOptions) {
           return fail(401, "Bearer credential required.");
         const credential = header.slice(7);
         const principal = await options.authorize(credential);
-        if (Number(req.headers["content-length"] ?? 0) > 65536)
+        const requestLimit =
+          principal.workshopWrite === true ? MCP_WORKSHOP_REQUEST_BYTES : 65536;
+        if (Number(req.headers["content-length"] ?? 0) > requestLimit)
           return fail(413, "Request body exceeds limit.");
         let size = 0;
         const chunks: Buffer[] = [];
         for await (const chunk of req) {
           size += chunk.length;
-          if (size > 65536) {
+          if (size > requestLimit) {
             fail(413, "Request body exceeds limit.");
             return;
           }

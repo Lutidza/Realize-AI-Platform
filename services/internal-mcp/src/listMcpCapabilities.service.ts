@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/listMcpCapabilities.service.ts
- * @version 1.0.1
- * @date 2026-09-24
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Проверяет зависимости доступных регистраций без раскрытия чужих grants и данных.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -71,23 +71,21 @@ export async function listMcpCapabilities(
     return {
       name,
       ...descriptor,
-      effect: "read",
-      availability:
-        dependency === "pages"
-          ? "not_probed"
-          : ready
-            ? "available"
-            : "unavailable",
-      reasonCode:
-        dependency === "pages"
-          ? "CALL_TIME_ACL_REQUIRED"
-          : ready
-            ? null
-            : "DEPENDENCY_UNAVAILABLE",
+      effect: descriptor.effect,
+      availability: ["pages", "workshop"].includes(dependency)
+        ? "not_probed"
+        : ready
+          ? "available"
+          : "unavailable",
+      reasonCode: ["pages", "workshop"].includes(dependency)
+        ? "CALL_TIME_ACL_REQUIRED"
+        : ready
+          ? null
+          : "DEPENDENCY_UNAVAILABLE",
     };
   });
   return {
-    catalogVersion: "1.1",
+    catalogVersion: "1.2",
     snapshotHash: hashRepositorySnapshot(tools),
     observedAt: new Date().toISOString(),
     tools,

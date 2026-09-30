@@ -1,11 +1,26 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.3.0
- * @date 2026-09-25
+ * @version 2.10.0
+ * @date 2026-09-30
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
 export * from "./agent";
+export { mcpToolInputs } from "./mcpToolInputs.config";
+export type * from "./DesignWorkshop.types";
+export type * from "./DesignWorkspace.types";
+export {
+  designWorkspacePinSchema,
+  designWorkspaceSourceSchema,
+  designWorkspaceManifestSchema,
+  designWorkspaceReceiptSchema,
+} from "./designWorkspace.schemas";
+export { DESIGN_WORKSHOP_LIMITS } from "./designWorkshop.constants";
+export {
+  designWorkshopCommands,
+  designSnapshotSchema,
+  designMutationReceiptSchema,
+} from "./designWorkshop.schemas";
 export type {
   McpChatGptConfiguration,
   McpChatGptConnectionDto,
@@ -17,7 +32,7 @@ export type {
   McpServerType,
   McpManagementSource,
   McpDirection,
-  McpReadGrants,
+  McpClientGrants,
   McpLimits,
   McpHostedConfiguration,
   McpHttpConfiguration,
@@ -114,6 +129,9 @@ export {
 } from "./parseUpdatePageDraftIntent.validator";
 export * from "./events";
 export * from "./execution";
+export * from "./designPreview.constants";
+export * from "./designPreview.schemas";
+export * from "./DesignPreview.types";
 export * from "./integrations";
 export * from "./CodexIntegration.types";
 export * from "./CodexAgentDiagnostics.types";
@@ -204,3 +222,20 @@ export {
   parsePagePublicationEvidence,
   parsePagePublicationPreview,
 } from "./parsePagePublication.validator";
+
+export * from "./mcpWorkshop.config";
+export * from "./mcpWorkshop.schemas";
+export type * from "./McpWorkshop.types";
+export {
+  searchObservationSchema,
+  searchObservationQuerySchema,
+} from "./searchObservation.schemas";
+export type {
+  SearchObservation,
+  SearchObservationPage,
+  SearchObservationQuery,
+} from "./SearchObservation.types";
+export * from "./searchObservationManagement.constants";
+export type * from "./SearchObservationAnalytics.types";
+export * from "./searchObservationManagement.schemas";
+export type * from "./SearchObservationManagement.types";

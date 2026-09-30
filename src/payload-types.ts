@@ -90,6 +90,13 @@ export interface Config {
     carts: Cart;
     orders: Order;
     transactions: Transaction;
+    'realize-ai-search-observations': RealizeAiSearchObservation;
+    'realize-ai-search-state': RealizeAiSearchState;
+    'realize-design-projects': RealizeDesignProject;
+    'realize-design-revisions': RealizeDesignRevision;
+    'realize-design-changes': RealizeDesignChange;
+    'realize-design-operations': RealizeDesignOperation;
+    'realize-design-preview-jobs': RealizeDesignPreviewJob;
     'realize-ai-conversations': RealizeAiConversation;
     'realize-ai-messages': RealizeAiMessage;
     'realize-ai-chat-attachments': RealizeAiChatAttachment;
@@ -152,6 +159,13 @@ export interface Config {
     carts: CartsSelect<false> | CartsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
+    'realize-ai-search-observations': RealizeAiSearchObservationsSelect<false> | RealizeAiSearchObservationsSelect<true>;
+    'realize-ai-search-state': RealizeAiSearchStateSelect<false> | RealizeAiSearchStateSelect<true>;
+    'realize-design-projects': RealizeDesignProjectsSelect<false> | RealizeDesignProjectsSelect<true>;
+    'realize-design-revisions': RealizeDesignRevisionsSelect<false> | RealizeDesignRevisionsSelect<true>;
+    'realize-design-changes': RealizeDesignChangesSelect<false> | RealizeDesignChangesSelect<true>;
+    'realize-design-operations': RealizeDesignOperationsSelect<false> | RealizeDesignOperationsSelect<true>;
+    'realize-design-preview-jobs': RealizeDesignPreviewJobsSelect<false> | RealizeDesignPreviewJobsSelect<true>;
     'realize-ai-conversations': RealizeAiConversationsSelect<false> | RealizeAiConversationsSelect<true>;
     'realize-ai-messages': RealizeAiMessagesSelect<false> | RealizeAiMessagesSelect<true>;
     'realize-ai-chat-attachments': RealizeAiChatAttachmentsSelect<false> | RealizeAiChatAttachmentsSelect<true>;
@@ -1296,6 +1310,213 @@ export interface FormSubmission {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-observations".
+ */
+export interface RealizeAiSearchObservation {
+  id: number;
+  storageKey: string;
+  origin: string;
+  source: string;
+  outcome: string;
+  observedAt: string;
+  durationMs: number;
+  event:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-state".
+ */
+export interface RealizeAiSearchState {
+  id: number;
+  singletonKey: string;
+  state:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-projects".
+ */
+export interface RealizeDesignProject {
+  id: number;
+  projectId: string;
+  bindingId: string;
+  owner: number | User;
+  title: string;
+  target: 'admin' | 'frontend' | 'shared';
+  kind: 'reference' | 'interface' | 'component' | 'module' | 'theme';
+  currentRevisionId: string;
+  currentRevisionNumber: number;
+  currentHash: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-revisions".
+ */
+export interface RealizeDesignRevision {
+  id: number;
+  revisionId: string;
+  projectId: string;
+  parentRevisionId?: string | null;
+  number: number;
+  contentHash: string;
+  snapshot:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  author: number | User;
+  channel: 'admin' | 'mcp';
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-changes".
+ */
+export interface RealizeDesignChange {
+  id: number;
+  changeId: string;
+  projectId: string;
+  baseRevisionId: string;
+  baseHash: string;
+  candidateHash: string;
+  candidate:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  summary: string;
+  author: number | User;
+  expiresAt: string;
+  appliedRevisionId?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-operations".
+ */
+export interface RealizeDesignOperation {
+  id: number;
+  operationId: string;
+  replayKey: string;
+  requestHash: string;
+  actor: number | User;
+  projectId: string;
+  receipt:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-preview-jobs".
+ */
+export interface RealizeDesignPreviewJob {
+  id: number;
+  jobId: string;
+  projectId: string;
+  revisionId: string;
+  requestedBy: number | User;
+  sourcePin:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  mcpAuthorization?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  entryPath: string;
+  requestKey: string;
+  requestHash: string;
+  state: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled' | 'expired';
+  attempt: number;
+  leaseToken?: string | null;
+  leaseUntil?: string | null;
+  workerInstance?: string | null;
+  expiresAt: string;
+  errorCode?:
+    | (
+        | 'UNAVAILABLE'
+        | 'AUTH_REVOKED'
+        | 'SOURCE_INVALID'
+        | 'BUILD_FAILED'
+        | 'RENDER_FAILED'
+        | 'TIMEOUT'
+        | 'LIMIT_EXCEEDED'
+        | 'ATTEMPTS_EXHAUSTED'
+        | 'INTERNAL_ERROR'
+      )
+    | null;
+  evidence?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  images?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "realize-ai-conversations".
  */
 export interface RealizeAiConversation {
@@ -2371,6 +2592,14 @@ export interface PayloadLockedDocument {
         value: number | Transaction;
       } | null)
     | ({
+        relationTo: 'realize-ai-search-observations';
+        value: number | RealizeAiSearchObservation;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-search-state';
+        value: number | RealizeAiSearchState;
+      } | null)
+    | ({
         relationTo: 'realize-ai-conversations';
         value: number | RealizeAiConversation;
       } | null)
@@ -3167,6 +3396,122 @@ export interface TransactionsSelect<T extends boolean = true> {
   cart?: T;
   amount?: T;
   currency?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-observations_select".
+ */
+export interface RealizeAiSearchObservationsSelect<T extends boolean = true> {
+  storageKey?: T;
+  origin?: T;
+  source?: T;
+  outcome?: T;
+  observedAt?: T;
+  durationMs?: T;
+  event?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-search-state_select".
+ */
+export interface RealizeAiSearchStateSelect<T extends boolean = true> {
+  singletonKey?: T;
+  state?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-projects_select".
+ */
+export interface RealizeDesignProjectsSelect<T extends boolean = true> {
+  projectId?: T;
+  bindingId?: T;
+  owner?: T;
+  title?: T;
+  target?: T;
+  kind?: T;
+  currentRevisionId?: T;
+  currentRevisionNumber?: T;
+  currentHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-revisions_select".
+ */
+export interface RealizeDesignRevisionsSelect<T extends boolean = true> {
+  revisionId?: T;
+  projectId?: T;
+  parentRevisionId?: T;
+  number?: T;
+  contentHash?: T;
+  snapshot?: T;
+  author?: T;
+  channel?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-changes_select".
+ */
+export interface RealizeDesignChangesSelect<T extends boolean = true> {
+  changeId?: T;
+  projectId?: T;
+  baseRevisionId?: T;
+  baseHash?: T;
+  candidateHash?: T;
+  candidate?: T;
+  summary?: T;
+  author?: T;
+  expiresAt?: T;
+  appliedRevisionId?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-operations_select".
+ */
+export interface RealizeDesignOperationsSelect<T extends boolean = true> {
+  operationId?: T;
+  replayKey?: T;
+  requestHash?: T;
+  actor?: T;
+  projectId?: T;
+  receipt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-design-preview-jobs_select".
+ */
+export interface RealizeDesignPreviewJobsSelect<T extends boolean = true> {
+  jobId?: T;
+  projectId?: T;
+  revisionId?: T;
+  requestedBy?: T;
+  sourcePin?: T;
+  mcpAuthorization?: T;
+  entryPath?: T;
+  requestKey?: T;
+  requestHash?: T;
+  state?: T;
+  attempt?: T;
+  leaseToken?: T;
+  leaseUntil?: T;
+  workerInstance?: T;
+  expiresAt?: T;
+  errorCode?: T;
+  evidence?: T;
+  images?: T;
   updatedAt?: T;
   createdAt?: T;
 }

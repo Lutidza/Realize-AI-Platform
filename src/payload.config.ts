@@ -1,10 +1,11 @@
 /**
  * @file src/payload.config.ts
- * @version 1.2.1
- * @date 2026-09-17
- * @description Настраивает Payload, обработку Media и переход к системному прототипу задач.
+ * @version 1.3.0
+ * @date 2026-09-25
+ * @description Настраивает Payload, обработку Media и переходы к самостоятельным системным разделам.
  * @see documentation/specifications/media-management.md
  * @see documentation/specifications/task-management.md
+ * @see documentation/specifications/design-workshop.md
  */
 
 import { postgresAdapter } from "@payloadcms/db-postgres";
@@ -54,7 +55,7 @@ export default buildConfig({
     user: Users.slug,
     components: {
       beforeNavLinks: [
-        "/src/components/admin/task-manager/TaskManagerReferenceEntry.component#TaskManagerReferenceEntry",
+        "/src/components/admin/system-shell/SystemAdminPayloadEntry.component#SystemAdminPayloadEntry",
       ],
     },
   },

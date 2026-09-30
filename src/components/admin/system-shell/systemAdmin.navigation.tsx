@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdmin.navigation.tsx
- * @version 1.7.1
- * @date 2026-09-18
+ * @version 1.8.0
+ * @date 2026-09-25
  * @description Задаёт порядок, названия, иконки и доступные переходы общей навигации Realize.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -28,6 +28,8 @@ import type { SystemAdminNavigationItem } from "@realize/ui-kit";
 import type { SystemAdminNavigationOptions } from "./systemAdminNavigation.types";
 import { SYSTEM_ADMIN_AI_NAVIGATION } from "./systemAdminAI.navigation";
 import { getSystemAdminHomeNavigation } from "./systemAdminHome.navigation";
+import { SYSTEM_WORKSHOP_ROUTE } from "./systemAdmin.routes";
+import { SYSTEM_ADMIN_WORKSHOP_NAVIGATION } from "./systemAdminWorkshop.navigation";
 
 const iconProps = { size: 22, strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -104,10 +106,11 @@ export function getSystemAdminNavigation({
     },
     {
       id: "workshop",
-      hiddenByDefault: true,
       label: "Мастерская",
       icon: <WandSparkles {...iconProps} />,
-      description: "Создание тем, шаблонов, лендингов, плагинов и компонентов.",
+      description: "Дизайн-проекты, брифы, материалы и версии макетов.",
+      href: SYSTEM_WORKSHOP_ROUTE,
+      groups: SYSTEM_ADMIN_WORKSHOP_NAVIGATION,
     },
     {
       id: "tools",

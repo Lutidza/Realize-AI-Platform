@@ -1,11 +1,13 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/index.ts
- * @version 1.2.0
- * @date 2026-09-23
+ * @version 1.6.0
+ * @date 2026-09-28
  * @description Компонует runtime, integration и installation config collections.
  */
 
 import type { CollectionConfig } from "payload";
+import { createSearchObservationsCollection } from "./SearchObservations.collection";
+import { createSearchObservationStateCollection } from "./SearchObservationState.collection";
 
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createActiveAIConfigPointersCollection } from "./activeAIConfigPointers";
@@ -32,10 +34,22 @@ import { createWorkerPresenceCollection } from "./workerPresence.collection";
 import { createRunsCollection } from "./runs";
 import { createReleaseCandidatesCollection } from "./releaseCandidates";
 import { createSourcePromotionsCollection } from "./sourcePromotions";
+import { createDesignProjectsCollection } from "./DesignProjects.collection";
+import { createDesignRevisionsCollection } from "./DesignRevisions.collection";
+import { createDesignChangesCollection } from "./DesignChanges.collection";
+import { createDesignOperationsCollection } from "./DesignOperations.collection";
+import { createDesignPreviewJobsCollection } from "./DesignPreviewJobs.collection";
 
 export const createAICollections = (
   options: SanitizedRealizeAIPluginOptions,
 ): CollectionConfig[] => [
+  createSearchObservationsCollection(options),
+  createSearchObservationStateCollection(options),
+  createDesignProjectsCollection(options),
+  createDesignRevisionsCollection(options),
+  createDesignChangesCollection(options),
+  createDesignOperationsCollection(options),
+  createDesignPreviewJobsCollection(options),
   createConversationsCollection(options),
   createMessagesCollection(options),
   createChatAttachmentsCollection(options),

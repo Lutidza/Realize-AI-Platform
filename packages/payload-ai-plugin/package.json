@@ -6,16 +6,21 @@
   "exports": {
     ".": "./src/realizeAIPlugin.plugin.ts",
     "./client": "./src/admin/RealizeAINavLink.component.tsx",
+    "./workshop-client": "./src/admin/design-workshop/DesignWorkshopClient.component.tsx",
     "./integrations-rsc": "./src/admin/integrations/IntegrationsView.view.tsx",
     "./mcp-servers-rsc": "./src/admin/mcp-servers/McpServersView.view.tsx",
     "./server/mcp": "./src/integrations/mcp/mcp.server.index.ts",
+    "./server/workshop": "./src/design-workshop/designWorkshop.server.index.ts",
+    "./server/background-runtime": "./src/runtime/openBackgroundPayload.adapter.ts",
     "./agent-layer-rsc": "./src/admin/agent-layer-settings/AgentLayerView.view.tsx",
     "./provider": "./src/admin/RealizeAIProvider.tsx",
     "./server/integration-vault": "./src/integrations/credentialVault.ts",
     "./server/integration-runtime": "./src/integrations/runtime/integrationRuntime.index.ts",
     "./server/page-publication": "./src/endpoints/pagePublication.server.index.ts",
     "./rsc": "./src/admin/RealizeAIView.tsx",
-    "./workflow-runs-rsc": "./src/admin/workflow-runs/WorkflowRunsView.view.tsx"
+    "./workflow-runs-rsc": "./src/admin/workflow-runs/WorkflowRunsView.view.tsx",
+    "./server/search-observability": "./src/search-observability/searchObservability.server.index.ts",
+    "./search-observations-rsc": "./src/admin/search-observability/SearchObservationsView.view.tsx"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.0.0",

@@ -25,9 +25,10 @@ import { VariantOptionsSelector as VariantOptionsSelector_b91672ccd6e8b071c11142
 import { PriceCell as PriceCell_e27bf7b8cc50640dcdd584767b8eac3c } from '@payloadcms/plugin-ecommerce/client'
 import { PriceInput as PriceInput_b91672ccd6e8b071c11142ab941fedfb } from '@payloadcms/plugin-ecommerce/rsc'
 import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864 } from '@payloadcms/richtext-lexical/client'
-import { TaskManagerReferenceEntry as TaskManagerReferenceEntry_b385d8071c3b9dfa482198a67357c2ba } from '../../../../src/components/admin/task-manager/TaskManagerReferenceEntry.component'
+import { SystemAdminPayloadEntry as SystemAdminPayloadEntry_2f228005d3696cc431fd29be62a3f2b8 } from '../../../../src/components/admin/system-shell/SystemAdminPayloadEntry.component'
 import { RealizeAINavLink as RealizeAINavLink_c0de6dd10a76d905b2d0d9d1e483910e } from '@realize/payload-ai-control/client'
 import { RealizeAIProvider as RealizeAIProvider_f78fda7deadf19d3f93d8152a70184c7 } from '@realize/payload-ai-control/provider'
+import { SearchObservationsView as SearchObservationsView_b6516fa8e959af46026fe787185c526a } from '@realize/payload-ai-control/search-observations-rsc'
 import { McpServersView as McpServersView_a7f74655d457601767cebe4e14c65e91 } from '@realize/payload-ai-control/mcp-servers-rsc'
 import { RealizeAIView as RealizeAIView_563a26ae627e0a74181782f56c77bca6 } from '@realize/payload-ai-control/rsc'
 import { WorkflowRunsView as WorkflowRunsView_75e0466335d79cef58c623fb4b6bb42d } from '@realize/payload-ai-control/workflow-runs-rsc'
@@ -64,9 +65,10 @@ export const importMap = {
   "@payloadcms/plugin-ecommerce/client#PriceCell": PriceCell_e27bf7b8cc50640dcdd584767b8eac3c,
   "@payloadcms/plugin-ecommerce/rsc#PriceInput": PriceInput_b91672ccd6e8b071c11142ab941fedfb,
   "@payloadcms/richtext-lexical/client#HorizontalRuleFeatureClient": HorizontalRuleFeatureClient_e70f5e05f09f93e00b997edb1ef0c864,
-  "/src/components/admin/task-manager/TaskManagerReferenceEntry.component#TaskManagerReferenceEntry": TaskManagerReferenceEntry_b385d8071c3b9dfa482198a67357c2ba,
+  "/src/components/admin/system-shell/SystemAdminPayloadEntry.component#SystemAdminPayloadEntry": SystemAdminPayloadEntry_2f228005d3696cc431fd29be62a3f2b8,
   "@realize/payload-ai-control/client#RealizeAINavLink": RealizeAINavLink_c0de6dd10a76d905b2d0d9d1e483910e,
   "@realize/payload-ai-control/provider#RealizeAIProvider": RealizeAIProvider_f78fda7deadf19d3f93d8152a70184c7,
+  "@realize/payload-ai-control/search-observations-rsc#SearchObservationsView": SearchObservationsView_b6516fa8e959af46026fe787185c526a,
   "@realize/payload-ai-control/mcp-servers-rsc#McpServersView": McpServersView_a7f74655d457601767cebe4e14c65e91,
   "@realize/payload-ai-control/rsc#RealizeAIView": RealizeAIView_563a26ae627e0a74181782f56c77bca6,
   "@realize/payload-ai-control/workflow-runs-rsc#WorkflowRunsView": WorkflowRunsView_75e0466335d79cef58c623fb4b6bb42d,

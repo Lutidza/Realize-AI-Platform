@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdminAI.navigation.tsx
- * @version 1.1.2
- * @date 2026-09-18
+ * @version 1.2.0
+ * @date 2026-09-27
  * @description Задаёт группы AI, существующие переходы и планируемые подпункты системного reference.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -20,6 +20,7 @@ import {
   MessageCircle,
   MessagesSquare,
   ScrollText,
+  Search,
   Settings2,
   ShieldCheck,
 } from "lucide-react";
@@ -151,6 +152,13 @@ export const SYSTEM_ADMIN_AI_NAVIGATION: SystemAdminNavigationGroup[] = [
     id: "quality",
     label: "Контроль и качество",
     items: [
+      {
+        id: "ai-search-observations",
+        label: "Диагностика поиска",
+        icon: <Search {...iconProps} />,
+        description: "Скорость, ограничения и история поиска файлов и кода.",
+        href: "/admin/ai/search",
+      },
       {
         id: "ai-events",
         label: "Журнал событий",

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/McpChatGptRuntime.service.ts
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Выдаёт supervisor только применённый binding и принимает наблюдение текущего boot/revision.
  */
 import { createLocalReq, type Payload } from "payload";
@@ -88,7 +88,11 @@ export class McpChatGptRuntime implements McpChatGptRuntimePort {
         const principal = await this.runtime.authorize(
           plan.connection.mcpToken,
         );
-        if (!principal.repositoryRead && !principal.pagesRead)
+        if (
+          !principal.repositoryRead &&
+          !principal.pagesRead &&
+          !principal.workshopRead
+        )
           return { revision: plan.revision, status: "failed" };
       } catch {
         return { revision: plan.revision, status: "failed" };

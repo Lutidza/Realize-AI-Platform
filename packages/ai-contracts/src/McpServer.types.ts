@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/McpServer.types.ts
- * @version 1.2.0
- * @date 2026-09-25
+ * @version 1.3.0
+ * @date 2026-09-26
  * @description Описывает безопасные контракты управления экземплярами MCP и их клиентами.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -15,7 +15,13 @@ export type McpServerType =
 export type McpManagementSource =
   "admin_managed" | "operator_managed" | "client_managed";
 export type McpDirection = "hosted_endpoint" | "external_connection";
-export type McpReadGrants = { repositoryRead: boolean; pagesRead: boolean };
+export type McpClientGrants = {
+  repositoryRead: boolean;
+  pagesRead: boolean;
+  workshopRead?: boolean;
+  workshopWrite?: boolean;
+  workshopPreview?: boolean;
+};
 export type McpLimits = {
   callsPerMinute: number;
   burst: number;
@@ -86,6 +92,7 @@ export type McpHostProfileDto = {
   allowedPorts: number[];
   repositoryGrantAllowed: boolean;
   pagesGrantAllowed: boolean;
+  workshopGrantAllowed: boolean;
   maximumLimits: McpLimits;
   reason: string | null;
 };
@@ -121,7 +128,7 @@ export type McpClientDto = {
   clientID: string;
   principalID: string;
   displayName: string;
-  grants: McpReadGrants;
+  grants: McpClientGrants;
   actorBinding: "self" | "none";
   expiresAt: string;
   revokedAt: string | null;
@@ -141,7 +148,7 @@ export type McpServerDetailDto = McpServerSummaryDto & {
   hasCredential: boolean;
   credentialUpdatedAt: string | null;
   clients: McpClientDto[];
-  clientGrantOptions: McpReadGrants;
+  clientGrantOptions: McpClientGrants;
   chatgpt: McpChatGptConnectionDto | null;
   discoveredTools: McpDiscoveredToolDto[];
   actions: McpServerActionsDto;
@@ -190,7 +197,7 @@ export type McpRevisionInput = { expectedRevision: number };
 export type SetMcpServerEnabledInput = McpRevisionInput & { enabled: boolean };
 export type IssueMcpClientInput = McpRevisionInput & {
   displayName: string;
-  grants: McpReadGrants;
+  grants: McpClientGrants;
   actorBinding: "self" | "none";
   expiresAt: string;
 };

@@ -1,9 +1,16 @@
 /**
  * @file services/internal-mcp/src/createManagedMcpRuntime.config.ts
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.3.1
+ * @date 2026-09-27
  * @description Собирает managed listener из существующего Payload registry и operator binding.
  */
+import type { SearchObservationDatabase } from "../../../packages/payload-ai-plugin/src/search-observability/SearchObservationStore.types";
+import { ContractValidationError } from "@realize/ai-contracts";
+import {
+  SearchObservationCollector,
+  SearchObservationStore,
+} from "@realize/payload-ai-control/server/search-observability";
+import { executeMcpWorkshop } from "@realize/payload-ai-control/server/workshop";
 import { createLocalReq, type Payload } from "payload";
 import { z } from "zod";
 import { McpRepository } from "../../../packages/payload-ai-plugin/src/integrations/mcp/Mcp.repository";
@@ -73,7 +80,12 @@ export async function createManagedMcpRuntime(
   );
   let timer: ReturnType<typeof setInterval> | undefined;
   let tick: Promise<void> | undefined;
+  const searchCollector = new SearchObservationCollector(
+    new SearchObservationStore(payload.db as SearchObservationDatabase),
+    (event) => payload.logger.warn(event),
+  );
   const options: McpRuntimeOptions = {
+    observeSearch: searchCollector.record,
     port: configuration.port,
     policy,
     authorize: async (credential) => {
@@ -126,7 +138,53 @@ export async function createManagedMcpRuntime(
           close: async () => undefined,
         }
       : undefined,
+    workshop: profile.workshop
+      ? {
+          execute: async (principal, name, input, signal) => {
+            if (!principal.payloadUserID || !principal.workshopIdentity)
+              throw new McpError(
+                "FORBIDDEN",
+                "Мастерская требует привязку к пользователю.",
+              );
+            try {
+              return await executeMcpWorkshop(
+                payload,
+                principal.payloadUserID,
+                principal.workshopIdentity,
+                name,
+                input,
+                signal,
+                principal.limits.responseBytes,
+              );
+            } catch (error) {
+              if (error instanceof ContractValidationError)
+                throw new McpError(
+                  "INVALID_INPUT",
+                  "Некорректная команда Мастерской.",
+                  400,
+                );
+              if (error instanceof EndpointError) {
+                const code =
+                  error.code === "INVALID_REQUEST"
+                    ? "INVALID_INPUT"
+                    : ["FORBIDDEN", "NOT_FOUND", "CONFLICT"].includes(
+                          error.code,
+                        )
+                      ? (error.code as "FORBIDDEN" | "NOT_FOUND" | "CONFLICT")
+                      : "DEPENDENCY_UNAVAILABLE";
+                throw new McpError(code, error.message, error.status);
+              }
+              throw new McpError(
+                "DEPENDENCY_UNAVAILABLE",
+                "Мастерская недоступна. Для записи повторите прежний idempotencyKey.",
+                503,
+              );
+            }
+          },
+        }
+      : undefined,
     close: async () => {
+      await searchCollector.close();
       if (timer) clearInterval(timer);
       await tick;
       await tunnel.stop();

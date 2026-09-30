@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/mcp-servers/useMcpChatGptForm.hook.ts
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Сохраняет черновик ChatGPT при ошибке и держит новый ключ только в памяти формы.
  */
 "use client";
@@ -19,6 +19,9 @@ export function useMcpChatGptForm({
     grants: server.chatgpt?.grants ?? {
       repositoryRead: false,
       pagesRead: false,
+      workshopRead: false,
+      workshopWrite: false,
+      workshopPreview: false,
     },
     expires: (
       server.chatgpt?.expiresAt ??

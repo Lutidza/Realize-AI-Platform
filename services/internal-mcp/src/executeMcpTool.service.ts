@@ -1,9 +1,13 @@
 /**
  * @file services/internal-mcp/src/executeMcpTool.service.ts
- * @version 1.1.1
- * @date 2026-09-24
+ * @version 1.3.0
+ * @date 2026-09-27
  * @description Направляет разрешённые read tools владельцам контекста, репозитория, Git и Pages.
  */
+import {
+  MCP_WORKSHOP_POLICY,
+  type McpWorkshopToolName,
+} from "@realize/ai-contracts";
 import { mcpToolInputs } from "../../../packages/ai-contracts/src/mcpToolInputs.config";
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
 import { listRepositoryFiles } from "../../ai-control-plane/src/listRepositoryFiles.service";
@@ -20,6 +24,7 @@ import { availableMcpTools } from "./availableMcpTools.service";
 import { listMcpCapabilities } from "./listMcpCapabilities.service";
 import { resolveAiContext } from "../../ai-control-plane/src/resolveAiContext.service";
 import { readAiInstructions } from "../../ai-control-plane/src/readAiInstructions.service";
+import type { RepositorySearchMetrics } from "../../ai-control-plane/src/RepositoryQueries.types";
 
 export async function executeMcpTool(
   name: McpToolName,
@@ -28,6 +33,7 @@ export async function executeMcpTool(
   options: McpRuntimeOptions,
   cursors: RepositoryCursorService,
   signal: AbortSignal,
+  searchMetrics?: RepositorySearchMetrics,
 ): Promise<unknown> {
   if (
     principal.discoveryOnly ||
@@ -44,6 +50,7 @@ export async function executeMcpTool(
         cursors,
         signal,
         responseBytes: principal.limits.responseBytes,
+        searchMetrics,
       }
     : null;
   if (name === "realize_get_context") {
@@ -74,7 +81,7 @@ export async function executeMcpTool(
       project: { name: "Realize — AI CMS", version: "1.0.0" },
       server: {
         name: "realize-internal-mcp",
-        version: "1.1.0",
+        version: "1.2.0",
         protocolVersions: ["2026-07-28", "2025-11-25"],
       },
       principal: {
@@ -82,6 +89,9 @@ export async function executeMcpTool(
         scopes: [
           ...(principal.repositoryRead ? ["repository:read"] : []),
           ...(principal.pagesRead ? ["pages:read"] : []),
+          ...(principal.workshopRead ? ["workshop:read"] : []),
+          ...(principal.workshopWrite ? ["workshop:write"] : []),
+          ...(principal.workshopPreview ? ["workshop:preview"] : []),
         ],
       },
       installation: { mode: "single", id: principal.installationID },
@@ -103,6 +113,17 @@ export async function executeMcpTool(
           reasonCode:
             principal.pagesRead && options.pages ? null : "NOT_CONFIGURED",
         },
+        {
+          id: "workshop",
+          status:
+            principal.workshopRead && options.workshop
+              ? "ready"
+              : "not_configured",
+          reasonCode:
+            principal.workshopRead && options.workshop
+              ? null
+              : "NOT_CONFIGURED",
+        },
       ],
       tools: availableMcpTools(principal, options).map((tool) => ({
         name: tool,
@@ -111,6 +132,16 @@ export async function executeMcpTool(
       })),
       repository,
     };
+  }
+  if (name in MCP_WORKSHOP_POLICY) {
+    if (!options.workshop)
+      throw new McpError("DEPENDENCY_UNAVAILABLE", "Мастерская недоступна.");
+    return options.workshop.execute(
+      principal,
+      name as McpWorkshopToolName,
+      input,
+      signal,
+    );
   }
   if (name === "ai_capabilities_list")
     return listMcpCapabilities(principal, options, cursors, signal);

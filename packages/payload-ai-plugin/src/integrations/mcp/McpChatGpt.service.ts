@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/McpChatGpt.service.ts
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.1.0
+ * @date 2026-09-26
  * @description Сохраняет и отключает ChatGPT с атомарным обновлением credential, client и revision.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -67,7 +67,10 @@ export class McpChatGpt {
             expectedRevision: input.expectedRevision,
             displayName: "ChatGPT · Secure Tunnel",
             grants: input.grants,
-            actorBinding: input.grants.pagesRead ? "self" : "none",
+            actorBinding:
+              input.grants.pagesRead || input.grants.workshopRead
+                ? "self"
+                : "none",
             expiresAt: input.expiresAt,
           },
           existing,

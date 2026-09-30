@@ -1,12 +1,14 @@
 /**
  * @file packages/ai-contracts/src/mcpServer.config.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Задаёт каталог поддержанных типов и инструментов MCP.
  */
+import { MCP_WORKSHOP_TOOLS } from "./mcpWorkshop.config";
 import type { McpLimits, McpServerDescriptorDto } from "./McpServer.types";
 
 export const MCP_REALIZE_TOOLS = [
+  ...MCP_WORKSHOP_TOOLS,
   "realize_get_context",
   "ai_context_resolve",
   "ai_instructions_get",

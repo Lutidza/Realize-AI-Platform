@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/McpRuntime.service.ts
- * @version 1.1.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-09-26
  * @description Применяет managed snapshots и проверяет свежие grants перед каждым MCP dispatch.
  */
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
@@ -15,6 +15,7 @@ import { EndpointError } from "../../endpoints/http";
 import { relationID } from "../../endpoints/mappers";
 import { McpRepository } from "./Mcp.repository";
 import { readMcpActor } from "./readMcpActor.service";
+import { readRuntimeActor } from "../../runtime/readRuntimeActor.service";
 import {
   readMcpConfiguration,
   validateMcpConfiguration,
@@ -103,6 +104,9 @@ export class McpRuntime {
             const grants = client.grants as {
               repositoryRead: boolean;
               pagesRead: boolean;
+              workshopRead?: boolean;
+              workshopWrite?: boolean;
+              workshopPreview?: boolean;
             };
             return {
               clientID: String(client.clientID),
@@ -113,6 +117,17 @@ export class McpRuntime {
                   this.profile.repositoryServerIDs.includes(this.serverID) &&
                   !!this.profile.repositoryRoot,
                 pagesRead: grants.pagesRead === true && this.profile.pagesRead,
+                workshopRead:
+                  grants.workshopRead === true &&
+                  this.profile.workshop === true,
+                workshopWrite:
+                  grants.workshopWrite === true &&
+                  grants.workshopRead === true &&
+                  this.profile.workshop === true,
+                workshopPreview:
+                  grants.workshopPreview === true &&
+                  grants.workshopRead === true &&
+                  this.profile.workshop === true,
               },
               actorID: relationID(client.actor) || null,
             };
@@ -178,6 +193,9 @@ export class McpRuntime {
             !!this.profile.repositoryRoot &&
             this.profile.repositoryServerIDs.includes(this.serverID),
           pagesRead: this.profile.pagesRead,
+          workshopRead: this.profile.workshop === true,
+          workshopWrite: this.profile.workshop === true,
+          workshopPreview: this.profile.workshop === true,
           allowedTools: configuration.allowedTools as McpToolName[],
           limits: configuration.limits,
           discoveryOnly: true,
@@ -238,10 +256,17 @@ export class McpRuntime {
       const grants = client.grants as {
         repositoryRead: boolean;
         pagesRead: boolean;
+        workshopRead?: boolean;
+        workshopWrite?: boolean;
+        workshopPreview?: boolean;
       };
       const actorID = relationID(client.actor);
       if (accepted.actorID !== (actorID || null)) throw this.denied();
-      if (actorID) await readMcpActor(this.payload, actorID);
+      if (actorID) {
+        if (grants.workshopRead === true && !grants.pagesRead)
+          await readRuntimeActor(this.payload, actorID);
+        else await readMcpActor(this.payload, actorID);
+      }
       const limits = Object.fromEntries(
         Object.entries(configuration.limits).map(([key, value]) => [
           key,
@@ -265,6 +290,30 @@ export class McpRuntime {
           accepted.grants.pagesRead &&
           this.profile.pagesRead &&
           !!actorID,
+        workshopRead:
+          grants.workshopRead === true &&
+          accepted.grants.workshopRead === true &&
+          this.profile.workshop === true &&
+          !!actorID,
+        workshopWrite:
+          grants.workshopRead === true &&
+          accepted.grants.workshopRead === true &&
+          grants.workshopWrite === true &&
+          accepted.grants.workshopWrite === true &&
+          this.profile.workshop === true &&
+          !!actorID,
+        workshopPreview:
+          grants.workshopRead === true &&
+          accepted.grants.workshopRead === true &&
+          grants.workshopPreview === true &&
+          accepted.grants.workshopPreview === true &&
+          this.profile.workshop === true &&
+          !!actorID,
+        workshopIdentity: {
+          serverID: this.serverID,
+          clientID: String(client.clientID),
+          clientRevision: Number(client.revision),
+        },
         ...(actorID ? { payloadUserID: actorID } : {}),
         allowedTools: configuration.allowedTools.filter((name) =>
           applied.configuration.allowedTools.includes(name),

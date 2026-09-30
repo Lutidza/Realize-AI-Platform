@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 1.5.2
- * @date 2026-09-16
+ * @version 1.8.0
+ * @date 2026-09-25
  * @description Экспортирует Change Engine policies, registries и configuration compiler.
  */
 
@@ -13,6 +13,9 @@ export { ChangePlanError } from "./ChangePlan.error";
 export { assessChangePlanReadiness } from "./assessChangePlanReadiness.validator";
 export { deriveChangePlan } from "./deriveChangePlan.service";
 export type { DerivedChangePlan } from "./DerivedChangePlan.types";
+export { prepareDesignWorkspace } from "./designWorkspace.policy";
+export { validateDesignPreviewArtifact } from "./designPreviewArtifact.policy";
+export type { DesignPreviewArtifact } from "./DesignPreviewArtifact.types";
 
 const sha256 = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
@@ -84,6 +87,11 @@ export * from "./aiConfigurationRelease";
 export * from "./aiConfigurationSystemValidation";
 export * from "./aiConfigurationValidation";
 export * from "./canonicalJson";
+export {
+  normalizeDesignSnapshot,
+  prepareDesignSnapshot,
+  diffDesignSnapshots,
+} from "./designSnapshot.policy";
 export * from "./capabilityRegistry";
 export * from "./executionCapability";
 export * from "./executionPolicy";
