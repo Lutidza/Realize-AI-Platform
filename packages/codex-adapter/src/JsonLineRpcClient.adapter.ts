@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.adapter.ts
- * @version 2.1.1
- * @date 2026-09-15
+ * @version 2.2.0
+ * @date 2026-09-30
  * @description Ограниченный JSONL RPC и завершение изолированного процесса Codex App Server.
  */
 
@@ -38,8 +38,34 @@ const DEFAULT_ARGUMENTS = [
   'shell_environment_policy.inherit="none"',
 ];
 
-const defaultArguments = (): string[] => [
+const defaultArguments = (options: JsonLineRPCClientOptions): string[] => [
   ...DEFAULT_ARGUMENTS,
+  ...(!options.repositoryMcpURL
+    ? []
+    : [
+        "-c",
+        `mcp_servers.realize_repository.url=${JSON.stringify(options.repositoryMcpURL)}`,
+        "-c",
+        'mcp_servers.realize_repository.bearer_token_env_var="REALIZE_CODEX_REPO_BRIDGE_AUTH"',
+        "-c",
+        'mcp_servers.realize_repository.enabled_tools=["repo_search","repo_read_file","repo_list_files"]',
+        "-c",
+        "mcp_servers.realize_repository.startup_timeout_sec=10",
+        "-c",
+        "mcp_servers.realize_repository.tool_timeout_sec=20",
+      ]),
+  ...(!options.search
+    ? []
+    : options.search.enabled && options.search.mode === "subagent"
+      ? [
+          "-c",
+          "agents.enabled=true",
+          "-c",
+          "agents.max_concurrent_threads_per_session=1",
+          "-c",
+          `agents.default_subagent_model=${JSON.stringify(options.search.model)}`,
+        ]
+      : ["-c", "agents.enabled=false"]),
   ...(process.platform === "linux"
     ? [
         "-c",
@@ -88,6 +114,13 @@ export class JsonLineRPCClient {
         options.webSearch !== "disabled" &&
         options.webSearch !== "live") ||
       options.workingDirectory.includes("\0") ||
+      (options.repositoryMcpURL !== undefined &&
+        (!/^http:\/\/127\.0\.0\.1:[1-9]\d{0,4}\/mcp$/.test(
+          options.repositoryMcpURL,
+        ) ||
+          !/^[A-Za-z0-9_-]{43}$/.test(
+            options.environment.REALIZE_CODEX_REPO_BRIDGE_AUTH ?? "",
+          ))) ||
       (options.codexBinary !== undefined &&
         (!options.codexBinary || options.codexBinary.includes("\0"))) ||
       options.args?.some(
@@ -111,7 +144,7 @@ export class JsonLineRPCClient {
         this.options.codexBinary ?? "codex",
         [
           ...(this.options.args ??
-            defaultArguments().map((argument) =>
+            defaultArguments(this.options).map((argument) =>
               argument === 'web_search="disabled"'
                 ? `web_search="${this.options.webSearch ?? "disabled"}"`
                 : argument,
@@ -262,7 +295,10 @@ export class JsonLineRPCClient {
         const response = this.respond(message);
         this.responses.add(response);
         void response.finally(() => this.responses.delete(response));
-      } else this.notifications.push(message);
+      } else {
+        this.options.onNotification?.(message);
+        this.notifications.push(message);
+      }
       return;
     }
     if (

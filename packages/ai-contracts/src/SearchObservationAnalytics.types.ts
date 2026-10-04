@@ -1,10 +1,14 @@
 /**
  * @file packages/ai-contracts/src/SearchObservationAnalytics.types.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-30
  * @description Описывает временные агрегаты и сравнение сохранённых замеров поиска.
  * @see documentation/architecture/repository-search.md
  */
+import type {
+  SearchAggregateHistory,
+  SearchQualityHistory,
+} from "./SearchQuality.types";
 
 /** Проценты отражают полноту выполнения, а не релевантность найденного кода. */
 export type SearchObservationAggregate = {
@@ -30,6 +34,8 @@ export type SearchObservationInterval = {
 
 /** Равные окна разделены splitAt; отсутствие измерений не заменяется нулём. */
 export type SearchObservationAnalytics = {
+  history?: SearchAggregateHistory;
+  quality?: SearchQualityHistory;
   from: string;
   to: string;
   availableFrom: string;

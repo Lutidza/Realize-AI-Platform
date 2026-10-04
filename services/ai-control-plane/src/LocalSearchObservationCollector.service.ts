@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/LocalSearchObservationCollector.service.ts
- * @version 1.1.0
- * @date 2026-09-28
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Автоматически доставляет проверенные локальные замеры CLI в общее хранилище.
  * @see documentation/architecture/repository-search.md
  */
@@ -18,6 +18,7 @@ import {
   acknowledgeSearchObservations,
   readSearchObservationSpool,
   SEARCH_SPOOL_POLICY,
+  enqueueSearchObservation,
 } from "../../../.ai/tools/agent-search/src/searchObservationSpool.adapter.mjs";
 
 /** Один consumer на процесс; durable dedupe делает безопасным повтор после crash или рестарта. */
@@ -40,6 +41,11 @@ export class LocalSearchObservationCollector {
     private readonly root: string,
     private readonly store: SearchObservationCollectorStore,
     private readonly warn: (event: { code: string; dropped?: number }) => void,
+    private readonly binding?: {
+      consumer: "execution" | "review";
+      runID: string;
+      handoffRoot?: string;
+    },
   ) {
     this.timer = setInterval(() => {
       void this.flush();
@@ -64,9 +70,10 @@ export class LocalSearchObservationCollector {
     };
   }
 
-  flush(): Promise<void> {
+  flush(force = false): Promise<void> {
     if (this.active) return this.active;
-    if (this.closed || Date.now() < this.nextAttempt) return Promise.resolve();
+    if (!force && (this.closed || Date.now() < this.nextAttempt))
+      return Promise.resolve();
     this.active = this.drain()
       .catch(() => {
         this.lastFailureAt = new Date().toISOString();
@@ -141,7 +148,7 @@ export class LocalSearchObservationCollector {
             Date.now() - SEARCH_SPOOL_POLICY.retentionMs
         )
           throw new Error();
-        events.push(event);
+        events.push(this.bind(event));
       } catch {
         if (typeof row.eventID === "string") rejected.push(row.eventID);
       }
@@ -172,6 +179,40 @@ export class LocalSearchObservationCollector {
     this.closed = true;
     clearInterval(this.timer);
     await this.active;
+    await this.flush(true);
+    // Метрики worktree переживают cleanup: transfer → ack только после durable enqueue владельцу установки.
+    if (this.queued && this.binding?.handoffRoot) {
+      try {
+        const transferred: string[] = [];
+        for (const row of readSearchObservationSpool(this.root).rows) {
+          if (
+            typeof row.payload !== "string" ||
+            typeof row.eventID !== "string" ||
+            Buffer.byteLength(row.payload) > SEARCH_SPOOL_POLICY.eventBytes
+          )
+            continue;
+          const event = searchObservationSchema.parse(JSON.parse(row.payload));
+          if (
+            event.source === "cli" &&
+            event.eventID === row.eventID &&
+            Date.parse(event.observedAt) <= Date.now() + 300000 &&
+            Date.parse(event.observedAt) >=
+              Date.now() - SEARCH_SPOOL_POLICY.retentionMs &&
+            enqueueSearchObservation(this.binding.handoffRoot, this.bind(event))
+          )
+            transferred.push(row.eventID);
+        }
+        acknowledgeSearchObservations(this.root, transferred);
+        this.queued -= transferred.length;
+      } catch {
+        this.errorCode = "buffer_unavailable";
+      }
+    }
     await this.monitor.close();
+  }
+  private bind(event: SearchObservation): SearchObservation {
+    return this.binding
+      ? { ...event, consumer: this.binding.consumer, runID: this.binding.runID }
+      : event;
   }
 }

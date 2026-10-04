@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/mcpToolOutputs.config.ts
- * @version 1.4.0
- * @date 2026-09-28
+ * @version 1.5.1
+ * @date 2026-09-30
  * @description Задаёт закрытые wire schemas ответов MCP, включая существующие проекции Pages.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -21,6 +21,26 @@ import {
   aiSourceAuthoritySchema,
 } from "./aiInstructionOutputs.config";
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
+/** Admin использует relative link, внешний MCP — server-owned HTTP(S) origin без credential. */
+const repositorySourceUrl = z
+  .string()
+  .max(8192)
+  .refine((value) => {
+    try {
+      const url = new URL(value, "http://localhost");
+      return (
+        (value.startsWith("/api/realize-ai/chat/project-file?") ||
+          /^https?:\/\//.test(value)) &&
+        ["http:", "https:"].includes(url.protocol) &&
+        !url.username &&
+        !url.password &&
+        url.pathname === "/api/realize-ai/chat/project-file" &&
+        Boolean(url.search)
+      );
+    } catch {
+      return false;
+    }
+  });
 const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const pageRef = z.strictObject({
   id: z.string(),
@@ -139,6 +159,8 @@ export const mcpToolDataSchemas = {
   realize_get_context: z.strictObject({
     project: z.strictObject({ name: z.string(), version: z.string() }),
     server: z.strictObject({
+      sourceVersion: hash.optional(),
+      installedBuildID: z.string().max(128).optional(),
       name: z.string(),
       version: z.string(),
       protocolVersions: z.array(z.string()),
@@ -190,6 +212,7 @@ export const mcpToolDataSchemas = {
     truncated: z.boolean(),
     truncationReason: pageWindow.truncationReason,
     version: working,
+    sourceUrl: repositorySourceUrl.optional(),
   }),
   repo_search: z.strictObject({
     matches: z.array(
@@ -199,6 +222,7 @@ export const mcpToolDataSchemas = {
         column: integer,
         snippet: z.string(),
         fileSha256: hash,
+        sourceUrl: repositorySourceUrl.optional(),
         syntax: repositorySyntaxMatch.optional(),
         resolution: importResolutionSchema.optional(),
       }),

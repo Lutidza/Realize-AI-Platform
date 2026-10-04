@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/SearchObservationControl.repository.ts
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Управляет версией политики, очисткой и bounded runtime state под общей блокировкой записи.
  * @see documentation/architecture/repository-search.md
  */
@@ -31,6 +31,7 @@ import type {
 import type { SearchObservationDatabase } from "./SearchObservationStore.types";
 import { withSearchObservationTransaction } from "./withSearchObservationTransaction.adapter";
 import { mapSearchObservationControl } from "./mapSearchObservationControl.mapper";
+import { initializeSearchAggregateHistory } from "./retainSearchAggregateHistory.service";
 
 export class SearchObservationControl {
   constructor(private readonly database: SearchObservationDatabase) {}
@@ -49,7 +50,7 @@ export class SearchObservationControl {
     const serialized = JSON.stringify(
       searchObservationControlStateSchema.parse(state),
     );
-    if (Buffer.byteLength(serialized) > 131072)
+    if (Buffer.byteLength(serialized) > 262144)
       throw new Error("SEARCH_STATE_SIZE_LIMIT");
     await client.query(
       `INSERT INTO realize_ai_search_state (singleton_key,state,created_at,updated_at)
@@ -67,6 +68,7 @@ export class SearchObservationControl {
     before?: string,
   ) {
     const started = performance.now();
+    await initializeSearchAggregateHistory(client, state);
     const now = Date.now();
     const cutoff = new Date(
       Math.max(
@@ -210,7 +212,28 @@ export class SearchObservationControl {
             "Количество записей изменилось. Откройте подтверждение очистки заново.",
             409,
           );
-        return this.prune(client, state, preview.mode, preview.before);
+        if (preview.mode === "history") {
+          state.qualityClearedBefore = preview.before;
+          state.aggregateHistory = {
+            initialized: true,
+            availableFrom: preview.before,
+            days: [],
+          };
+          state.qualityRuns = state.qualityRuns.filter(
+            (run) => run.observedAt >= preview.before,
+          );
+        }
+        const deleted = await this.prune(
+          client,
+          state,
+          preview.mode,
+          preview.before,
+        );
+        if (preview.mode === "history") {
+          state.aggregateHistory.initialized = false;
+          await initializeSearchAggregateHistory(client, state);
+        }
+        return deleted;
       },
     );
   }

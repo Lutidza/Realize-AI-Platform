@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createChatMessage.service.ts
- * @version 1.6.0
- * @date 2026-09-13
+ * @version 1.7.0
+ * @date 2026-09-30
  * @description Связывает полный запрос сообщения с владельцем, неизменяемыми файлами и одним run.
  */
 import { createHash, randomUUID } from "node:crypto";
@@ -173,7 +173,7 @@ export const createChatMessage = async (
         configuration: agentConfiguration?.compiled.compiledContextHash ?? null,
         model: options.runtime.model ?? null,
         developerInstructions: buildChatDeveloperInstructions(input.webSearch),
-        contextPolicyVersion: "1.4",
+        contextPolicyVersion: "1.5",
         pageDiscoveryVersion: pageDiscoveryEnabled ? "1.1" : null,
         pageDraftFingerprint: pageDraftContext?.fingerprint ?? null,
         ...(pageDraftContext?.knowledge
@@ -186,13 +186,9 @@ export const createChatMessage = async (
       }),
     )
     .digest("hex");
-  // Codex thread/resume не переопределяет dynamicTools; каждый discovery run получает новый thread.
-  const threadID = pageDiscoveryEnabled
-    ? undefined
-    : await repository.getLatestThreadID(conversationID, runtimeContextHash);
-  const conversationHistory = threadID
-    ? undefined
-    : buildChatConversationHistory(detail.messages);
+  // thread/resume не переопределяет dynamicTools: новый thread получает bounded историю как reference.
+  const threadID = undefined;
+  const conversationHistory = buildChatConversationHistory(detail.messages);
   const runContext: ChatRunContext = {
     ...context,
     pageDraftContext,
@@ -200,6 +196,11 @@ export const createChatMessage = async (
     agentConfiguration,
     runtimeContextHash,
     conversationHistory,
+    repositoryAccess: {
+      developerInstructions: Boolean(
+        await options.access.canManageAIConfiguration({ req }),
+      ),
+    },
   };
   let run: AIDocument;
   try {
@@ -241,6 +242,7 @@ export const createChatMessage = async (
     }
     await repository.touchConversation(conversationID);
     await client.startRun({
+      repositoryAccess: runContext.repositoryAccess,
       model: options.runtime.model,
       prompt: content,
       runID,

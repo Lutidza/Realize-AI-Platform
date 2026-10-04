@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/listRepositoryFiles.service.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Возвращает разрешённые metadata файлов с проверяемой пагинацией.
  */
 import type { McpToolInput } from "../../../packages/ai-contracts/src/McpTool.types";
@@ -20,6 +20,14 @@ export async function listRepositoryFiles(
     signal: context.signal,
   });
   const snapshotHash = hashRepositorySnapshot(scan.entries);
+  if (context.searchMetrics) {
+    context.searchMetrics.candidateFiles = scan.entries.filter(
+      (entry) => entry.type === "file",
+    ).length;
+    if (scan.entries.length)
+      context.searchMetrics.firstMatchMs =
+        performance.now() - context.searchMetrics.started;
+  }
   const query = {
     tool: "list",
     path: input.path,

@@ -1,12 +1,13 @@
 /**
  * @file packages/codex-adapter/src/CodexReadTools.adapter.ts
- * @version 1.0.0
- * @date 2026-09-13
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Ограничивает server-owned dynamic tools чтением в пределах одного turn Codex.
  */
 
 import type { AgentReadTools } from "@realize/ai-contracts";
 import { codexRecord } from "./codexRecord.util";
+import type { RPCMessage } from "./protocol";
 import type {
   CodexReadToolBinding,
   CodexReadToolResponse,
@@ -36,8 +37,15 @@ export class CodexReadTools {
   private closed = false;
   private inFlight = 0;
   private resultBytes = 0;
+  private readonly children = new Map<string, string | undefined>();
+  private readonly closedChildren = new Set<string>();
+  private readonly childTurns = new Map<string, Set<string>>();
+  private readonly earlyNotifications: RPCMessage[] = [];
 
-  constructor(tools: AgentReadTools) {
+  constructor(
+    tools: AgentReadTools,
+    private readonly nativeSearch = false,
+  ) {
     if (
       !Array.isArray(tools.definitions) ||
       !tools.definitions.length ||
@@ -86,12 +94,101 @@ export class CodexReadTools {
     )
       throw new Error("codex_read_tools_binding_invalid");
     this.current = { threadID, turnID };
+    for (const message of this.earlyNotifications.splice(0))
+      this.observeNotification(message);
     this.resolveBinding(this.current);
   }
 
   close(): void {
     this.closed = true;
     this.resolveBinding(undefined);
+    this.children.clear();
+    this.closedChildren.clear();
+    this.childTurns.clear();
+    this.earlyNotifications.length = 0;
+  }
+
+  /** Доверяет только source native процесса с точным parent ID; callbacks child ограничены repo_* tools. */
+  observeNotification(message: RPCMessage): void {
+    if (!this.nativeSearch || this.closed) return;
+    if (!this.current) {
+      if (
+        ["thread/started", "turn/started", "item/completed"].includes(
+          message.method ?? "",
+        )
+      ) {
+        if (this.earlyNotifications.length >= 8)
+          throw new Error("codex_read_child_forbidden");
+        this.earlyNotifications.push(message);
+      }
+      return;
+    }
+    const params = codexRecord(message.params);
+    if (message.method === "thread/started") {
+      const thread = codexRecord(params?.thread);
+      const source = codexRecord(thread?.source);
+      const spawn = codexRecord(codexRecord(source?.subAgent)?.thread_spawn);
+      if (
+        spawn?.parent_thread_id === this.current.threadID &&
+        identifier(thread?.id)
+      ) {
+        if (
+          spawn.depth !== 1 ||
+          this.children.size >= 4 ||
+          [...this.children.keys()].some((id) => !this.closedChildren.has(id))
+        )
+          throw new Error("codex_read_child_forbidden");
+        this.children.set(thread.id, undefined);
+        this.childTurns.set(thread.id, new Set());
+      }
+    }
+    if (identifier(params?.threadId) && this.children.has(params.threadId)) {
+      const turn = codexRecord(params.turn);
+      if (message.method === "turn/started" && identifier(turn?.id)) {
+        const turns = this.childTurns.get(params.threadId)!;
+        if (turns.size >= 16) throw new Error("codex_read_child_forbidden");
+        turns.add(turn.id);
+        this.children.set(params.threadId, turn.id);
+      }
+      if (message.method === "turn/completed")
+        this.children.set(params.threadId, undefined);
+    }
+    if (message.method === "item/completed") {
+      const item = codexRecord(params?.item);
+      if (
+        params?.threadId === this.current.threadID &&
+        item?.type === "collabAgentToolCall" &&
+        item.tool === "closeAgent" &&
+        item.status === "completed" &&
+        Array.isArray(item.receiverThreadIds)
+      ) {
+        for (const id of item.receiverThreadIds)
+          if (typeof id === "string" && this.children.has(id))
+            this.closedChildren.add(id);
+      }
+    }
+  }
+
+  private allowsBinding(
+    threadID: unknown,
+    turnID: unknown,
+    name: string,
+    historicalItem = false,
+  ): boolean {
+    return (
+      Boolean(
+        this.current &&
+        this.current.threadID === threadID &&
+        this.current.turnID === turnID,
+      ) ||
+      (this.nativeSearch &&
+        typeof threadID === "string" &&
+        typeof turnID === "string" &&
+        (historicalItem
+          ? this.childTurns.get(threadID)?.has(turnID) === true
+          : this.children.get(threadID) === turnID) &&
+        ["repo_search", "repo_read_file", "repo_list_files"].includes(name))
+    );
   }
 
   /** UI получает только известный тип операции; raw arguments и contentItems не проецируются. */
@@ -103,11 +200,10 @@ export class CodexReadTools {
     return (
       !this.closed &&
       Boolean(this.current) &&
-      this.current?.threadID === threadID &&
-      this.current?.turnID === turnID &&
       identifier(item.id) &&
       typeof item.tool === "string" &&
       this.names.has(item.tool) &&
+      this.allowsBinding(threadID, turnID, item.tool, true) &&
       (item.namespace === undefined || item.namespace === null)
     );
   }
@@ -146,8 +242,9 @@ export class CodexReadTools {
     const binding = await this.binding;
     if (
       this.closed ||
-      binding?.threadID !== params.threadId ||
-      binding?.turnID !== params.turnId ||
+      !binding ||
+      this.closedChildren.has(params.threadId) ||
+      !this.allowsBinding(params.threadId, params.turnId, params.tool) ||
       this.calls.has(params.callId) ||
       this.calls.size >= MAX_CALLS ||
       this.inFlight >= MAX_PARALLEL_CALLS

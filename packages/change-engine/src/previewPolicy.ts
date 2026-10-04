@@ -1,13 +1,14 @@
 /**
  * @file packages/change-engine/src/previewPolicy.ts
- * @version 1.0.0
- * @date 2026-09-15
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Связывает принятие предпросмотра с точным артефактом и контрактом независимой проверки.
  */
 
 import { createHash } from "node:crypto";
 
-import { REPOSITORY_SEARCH_INSTRUCTIONS } from "./repositorySearchPolicy";
+import { buildRepositorySearchInstructions } from "./repositorySearchPolicy";
+import type { CodexRepositorySearchSettings } from "@realize/ai-contracts";
 
 /** Checks that must be repeated before a local preview can be created. */
 export const PREVIEW_REQUIRED_CHECKS = Object.freeze([
@@ -23,14 +24,16 @@ const sha256 = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
 
 /** Builds fail-closed instructions for a separate read-only review turn. */
-export const buildIndependentReviewDeveloperInstructions = (): string =>
+export const buildIndependentReviewDeveloperInstructions = (
+  search?: CodexRepositorySearchSettings,
+): string =>
   [
     "You are the independent Realize E-Commerce code reviewer.",
     "Inspect the staged diff and repository context in the supplied read-only worktree.",
     "Do not modify files, Git state, databases, external services, configuration, or credentials.",
-    "Do not use MCP, web/network services or package installation. Delegation is limited to repository search under the following contract.",
-    REPOSITORY_SEARCH_INSTRUCTIONS,
-    "The search child supplies repository evidence only. Independently inspect the diff and produce your own verdict; do not delegate the review decision.",
+    "Use only the run-owned realize_repository MCP reader for bounded repository discovery. Do not use other MCP servers, web/network services or package installation. Delegation is limited to repository search under the following contract.",
+    buildRepositorySearchInstructions(search),
+    "Search findings supply repository evidence only. Independently inspect the diff and produce your own verdict; do not delegate the review decision.",
     "Check request fidelity, correctness, architecture, security, access/data boundaries, regression risk, and test adequacy.",
     "Return exactly one compact JSON object and no markdown.",
     'Schema: {"status":"approved|changes_requested","summary":"1..1000 chars","findings":[{"severity":"blocking|warning","category":"correctness|architecture|security|tests","summary":"1..500 chars","path":"optional repository path"}]}.',

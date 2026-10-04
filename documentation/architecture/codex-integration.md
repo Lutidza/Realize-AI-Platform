@@ -53,7 +53,22 @@ Git-воркер операционного слоя сохраняет собс
 
 Вкладка «Агент» (`#agent`) управляет единственным `connection.enabled`.
 `configuration.agent` хранит основную `model`, отдельную `reviewModel` и
-разрешения `execution`, `preview`, `release`, `sourcePromotion`.
+разрешения `execution`, `preview`, `release`, `sourcePromotion`, а также
+`search: {enabled, mode, model, developerInstructions}`. Начальный режим —
+`direct`: основной агент выполняет ограниченные запросы последовательно.
+`subagent` использует один native поисковый child с явно выбранной моделью.
+Legacy `agent` без `search` получает defaults при чтении; полная новая запись
+без `search` отклоняется. Отключённый поиск не разрешает незаметный fallback.
+
+«Обновить каталог моделей» читает настоящий Codex `model/list` через
+`GET /api/realize-ai/integrations/codex/models` с `canManageIntegrations`.
+DTO содержит время, revision подключения и явные picker поля, без credentials.
+При сохранении включённого `subagent` модель повторно сверяется с каталогом
+этой revision до CAS. Каталог и описание провайдера помогают выбрать более
+экономичную модель; числовые цены в `model/list` отсутствуют. Наличие в списке
+не доказывает entitlement: его подтверждает завершённый inference turn.
+Семантика сверена с [официальным App Server](https://learn.chatgpt.com/docs/app-server)
+и JSON Schema установленного CLI 0.156.1.
 Пустая основная модель использует выбор провайдера; пустая модель проверяющего
 использует основную. Начатые chat runs сохраняют свой снимок модели.
 В дополнительных параметрах задаются сроки в секундах: capability — 3 600
@@ -401,22 +416,45 @@ workload identity не требует vault.
 App Server обновлённый credential синхронизируется прежним CAS, затем удаляется
 весь принадлежащий запуску профиль, включая историю дочерних сессий. Очистка и
 освобождение блокировки выполняются также при отказе и ошибке синхронизации.
-Постоянный профиль чата и его `thread/resume` сохраняют прежний lifecycle.
+Постоянный профиль чата сохраняет credential lifecycle. Чат Admin регистрирует
+актуальный набор dynamic tools в новом thread; прежние сообщения переносятся
+только как ограниченные недоверенные данные, без возобновления старого набора.
 
-Для этих двух изолированных этапов repository discovery выполняет отдельный
-native поисковый агент с ограниченными путями и заданием только на чтение.
-Сервер включает явное поручение использовать такого подагента в `turn/start`
-input исполнителя и reviewer; `developerInstructions` задают границы поиска.
+Чат Admin, исполнитель и reviewer читают режим поиска из одной интеграции.
+В `direct` они выполняют ограниченный поиск сами; native инструменты отключены.
+В `subagent` discovery выполняет отдельный native агент с ограниченными путями
+и заданием только на чтение. Сервер включает явное поручение и выбранную модель
+в `turn/start` input; `developerInstructions` задают границы поиска.
 Это удовлетворяет требованию Codex о явном задании на делегирование, сохраняя
 исходные request/plan и не расширяя scope, sandbox или разрешённые действия.
 Его реальные handle, сообщения, результат и завершение служат evidence вместо
 внешнего `codex exec`, managed monitor, bootstrap и записей служебного runtime.
-Этот выбор транспорта не отменяет отдельный поиск и остальные правила проекта.
+Этот выбор транспорта сохраняет bounded поиск и остальные правила проекта.
 Дочерний агент наследует фактические ограничения родителя: задание на чтение
 не является отдельной гарантией read-only sandbox у исполнителя с правом записи.
 Запись, проверки и решение reviewer не делегируются поисковому помощнику.
 Родитель получает результат и закрывает дочерние сессии перед завершением;
 закрытие App Server завершает его группу процессов.
+
+Чат предоставляет `repo_list_files`, `repo_search`, `repo_read_file` через общий
+reader активного `REALIZE_AI_WORKSPACE_ROOT`. Он читает реальные файлы, включая
+untracked, без Git inventory. Actor допуск формируется на сервере после chat ACL;
+`.ai/.codex` доступны только при включённом `developerInstructions` и
+`canManageAIConfiguration`. Корень, callbacks и credentials не задаёт browser.
+Поиск требует непустой owner path; начальная карта корня ограничена depth=1.
+Действуют общий budget 16 read calls / 512 KiB результатов на turn, один engine
+call одновременно и timeout 10 секунд. Продолжение связано с run/policy/snapshot.
+Ссылка на строки `/api/realize-ai/chat/project-file` повторно проверяет chat ACL,
+право чтения инструкций и hash файла при открытии.
+
+В direct используются dynamic functions родителя. Native child не наследует
+эти функции: на время run создаётся приватный loopback MCP `realize_repository`
+с тремя `repo_*` средствами и server-owned credential в отдельной env variable.
+Credential не передаётся в prompt, argv или logs. Обычные CMS dynamic callbacks
+child запрещены; их notification binding не заменяет inherited MCP transport.
+Родитель и child используют общий budget и serial reader. После turn сервер
+проверяет actual `thread/list` parent metadata/status и архивирует дочерние
+потоки через `thread/archive`; private MCP и process group закрываются в finally.
 
 Адаптер связывает текст, usage и завершение с точными parent thread/turn ID:
 чужое или устаревшее событие не завершает задание и не подменяет итог.

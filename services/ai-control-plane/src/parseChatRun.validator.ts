@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/parseChatRun.validator.ts
- * @version 1.4.0
- * @date 2026-09-13
+ * @version 1.5.0
+ * @date 2026-09-30
  * @description Проверяет серверный запрос turn без браузерных путей к изображениям.
  */
 import {
@@ -36,6 +36,7 @@ export const parseChatRun = (
           "workflow",
           "pageDraftContext",
           "pageDiscovery",
+          "repositoryAccess",
         ].includes(key),
     )
   )
@@ -110,7 +111,27 @@ export const parseChatRun = (
     throw new Error("Workflow does not accept a selected page context.");
   if (workflow && body.pageDiscovery !== undefined)
     throw new Error("Workflow does not accept page discovery tools.");
+  const access = body.repositoryAccess;
+  if (
+    access !== undefined &&
+    (!access ||
+      typeof access !== "object" ||
+      Array.isArray(access) ||
+      Object.keys(access).length !== 1 ||
+      !("developerInstructions" in access) ||
+      typeof access.developerInstructions !== "boolean")
+  )
+    throw new Error("Invalid repository access.");
   return {
+    ...(access === undefined
+      ? {}
+      : {
+          repositoryAccess: {
+            developerInstructions: (
+              access as { developerInstructions: boolean }
+            ).developerInstructions,
+          },
+        }),
     ...(body.pageDiscovery === undefined
       ? {}
       : {

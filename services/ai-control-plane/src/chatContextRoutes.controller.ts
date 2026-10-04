@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/chatContextRoutes.controller.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Обслуживает авторизованный бинарный relay и ограниченный каталог контекста.
  */
 import type { IncomingMessage, ServerResponse } from "node:http";
@@ -9,12 +9,16 @@ import {
   CHAT_ATTACHMENT_LIMITS,
   CHAT_PROJECT_FILE_LIMIT,
   parseCreateMessageInput,
+  mcpToolInputs,
 } from "@realize/ai-contracts";
 import type { ChatCapabilitiesDto } from "@realize/ai-contracts";
 import { ChatAssetStore } from "./ChatAssetStore.repository";
 import { matchProjectFiles } from "./matchProjectFiles.validator";
 import { collectProjectContext } from "./projectContextCatalog.service";
 import { readControlPlaneJSON } from "./readControlPlaneJSON.service";
+import { createRepositoryReadPolicy } from "./repositoryReadPolicy.validator";
+import { RepositoryCursorService } from "./RepositoryCursor.service";
+import { readRepositoryLines } from "./readRepositoryLines.service";
 
 const json = (response: ServerResponse, data: unknown, status = 200): void => {
   response.writeHead(status, {
@@ -32,6 +36,30 @@ export const handleChatContextRoute = async (
   assets: ChatAssetStore,
   workspaceRoot: string,
 ): Promise<boolean> => {
+  if (request.method === "GET" && url.pathname === "/v1/chat/project-file") {
+    const input = mcpToolInputs.repo_read_file.parse({
+      path: url.searchParams.get("path"),
+      startLine: Number(url.searchParams.get("startLine") ?? 1),
+      lineCount: 100,
+      expectedSha256: url.searchParams.get("expectedSha256") ?? undefined,
+    });
+    json(
+      response,
+      await readRepositoryLines(
+        {
+          policy: await createRepositoryReadPolicy(
+            workspaceRoot,
+            url.searchParams.get("developerInstructions") === "true",
+          ),
+          principal: "chat-source-link",
+          cursors: new RepositoryCursorService(),
+          signal: AbortSignal.timeout(10000),
+        },
+        input,
+      ),
+    );
+    return true;
+  }
   if (request.method === "GET" && url.pathname === "/v1/chat/capabilities") {
     const capabilities: ChatCapabilitiesDto = {
       attachments: {

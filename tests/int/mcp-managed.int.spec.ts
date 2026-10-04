@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-managed.int.spec.ts
- * @version 1.2.0
- * @date 2026-09-26
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Проверяет MCP registry, grants и Pages на отдельной PostgreSQL с настоящим Payload.
  */
 // @vitest-environment node
@@ -449,7 +449,15 @@ describe.skipIf(!enabled)("managed MCP on isolated PostgreSQL", () => {
         name: "repo_read_file",
         arguments: { path: "src/example.ts" },
       });
-      expect(result.isError).not.toBe(true);
+      expect(result.isError, JSON.stringify(result.structuredContent)).not.toBe(
+        true,
+      );
+      expect(result.structuredContent).toMatchObject({
+        data: { sourceUrl: expect.stringMatching(/^https?:\/\//) },
+      });
+      expect(JSON.parse((result.content[0] as { text: string }).text)).toEqual(
+        result.structuredContent,
+      );
     } finally {
       await client.close();
     }

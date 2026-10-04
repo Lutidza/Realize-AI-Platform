@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/acceptance/createSearchAcceptanceDatabase.adapter.mjs
- * @version 1.0.0
- * @date 2026-09-29
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Создаёт только новые fixture databases и собственный PostgreSQL, не используя env рабочей БД.
  * @see documentation/architecture/repository-search.md
  */
@@ -109,6 +109,15 @@ export async function createSearchAcceptanceDatabase(
           "unix_socket_directories=",
           "-c",
           `cluster_name=${expectedCluster}`,
+          // Fixture обслуживает один последовательный check; default shared buffers не должны конкурировать с Next.
+          "-c",
+          "shared_buffers=16MB",
+          "-c",
+          "wal_buffers=1MB",
+          "-c",
+          "maintenance_work_mem=16MB",
+          "-c",
+          "work_mem=2MB",
         ],
         { timeoutMs: 1800000 },
       );

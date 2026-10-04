@@ -1,13 +1,17 @@
 /**
  * @file services/ai-control-plane/src/ConfiguredChatTurn.types.ts
- * @version 1.3.0
- * @date 2026-09-13
+ * @version 1.4.0
+ * @date 2026-09-30
  * @description Задаёт вход сборки инструкций и пользовательского контекста одного turn.
  */
 import type { ControlPlaneRun } from "./runStore";
-import type { ProjectContextFileDto } from "@realize/ai-contracts";
+import type {
+  ProjectContextFileDto,
+  CodexRepositorySearchSettings,
+} from "@realize/ai-contracts";
 
 export type ConfiguredChatTurnInput = {
+  repositorySearch?: CodexRepositorySearchSettings;
   run: Pick<
     ControlPlaneRun,
     | "prompt"

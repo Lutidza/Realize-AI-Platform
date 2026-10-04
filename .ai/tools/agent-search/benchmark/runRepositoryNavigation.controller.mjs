@@ -1,13 +1,16 @@
 /**
  * @file .ai/tools/agent-search/benchmark/runRepositoryNavigation.controller.mjs
- * @version 1.1.0
- * @date 2026-09-29
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Измеряет реальные CLI/MCP adapters без записи benchmark событий в рабочую диагностику.
  * @see documentation/architecture/repository-search.md
  */
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { repositoryNavigationCorpus } from "./repositoryNavigation.corpus.mjs";
+import { readSearchSourceVersion } from "../src/searchSourceBinding.adapter.mjs";
+import { buildSearchQualityRuns } from "./buildSearchQualityRuns.mapper.mjs";
+import { parseBenchmarkOptions } from "./parseBenchmarkOptions.validator.mjs";
 import { parseSearchOptions } from "../src/parseSearchOptions.validator.mjs";
 import { resolveSearchScope } from "../src/resolveSearchScope.adapter.mjs";
 import { runRipgrepSearch } from "../src/runRipgrepSearch.adapter.mjs";
@@ -18,21 +21,12 @@ import { mcpToolInputs } from "../../../../packages/ai-contracts/src/mcpToolInpu
 
 import { assertBenchmarkReport } from "../acceptance/assertSearchAcceptanceReport.validator.mjs";
 
-const navigation = process.argv.includes("--navigation");
-const runArgs = process.argv
-  .slice(2)
-  .filter((arg) => /^--runs=[1-5]$/.test(arg));
-if (
-  runArgs.length > 1 ||
-  process.argv
-    .slice(2)
-    .some((arg) => arg !== "--navigation" && !/^--runs=[1-5]$/.test(arg))
-)
-  throw new Error(
-    "Допустимы --navigation и --runs=1..5; JSON отчёт направляется в stdout.",
-  );
-const runs = Number(runArgs[0]?.split("=")[1] ?? 1);
+const { navigation, runs, release } = parseBenchmarkOptions(
+  process.argv.slice(2),
+  true,
+);
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
+const sourceVersion = await readSearchSourceVersion(root);
 const policy = await createRepositoryReadPolicy(root, true);
 const cursors = new RepositoryCursorService();
 const rows = [];
@@ -174,5 +168,13 @@ const report = {
   summary,
   rows,
 };
+if ((await readSearchSourceVersion(root)) !== sourceVersion)
+  throw new Error("Runtime sources изменились во время замера.");
+report.qualityRuns = buildSearchQualityRuns(
+  report,
+  repositoryNavigationCorpus,
+  sourceVersion,
+  release,
+);
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 if (navigation) assertBenchmarkReport(report, "navigation", runs);

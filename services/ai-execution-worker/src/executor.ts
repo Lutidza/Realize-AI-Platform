@@ -1,13 +1,15 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.1.2
- * @date 2026-09-16
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
 
 import { createHash } from "node:crypto";
 
-import type { AgentEvent } from "@realize/ai-contracts";
+import type { AgentEvent, SearchObservation } from "@realize/ai-contracts";
+import type { SearchObservationCollectorStore } from "@realize/payload-ai-control/server/search-observability";
+import { createRepositoryRunAccess } from "../../ai-control-plane/src/createRepositoryRunAccess.service";
 import {
   buildCodeExecutionDeveloperInstructions,
   buildRepositorySearchTaskPrompt,
@@ -41,12 +43,32 @@ const runAgent = async (input: {
   job: ClaimedExecutionJob;
   workspace: string;
   onSummary: (summary: string) => void;
+  observeSearch?: (event: SearchObservation) => void;
+  searchObservationStore?: SearchObservationCollectorStore;
 }): Promise<void> => {
   const lease = await input.codex.acquire({ isolated: true });
+  let access: Awaited<ReturnType<typeof createRepositoryRunAccess>>;
+  try {
+    access = await createRepositoryRunAccess({
+      root: input.workspace,
+      runID: input.job.executionKey,
+      consumer: "execution",
+      search: lease.search,
+      signal: lease.signal,
+      observe: input.observeSearch,
+      observationStore: input.searchObservationStore,
+      handoffRoot: input.config.repositoryRoot,
+    });
+  } catch (error) {
+    await lease.dispose();
+    throw error;
+  }
   const adapter = new OpenAICodexAdapter({
     codexBinary: input.config.codexBinary,
-    environment: lease.environment,
+    environment: { ...lease.environment, ...access?.environment },
+    repositoryMcpURL: access?.url,
     signal: lease.signal,
+    search: lease.search,
   });
   let failure: string | undefined;
   let timedOut = false;
@@ -63,12 +85,14 @@ const runAgent = async (input: {
         baseCommit: input.job.baseCommit,
         changeRequestID: String(input.job.changeRequestID),
         checks: input.job.checks,
+        search: lease.search,
       }),
       // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
       ephemeral: false,
       model: lease.model,
       prompt: buildRepositorySearchTaskPrompt(
         `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
+        lease.search,
       ),
       runID: input.job.executionKey,
       sandboxProfile: "code-workspace-write",
@@ -84,7 +108,11 @@ const runAgent = async (input: {
     }
   } finally {
     clearTimeout(timer);
-    await lease.dispose();
+    try {
+      await access?.close();
+    } finally {
+      await lease.dispose();
+    }
   }
   if (timedOut) throw new Error("Codex implementation turn timed out.");
   if (failure) throw new Error(failure);
@@ -96,6 +124,8 @@ export const executeClaimedJob = async (input: {
   codex: CodexConnectionResolver;
   job: ClaimedExecutionJob;
   repository: ExecutionJobRepository;
+  observeSearch?: (event: SearchObservation) => void;
+  searchObservationStore?: SearchObservationCollectorStore;
 }): Promise<void> => {
   let validationPhase = false;
   let workspace = "";
@@ -123,6 +153,8 @@ export const executeClaimedJob = async (input: {
       codex: input.codex,
       job: input.job,
       workspace,
+      observeSearch: input.observeSearch,
+      searchObservationStore: input.searchObservationStore,
       onSummary: (value) => {
         // Это пояснение модели, а не свидетельство успешного diff/check; последующая ошибка его не теряет.
         workerSummary = value.trim()

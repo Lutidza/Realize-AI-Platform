@@ -240,7 +240,11 @@ npm --prefix .ai/tools/agent-search run --silent test
 npm run check:search
 ```
 
-Она последовательно запускает CLI, repository/доставку, два корпуса CLI/MCP,
+Full command требует текущий build manifest и `SEARCH_ACCEPTANCE_INSTALLED_EVIDENCE`
+с подтверждениями реальных consumers, включая диалог ChatGPT и сохранённые eventIDs.
+Она сверяет источники/BUILD_ID, читает только соответствующие события рабочей БД
+и возвращает `incomplete`, exit 1, если обязательного evidence нет. Затем
+последовательно запускает CLI, repository/доставку/consumers, два корпуса CLI/MCP,
 managed MCP и PostgreSQL проверки, затем настоящий browser сценарий диагностики.
 Обязательные тесты с `skip`, `todo`, ошибкой или пустым набором означают отказ
 приёмки. Пройденный отдельный benchmark не заменяет эту команду.
@@ -251,9 +255,12 @@ managed MCP и PostgreSQL проверки, затем настоящий browse
 `SEARCH_ACCEPTANCE_PG_BIN` позволяет указать каталог PostgreSQL binaries.
 Установка браузера: `npx playwright install chromium`.
 
-Runner создаёт свою PostgreSQL на свободном loopback порту, новые уникальные БД
-и отдельный Next в disposable копии исходников. Рабочие `DATABASE_URI`, `DATABASE_URL`,
-`.env`, порт 3000 и очередь CLI не используются. Временные процессы, БД и копия
+`npm run check:search:isolated` проверяет fixtures без рабочей БД и возвращает
+`isolated_passed`; внешний ChatGPT и установленная версия им не подтверждены.
+
+Fixture runner создаёт свою PostgreSQL на свободном loopback порту, новые уникальные БД
+и отдельный Next в disposable копии исходников. Fixture процессы не наследуют рабочие credentials; порт 3000 и рабочая очередь CLI
+не используются. Full preflight читает рабочую диагностику без изменений. Временные процессы, БД и копия
 удаляются при завершении; JSON отчёты, ограниченные журналы и browser evidence
 остаются в новом `.ai-workspace/tasks/<date>-search-acceptance-<suffix>/`.
 SIGINT/SIGTERM проходят через cleanup; после SIGKILL или аварии ОС автоматическое
@@ -261,8 +268,8 @@ SIGINT/SIGTERM проходят через cleanup; после SIGKILL или а
 
 В [общем CI](../../../.github/workflows/ci.yml) шаг `Verify agent search`
 устанавливает зависимости CLI и выполняет адресные ESLint/Prettier/headers,
-включая `acceptance` и benchmark controllers. `Search acceptance` запускает
-полный контур после установки Chromium; отчёты сохраняются на 7 дней.
+включая `acceptance` и benchmark helpers/controllers. `Isolated search checks` запускает
+изолированный контур после установки Chromium; отчёты сохраняются на 7 дней.
 Только в CI разрешён явный `SEARCH_ACCEPTANCE_DATABASE_URI` к сервису
 `127.0.0.1:5432/realize_ci`. Runner создаёт и удаляет собственные fixture databases,
 не меняя исходную БД сервиса. Значения рабочей БД не подставляй.

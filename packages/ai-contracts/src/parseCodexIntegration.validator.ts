@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/parseCodexIntegration.validator.ts
- * @version 1.3.0
- * @date 2026-09-11
+ * @version 1.4.0
+ * @date 2026-09-30
  * @description Проверяет недоверенные запросы подключения Codex и безопасную конфигурацию.
  */
 
@@ -264,10 +264,20 @@ export const parseCodexIntegrationConfiguration = (
       "Выбранный режим не может содержать данные аккаунта ChatGPT.",
     );
   }
+  const legacyAgent =
+    input.agent &&
+    typeof input.agent === "object" &&
+    !Array.isArray(input.agent)
+      ? (input.agent as Record<string, unknown>)
+      : undefined;
   return {
     authMode,
     agent: parseCodexAgentSettings(
-      input.agent === undefined ? CODEX_AGENT_SETTINGS_DEFAULTS : input.agent,
+      input.agent === undefined
+        ? CODEX_AGENT_SETTINGS_DEFAULTS
+        : legacyAgent && legacyAgent.search === undefined
+          ? { ...legacyAgent, search: CODEX_AGENT_SETTINGS_DEFAULTS.search }
+          : input.agent,
     ),
     chat: parseCodexChatSettings(
       input.chat === undefined ? CODEX_CHAT_SETTINGS_DEFAULTS : input.chat,

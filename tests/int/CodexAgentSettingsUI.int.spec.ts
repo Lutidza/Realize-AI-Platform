@@ -1,7 +1,7 @@
 /**
  * @file tests/int/CodexAgentSettingsUI.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет административный переключатель, сохранение черновика и безопасное повторение запроса.
  */
 
@@ -32,10 +32,16 @@ const mocks = vi.hoisted(() => ({
   save: vi.fn(),
   catalog: vi.fn(),
   request: vi.fn(),
+  models: vi.fn(),
 }));
 vi.mock(
   "../../packages/payload-ai-plugin/src/admin/integrations/codex/codexIntegrationAPI.adapter",
-  () => ({ codexIntegrationAPI: { saveAgentSettings: mocks.save } }),
+  () => ({
+    codexIntegrationAPI: {
+      saveAgentSettings: mocks.save,
+      models: mocks.models,
+    },
+  }),
 );
 vi.mock(
   "../../packages/payload-ai-plugin/src/admin/integrations/integrationAPI",
@@ -76,11 +82,65 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.save.mockReset();
   mocks.request.mockReset();
+  mocks.models.mockReset();
   window.history.replaceState(null, "", "/admin/integrations/codex");
 });
 afterEach(cleanup);
 
 describe("Настройки админского агента", () => {
+  it("загружает каталог явно и сохраняет выбранную модель поискового субагента с общей ревизией", async () => {
+    const { result } = renderHook(() => useForm());
+    expect(mocks.models).not.toHaveBeenCalled();
+    mocks.models.mockResolvedValue({
+      source: "codex-model-list",
+      fetchedAt: "2026-09-30T12:00:00Z",
+      revision: 3,
+      models: [
+        {
+          model: "catalog-search",
+          displayName: "Catalog search",
+          description: "Provider description",
+          isDefault: false,
+          multiAgentVersion: "v1",
+        },
+        {
+          model: "catalog-disabled",
+          displayName: "Disabled",
+          description: "",
+          isDefault: false,
+          multiAgentVersion: "disabled",
+        },
+      ],
+    });
+    await act(() => result.current.form.loadModels());
+    expect(
+      result.current.form.searchModels?.map((model) => model.model),
+    ).toEqual(["catalog-search"]);
+    act(() =>
+      result.current.form.update({
+        search: {
+          ...result.current.form.settings.search,
+          mode: "subagent",
+          model: "catalog-search",
+        },
+      }),
+    );
+    mocks.save.mockImplementation(async (input) =>
+      connection({
+        revision: 4,
+        configuration: { ...connection().configuration, agent: input.settings },
+      }),
+    );
+    await act(() => result.current.form.save());
+    expect(mocks.save.mock.calls[0][0]).toMatchObject({
+      expectedRevision: 3,
+      settings: {
+        search: { enabled: true, mode: "subagent", model: "catalog-search" },
+      },
+    });
+    expect(result.current.form.modelCatalog).toBeUndefined();
+    expect(result.current.form.settings.search.model).toBe("catalog-search");
+  });
   it("отображает сохранённый switch и не включает новые операции по умолчанию", () => {
     const { result } = renderHook(() => useForm());
     expect(result.current.form.enabled).toBe(false);

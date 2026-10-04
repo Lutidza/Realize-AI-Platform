@@ -1,7 +1,7 @@
 /**
  * @file tests/int/local-search-observability.int.spec.ts
- * @version 1.1.1
- * @date 2026-09-29
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Проверяет автоматическую доставку CLI, строгую проверку входа и повтор после сбоя БД.
  * @see documentation/architecture/repository-search.md
  */
@@ -125,12 +125,14 @@ describe("automatic local search observations", () => {
     const second = { ...first, eventID: randomUUID() };
     enqueueSearchObservation(root, first);
     let resolve!: (value: number) => void;
-    const append = vi.fn(
-      () =>
-        new Promise<number>((done) => {
-          resolve = done;
-        }),
-    );
+    const append = vi
+      .fn(async () => 1)
+      .mockImplementationOnce(
+        () =>
+          new Promise<number>((done) => {
+            resolve = done;
+          }),
+      );
     const collector = new LocalSearchObservationCollector(
       root,
       {
@@ -151,5 +153,8 @@ describe("automatic local search observations", () => {
     expect(
       readSearchObservationSpool(root).rows.map((row) => row.eventID),
     ).toEqual([second.eventID]);
+    await collector.close();
+    expect(append).toHaveBeenNthCalledWith(2, [second], "import");
+    expect(readSearchObservationSpool(root).rows).toHaveLength(0);
   });
 });

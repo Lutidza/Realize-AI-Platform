@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/benchmark/runImportResolution.controller.mjs
- * @version 1.1.0
- * @date 2026-09-29
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Измеряет настоящие CLI/MCP import переходы и developer workflows без model calls и записи telemetry.
  * @see documentation/architecture/repository-search.md
  */
@@ -13,6 +13,9 @@ import {
   importResolutionWorkflows,
 } from "./importResolution.corpus.mjs";
 import { parseSearchOptions } from "../src/parseSearchOptions.validator.mjs";
+import { readSearchSourceVersion } from "../src/searchSourceBinding.adapter.mjs";
+import { buildSearchQualityRuns } from "./buildSearchQualityRuns.mapper.mjs";
+import { parseBenchmarkOptions } from "./parseBenchmarkOptions.validator.mjs";
 import { resolveSearchScope } from "../src/resolveSearchScope.adapter.mjs";
 import { runRipgrepSearch } from "../src/runRipgrepSearch.adapter.mjs";
 import { searchRepository } from "../../../../services/ai-control-plane/src/searchRepository.service.ts";
@@ -23,11 +26,9 @@ import { mcpToolDataSchemas } from "../../../../packages/ai-contracts/src/mcpToo
 
 import { assertBenchmarkReport } from "../acceptance/assertSearchAcceptanceReport.validator.mjs";
 
-const args = process.argv.slice(2);
-if (args.length > 1 || args.some((arg) => !/^--runs=[1-5]$/.test(arg)))
-  throw new Error("Допустим --runs=1..5; JSON отчёт направляется в stdout.");
-const runs = Number(args[0]?.split("=")[1] ?? 1);
+const { runs, release } = parseBenchmarkOptions(process.argv.slice(2));
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
+const sourceVersion = await readSearchSourceVersion(root);
 const policy = await createRepositoryReadPolicy(root, true);
 const cursors = new RepositoryCursorService();
 const rows = [];
@@ -59,7 +60,9 @@ async function call(
       const target = / => ([^:]+):(\d+):\d+ \[/u.exec(line);
       return target
         ? { path: target[1], line: Number(target[2]) }
-        : { reason: /\[unresolved:([^\]]+)\]/u.exec(line)?.[1] };
+        : intent !== "imports" || !resolveImports
+          ? { path: /^(.*):\d+:\d+:/u.exec(line)?.[1] }
+          : { reason: /\[unresolved:([^\]]+)\]/u.exec(line)?.[1] };
     });
     return {
       links,
@@ -103,9 +106,10 @@ async function call(
     ),
   );
   return {
-    links: result.matches.map(
-      (match) =>
-        match.resolution?.target ?? { reason: match.resolution?.reason },
+    links: result.matches.map((match) =>
+      intent === "imports" && resolveImports
+        ? (match.resolution?.target ?? { reason: match.resolution?.reason })
+        : { path: match.path, line: match.line },
     ),
     matches: result.matches.length,
     partial: result.truncated,
@@ -157,6 +161,13 @@ for (let run = 1; run <= runs; run++) {
     }
   }
   for (const scenario of importResolutionWorkflows) {
+    const anchors = (await readFile(`${root}${scenario.expectedPath}`, "utf8"))
+      .split("\n")
+      .flatMap((line, index) =>
+        line.includes(scenario.anchor) ? [index + 1] : [],
+      );
+    if (anchors.length !== 1)
+      throw new Error(`Workflow anchor ${scenario.id}: ${anchors.length}`);
     for (const source of ["cli", "mcp"]) {
       const declaration = await call(source, scenario.from, scenario.query);
       const target = declaration.links[0]?.path;
@@ -176,7 +187,13 @@ for (let run = 1; run <= runs; run++) {
         run,
         source,
         calls: 3,
-        passed: stages.every((stage) => !stage.failure && stage.matches > 0),
+        passed:
+          stages.every((stage) => !stage.failure && stage.matches > 0) &&
+          declaration.links.some(
+            (link) =>
+              link.path === scenario.expectedPath && link.line === anchors[0],
+          ) &&
+          references.links.some((link) => link.path === scenario.referencePath),
         durationMs: stages.reduce((sum, stage) => sum + stage.durationMs, 0),
         bytesRead: stages.reduce((sum, stage) => sum + stage.bytesRead, 0),
         outputBytes: stages.reduce((sum, stage) => sum + stage.outputBytes, 0),
@@ -221,5 +238,17 @@ const report = {
   rows,
   workflows,
 };
+if ((await readSearchSourceVersion(root)) !== sourceVersion)
+  throw new Error("Runtime sources изменились во время замера.");
+report.qualityRuns = buildSearchQualityRuns(
+  report,
+  [
+    ...importResolutionCorpus,
+    ...importResolutionRefusals,
+    ...importResolutionWorkflows,
+  ],
+  sourceVersion,
+  release,
+);
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 assertBenchmarkReport(report, "imports", runs);

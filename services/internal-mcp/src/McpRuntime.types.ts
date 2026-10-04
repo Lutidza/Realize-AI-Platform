@@ -1,13 +1,14 @@
 /**
  * @file services/internal-mcp/src/McpRuntime.types.ts
- * @version 1.2.0
- * @date 2026-09-27
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Описывает доверенные порты авторизации и предметного чтения MCP listener.
  */
 import type {
   McpWorkshopIdentity,
   McpWorkshopToolName,
   SearchObservation,
+  AgentReadTools,
 } from "@realize/ai-contracts";
 import type { McpLimits } from "../../../packages/ai-contracts/src/McpServer.types";
 import type {
@@ -17,6 +18,8 @@ import type {
 import type { RepositoryReadPolicy } from "../../ai-control-plane/src/RepositoryRead.types";
 export type McpPrincipal = {
   principalID: string;
+  /** Назначение managed credential определяется сервером; оно не доказывает внешний UI-прогон. */
+  consumer?: "chatgpt" | "mcp";
   installationID: string;
   repositoryRead: boolean;
   pagesRead: boolean;
@@ -40,6 +43,12 @@ export type McpPagesPort = {
 };
 export type McpRuntimeOptions = {
   port: number;
+  /** Только server-owned facade изолированного run; регистрация ограничена его repo_* definitions. */
+  repositoryTools?: AgentReadTools;
+  sourceVersion?: string;
+  installedBuildID?: string;
+  /** Доверенный origin Payload установки для hash-bound source links; не принимается от MCP клиента. */
+  repositorySourceURLBase?: string;
   policy?: RepositoryReadPolicy;
   authorize: (credential: string) => Promise<McpPrincipal>;
   pages?: McpPagesPort;

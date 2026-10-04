@@ -1,7 +1,7 @@
 /**
  * @file scripts/runtime/runProductionBuild.service.mjs
- * @version 1.0.0
- * @date 2026-09-15
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Последовательно генерирует типы, проверяет TypeScript и собирает Next.js отдельными процессами.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -9,6 +9,8 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { readSearchSourceVersion } from "../../.ai/tools/agent-search/src/searchSourceBinding.adapter.mjs";
+import { writeInstalledSearchBinding } from "../../.ai/tools/agent-search/src/installedSearchBinding.adapter.mjs";
 
 export const VERIFIED_TYPES_ENVIRONMENT_NAME = "REALIZE_BUILD_TYPES_VERIFIED";
 
@@ -57,6 +59,7 @@ export const runProductionBuild = async (
   environment = process.env,
 ) => {
   if (signal.aborted) return 1;
+  const sourceVersion = await readSearchSourceVersion(cwd);
   const require = createRequire(resolve(cwd, "package.json"));
   const nextCLI = require.resolve("next/dist/bin/next");
   const typeScriptCLI = require.resolve("typescript/bin/tsc");
@@ -75,10 +78,18 @@ export const runProductionBuild = async (
     if (signal.aborted) return 1;
     console.log(`[build] ${stage.label}`);
     const stageEnvironment = { ...cleanEnvironment };
-    if (index === stages.length - 1)
+    if (index === stages.length - 1) {
       stageEnvironment[VERIFIED_TYPES_ENVIRONMENT_NAME] = "1";
+      // Полный tsc сохраняет свой heap. После его close Next и каждый compiler/page worker получают bounded heap.
+      if (cleanEnvironment.REALIZE_BUILD_LOW_MEMORY === "true")
+        stageEnvironment.NODE_OPTIONS =
+          `${cleanEnvironment.NODE_OPTIONS ?? ""} --max-old-space-size=1024`.trim();
+    }
     const code = await runStage(cwd, stage.args, stageEnvironment, signal);
     if (code !== 0) return code;
   }
+  if (signal.aborted || (await readSearchSourceVersion(cwd)) !== sourceVersion)
+    return 1;
+  await writeInstalledSearchBinding(cwd, sourceVersion, cleanEnvironment);
   return 0;
 };

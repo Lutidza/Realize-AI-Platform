@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/runStore.ts
- * @version 1.4.0
- * @date 2026-09-13
+ * @version 1.5.0
+ * @date 2026-09-30
  * @description Хранит runtime runs и повторяемые события с проверкой полного запроса.
  */
 
@@ -16,10 +16,12 @@ import type {
   WorkflowCheckpoint,
   PageDraftContextDTO,
   PageDiscoveryGrant,
+  RepositoryChatAccess,
 } from "@realize/ai-contracts";
 
 /** Internal mutable run state owned by the loopback development service. */
 export type ControlPlaneRun = {
+  repositoryAccess?: RepositoryChatAccess;
   /** Private callback capability: never include in prompt, events or publicRun. */
   pageDiscovery?: PageDiscoveryGrant;
   pageDraftContext?: PageDraftContextDTO;

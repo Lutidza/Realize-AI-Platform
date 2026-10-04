@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * @file .ai/tools/agent-search/bin/agent-search.mjs
- * @version 1.5.0
- * @date 2026-09-28
+ * @version 1.7.0
+ * @date 2026-09-30
  * @description Запускает ограниченный поиск по выбранной области репозитория.
  */
 import path from "node:path";
@@ -14,6 +14,8 @@ import { runRipgrepSearch } from "../src/runRipgrepSearch.adapter.mjs";
 import { buildSearchObservation } from "../src/buildSearchObservation.mapper.mjs";
 import { enqueueSearchObservation } from "../src/searchObservationSpool.adapter.mjs";
 import { writeSearchObservation } from "../src/writeSearchObservation.adapter.mjs";
+import { readSearchSourceVersion } from "../src/searchSourceBinding.adapter.mjs";
+import { readInstalledSearchBinding } from "../src/installedSearchBinding.adapter.mjs";
 import {
   searchProfiles,
   SEARCH_LIMITS,
@@ -65,6 +67,9 @@ async function main() {
   process.once("SIGINT", abort);
   process.once("SIGTERM", abort);
   try {
+    const sourceVersion = await readSearchSourceVersion(root).catch(
+      () => undefined,
+    );
     const observedAt = new Date().toISOString();
     const result = await runRipgrepSearch(options, scope, {
       signal: controller.signal,
@@ -93,6 +98,16 @@ async function main() {
       );
     process.exitCode = result.exitCode;
     const observation = buildSearchObservation(options, result, observedAt);
+    observation.consumer = "cli";
+    if (
+      sourceVersion &&
+      (await readSearchSourceVersion(root).catch(() => undefined)) ===
+        sourceVersion
+    ) {
+      observation.sourceVersion = sourceVersion;
+      const binding = await readInstalledSearchBinding(root, sourceVersion);
+      if (binding) observation.installedBuildID = binding.installedBuildID;
+    }
     enqueueSearchObservation(root, observation);
     if (options.metricsFile) {
       try {

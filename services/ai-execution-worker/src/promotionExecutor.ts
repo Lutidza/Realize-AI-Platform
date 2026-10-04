@@ -1,11 +1,13 @@
 /**
  * @file services/ai-execution-worker/src/promotionExecutor.ts
- * @version 1.0.1
- * @date 2026-09-17
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет принятый diff, выполняет независимый Codex review и запускает local preview.
  */
 
 import { createHash } from "node:crypto";
+import type { SearchObservation } from "@realize/ai-contracts";
+import type { SearchObservationCollectorStore } from "@realize/payload-ai-control/server/search-observability";
 import { resolve } from "node:path";
 import type { CodexConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 
@@ -76,6 +78,8 @@ export const executeClaimedPromotion = async (input: {
   codex: CodexConnectionResolver;
   job: ClaimedPreviewDeployment;
   repository: PromotionRepository;
+  observeSearch?: (event: SearchObservation) => void;
+  searchObservationStore?: SearchObservationCollectorStore;
 }): Promise<void> => {
   let runtime: LocalPreviewRuntime | undefined;
   let workspace = "";
@@ -132,6 +136,8 @@ export const executeClaimedPromotion = async (input: {
       codex: input.codex,
       job: input.job,
       workspace,
+      observeSearch: input.observeSearch,
+      searchObservationStore: input.searchObservationStore,
     });
     await input.repository.recordReview(input.job, review);
     if (review.status !== "approved") {

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codexReadTools.int.spec.ts
- * @version 1.0.1
- * @date 2026-09-15
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет привязку read tools к turn и закрытый RPC без обращения к модели.
  */
 
@@ -132,6 +132,84 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("Codex server-owned read tools", () => {
+  it("даёт repo callbacks только подтверждённому native child; CMS, чужой parent и закрытый child запрещены", async () => {
+    const execute = vi.fn().mockResolvedValue({ ok: true });
+    const repository = { ...definitions[0], name: "repo_search" };
+    const tools = new CodexReadTools(
+      { definitions: [definitions[0], repository], execute },
+      true,
+    );
+    // Эти notifications могут прийти в одном chunk с turn/start до bind parent.
+    tools.observeNotification({
+      method: "thread/started",
+      params: {
+        thread: {
+          id: "child-thread",
+          source: {
+            subAgent: {
+              thread_spawn: { parent_thread_id: params.threadId, depth: 1 },
+            },
+          },
+        },
+      },
+    });
+    tools.observeNotification({
+      method: "turn/started",
+      params: { threadId: "child-thread", turn: { id: "child-turn" } },
+    });
+    tools.bind(params.threadId, params.turnId);
+    const child = {
+      ...params,
+      threadId: "child-thread",
+      turnId: "child-turn",
+      tool: "repo_search",
+    };
+    expect((await tools.handleRequest("item/tool/call", child)).success).toBe(
+      true,
+    );
+    await expect(
+      tools.handleRequest("item/tool/call", {
+        ...child,
+        callId: "cms-child-call",
+        tool: "pages_search",
+      }),
+    ).rejects.toThrow();
+    await expect(
+      tools.handleRequest("item/tool/call", {
+        ...child,
+        callId: "other-child-call",
+        threadId: "other-thread",
+      }),
+    ).rejects.toThrow();
+    tools.observeNotification({
+      method: "item/completed",
+      params: {
+        threadId: params.threadId,
+        item: {
+          type: "collabAgentToolCall",
+          tool: "closeAgent",
+          status: "completed",
+          receiverThreadIds: ["child-thread"],
+        },
+      },
+    });
+    await expect(
+      tools.handleRequest("item/tool/call", {
+        ...child,
+        callId: "closed-child-call",
+      }),
+    ).rejects.toThrow();
+    // Уже доставленные item notifications сохраняют binding после close в том же RPC chunk.
+    expect(
+      tools.allowsItem(
+        { id: "completed-child-item", tool: "repo_search" },
+        "child-thread",
+        "child-turn",
+      ),
+    ).toBe(true);
+    expect(execute).toHaveBeenCalledTimes(1);
+    tools.close();
+  });
   it("регистрирует точные function definitions только в новом experimental thread и сохраняет sandbox", async () => {
     const execute = vi
       .fn()
@@ -361,10 +439,10 @@ describe("Codex server-owned read tools", () => {
     );
     const events = await collect({ definitions, execute: vi.fn() });
     expect(events.filter((event) => event.type.startsWith("tool."))).toEqual([
-      { type: "tool.started", summary: "Чтение данных CMS начато." },
+      { type: "tool.started", summary: "Чтение разрешённых данных начато." },
       {
         type: "tool.completed",
-        summary: "Чтение данных CMS завершено.",
+        summary: "Чтение разрешённых данных завершено.",
         status: "completed",
       },
     ]);

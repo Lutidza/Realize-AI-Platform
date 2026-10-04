@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/workflowSegments.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет durable workflow-сегменты через реальные сервисы с изолированными storage и CP ports.
  */
 import type {
@@ -277,7 +277,8 @@ const fixture = (questionFirst = true) => {
   const options = {
     enabled: true,
     runtime: { model: "fixture-model" },
-  } as SanitizedRealizeAIPluginOptions;
+    access: { canManageAIConfiguration: () => false },
+  } as unknown as SanitizedRealizeAIPluginOptions;
   const input: CreateMessageInput = {
     content: "Разберите запрос",
     agentConfiguration: {

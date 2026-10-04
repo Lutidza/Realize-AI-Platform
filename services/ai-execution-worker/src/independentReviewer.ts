@@ -1,13 +1,15 @@
 /**
  * @file services/ai-execution-worker/src/independentReviewer.ts
- * @version 1.0.3
- * @date 2026-09-16
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Запускает отдельную read-only проверку через выбранную интеграцию Codex.
  */
 
 import { createHash, randomUUID } from "node:crypto";
 
-import type { AgentEvent } from "@realize/ai-contracts";
+import type { AgentEvent, SearchObservation } from "@realize/ai-contracts";
+import type { SearchObservationCollectorStore } from "@realize/payload-ai-control/server/search-observability";
+import { createRepositoryRunAccess } from "../../ai-control-plane/src/createRepositoryRunAccess.service";
 import {
   buildIndependentReviewDeveloperInstructions,
   buildRepositorySearchTaskPrompt,
@@ -130,14 +132,34 @@ export const runIndependentReview = async (input: {
   codex: CodexConnectionResolver;
   job: ClaimedPreviewDeployment;
   workspace: string;
+  observeSearch?: (event: SearchObservation) => void;
+  searchObservationStore?: SearchObservationCollectorStore;
 }): Promise<IndependentReviewResult> => {
   const lease = await input.codex.acquire({ isolated: true });
+  const runID = randomUUID();
+  let access: Awaited<ReturnType<typeof createRepositoryRunAccess>>;
+  try {
+    access = await createRepositoryRunAccess({
+      root: input.workspace,
+      runID,
+      consumer: "review",
+      search: lease.search,
+      signal: lease.signal,
+      observe: input.observeSearch,
+      observationStore: input.searchObservationStore,
+      handoffRoot: input.config.repositoryRoot,
+    });
+  } catch (error) {
+    await lease.dispose();
+    throw error;
+  }
   const adapter = new OpenAICodexAdapter({
     codexBinary: input.config.codexBinary,
-    environment: lease.environment,
+    environment: { ...lease.environment, ...access?.environment },
+    repositoryMcpURL: access?.url,
     signal: lease.signal,
+    search: lease.search,
   });
-  const runID = randomUUID();
   let content = "";
   let failure: string | undefined;
   let timedOut = false;
@@ -149,7 +171,9 @@ export const runIndependentReview = async (input: {
   try {
     for await (const event of adapter.runTurn({
       cwd: input.workspace,
-      developerInstructions: buildIndependentReviewDeveloperInstructions(),
+      developerInstructions: buildIndependentReviewDeveloperInstructions(
+        lease.search,
+      ),
       // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
       ephemeral: false,
       model: lease.reviewModel,
@@ -163,6 +187,7 @@ export const runIndependentReview = async (input: {
           `Approved plan: ${input.job.plan}`,
           "Inspect git diff --cached and relevant repository context, then return the required JSON verdict.",
         ].join("\n\n"),
+        lease.search,
       ),
       runID,
       sandboxProfile: "review-readonly",
@@ -177,7 +202,11 @@ export const runIndependentReview = async (input: {
     }
   } finally {
     clearTimeout(timer);
-    await lease.dispose();
+    try {
+      await access?.close();
+    } finally {
+      await lease.dispose();
+    }
   }
   if (timedOut)
     throw new IndependentReviewError("Independent review timed out.");

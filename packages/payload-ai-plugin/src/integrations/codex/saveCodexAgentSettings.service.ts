@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/codex/saveCodexAgentSettings.service.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Сохраняет настройки агента с ревизией и audit независимо от наличия авторизации Codex.
  */
 
@@ -27,12 +27,38 @@ import { withCodexMutationLock } from "./withCodexMutationLock.service";
 export const saveCodexAgentSettings = async (
   req: PayloadRequest,
   operation: CodexMutationInput<SaveCodexAgentSettingsInput>,
+  validateNativeSearch?: () => Promise<void>,
 ): Promise<CodexIntegrationConnectionDTO> => {
   const repository = new IntegrationRepository(req.payload, req);
   const requestHash = hashCanonicalJSON({
     operation: "agent-settings",
     ...operation.input,
   });
+  // Уже выполненный запрос повторяется без нового model/list и прежнего expectedRevision.
+  // Проверка каталога проходит до mutation lock: runtime lease использует тот же lock.
+  if (
+    operation.input.settings.search.enabled &&
+    operation.input.settings.search.mode === "subagent"
+  ) {
+    const replay = await repository.findEvent(operation.idempotencyKey);
+    if (replay)
+      requireMatchingIntegrationReplay(
+        replay,
+        "saved",
+        operation.actorID,
+        "codex",
+        requestHash,
+      );
+    else {
+      if (!validateNativeSearch)
+        throw new EndpointError(
+          "INTEGRATION_UNAVAILABLE",
+          "Проверка модели поискового субагента недоступна.",
+          503,
+        );
+      await validateNativeSearch();
+    }
+  }
   return withCodexMutationLock(req, () =>
     runIntegrationTransaction(req, async () => {
       const replay = await repository.findEvent(operation.idempotencyKey);

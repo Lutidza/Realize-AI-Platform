@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/searchObservationPresentation.config.ts
- * @version 1.3.0
+ * @version 1.4.0
  * @date 2026-09-30
  * @description Даёт понятные подписи полноте, продолжению и ограничениям поиска.
  */
@@ -22,8 +22,16 @@ export const searchOperationLabels: Record<
 };
 export const searchTrendLabels = {
   averageMs: "Среднее время",
-  completePercent: "Эффективность",
+  completePercent: "Полнота выполнения",
   averageBytesRead: "Объём чтения",
+} as const;
+export const searchConsumerLabels = {
+  admin: "Чат Admin",
+  execution: "Исполнитель",
+  review: "Reviewer",
+  chatgpt: "Клиент ChatGPT",
+  mcp: "Другой MCP",
+  cli: "Agent CLI",
 } as const;
 export const searchRuntimeLabels: Record<
   SearchObservationRuntimeStatus["state"],

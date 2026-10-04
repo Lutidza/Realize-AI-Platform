@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/readSearchObservationAnalytics.repository.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-30
  * @description Агрегирует bounded историю PostgreSQL по времени, источнику и операции в том же снимке чтения.
  * @see documentation/architecture/repository-search.md
@@ -49,6 +49,7 @@ export async function readSearchObservationAnalytics(
       WHERE observed_at >= $4::timestamptz AND observed_at < $2::timestamptz
         AND ($8::text IS NULL OR source = $8)
         AND ($9::text IS NULL OR event->>'operation' = $9)
+        AND ($10::text IS NULL OR event->>'consumer' = $10)
     )
     SELECT groups.key,
       count(*)::int AS count,
@@ -80,6 +81,7 @@ export async function readSearchObservationAnalytics(
       new Date(window.afterTo),
       query.source ?? null,
       query.operation ?? null,
+      query.consumer ?? null,
     ],
   );
   return mapSearchObservationAnalytics(result.rows, window);

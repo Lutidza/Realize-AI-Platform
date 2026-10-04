@@ -1,6 +1,6 @@
 /**
  * @file packages/ai-contracts/src/searchObservation.schemas.ts
- * @version 1.2.0
+ * @version 1.3.0
  * @date 2026-09-30
  * @description Проверяет обезличенную диагностику поиска без запросов, путей и фрагментов кода.
  * @see documentation/architecture/repository-search.md
@@ -16,6 +16,22 @@ export const searchObservationSchema = z.strictObject({
   eventID: z.uuid(),
   observedAt: z.iso.datetime(),
   source: z.enum(["cli", "mcp"]),
+  sourceVersion: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
+  installedBuildID: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,128}$/)
+    .optional(),
+  consumer: z
+    .enum(["admin", "execution", "review", "chatgpt", "mcp", "cli"])
+    .optional(),
+  runID: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{1,128}$/)
+    .optional(),
+  tool: z.enum(["repo_search", "repo_read_file", "repo_list_files"]).optional(),
   operation: z.enum([
     "matches",
     "files",
@@ -89,6 +105,7 @@ export const searchObservationSchema = z.strictObject({
 });
 
 export const searchObservationQuerySchema = z.strictObject({
+  consumer: searchObservationSchema.shape.consumer,
   source: z.enum(["cli", "mcp"]).optional(),
   operation: searchObservationSchema.shape.operation.optional(),
   compareAt: z.iso.datetime().optional(),

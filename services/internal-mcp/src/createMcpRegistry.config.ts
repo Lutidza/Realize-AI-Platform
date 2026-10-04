@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/createMcpRegistry.config.ts
- * @version 1.3.0
- * @date 2026-09-27
+ * @version 1.4.0
+ * @date 2026-09-30
  * @description Регистрирует единую поверхность обеих protocol eras с повторной авторизацией вызова.
  */
 import {
@@ -23,7 +23,7 @@ import type { RepositoryCursorService } from "../../ai-control-plane/src/Reposit
 import { GitFailure } from "../../../.ai/tools/git-delivery/src/GitFailure.error";
 import { executeMcpTool } from "./executeMcpTool.service";
 import { availableMcpTools } from "./availableMcpTools.service";
-import { mcpToolCatalog } from "./mcpToolCatalog.config";
+import { mcpToolCatalog, MCP_SERVER_VERSION } from "./mcpToolCatalog.config";
 import type { McpPrincipal, McpRuntimeOptions } from "./McpRuntime.types";
 import type { McpCallBudget } from "./McpCallBudget.service";
 import { McpError } from "./Mcp.error";
@@ -39,7 +39,7 @@ export function createMcpRegistry(
   stopping: AbortSignal,
 ): McpServer {
   const server = new McpServer(
-    { name: "realize-internal-mcp", version: "1.2.0" },
+    { name: "realize-internal-mcp", version: MCP_SERVER_VERSION },
     { supportedProtocolVersions: ["2026-07-28", "2025-11-25"] },
   );
   for (const name of availableMcpTools(principal, options)) {
@@ -63,7 +63,8 @@ export function createMcpRegistry(
         const requestID = randomUUID();
         const started = Date.now();
         const searchMetrics: RepositorySearchMetrics | undefined =
-          name === "repo_search" && options.observeSearch
+          ["repo_search", "repo_read_file", "repo_list_files"].includes(name) &&
+          options.observeSearch
             ? {
                 started: performance.now(),
                 firstMatchMs: null,
@@ -77,8 +78,11 @@ export function createMcpRegistry(
         let release: (() => void) | undefined;
         let result;
         let code = "OK";
+        let consumer = principal.consumer ?? "mcp";
+        let cancelled = false;
         try {
           const current = await options.authorize(credential);
+          consumer = current.consumer ?? "mcp";
           effectiveResponseBytes = current.limits.responseBytes;
           if (current.discoveryOnly)
             throw new McpError(
@@ -113,6 +117,7 @@ export function createMcpRegistry(
             signal,
             searchMetrics,
           );
+          cancelled = stopping.aborted || call.mcpReq.signal.aborted;
           if (signal.aborted)
             throw new McpError(
               "TIMEOUT",
@@ -125,6 +130,13 @@ export function createMcpRegistry(
           const parsed = mcpToolDataSchemas[name].parse(
             picture ? picture.metadata : data,
           );
+          const envelope = {
+            schemaVersion: "1.0",
+            ok: true,
+            data: parsed,
+            requestID,
+            observedAt: new Date().toISOString(),
+          };
           result = {
             content: [
               ...(picture
@@ -138,16 +150,15 @@ export function createMcpRegistry(
                 : []),
               {
                 type: "text" as const,
-                text: "Операция выполнена; структурированные данные приведены в structuredContent.",
+                text:
+                  name === "repo_search" ||
+                  name === "repo_read_file" ||
+                  name === "repo_list_files"
+                    ? JSON.stringify(envelope)
+                    : "Операция выполнена; структурированные данные приведены в structuredContent.",
               },
             ],
-            structuredContent: {
-              schemaVersion: "1.0",
-              ok: true,
-              data: parsed,
-              requestID,
-              observedAt: new Date().toISOString(),
-            },
+            structuredContent: envelope,
           };
           if (
             Buffer.byteLength(
@@ -161,6 +172,7 @@ export function createMcpRegistry(
               "Ответ превышает лимит; сузьте запрос.",
             );
         } catch (error) {
+          cancelled = stopping.aborted || call.mcpReq.signal.aborted;
           const known =
             error instanceof McpError || error instanceof RepositoryReadError;
           code = known
@@ -210,17 +222,26 @@ export function createMcpRegistry(
         });
         if (searchMetrics) {
           try {
-            options.observeSearch?.(
-              buildSearchObservation(
-                input,
-                searchMetrics,
-                result,
-                requestID,
-                new Date(started).toISOString(),
-                code,
-                effectiveResponseBytes,
-              ),
+            const observation = buildSearchObservation(
+              input,
+              searchMetrics,
+              result,
+              requestID,
+              new Date(started).toISOString(),
+              code,
+              effectiveResponseBytes,
+              {
+                tool: name as
+                  "repo_search" | "repo_read_file" | "repo_list_files",
+                cancelled,
+              },
             );
+            observation.consumer = consumer;
+            if (options.sourceVersion)
+              observation.sourceVersion = options.sourceVersion;
+            if (options.installedBuildID)
+              observation.installedBuildID = options.installedBuildID;
+            options.observeSearch?.(observation);
           } catch {
             /* Сбой наблюдателя не изменяет результат поиска. */
           }

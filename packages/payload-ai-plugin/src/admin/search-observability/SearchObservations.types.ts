@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/SearchObservations.types.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-09-30
  * @description Описывает серверную страницу и props диагностики поиска.
  */
@@ -8,6 +8,8 @@ import type { AdminViewServerProps } from "payload";
 import type {
   SearchObservationPage,
   SearchObservationAnalytics,
+  SearchQualityHistory,
+  SearchAggregateHistory,
 } from "@realize/ai-contracts";
 export type SearchObservationsViewProps = AdminViewServerProps;
 export type SearchObservationsClientProps = { apiURL: string };
@@ -16,6 +18,7 @@ export type SearchObservationDetailsProps = {
 };
 export type SearchObservationFilters = {
   source: string;
+  consumer: string;
   operation: string;
   outcome: string;
   hours: string;
@@ -38,3 +41,9 @@ export type SearchObservationMetricUnit = "ms" | "percent" | "bytes";
 export type SearchObservationTrendProps = {
   analytics: SearchObservationAnalytics;
 };
+export type SearchQualityHistoryProps = {
+  quality?: SearchQualityHistory;
+  apiURL: string;
+  onChange: () => void;
+};
+export type SearchAggregateHistoryProps = { history?: SearchAggregateHistory };

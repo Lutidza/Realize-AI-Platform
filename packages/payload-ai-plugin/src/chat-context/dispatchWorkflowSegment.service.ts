@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/dispatchWorkflowSegment.service.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Повторяет точную отправку сохранённого шага модели без повторения серверных эффектов.
  */
 import {
@@ -36,6 +36,7 @@ export const dispatchWorkflowSegment = async (
   if (workflow.phase !== "running") return current;
   try {
     await getControlPlaneClient(options).startRun({
+      repositoryAccess: context.repositoryAccess,
       runID: String(current.id),
       prompt: String(workflow.input.request),
       model: typeof current.model === "string" ? current.model : undefined,

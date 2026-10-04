@@ -1,7 +1,7 @@
 /**
  * @file next.config.ts
- * @version 1.2.2
- * @date 2026-09-24
+ * @version 1.2.4
+ * @date 2026-09-30
  * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
@@ -21,10 +21,17 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/*": ["./node_modules/sharp/**/*"] },
   experimental: {
     // Next считает page-data/static workers через os.cpus(), независимо от affinity процесса.
-    cpus: 2,
+    cpus: process.env.REALIZE_BUILD_LOW_MEMORY === "true" ? 1 : 2,
     // Payload добавляет webpack callback, поэтому отдельный compiler worker включается явно.
     webpackBuildWorker: true,
     webpackMemoryOptimizations: true,
+  },
+  webpack: (config, { dev }) => {
+    // Одноразовая сборка с малой RAM не удерживает graph cache и не сериализует его второй копией.
+    // https://nextjs.org/docs/app/guides/memory-usage и https://webpack.js.org/configuration/cache/
+    if (!dev && process.env.REALIZE_BUILD_LOW_MEMORY === "true")
+      config.cache = false;
+    return config;
   },
   typescript: {
     // Managed build выставляет флаг только дочернему Next после успешных typegen и tsc.

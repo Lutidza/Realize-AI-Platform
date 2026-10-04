@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/codexAgentSettings.config.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Определяет безопасные начальные параметры агента для новых и прежних интеграций.
  */
 
@@ -12,6 +12,12 @@ export const CODEX_AGENT_SETTINGS_DEFAULTS: Readonly<CodexAgentSettingsDTO> =
   Object.freeze({
     model: "",
     reviewModel: "",
+    search: Object.freeze({
+      enabled: true,
+      mode: "direct",
+      model: "",
+      developerInstructions: false,
+    }),
     execution: Object.freeze({
       enabled: false,
       capabilityTTLSeconds: 3600,

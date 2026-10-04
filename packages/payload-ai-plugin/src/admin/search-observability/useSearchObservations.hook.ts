@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/useSearchObservations.hook.ts
- * @version 1.2.0
+ * @version 1.3.0
  * @date 2026-09-30
  * @description Автоматически обновляет видимую историю без перекрывающихся запросов и сброса данных.
  */
@@ -16,6 +16,7 @@ import type {
 export function useSearchObservations(apiURL: string) {
   const [filters, setFilters] = useState<SearchObservationFilters>({
     source: "",
+    consumer: "",
     operation: "",
     outcome: "",
     hours: "24",

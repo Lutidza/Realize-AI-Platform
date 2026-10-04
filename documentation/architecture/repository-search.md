@@ -80,7 +80,8 @@ node .ai/tools/agent-search/bin/agent-search.mjs \
 CLI имеет origin `import` — локально предоставленные замеры, а не подтверждённое
 сервером выполнение. В UI это «Локальные замеры». Существующий авторизованный
 API импорта сохранён для автоматизации: один JSON до 8 KiB,
-`Idempotency-Key=eventID`; файловой формы в UI нет.
+`Idempotency-Key=eventID`. Отдельная файловая форма импортирует только summaries
+качества benchmark; она не импортирует сырые поисковые события.
 В Payload пункт находится в «AI & Delivery», в системной оболочке —
 «AI → Контроль и качество → Диагностика поиска». Обе ссылки ведут в один view.
 Bootstrap MCP, обычный `rg` и другие поисковые инструменты в историю не попадают.
@@ -89,11 +90,11 @@ Bootstrap MCP, обычный `rg` и другие поисковые инстр
 
 ### Аналитика оптимизаций
 
-«Скорость и эффективность» в той же странице строится сервером по всем
+«Скорость и полнота выполнения» в той же странице строится сервером по всем
 сохранённым событиям выбранного периода (1 час, 24 часа или 7 дней). Источник
-CLI/MCP и операция сужают график и сравнение. Фильтры результата, длительности
+CLI/MCP, потребитель и операция сужают график и сравнение. Фильтры результата, длительности
 и cursor применяются только к истории: выбор «Ошибка» не меняет знаменатель
-эффективности. Агрегаты, история и политика читаются в одной транзакции
+полноты выполнения. Агрегаты, история и политика читаются в одной транзакции
 REPEATABLE READ; события из допустимого будущего не входят в аналитику до
 наступления их времени, но сохраняют видимость в истории. В ответе истории
 добавлен явный DTO `analytics`; событие и схема БД
@@ -101,7 +102,7 @@ REPEATABLE READ; события из допустимого будущего н�
 
 - Среднее время — арифметическое среднее `durationMs` отдельных запросов,
   а не среднее средних точек графика. p95 считается по тем же запросам.
-- Эффективность — `complete / count × 100`: доля полностью завершённых
+- Полнота выполнения — `complete / count × 100`: доля полностью завершённых
   запросов, включая полный поиск без совпадений. `partial`, `error` и
   `cancelled` остаются в знаменателе. Показатель не доказывает релевантность;
   правильность целей и coverage проверяется корпусами приёмки.
@@ -110,7 +111,7 @@ REPEATABLE READ; события из допустимого будущего н�
   отдельно; CLI records и MCP JSON имеют разную упаковку.
 
 График содержит 24 интервала одинаковой длительности. Пустые интервалы
-показываются разрывами; переключатель выбирает время, эффективность или
+показываются разрывами; переключатель выбирает время, полноту выполнения или
 чтение. Точки доступны мышью и клавиатурой, даты отображаются в часовом поясе
 браузера. Пунктир отмечает `splitAt`.
 
@@ -119,15 +120,65 @@ REPEATABLE READ; события из допустимого будущего н�
 берутся одинаковые окна максимально возможной длительности в выбранном
 периоде. Событие на границе относится к окну после; правая граница исключается.
 Уменьшение времени/чтения считается как `(до − после) / до × 100`,
-изменение эффективности — в процентных пунктах. Нулевая база, неизмеренная
+изменение полноты выполнения — в процентных пунктах. Нулевая база, неизмеренная
 величина, пустая выборка или окно, обрезанное retention/очисткой, не дают
 процента улучшения. Пользователь видит обе выборки и причину отсутствия сравнения.
 
 Это наблюдаемая динамика, не причинное доказательство эффекта изменения:
 источник, операция, состав запросов, нагрузка и кеш влияют на результат.
-Предел записей и потери доставки могут сокращать обе выборки. История
-аналитики использует ту же политику хранения и очистки (максимум 7 дней),
-отдельного бессрочного архива или автоматического определения версии кода нет.
+Предел записей и потери доставки могут сокращать обе выборки. График по сырым
+событиям использует raw retention (максимум 7 дней). Отдельная дневная история
+сохраняет 180 дней агрегатов UTC без запросов, путей и исходного кода. Она общая
+для всех потребителей, не меняется при фильтрации истории и не сохраняет p95.
+Накопление выполняется под тем же lock; duplicate eventID не увеличивает счётчики.
+Автоматическая raw cleanup оставляет агрегаты, ручная очистка истории удаляет
+соответствующий период и его контрольные замеры. Очищенное не возвращается при
+поздней доставке.
+
+### Качество контрольных задач и версии
+
+`qualityRuns` в benchmark отчёте отделяет правильность известных целей от
+завершения файлового запроса. Navigation проверяет точный файл и строку anchor;
+import-resolution — точный target либо ожидаемый отказ и цепочку developer
+workflow. Summary хранит число целей и правильных ответов, время всей задачи,
+calls, фактические filesRead/bytesRead и outputBytes; неизвестное чтение — null.
+Это оценка корпуса, а не правильности произвольного ответа модели.
+
+Корпус и runtime sources имеют SHA-256. `--release=<отметка>` задаёт явный релиз;
+по умолчанию отметка `working-tree`. Первый проход — `initial`, следующие —
+`repeat` с номером повтора; кеш ОС не сбрасывается. Сравниваются одинаковые
+corpusVersion/consumer/cache/repeat/число целей. Изменение правильности показывается
+в процентных пунктах, изменения времени/calls/read — отдельно. Нулевая база
+не даёт процентной экономии.
+
+`POST /api/realize-ai/search-observations/quality-import` требует
+`canManageAIConfiguration`, UUID `Idempotency-Key`, strict JSON до 32 KiB и
+1–20 summaries. Повтор ID с тем же содержимым идемпотентен; иное содержимое
+получает 409. Admin читает JSON до 2 MiB и отправляет только summaries. Существующий
+JSONB state хранит максимум 64 замера за 180 дней. Окно качества независимо от
+raw retention; ручная очистка фиксирует отдельную границу качества.
+
+Поиск Admin/execution/review имеет consumer и server-owned runID. MCP без
+состояния использует requestID как eventID; он не выдумывает ID диалога ChatGPT.
+CLI consumer переназначается исполнителю/reviewer при доставке из его worktree.
+Перед удалением worktree финальный flush передаёт неотправленные события в
+SQLite буфер установки: durable enqueue предшествует ack исходной очереди.
+
+`sourceVersion` вычисляется по явному bounded набору sources и lockfiles без Git.
+Штатная typegen → tsc → build создаёт `.next/realize-search-build.json` только
+при неизменных sources. Consumers добавляют installedBuildID лишь при совпадении
+source hash и настоящего BUILD_ID. Manifest переносится build owner-ом в
+actual standalone .next; `/api/health/live` возвращает safe searchBuild из
+работающего bundle. Full preflight сверяет этот ответ с исходниками и build receipt.
+Если web установлен в отдельном каталоге внутри `.next`, install owner вызывает
+`activateInstalledSearchBinding` после совпадения actual health, текущего source hash
+и compiled receipt. Функция атомарно создаёт generated
+`.next/realize-search-active.json`; consumers читают указанный canonical bundle
+в пределах `.next`. Старый основной BUILD_ID сохраняется для прежних процессов
+и rollback. Указатель вручную не редактируется; traversal, внешний symlink,
+несовпадающие source/build и malformed receipt не получают installedBuildID.
+Старый или отсутствующий manifest не позволяет
+назвать новую runtime работу установленной сборкой.
 
 ## Навигация при разработке
 
@@ -342,16 +393,44 @@ Latency публикуется как измерение без произвол
 
 ### Полная приёмка
 
+Admin использует тот же actual-files reader через server-owned dynamic tools.
+`repositoryChatTools.int.spec.ts` проверяет поиск вне Git checkout, текущие
+hashes/строки, source links, private paths, developer ACL, narrow scope и
+run-bound cursors. `codexSearchSettings.int.spec.ts` проверяет режимы direct/native,
+legacy read и строгую запись; `codexReadTools.int.spec.ts` — parent/child binding
+и запрет CMS callbacks child. Эти tests не заменяют установленную систему.
+
+Диагностика такого поиска имеет существующий source `mcp` (общий repository
+reader), optional `consumer=admin`, `runID` и `tool`. Это числовая allowlist без
+запроса, пути или исходного кода. Поиск и последующее чтение имеют отдельные
+события. Ошибка telemetry не повторяет файловый запрос и не меняет ответ.
+
 ```bash
 npm run check:search
 ```
 
-Вход `acceptance/runSearchAcceptance.controller.mjs` последовательно проверяет:
+Полный запуск сначала сверяет `.next/realize-search-build.json` с текущими
+sources и `SEARCH_ACCEPTANCE_INSTALLED_EVIDENCE` — bounded strict JSON evidence
+оператора. Для `admin-direct`, `admin-subagent`, `execution`, `review`, `cli`,
+`mcp`, `chatgpt` нужны свежие `confirmedAt`, `evidenceKind=operator-confirmed`
+и UUIDs действительно сохранённых событий. События сверяются read-only с рабочей
+БД: consumer, source/build, search → read, runID системных агентов. Ссылки Admin,
+MCP и ChatGPT повторно проверяются по actual file hash и строке. ChatGPT также
+требует URL реального диалога `https://chatgpt.com/c/...`; purpose credential
+или SDK запрос этого подтверждения не заменяет. Evidence оператора подтверждает
+выполнение пользовательского сценария; DB проверка доказывает доставку его событий.
+При отсутствии обязательного контура итог — `incomplete`, exit 1 до тяжёлых checks.
 
-1. CLI regressions, repository/protocol/navigation и delivery suites.
+`npm run check:search:isolated` запускает только fixtures; итог `isolated_passed`
+явно не подтверждает установленную систему или внешний ChatGPT. CI использует
+этот режим. Исходный full command не имеет skip-флага внешнего контура.
+
+Вход `acceptance/runSearchAcceptance.controller.mjs` затем последовательно проверяет:
+
+1. CLI regressions, repository/protocol/navigation, delivery и consumers suites: Admin contracts/UI, native lifecycle, execution/reviewer, worktree handoff, quality и installed refusal boundaries.
 2. Все 24 navigation и 16 import-resolution сценариев для CLI/MCP в двух прогонах,
    а также по два developer workflow для каждого адаптера и прогона.
-3. 16 managed MCP тестов, 5 PostgreSQL storage и 7 management тестов. Каждая DB suite
+3. Managed MCP, PostgreSQL storage/aggregate/quality и management тесты. Каждая DB suite
    получает новую уникальную БД с настоящими миграциями.
 4. HTTP MCP и CLI → автоматические collectors → PostgreSQL → `/admin/ai/search`:
    доступ и навигация, отказ delivery port и автоматический retry без повторного
@@ -377,14 +456,21 @@ Database adapter создаёт native PostgreSQL на Linux под обычны
 loopback service `realize_ci`; изменения разрешены только в БД, созданных этим run.
 
 Browser запускается на отдельном порту из source snapshot без `.env`, upload-данных
-и runtime. Installed dependencies подключаются ссылкой; Next генерирует файлы внутри
-snapshot. Случайный readiness marker подтверждает принадлежность HTTP listener-а
+и runtime. Workspace exports `@realize/*` ведут в пакеты этой копии. Сторонние
+dependencies используются из существующей установки; второй набор исходников
+checkout не добавляется в TypeScript/Next graph.
+Next генерирует файлы внутри
+собственного `/tmp` snapshot. Tracing root охватывает источник dependencies,
+а все копии standalone остаются внутри snapshot. Случайный readiness marker подтверждает принадлежность HTTP listener-а
 данному snapshot. Снимок, БД и процессы убираются в cleanup; рабочий сервер
 и очередь поиска не перезапускаются. Неперехватываемый SIGKILL/авария ОС требуют
 адресной очистки оставшейся fixture инфраструктуры по её каталогу/PID.
-Для Next задан предел V8 heap 2048 MiB, для Playwright/Node workers — 512 MiB;
+Для typegen/TypeScript задан предел V8 heap 2048 MiB; low-memory Next/его workers
+после успешного tsc получают heap 1024 MiB и отключённый webpack cache.
+Для Playwright/Node workers задан heap 512 MiB;
 это не предел суммарного RSS PostgreSQL, Chromium и всех дочерних процессов.
-Webpack в fixture компилирует модули последовательно (`NEXT_WEBPACK_PARALLELISM=1`)
+Vitest и Node tests выполняются с одним worker. `REALIZE_BUILD_LOW_MEMORY=true`
+снижает Next page/static workers до одного. Webpack в fixture компилирует модули последовательно (`NEXT_WEBPACK_PARALLELISM=1`)
 и завершается до запуска Chromium, освобождая память компилятора.
 Недостаток памяти означает отказ приёмки, а не разрешение пропустить browser.
 

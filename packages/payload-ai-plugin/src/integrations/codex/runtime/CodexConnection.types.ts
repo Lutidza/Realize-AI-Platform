@@ -1,12 +1,13 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnection.types.ts
- * @version 1.2.0
- * @date 2026-09-15
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Задаёт серверный lifecycle аренды авторизации Codex из integration registry.
  */
 
 import type { CodexAuthMode } from "@realize/codex-adapter/profile";
 import type { Pool } from "pg";
+import type { CodexAgentSettingsDTO } from "@realize/ai-contracts";
 import type { IntegrationSessionLock } from "../../runtime/IntegrationSessionLock.types";
 
 export type CodexConnectionOptions = {
@@ -28,6 +29,7 @@ export type CodexConnectionLease = {
   model?: string;
   /** Отдельная модель reviewer с fallback на основную модель этой интеграции. */
   reviewModel?: string;
+  search: CodexAgentSettingsDTO["search"];
   revision: number;
   signal: AbortSignal;
   dispose: () => Promise<void>;

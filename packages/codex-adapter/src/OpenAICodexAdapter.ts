@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 2.1.1
- * @date 2026-09-15
+ * @version 2.2.0
+ * @date 2026-09-30
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
@@ -25,6 +25,7 @@ import { collectCodexChatSources } from "./collectCodexChatSources.mapper";
 import { validateCodexImageInputs } from "./validateCodexImageInputs.validator";
 import { createCodexChatPermissions } from "./createCodexChatPermissions.config";
 import { CodexReadTools } from "./CodexReadTools.adapter";
+import { closeNativeSearchThreads } from "./closeNativeSearchThreads.service";
 import type {
   RPCMessage,
   ThreadStartResult,
@@ -73,6 +74,17 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
 
   constructor(private readonly options: OpenAICodexAdapterOptions) {}
 
+  /** Исключение относится только к собственному listener одного run, с фиксированными read tools. */
+  private allowsRepositoryMcp(item: Record<string, unknown>): boolean {
+    return Boolean(
+      this.options.repositoryMcpURL &&
+      this.options.search?.enabled &&
+      item.server === "realize_repository" &&
+      typeof item.tool === "string" &&
+      ["repo_search", "repo_read_file", "repo_list_files"].includes(item.tool),
+    );
+  }
+
   async cancelRun(runID: string): Promise<void> {
     const active = this.activeRuns.get(runID);
     if (!active) return;
@@ -115,7 +127,13 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     let readTools: CodexReadTools | undefined;
     try {
       if (this.options.readTools)
-        readTools = new CodexReadTools(this.options.readTools);
+        readTools = new CodexReadTools(
+          this.options.readTools,
+          Boolean(
+            this.options.search?.enabled &&
+            this.options.search.mode === "subagent",
+          ),
+        );
       images = await validateCodexImageInputs(input.cwd, input.images);
       if (input.sandboxProfile === "analysis-readonly")
         chatPermissions = await createCodexChatPermissions(
@@ -136,10 +154,15 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       environment: this.options.environment,
       signal: this.options.signal,
       ...(readTools
-        ? { onRequest: readTools.handleRequest.bind(readTools) }
+        ? {
+            onRequest: readTools.handleRequest.bind(readTools),
+            onNotification: readTools.observeNotification.bind(readTools),
+          }
         : {}),
       workingDirectory: input.cwd,
       webSearch: webSearch ? "live" : "disabled",
+      search: this.options.search,
+      repositoryMcpURL: this.options.repositoryMcpURL,
     });
     client.start();
 
@@ -174,7 +197,10 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
 
     try {
       await client.request("initialize", {
-        capabilities: readTools ? { experimentalApi: true } : null,
+        capabilities:
+          readTools || this.options.repositoryMcpURL
+            ? { experimentalApi: true }
+            : null,
         clientInfo: {
           name: "realize-ai-control-plane",
           title: "Realize AI Control Plane",
@@ -258,7 +284,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           if (
             (!writable && item?.type === "fileChange") ||
             (!webSearch && item?.type === "webSearch") ||
-            item?.type === "mcpToolCall" ||
+            (item?.type === "mcpToolCall" && !this.allowsRepositoryMcp(item)) ||
             (item?.type === "dynamicToolCall" &&
               !readTools?.allowsItem(item, params.threadId, params.turnId))
           ) {
@@ -287,8 +313,20 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           if (item?.type === "dynamicToolCall") {
             yield {
               type: "tool.started",
-              summary: "Чтение данных CMS начато.",
+              summary: "Чтение разрешённых данных начато.",
             };
+          }
+          if (item?.type === "mcpToolCall" && this.allowsRepositoryMcp(item)) {
+            yield {
+              type: "tool.started",
+              summary: "Поиск в файлах проекта начат.",
+            };
+          }
+          if (
+            item?.type === "collabAgentToolCall" &&
+            item.tool === "spawnAgent"
+          ) {
+            yield { type: "tool.started", summary: "Поисковый агент запущен." };
           }
           continue;
         }
@@ -298,7 +336,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           if (
             (!writable && item?.type === "fileChange") ||
             (!webSearch && item?.type === "webSearch") ||
-            item?.type === "mcpToolCall" ||
+            (item?.type === "mcpToolCall" && !this.allowsRepositoryMcp(item)) ||
             (item?.type === "dynamicToolCall" &&
               !readTools?.allowsItem(item, params.threadId, params.turnId))
           ) {
@@ -338,7 +376,14 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
                 item.status === "completed" && item.success === true
                   ? "completed"
                   : "failed",
-              summary: "Чтение данных CMS завершено.",
+              summary: "Чтение разрешённых данных завершено.",
+            };
+          }
+          if (item?.type === "mcpToolCall" && this.allowsRepositoryMcp(item)) {
+            yield {
+              type: "tool.completed",
+              status: item.status === "completed" ? "completed" : "failed",
+              summary: "Поиск в файлах проекта завершён.",
             };
           }
           continue;
@@ -374,7 +419,8 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               items.some((value) => {
                 const item = asRecord(value);
                 return (
-                  item?.type === "mcpToolCall" ||
+                  (item?.type === "mcpToolCall" &&
+                    !this.allowsRepositoryMcp(item)) ||
                   (!writable && item?.type === "fileChange") ||
                   (item?.type === "dynamicToolCall" &&
                     !readTools?.allowsItem(
@@ -393,6 +439,21 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               break;
             }
             if (!matchesActiveTurn(params, active, turnResult.id)) continue;
+            if (
+              this.options.repositoryMcpURL &&
+              this.options.search?.mode === "subagent"
+            ) {
+              const closed = await closeNativeSearchThreads(
+                client,
+                active.threadID,
+              );
+              if (closed)
+                yield {
+                  type: "tool.completed",
+                  status: "completed",
+                  summary: "Поисковый агент завершён; дочерние потоки закрыты.",
+                };
+            }
             const content =
               finalMessageFromTurn(turnResult) || accumulatedMessage;
             if (webSearch) sources = collectCodexChatSources(items, sources);

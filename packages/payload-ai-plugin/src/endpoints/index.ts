@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 2.4.0
- * @date 2026-09-27
+ * @version 2.5.0
+ * @date 2026-09-30
  * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
@@ -101,6 +101,11 @@ export const createAIEndpoints = (
       handler: agentSettings.save,
       method: "put",
       path: `${DEFAULT_API_ROUTE}/integrations/codex/agent-settings`,
+    },
+    {
+      handler: agentSettings.models,
+      method: "get",
+      path: `${DEFAULT_API_ROUTE}/integrations/codex/models`,
     },
     {
       handler: chatSettings.read,

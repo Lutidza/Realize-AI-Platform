@@ -1,11 +1,14 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodex.types.ts
- * @version 2.1.0
- * @date 2026-09-13
+ * @version 2.2.0
+ * @date 2026-09-30
  * @description Задаёт серверные параметры и состояние активного запуска Codex App Server.
  */
 
-import type { AgentReadTools } from "@realize/ai-contracts";
+import type {
+  AgentReadTools,
+  CodexRepositorySearchSettings,
+} from "@realize/ai-contracts";
 import type { JsonLineRPCClient } from "./JsonLineRpcClient.adapter";
 
 /** Проверенный сервером путь штатного image input App Server. */
@@ -26,6 +29,9 @@ export type OpenAICodexAdapterOptions = {
   privateReadDenyPaths?: readonly string[];
   /** Server-owned callback; разрешён только для analysis-readonly с новым thread. */
   readTools?: AgentReadTools;
+  search?: CodexRepositorySearchSettings;
+  /** Единственное разрешённое MCP подключение предоставляет server-owned actual-files reader. */
+  repositoryMcpURL?: string;
   signal?: AbortSignal;
 };
 

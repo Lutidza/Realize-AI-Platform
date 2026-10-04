@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/SearchObservationAnalytics.component.tsx
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-09-30
  * @description Показывает скорость, полноту выполнения и сравнение равных периодов вокруг оптимизации.
  * @see documentation/architecture/repository-search.md
@@ -27,7 +27,7 @@ export function SearchObservationAnalytics({
       aria-label="Аналитика эффективности поиска"
       className={styles.analytics}
     >
-      <h2>Скорость и эффективность</h2>
+      <h2>Скорость и полнота выполнения</h2>
       <dl className={styles.summary}>
         <div>
           <dt>Среднее время поиска</dt>
@@ -37,7 +37,7 @@ export function SearchObservationAnalytics({
           </small>
         </div>
         <div>
-          <dt>Эффективность</dt>
+          <dt>Полнота выполнения</dt>
           <dd>{formatSearchMetric(summary.completePercent, "percent")}</dd>
           <small>
             Полностью выполнено: {summary.complete} из {summary.count}
@@ -57,7 +57,7 @@ export function SearchObservationAnalytics({
         </div>
       </dl>
       <p className={styles.muted}>
-        Эффективность — доля запросов, завершённых без ошибки, отмены и
+        Полнота выполнения — доля запросов, завершённых без ошибки, отмены и
         неполного покрытия. Полный поиск без совпадений тоже считается
         завершённым. Это не оценка релевантности кода. Ошибок: {summary.errors};
         неполных: {summary.partial}; отмен: {summary.cancelled}; без совпадений:{" "}
@@ -107,7 +107,7 @@ export function SearchObservationAnalytics({
                 </td>
               </tr>
               <tr>
-                <th scope="row">Эффективность</th>
+                <th scope="row">Полнота выполнения</th>
                 <td>{formatSearchMetric(before.completePercent, "percent")}</td>
                 <td>{formatSearchMetric(after.completePercent, "percent")}</td>
                 <td>

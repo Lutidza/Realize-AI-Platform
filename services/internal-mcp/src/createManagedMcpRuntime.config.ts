@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/createManagedMcpRuntime.config.ts
- * @version 1.3.1
- * @date 2026-09-27
+ * @version 1.4.0
+ * @date 2026-09-30
  * @description Собирает managed listener из существующего Payload registry и operator binding.
  */
 import type { SearchObservationDatabase } from "../../../packages/payload-ai-plugin/src/search-observability/SearchObservationStore.types";
@@ -27,6 +27,8 @@ import { McpError } from "./Mcp.error";
 import type { McpRuntimeOptions } from "./McpRuntime.types";
 import { McpChatGptRuntime } from "../../../packages/payload-ai-plugin/src/integrations/mcp/McpChatGptRuntime.service";
 import { McpChatGptSupervisor } from "./McpChatGptSupervisor.service";
+import { readSearchSourceVersion } from "../../../.ai/tools/agent-search/src/searchSourceBinding.adapter.mjs";
+import { readInstalledSearchBinding } from "../../../.ai/tools/agent-search/src/installedSearchBinding.adapter.mjs";
 
 export async function createManagedMcpRuntime(
   payload: Payload,
@@ -84,7 +86,16 @@ export async function createManagedMcpRuntime(
     new SearchObservationStore(payload.db as SearchObservationDatabase),
     (event) => payload.logger.warn(event),
   );
+  const sourceVersion = policy
+    ? await readSearchSourceVersion(policy.root).catch(() => undefined)
+    : undefined;
+  const installed = policy
+    ? await readInstalledSearchBinding(policy.root, sourceVersion, env)
+    : undefined;
   const options: McpRuntimeOptions = {
+    sourceVersion,
+    installedBuildID: installed?.installedBuildID,
+    repositorySourceURLBase: payload.config.serverURL || undefined,
     observeSearch: searchCollector.record,
     port: configuration.port,
     policy,

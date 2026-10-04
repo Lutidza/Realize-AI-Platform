@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/readRepositoryLines.service.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Читает полные строки исходного UTF-8 с hash всего файла и сохранением CRLF.
  */
 import type { McpToolInput } from "../../../packages/ai-contracts/src/McpTool.types";
@@ -16,6 +16,13 @@ export async function readRepositoryLines(
   const file = await readRepositoryFile(context.policy, input.path, {
     signal: context.signal,
   });
+  if (context.searchMetrics) {
+    context.searchMetrics.filesRead = 1;
+    context.searchMetrics.bytesRead = file.bytes.length;
+    context.searchMetrics.candidateFiles = 1;
+    context.searchMetrics.firstMatchMs =
+      performance.now() - context.searchMetrics.started;
+  }
   if (input.expectedSha256 && input.expectedSha256 !== file.sha256)
     throw new RepositoryReadError("CONFLICT", "Содержимое файла изменилось.");
   const lines = file.text.match(/[^\n]*\n|[^\n]+$/g) ?? [];

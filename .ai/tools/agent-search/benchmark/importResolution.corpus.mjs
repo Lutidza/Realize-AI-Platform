@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/benchmark/importResolution.corpus.mjs
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Задаёт независимые цели реальных imports: services, Payload aliases, workspace contracts и UI.
  */
 const plane = "services/ai-control-plane/src";
@@ -140,11 +140,17 @@ export const importResolutionWorkflows = [
     from: `${mcp}/executeMcpTool.service.ts`,
     query: "searchRepository",
     consumers: mcp,
+    expectedPath: `${plane}/searchRepository.service.ts`,
+    anchor: "export async function searchRepository(",
+    referencePath: `${mcp}/executeMcpTool.service.ts`,
   },
   {
     id: "store-change-impact",
     from: `${mcp}/createManagedMcpRuntime.config.ts`,
     query: "SearchObservationStore",
     consumers: `${mcp}/createManagedMcpRuntime.config.ts`,
+    expectedPath: store,
+    anchor: "export class SearchObservationStore",
+    referencePath: `${mcp}/createManagedMcpRuntime.config.ts`,
   },
 ];

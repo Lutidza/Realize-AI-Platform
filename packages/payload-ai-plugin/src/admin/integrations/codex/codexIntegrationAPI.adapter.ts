@@ -1,12 +1,13 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/codexIntegrationAPI.adapter.ts
- * @version 1.4.0
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-09-30
  * @description Передаёт безопасные DTO настроек Codex и серверного входа через ChatGPT.
  */
 
 import type {
   CodexAgentDiagnosticsDTO,
+  CodexModelCatalogDTO,
   CodexAuthEnvironmentDTO,
   CompleteCodexBrowserLoginInput,
   CodexIntegrationConnectionDTO,
@@ -27,6 +28,12 @@ import { integrationMutationHeaders } from "../integrationMutationHeaders.util";
 
 /** Все операции проходят через authenticated API; browser не получает credential аккаунта. */
 export const codexIntegrationAPI = {
+  models: async (signal: AbortSignal) =>
+    requestRealizeAI<CodexModelCatalogDTO>("/integrations/codex/models", {
+      method: "GET",
+      cache: "no-store",
+      signal: AbortSignal.any([signal, AbortSignal.timeout(35000)]),
+    }),
   diagnostics: async (signal: AbortSignal) =>
     requestRealizeAI<CodexAgentDiagnosticsDTO>(
       "/integrations/codex/diagnostics",
@@ -46,7 +53,7 @@ export const codexIntegrationAPI = {
         body: JSON.stringify(input),
         headers: { "Idempotency-Key": idempotencyKey },
         method: "PUT",
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(35000),
       },
     ),
   saveChatSettings: async (input: SaveCodexChatSettingsInput) =>

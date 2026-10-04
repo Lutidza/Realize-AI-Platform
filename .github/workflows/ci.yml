@@ -1,7 +1,7 @@
 # @file .github/workflows/ci.yml
-# @version 1.1.0
-# @date 2026-09-29
-# @description Проверяет приложение и полную приёмку поиска с отдельными БД, corpus и Admin UI.
+# @version 1.2.0
+# @date 2026-09-30
+# @description Проверяет приложение и изолированные сценарии поиска; installed consumers и ChatGPT принимаются отдельно.
 name: CI
 
 on:
@@ -82,9 +82,9 @@ jobs:
       - name: Verify agent search
         run: |
           npm --prefix .ai/tools/agent-search ci --ignore-scripts --no-audit --no-fund
-          node_modules/.bin/eslint --no-ignore .ai/tools/agent-search/bin/*.mjs .ai/tools/agent-search/src/*.mjs .ai/tools/agent-search/test/*.mjs .ai/tools/agent-search/acceptance/*.mjs .ai/tools/agent-search/benchmark/*.controller.mjs
-          node_modules/.bin/prettier --check --ignore-path /dev/null .ai/tools/agent-search/bin/*.mjs .ai/tools/agent-search/src/*.mjs .ai/tools/agent-search/test/*.mjs .ai/tools/agent-search/acceptance/*.mjs .ai/tools/agent-search/benchmark/*.controller.mjs .ai/tools/agent-search/package.json .ai/tools/agent-search/package-lock.json .ai/tools/agent-search/README.md .ai/rules/development/RULE-SEARCH-SCOPE-DISCIPLINE.md .ai/checks/pre-implementation/CHECK-SEARCH-SCOPE-DISCIPLINE.md .github/workflows/ci.yml
-          npm run --silent check:headers -- .ai/tools/agent-search/bin/*.mjs .ai/tools/agent-search/src/*.mjs .ai/tools/agent-search/test/*.mjs .ai/tools/agent-search/acceptance/*.mjs .ai/tools/agent-search/benchmark/*.controller.mjs .github/workflows/ci.yml
+          node_modules/.bin/eslint --no-ignore .ai/tools/agent-search/bin/*.mjs .ai/tools/agent-search/src/*.mjs .ai/tools/agent-search/test/*.mjs .ai/tools/agent-search/acceptance/*.mjs .ai/tools/agent-search/benchmark/*.mjs
+          node_modules/.bin/prettier --check --ignore-path /dev/null .ai/tools/agent-search/bin/*.mjs .ai/tools/agent-search/src/*.mjs .ai/tools/agent-search/test/*.mjs .ai/tools/agent-search/acceptance/*.mjs .ai/tools/agent-search/benchmark/*.mjs .ai/tools/agent-search/package.json .ai/tools/agent-search/package-lock.json .ai/tools/agent-search/README.md .ai/rules/development/RULE-SEARCH-SCOPE-DISCIPLINE.md .ai/checks/pre-implementation/CHECK-SEARCH-SCOPE-DISCIPLINE.md .github/workflows/ci.yml
+          npm run --silent check:headers -- .ai/tools/agent-search/bin/*.mjs .ai/tools/agent-search/src/*.mjs .ai/tools/agent-search/test/*.mjs .ai/tools/agent-search/acceptance/*.mjs .ai/tools/agent-search/benchmark/*.mjs .github/workflows/ci.yml
 
       - name: Repository secret scan
         run: node scripts/security/check-secrets.mjs
@@ -109,10 +109,10 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Search acceptance
+      - name: Isolated search checks
         env:
           SEARCH_ACCEPTANCE_DATABASE_URI: postgres://realize:realize@127.0.0.1:5432/realize_ci
-        run: npm run check:search
+        run: npm run check:search:isolated
 
       - name: Preserve search acceptance evidence
         if: always()

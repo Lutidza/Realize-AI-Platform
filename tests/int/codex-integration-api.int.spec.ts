@@ -2,8 +2,8 @@
 
 /**
  * @file tests/int/codex-integration-api.int.spec.ts
- * @version 1.3.0
- * @date 2026-09-11
+ * @version 1.4.0
+ * @date 2026-09-30
  * @description Проверяет изоляцию Codex DTO, vault, optimistic revision и управляющих API без сети.
  */
 
@@ -31,6 +31,7 @@ import { createCodexLoginEndpoints } from "../../packages/payload-ai-plugin/src/
 import { createIntegrationHandlers } from "../../packages/payload-ai-plugin/src/endpoints/integrationHandlers";
 import { toCodexIntegrationDTO } from "../../packages/payload-ai-plugin/src/endpoints/integrationMappers";
 import { saveCompletedCodexLogin } from "../../packages/payload-ai-plugin/src/integrations/codex/saveCompletedCodexLogin.service";
+import { saveCodexAgentSettings } from "../../packages/payload-ai-plugin/src/integrations/codex/saveCodexAgentSettings.service";
 import {
   decryptIntegrationCredential,
   encryptIntegrationCredential,
@@ -353,6 +354,46 @@ describe("Codex integration API", () => {
     expect(state.stored()?.credentialEnvelope).toBeNull();
   });
 
+  it("повтор native настроек возвращает receipt без повторного каталога и отклоняет другой actor", async () => {
+    const state = fixture(connection());
+    const key = randomUUID();
+    const validate = vi.fn().mockResolvedValue(undefined);
+    const operation = {
+      actorID: state.actorID,
+      idempotencyKey: key,
+      input: {
+        expectedRevision: 2,
+        enabled: true,
+        settings: {
+          ...CODEX_AGENT_SETTINGS_DEFAULTS,
+          search: {
+            enabled: true,
+            mode: "subagent" as const,
+            model: "fixture-search-model",
+            developerInstructions: false,
+          },
+        },
+      },
+    };
+    const result = await saveCodexAgentSettings(
+      state.request({}),
+      operation,
+      validate,
+    );
+    validate.mockRejectedValue(Error("catalog_now_unavailable"));
+    expect(
+      await saveCodexAgentSettings(state.request({}), operation, validate),
+    ).toEqual(result);
+    expect(validate).toHaveBeenCalledTimes(1);
+    await expect(
+      saveCodexAgentSettings(
+        state.request({}),
+        { ...operation, actorID: randomUUID() },
+        validate,
+      ),
+    ).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(validate).toHaveBeenCalledTimes(1);
+  });
   it("изменение параметров агента требует integration permission и корректный idempotency key", async () => {
     const state = fixture();
     const input = {

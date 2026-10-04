@@ -1,6 +1,6 @@
 /**
  * @file tests/e2e/search-observability.e2e.spec.ts
- * @version 1.1.3
+ * @version 1.2.1
  * @date 2026-09-30
  * @description Проверяет автоматическую диагностику CLI/MCP, retry, dedupe, настройки и очистку через настоящий Admin UI.
  * @see documentation/architecture/repository-search.md
@@ -9,6 +9,7 @@ import { test, expect } from "@playwright/test";
 import { createSearchObservationRuntime } from "./support/searchObservationRuntime.fixture";
 import { provisionPayloadAdmin } from "./support/payloadAdmin";
 import { searchObservationFixture } from "../int/searchObservation.fixture";
+import { randomUUID } from "node:crypto";
 
 test("CLI/MCP diagnostics arrive automatically, recover and remain consistent after cleanup", async ({
   page,
@@ -50,7 +51,7 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     await expect(
       page.getByRole("heading", { name: "Диагностика поиска", exact: true }),
     ).toBeVisible();
-    await expect(page.locator('input[type="file"]')).toHaveCount(0);
+    await expect(page.getByLabel("Импорт отчёта benchmark")).toBeVisible();
     const history = page.getByRole("region", {
       name: "История поиска",
       exact: true,
@@ -90,6 +91,72 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     await expect(history.locator("summary")).toContainText("MCP");
     await source.selectOption("");
     await expect(history.locator("details")).toHaveCount(2);
+    const consumer = page.getByRole("combobox", {
+      name: "Потребитель",
+      exact: true,
+    });
+    await consumer.selectOption("cli");
+    await expect(history.locator("details")).toHaveCount(1);
+    await consumer.selectOption("mcp");
+    await expect(history.locator("details")).toHaveCount(1);
+    await consumer.selectOption("");
+    const before = {
+      schemaVersion: "1.0",
+      id: randomUUID(),
+      observedAt: new Date(Date.now() - 1000).toISOString(),
+      corpus: "repository-navigation",
+      corpusVersion: "a".repeat(64),
+      sourceVersion: "b".repeat(64),
+      release: "browser-v1",
+      consumer: "cli",
+      mode: "literal-baseline",
+      cache: "initial",
+      repeat: 0,
+      targets: 10,
+      correctTargets: 6,
+      taskDurationMs: 200,
+      calls: 20,
+      filesRead: 5,
+      bytesRead: 400,
+      outputBytes: 100,
+    };
+    const qualityAfter = {
+      ...before,
+      id: randomUUID(),
+      observedAt: new Date().toISOString(),
+      sourceVersion: "c".repeat(64),
+      release: "browser-v2",
+      mode: "navigation",
+      correctTargets: 8,
+      taskDurationMs: 100,
+      calls: 10,
+      bytesRead: 100,
+    };
+    await page.getByLabel("Импорт отчёта benchmark").setInputFiles({
+      name: "quality.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({ qualityRuns: [before, qualityAfter] }),
+      ),
+    });
+    const quality = page.getByRole("region", {
+      name: "Качество контрольных задач",
+      exact: true,
+    });
+    await expect(
+      quality.getByRole("status").filter({
+        hasText: "Добавлено контрольных замеров:",
+      }),
+    ).toContainText("Добавлено контрольных замеров: 2");
+    await expect(
+      quality.getByRole("region", { name: "Контрольные замеры", exact: true }),
+    ).toContainText("80 %");
+    await expect(
+      quality.getByRole("region", {
+        name: "Сравнение контрольных версий",
+        exact: true,
+      }),
+    ).toContainText("+20 п. п.");
 
     // Отдельная операция отделяет контрольные числа от реальных definitions CLI/MCP выше.
     const now = Date.now();
@@ -129,7 +196,7 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
       comparison.getByRole("row", { name: /Среднее время/ }),
     ).toContainText("+75 %");
     await expect(
-      comparison.getByRole("row", { name: /Эффективность/ }),
+      comparison.getByRole("row", { name: /Полнота выполнения/ }),
     ).toContainText("+25 п. п.");
     const graph = analytics.getByRole("group", {
       name: "Среднее время: график по времени",
@@ -185,7 +252,7 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
       .selectOption("completePercent");
     await expect(
       analytics.getByRole("group", {
-        name: "Эффективность: график по времени",
+        name: "Полнота выполнения: график по времени",
         exact: true,
       }),
     ).toBeVisible();
@@ -279,6 +346,33 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     expect((await runtime.store.list({ hours: "24" })).summary.count).toBe(1);
     expect(JSON.stringify(after)).not.toContain("searchAcceptanceTarget");
     expect(JSON.stringify(after)).not.toContain("src/acceptance.ts");
+    // DOM-проверка настроек в isolated installation без внешней авторизации: реальные catalog/inference проверяются отдельно.
+    await page.goto("/admin/integrations/codex#agent");
+    await expect(
+      page.getByRole("heading", { name: "Поиск в проекте", exact: true }),
+    ).toBeVisible();
+    const searchMode = page.getByRole("combobox", { name: /^Режим поиска/ });
+    await expect(searchMode).toHaveValue("direct");
+    await searchMode.selectOption("subagent");
+    await expect(page.getByLabel(/^Модель поискового субагента/)).toBeVisible();
+    await searchMode.focus();
+    await expect(searchMode).toBeFocused();
+    await page.getByRole("switch", { name: /^Поиск файлов включён/ }).click();
+    await expect(searchMode).toBeDisabled();
+    await page.getByRole("switch", { name: /^Поиск файлов включён/ }).click();
+    await searchMode.selectOption("direct");
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth + 1,
+      ),
+    ).toBe(true);
+    await page.screenshot({
+      path: testInfo.outputPath("codex-search-mobile.png"),
+      fullPage: true,
+    });
     expect(pageErrors).toEqual([]);
     await testInfo.attach("cli-process-timing", {
       body: JSON.stringify({

@@ -66,12 +66,16 @@ status: active
   bounded очереди, runtime snapshots и журнал операций не растут бесконечно.
 
 - При изменении инструмента поиска или диагностики запланирована и выполнена
-  полная приёмка `npm run check:search`: CLI/repository/delivery, оба CLI/MCP
+  полная приёмка `npm run check:search`: текущий build/source, подтверждение
+  реальных Admin direct/native, execution/review, CLI/MCP и внешнего ChatGPT;
+  затем CLI/repository/delivery/consumers, оба CLI/MCP
   корпуса, managed и search PostgreSQL suites, browser путь до Admin.
   Проверены фактические counts без skips/todo и повторов browser теста,
   покрытие ID/целей, отдельные бюджеты чтения/ответа и cleanup fixture процессов.
   Первый и повторные замеры различены; `reports/acceptance.json` относится
   к текущему коду. Недоступный prerequisite отмечен как неполная приёмка.
+  Явный `check:search:isolated` в CI подтверждает только isolated checks;
+  purpose credential и SDK вызов не доказывают запрос из ChatGPT UI.
   Для обычного поиска и документации этот запуск `not_required`.
 
 Отдельный search-worker и отдельная runtime session не являются условиями

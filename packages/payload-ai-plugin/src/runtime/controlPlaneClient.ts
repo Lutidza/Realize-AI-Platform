@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/runtime/controlPlaneClient.ts
- * @version 1.1.0
- * @date 2026-09-13
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Передаёт серверные запросы и бинарные потоки авторизованному control plane.
  */
 
@@ -42,6 +42,27 @@ export class ControlPlaneClient {
         `/v1/chat/project-files?q=${encodeURIComponent(query)}`,
         { method: "GET", signal },
       )
+    ).json();
+  }
+  /** Защищённый relay ссылки источника; ACL проверяет Payload controller до server transport. */
+  async projectFile(
+    path: string,
+    startLine: number,
+    expectedSha256: string | undefined,
+    developerInstructions: boolean,
+    signal?: AbortSignal,
+  ): Promise<unknown> {
+    const query = new URLSearchParams({
+      path,
+      startLine: String(startLine),
+      developerInstructions: String(developerInstructions),
+    });
+    if (expectedSha256) query.set("expectedSha256", expectedSha256);
+    return (
+      await this.fetch(`/v1/chat/project-file?${query}`, {
+        method: "GET",
+        signal,
+      })
     ).json();
   }
   async resolveProjectFiles(

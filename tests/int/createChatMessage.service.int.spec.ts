@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/createChatMessage.service.int.spec.ts
- * @version 1.3.0
- * @date 2026-09-13
+ * @version 1.4.0
+ * @date 2026-09-30
  * @description Проверяет сохранение полного запроса, права вложений и идемпотентность отправки.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,7 +37,8 @@ const req = {
 } as unknown as PayloadRequest;
 const options = {
   runtime: { model: "fixture-model" },
-} as SanitizedRealizeAIPluginOptions;
+  access: { canManageAIConfiguration: () => false },
+} as unknown as SanitizedRealizeAIPluginOptions;
 const attachment = {
   id: 7,
   assetID: "b0ab501b-5539-48fd-a79d-85d36c4326de",
@@ -128,7 +129,7 @@ describe("createChatMessage", () => {
   } as unknown as PayloadRequest;
   const pageOptions = {
     ...options,
-    access: { canManageData: () => true },
+    access: { ...options.access, canManageData: () => true },
   } as unknown as SanitizedRealizeAIPluginOptions;
   it("resolves the selected CMS snapshot once and relays it without exposing content in public DTO", async () => {
     vi.spyOn(PageDraftUpdate.prototype, "readContext").mockResolvedValue(
@@ -452,19 +453,20 @@ describe("immutable agent configuration for new chat runs", () => {
       expect(client.startRun).not.toHaveBeenCalled();
     },
   );
-  it("changes thread compatibility for model, policy and compiled configuration", async () => {
+  it("pins distinct context hashes for model, policy and compiled configuration without resuming old tools", async () => {
     await createChatMessage(req, options, 1, "2", "legacy", {
       content: "Первый запрос",
     });
     const baseline = vi
-      .mocked(AIRepository.prototype.getLatestThreadID)
-      .mock.calls.at(-1)![1];
+      .mocked(AIRepository.prototype.createRun)
+      .mock.calls.at(-1)![0].turnContext!.runtimeContextHash;
     await createChatMessage(req, options, 1, "2", "web", {
       content: "Другой запрос",
       webSearch: true,
     });
     expect(
-      vi.mocked(AIRepository.prototype.getLatestThreadID).mock.calls.at(-1)![1],
+      vi.mocked(AIRepository.prototype.createRun).mock.calls.at(-1)![0]
+        .turnContext!.runtimeContextHash,
     ).not.toBe(baseline);
     await createChatMessage(
       req,
@@ -475,7 +477,8 @@ describe("immutable agent configuration for new chat runs", () => {
       { content: "Другой запрос" },
     );
     expect(
-      vi.mocked(AIRepository.prototype.getLatestThreadID).mock.calls.at(-1)![1],
+      vi.mocked(AIRepository.prototype.createRun).mock.calls.at(-1)![0]
+        .turnContext!.runtimeContextHash,
     ).not.toBe(baseline);
     activate();
     await createChatMessage(req, options, 1, "2", "configured", {
@@ -483,7 +486,8 @@ describe("immutable agent configuration for new chat runs", () => {
       agentConfiguration: selection,
     });
     expect(
-      vi.mocked(AIRepository.prototype.getLatestThreadID).mock.calls.at(-1)![1],
+      vi.mocked(AIRepository.prototype.createRun).mock.calls.at(-1)![0]
+        .turnContext!.runtimeContextHash,
     ).not.toBe(baseline);
   });
   it("passes bounded prior messages as data only when a compatible thread is unavailable", async () => {
@@ -513,7 +517,7 @@ describe("immutable agent configuration for new chat runs", () => {
       }),
     );
   });
-  it("reuses a compatible thread without replaying previous messages into the provider prompt", async () => {
+  it("starts a fresh thread with bounded prior data even when an older thread is compatible", async () => {
     activate();
     vi.mocked(AIRepository.prototype.getConversationDetail).mockResolvedValue({
       conversation: { id: 2, status: "active" },
@@ -529,21 +533,22 @@ describe("immutable agent configuration for new chat runs", () => {
     });
     const stored = vi.mocked(AIRepository.prototype.createRun).mock
       .calls[0]![0];
-    expect(AIRepository.prototype.getLatestThreadID).toHaveBeenCalledWith(
-      "2",
-      stored.turnContext!.runtimeContextHash,
+    expect(AIRepository.prototype.getLatestThreadID).not.toHaveBeenCalled();
+    expect(stored.threadID).toBeUndefined();
+    expect(stored.turnContext!.conversationHistory).toContain(
+      "Ранее выбран товар",
     );
-    expect(stored.threadID).toBe("thread-fixture");
-    expect(stored.turnContext!.conversationHistory).toBeUndefined();
     const transport = client.startRun.mock.calls[0]![0];
-    expect(transport.threadID).toBe("thread-fixture");
+    expect(transport.threadID).toBeUndefined();
     expect(transport.prompt).toBe("Категория А");
     expect(transport.agentConfiguration).toEqual(
       stored.turnContext!.agentConfiguration,
     );
-    expect(transport.conversationHistory).toBeUndefined();
-    expect(JSON.parse(JSON.stringify(transport))).not.toHaveProperty(
-      "conversationHistory",
+    expect(transport.conversationHistory).toBe(
+      stored.turnContext!.conversationHistory,
     );
+    expect(transport.repositoryAccess).toEqual({
+      developerInstructions: false,
+    });
   });
 });

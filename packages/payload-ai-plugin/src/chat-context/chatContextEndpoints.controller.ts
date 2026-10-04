@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/chatContextEndpoints.controller.ts
- * @version 1.2.0
- * @date 2026-09-12
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Предоставляет закрытые вложения и каталог файлов только пользователю чата.
  */
 import {
   CHAT_ATTACHMENT_LIMITS,
   CHAT_PROJECT_FILE_LIMIT,
   parseIdentifier,
+  mcpToolInputs,
 } from "@realize/ai-contracts";
 import type { ChatCapabilitiesDto } from "@realize/ai-contracts";
 import type { Endpoint } from "payload";
@@ -27,6 +28,33 @@ import { readChatUpload } from "./readChatUpload.service";
 export const createChatContextEndpoints = (
   options: SanitizedRealizeAIPluginOptions,
 ): Endpoint[] => [
+  {
+    path: `${DEFAULT_API_ROUTE}/chat/project-file`,
+    method: "get",
+    handler: withCodexRuntime(options, (options) =>
+      withHandler(async (req, correlationID) => {
+        const user = await requireChatUser(req, options);
+        consumeRateLimit(user.id);
+        const query = new URL(req.url ?? "http://localhost").searchParams;
+        const input = mcpToolInputs.repo_read_file.parse({
+          path: query.get("path"),
+          startLine: Number(query.get("startLine") ?? 1),
+          lineCount: 100,
+          expectedSha256: query.get("expectedSha256") ?? undefined,
+        });
+        return success(
+          await getControlPlaneClient(options).projectFile(
+            input.path,
+            input.startLine,
+            input.expectedSha256,
+            Boolean(await options.access.canManageAIConfiguration({ req })),
+            req.signal,
+          ),
+          correlationID,
+        );
+      }),
+    ),
+  },
   {
     path: `${DEFAULT_API_ROUTE}/chat/capabilities`,
     method: "get",

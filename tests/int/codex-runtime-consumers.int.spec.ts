@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codex-runtime-consumers.int.spec.ts
- * @version 1.1.2
- * @date 2026-09-16
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Проверяет интеграцию, сохранение пояснений при отказе и границы отдельного этапа исполнения.
  */
 
@@ -22,7 +22,15 @@ const mock = vi.hoisted(() => ({
   capture: vi.fn(),
   check: vi.fn(),
   verify: vi.fn(),
+  searchAccess: vi.fn(),
 }));
+vi.mock(
+  "../../services/ai-control-plane/src/createRepositoryRunAccess.service",
+  () => ({
+    createRepositoryRunAccess: (...args: unknown[]) =>
+      mock.searchAccess(...args),
+  }),
+);
 vi.mock("@realize/codex-adapter", () => ({
   OpenAICodexAdapter: class {
     constructor(options: unknown) {
@@ -65,6 +73,12 @@ const fixture = () => {
     revision: 3,
     model: "fixture-integration-model",
     reviewModel: "fixture-integration-review-model",
+    search: {
+      enabled: true,
+      mode: "subagent" as "direct" | "subagent",
+      model: "fixture-search-model",
+      developerInstructions: false,
+    },
     environment: {
       NODE_ENV: "test" as const,
       CODEX_HOME: "/fixture-selected-profile",
@@ -95,6 +109,7 @@ const fixture = () => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mock.searchAccess.mockResolvedValue(undefined);
   mock.verify.mockReturnValue(true);
   mock.capture.mockResolvedValue({ diffHash: "fixture-diff" });
 });
@@ -119,6 +134,8 @@ describe("Codex reviewer integration consumer", () => {
       codexBinary: "/fixture-codex-cli",
       environment: test.lease.environment,
       signal: test.lease.signal,
+      search: test.lease.search,
+      repositoryMcpURL: undefined,
     });
     expect(mock.turn).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -131,7 +148,7 @@ describe("Codex reviewer integration consumer", () => {
       isolated: true,
     });
     const turn = mock.turn.mock.calls[0]?.[0];
-    expect(turn.prompt).toContain("Use a native repository-search sub-agent");
+    expect(turn.prompt).toContain("native repository-search sub-agent");
     expect(turn.prompt).toContain("bounded read-only repository discovery");
     expect(turn.prompt).toContain("wait for the actual findings");
     expect(turn.prompt).toContain("close the child");
@@ -225,6 +242,8 @@ describe("Codex implementation integration consumer", () => {
       codexBinary: "/fixture-codex-cli",
       environment: test.lease.environment,
       signal: test.lease.signal,
+      search: test.lease.search,
+      repositoryMcpURL: undefined,
     });
     expect(mock.turn).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -435,9 +454,7 @@ describe("Codex implementation integration consumer", () => {
     expect(input.developerInstructions).toContain(
       "separate native repository-search sub-agent",
     );
-    expect(input.developerInstructions).toContain(
-      "For this isolated Code Lane turn only",
-    );
+    expect(input.developerInstructions).toContain("For this server-owned turn");
     expect(input.developerInstructions).toContain(
       "do not delegate writes, checks or the verdict",
     );

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/CodexAgentSettings.view.tsx
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Показывает единый переключатель, модели и доступные операции админского агента.
  */
 
@@ -15,6 +15,8 @@ import {
 import { Bot, Check, Clock3, Save, ShieldCheck } from "lucide-react";
 import { IntegrationFormSection } from "../IntegrationFormSection.component";
 import type { CodexAgentSettingsViewProps } from "./CodexAgentSettings.types";
+import { CodexRepositorySearchSettingsView } from "./CodexRepositorySearchSettings.view";
+import { CodexModelSelect } from "./CodexModelSelect.component";
 import styles from "./CodexChatSettings.module.css";
 import fields from "../IntegrationConnectionForm.module.css";
 
@@ -51,13 +53,12 @@ export const CodexAgentSettingsView = ({
       </UiSurface>
       <label className={fields.field}>
         <span>Модель агента</span>
-        <UiInput
-          autoComplete="off"
-          maxLength={128}
-          placeholder="По умолчанию в GPT — Codex"
+        <CodexModelSelect
           value={form.settings.model}
+          models={form.modelCatalog?.models}
           disabled={form.isDisabled}
-          onChange={(event) => form.update({ model: event.target.value })}
+          emptyLabel="По умолчанию в GPT — Codex"
+          onChange={(model) => form.update({ model: model })}
         />
         <small>
           Идентификатор модели, доступной подключённому аккаунту. Пустое поле
@@ -65,7 +66,26 @@ export const CodexAgentSettingsView = ({
           модель.
         </small>
       </label>
+      <UiButton
+        disabled={form.isDisabled}
+        onClick={() => void form.loadModels()}
+      >
+        {form.modelsLoading
+          ? "Получение каталога…"
+          : "Обновить каталог моделей"}
+      </UiButton>
+      {form.modelsError ? (
+        <UiNotice tone="danger">{form.modelsError}</UiNotice>
+      ) : null}
+      {form.modelCatalog ? (
+        <small>
+          Каталог подключённого Codex получен{" "}
+          {new Date(form.modelCatalog.fetchedAt).toLocaleString("ru-RU")}.
+          Доступ подтверждается выполненным запросом.
+        </small>
+      ) : null}
     </IntegrationFormSection>
+    <CodexRepositorySearchSettingsView form={form} />
     <IntegrationFormSection
       title="Выполнение и публикация"
       description="Управляйте этапами работы с кодом. Каждый этап сохраняет проверки прав и подтверждение изменений."
@@ -133,15 +153,12 @@ export const CodexAgentSettingsView = ({
         <div className={fields.formGrid}>
           <label className={fields.field}>
             <span>Модель проверяющего</span>
-            <UiInput
-              autoComplete="off"
-              maxLength={128}
-              placeholder="Использовать модель агента"
+            <CodexModelSelect
               value={form.settings.reviewModel}
+              models={form.modelCatalog?.models}
               disabled={form.isDisabled}
-              onChange={(event) =>
-                form.update({ reviewModel: event.target.value })
-              }
+              emptyLabel="Использовать модель агента"
+              onChange={(model) => form.update({ reviewModel: model })}
             />
             <small>Пустое поле использует основную модель агента.</small>
           </label>

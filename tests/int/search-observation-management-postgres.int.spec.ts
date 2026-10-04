@@ -1,7 +1,7 @@
 /**
  * @file tests/int/search-observation-management-postgres.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет CAS, подтверждение очистки, retention и конкуренцию на изолированной PostgreSQL.
  */
 // @vitest-environment node
@@ -18,6 +18,8 @@ import {
   down,
 } from "../../src/migrations/20260928_102009_search_observation_state";
 import { searchObservationFixture } from "./searchObservation.fixture";
+import { SearchQualityStore } from "../../packages/payload-ai-plugin/src/search-observability/SearchQualityStore.repository";
+import type { SearchQualityRun } from "@realize/ai-contracts";
 
 describe.skipIf(!process.env.SEARCH_TEST_DATABASE_URI)(
   "search management on isolated PostgreSQL",
@@ -49,6 +51,109 @@ describe.skipIf(!process.env.SEARCH_TEST_DATABASE_URI)(
       await payload?.destroy();
     });
 
+    it("сохраняет дневные суммы после raw retention, не удваивает replay и фильтрует consumer", async () => {
+      const old = searchObservationFixture({
+        observedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+        consumer: "admin",
+        durationMs: 100,
+      });
+      const recent = searchObservationFixture({
+        consumer: "review",
+        durationMs: 50,
+      });
+      expect(await store.append([old, recent], "runtime")).toBe(2);
+      expect(await store.append([old, recent], "runtime")).toBe(0);
+      await store.control.update(
+        {
+          expectedRevision: 1,
+          settings: {
+            retentionDays: 1,
+            capacity: 100,
+            cleanupIntervalMinutes: 60,
+          },
+        },
+        randomUUID(),
+        "fixture-admin",
+      );
+      const page = await store.list({ hours: "168", consumer: "review" });
+      expect(page.items).toHaveLength(1);
+      expect(page.analytics.summary.count).toBe(1);
+      expect(
+        page.analytics.history!.series.reduce(
+          (sum, day) => sum + day.metrics.count,
+          0,
+        ),
+      ).toBe(2);
+      expect(
+        page.analytics.history!.series.every(
+          (day) => day.metrics.p95Ms === null,
+        ),
+      ).toBe(true);
+      expect(
+        (await store.list({ hours: "168", consumer: "admin" })).summary.count,
+      ).toBe(0);
+    });
+    it("сохраняет контрольные summaries идемпотентно, независимо от raw retention, и не возвращает очищенный период", async () => {
+      const quality = new SearchQualityStore(
+        payload.db as SearchObservationDatabase,
+      );
+      const run: SearchQualityRun = {
+        schemaVersion: "1.0",
+        id: randomUUID(),
+        observedAt: new Date(Date.now() - 3 * 86400000).toISOString(),
+        corpus: "repository-navigation",
+        corpusVersion: "a".repeat(64),
+        sourceVersion: "b".repeat(64),
+        release: "fixture-v1",
+        consumer: "cli",
+        mode: "navigation",
+        cache: "initial",
+        repeat: 0,
+        targets: 10,
+        correctTargets: 7,
+        taskDurationMs: 100,
+        calls: 10,
+        filesRead: 4,
+        bytesRead: 300,
+        outputBytes: 200,
+      };
+      await store.control.update(
+        {
+          expectedRevision: 1,
+          settings: {
+            retentionDays: 1,
+            capacity: 100,
+            cleanupIntervalMinutes: 60,
+          },
+        },
+        randomUUID(),
+        "fixture-admin",
+      );
+      expect(await quality.append({ runs: [run] })).toEqual({
+        inserted: 1,
+        retained: 1,
+      });
+      expect(
+        await new SearchQualityStore(
+          payload.db as SearchObservationDatabase,
+        ).append({ runs: [run] }),
+      ).toEqual({ inserted: 0, retained: 1 });
+      await expect(
+        quality.append({ runs: [{ ...run, correctTargets: 8 }] }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(
+        (await store.list({ hours: "24" })).analytics.quality!.runs,
+      ).toEqual([run]);
+      const preview = await store.control.preview("history");
+      await store.control.clear(preview, randomUUID(), "fixture-admin");
+      expect(
+        (await store.list({ hours: "24" })).analytics.quality!.runs,
+      ).toEqual([]);
+      expect(await quality.append({ runs: [run] })).toEqual({
+        inserted: 0,
+        retained: 0,
+      });
+    });
     it("denies raw state access and persists applied settings across instances", async () => {
       await expect(
         payload.create({

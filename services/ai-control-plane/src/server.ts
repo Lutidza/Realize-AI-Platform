@@ -1,12 +1,22 @@
 /**
  * @file services/ai-control-plane/src/server.ts
- * @version 1.4.0
- * @date 2026-09-27
+ * @version 1.5.0
+ * @date 2026-09-30
  * @description Предоставляет loopback control plane для read-only запуска выбранной интеграции Codex.
  */
 
 import { config as loadEnvironment } from "dotenv";
 import { LocalSearchObservationCollector } from "./LocalSearchObservationCollector.service";
+import { SearchObservationCollector } from "@realize/payload-ai-control/server/search-observability";
+import { createRepositoryReadPolicy } from "./repositoryReadPolicy.validator";
+import {
+  createRepositoryChatTools,
+  combineChatReadTools,
+} from "./repositoryChatTools.adapter";
+import { createRepositoryMcpBridge } from "./createRepositoryMcpBridge.service";
+import type { RepositoryMcpBridge } from "./RepositoryMcpBridge.types";
+import { readSearchSourceVersion } from "../../../.ai/tools/agent-search/src/searchSourceBinding.adapter.mjs";
+import { readInstalledSearchBinding } from "../../../.ai/tools/agent-search/src/installedSearchBinding.adapter.mjs";
 
 import { timingSafeEqual } from "node:crypto";
 import {
@@ -37,6 +47,13 @@ loadEnvironment({ path: ".env.local", quiet: true });
 loadEnvironment({ quiet: true });
 
 const { host, port, token, workspaceRoot } = readControlPlaneConfig();
+const searchSourceVersion = await readSearchSourceVersion(workspaceRoot).catch(
+  () => undefined,
+);
+const installedSearchBinding = await readInstalledSearchBinding(
+  workspaceRoot,
+  searchSourceVersion,
+);
 
 const assets = new ChatAssetStore(
   process.env.REALIZE_AI_CHAT_ASSET_ROOT,
@@ -59,6 +76,12 @@ const searchCollector =
         (event) => console.warn(JSON.stringify(event)),
       );
 const activeAdapters = new Map<string, OpenAICodexAdapter>();
+const chatSearchCollector =
+  process.env.REALIZE_AI_RUNTIME_ISOLATED === "true"
+    ? undefined
+    : new SearchObservationCollector(runtime.searchObservations, (event) =>
+        console.warn(JSON.stringify(event)),
+      );
 const executions = new Map<string, Promise<void>>();
 const store = new RunStore();
 
@@ -103,17 +126,47 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
   let snapshot: Awaited<ReturnType<typeof createContextSnapshot>> | undefined;
   let lease: CodexConnectionLease | undefined;
   let completion: AgentEvent | undefined;
+  let repositoryBridge: RepositoryMcpBridge | undefined;
 
   try {
     lease = await runtime.codex.acquire();
+    const repositorySearch =
+      run.repositoryAccess && lease.search.enabled ? lease.search : undefined;
+    const repositoryTools = repositorySearch
+      ? createRepositoryChatTools({
+          policy: await createRepositoryReadPolicy(
+            workspaceRoot,
+            repositorySearch.developerInstructions &&
+              Boolean(run.repositoryAccess?.developerInstructions),
+          ),
+          run,
+          signal: lease.signal,
+          responseBytes:
+            repositorySearch.mode === "subagent" ? 32 * 1024 : undefined,
+          observe: chatSearchCollector?.record,
+          sourceVersion: searchSourceVersion,
+          installedBuildID: installedSearchBinding?.installedBuildID,
+        })
+      : undefined;
+    if (repositoryTools && repositorySearch?.mode === "subagent")
+      repositoryBridge = await createRepositoryMcpBridge(
+        repositoryTools,
+        run.id,
+        lease.signal,
+      );
     const adapter = new OpenAICodexAdapter({
       codexBinary: process.env.REALIZE_CODEX_BINARY || undefined,
-      environment: lease.environment,
+      environment: { ...lease.environment, ...repositoryBridge?.environment },
+      repositoryMcpURL: repositoryBridge?.url,
       privateReadDenyPaths: process.env.REALIZE_AI_CHAT_ASSET_ROOT
         ? [process.env.REALIZE_AI_CHAT_ASSET_ROOT]
         : [],
       signal: lease.signal,
-      readTools: createPageDiscoveryReadTools(run, lease.signal),
+      readTools: combineChatReadTools(
+        createPageDiscoveryReadTools(run, lease.signal),
+        repositoryBridge ? undefined : repositoryTools,
+      ),
+      search: repositorySearch ?? { ...lease.search, enabled: false },
     });
     activeAdapters.set(run.id, adapter);
     snapshot = await createContextSnapshot(workspaceRoot, run.projectFiles);
@@ -130,6 +183,7 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
       totalBytes: snapshot.totalBytes,
       selectedFiles: snapshot.selectedFiles,
       attachmentInstructions: context.instructions,
+      repositorySearch,
     });
 
     for await (const event of adapter.runTurn({
@@ -150,6 +204,8 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
       if (event.type === "assistant.completed") completion = event;
       else applyAgentEvent(run, event);
     }
+    await repositoryBridge?.close();
+    repositoryBridge = undefined;
     await lease.dispose();
     lease = undefined;
     if (completion && !run.cancelRequested) applyAgentEvent(run, completion);
@@ -161,7 +217,11 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
   } finally {
     activeAdapters.delete(run.id);
     try {
-      await lease?.dispose();
+      try {
+        await repositoryBridge?.close();
+      } finally {
+        await lease?.dispose();
+      }
     } catch (error) {
       if (!run.cancelRequested) {
         run.status = "failed";
@@ -387,6 +447,7 @@ const shutdown = (): void => {
   )
     .then(() => Promise.allSettled(executions.values()))
     .then(() => searchCollector?.close())
+    .then(() => chatSearchCollector?.close())
     .then(() => runtime.dispose())
     .then(() => process.exit(0));
   setTimeout(() => process.exit(1), 5_000).unref();

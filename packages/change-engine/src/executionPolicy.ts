@@ -1,11 +1,12 @@
 /**
  * @file packages/change-engine/src/executionPolicy.ts
- * @version 1.1.1
- * @date 2026-09-15
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Ограничивает Code Lane разрешёнными путями и проверками, отделяя исполнение от предыдущего планирования.
  */
 
-import { REPOSITORY_SEARCH_INSTRUCTIONS } from "./repositorySearchPolicy";
+import { buildRepositorySearchInstructions } from "./repositorySearchPolicy";
+import type { CodexRepositorySearchSettings } from "@realize/ai-contracts";
 
 const PROTECTED_PATH_PREFIXES = [
   ".ai/",
@@ -116,6 +117,7 @@ export const buildCodeExecutionDeveloperInstructions = (input: {
   baseCommit: string;
   changeRequestID: string;
   checks: string[];
+  search?: CodexRepositorySearchSettings;
 }): string =>
   [
     "You are the isolated Realize E-Commerce implementation worker.",
@@ -128,10 +130,10 @@ export const buildCodeExecutionDeveloperInstructions = (input: {
     `Writable scope (exact files or explicit directory scopes): ${JSON.stringify(input.affectedPaths)}.`,
     `Checks owned by the orchestrator after your turn: ${JSON.stringify(input.checks)}.`,
     "Never edit a path outside the writable scope, even for formatting or generated artifacts.",
-    "Never access MCP, web/network services, credentials, environment files, databases, Git remotes, or other worktrees.",
+    "The only permitted MCP server is the run-owned realize_repository reader for bounded discovery. Never access other MCP servers, web/network services, credentials, environment files, databases, Git remotes, or other worktrees.",
     "Do not install packages, change dependencies, commit, push, deploy, run migrations, or start long-lived services.",
     "Follow AGENTS.md and the active .ai/.codex instructions already present in this worktree.",
-    REPOSITORY_SEARCH_INSTRUCTIONS,
+    buildRepositorySearchInstructions(input.search),
     "If the approved scope is insufficient, make no out-of-scope change and report the blocker.",
     "End with a concise summary of modified paths and unresolved blockers.",
   ].join("\n");

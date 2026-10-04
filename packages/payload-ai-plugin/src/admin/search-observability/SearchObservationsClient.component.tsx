@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/SearchObservationsClient.component.tsx
- * @version 1.3.0
+ * @version 1.4.0
  * @date 2026-09-30
  * @description Показывает автоматически поступающие замеры, фильтры и действующие пределы поиска.
  */
@@ -18,9 +18,12 @@ import { useSearchObservations } from "./useSearchObservations.hook";
 import { SearchObservationDetails } from "./SearchObservationDetails.component";
 import { SearchObservationManagement } from "./SearchObservationManagement.component";
 import { SearchObservationAnalytics } from "./SearchObservationAnalytics.component";
+import { SearchQualityHistoryPanel } from "./SearchQualityHistory.component";
+import { SearchAggregateHistoryPanel } from "./SearchAggregateHistory.component";
 import {
   searchOutcomeLabels,
   searchOperationLabels,
+  searchConsumerLabels,
 } from "./searchObservationPresentation.config";
 import styles from "./SearchObservations.module.css";
 
@@ -49,10 +52,10 @@ export function SearchObservationsClient({
           </UiButton>
         </header>
         <UiNotice>
-          Замеры поиска через agent-search и managed MCP поступают
-          автоматически. Тексты запросов, пути и найденный код не сохраняются.
-          Прямые вызовы rg и другие внешние инструменты в эту историю не
-          попадают.
+          Замеры поиска чата Admin, исполнителя, reviewer, agent-search и
+          managed MCP поступают автоматически. Тексты запросов, пути и найденный
+          код не сохраняются. Прямые вызовы rg и другие внешние инструменты в
+          эту историю не попадают.
         </UiNotice>
         <p className={styles.muted}>
           {history.hasPrevious
@@ -75,6 +78,22 @@ export function SearchObservationsClient({
                 <option value="">Все источники</option>
                 <option value="mcp">MCP</option>
                 <option value="cli">CLI</option>
+              </UiSelect>
+            </label>
+            <label>
+              Потребитель
+              <UiSelect
+                value={history.filters.consumer}
+                onChange={(event) =>
+                  history.filter("consumer", event.target.value)
+                }
+              >
+                <option value="">Все потребители</option>
+                {Object.entries(searchConsumerLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </UiSelect>
             </label>
             <label>
@@ -154,11 +173,19 @@ export function SearchObservationsClient({
           ) : null}
           {history.loading ? <p role="status">Загружаем диагностику…</p> : null}
           {data ? (
+            <SearchObservationAnalytics
+              analytics={data.analytics}
+              retentionDays={data.policy.retentionDays}
+            />
+          ) : null}
+          <SearchQualityHistoryPanel
+            quality={data?.analytics.quality}
+            apiURL={apiURL}
+            onChange={history.refresh}
+          />
+          {data ? (
             <>
-              <SearchObservationAnalytics
-                analytics={data.analytics}
-                retentionDays={data.policy.retentionDays}
-              />
+              <SearchAggregateHistoryPanel history={data.analytics.history} />
               <h2 className={styles.historyHeading}>История запросов</h2>
               <div className={styles.filters}>
                 <label>
@@ -216,7 +243,7 @@ export function SearchObservationsClient({
               </dl>
               <p className={styles.muted}>
                 Фильтры результата и длительности применяются только к истории и
-                её сводке. График и эффективность учитывают все исходы. При
+                её сводке. График и полнота выполнения учитывают все исходы. При
                 потере отдельных замеров число событий может быть меньше числа
                 вызовов. Хранение: {data.policy.retentionDays} дней, максимум{" "}
                 {data.policy.capacity.toLocaleString("ru-RU")} событий; очередь

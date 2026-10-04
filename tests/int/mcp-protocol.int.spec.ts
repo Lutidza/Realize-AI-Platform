@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-protocol.int.spec.ts
- * @version 1.2.0
- * @date 2026-09-26
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Проверяет обе protocol eras настоящими SDK clients и Git на одноразовом checkout.
  */
 // @vitest-environment node
@@ -239,7 +239,7 @@ describe("MCP: loopback HTTP и read-only Git", () => {
     ).toBe(413);
     expect(await (await fetch(`${running.origin}/health`)).json()).toEqual({
       status: "ok",
-      version: "1.2.0",
+      version: "1.3.0",
     });
   });
   it("отзыв ключа закрывает следующий вызов после discovery", async () => {

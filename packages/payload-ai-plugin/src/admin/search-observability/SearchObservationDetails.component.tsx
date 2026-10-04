@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/SearchObservationDetails.component.tsx
- * @version 1.0.1
- * @date 2026-09-27
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Показывает измерения и фактически использованные ограничения одного запроса.
  */
 import type { SearchObservationDetailsProps } from "./SearchObservations.types";
 import {
   searchOutcomeLabels,
   searchReasonLabels,
+  searchConsumerLabels,
 } from "./searchObservationPresentation.config";
 import styles from "./SearchObservations.module.css";
 export function SearchObservationDetails({
@@ -28,6 +29,27 @@ export function SearchObservationDetails({
         </span>
       </summary>
       <dl className={styles.metrics}>
+        <div>
+          <dt>Потребитель / инструмент</dt>
+          <dd>
+            {event.consumer
+              ? searchConsumerLabels[event.consumer]
+              : "Не измерено"}{" "}
+            / {event.tool ?? event.operation}
+          </dd>
+        </div>
+        <div>
+          <dt>Run</dt>
+          <dd>{event.runID ?? "Не измерено"}</dd>
+        </div>
+        <div>
+          <dt>Версия поискового кода</dt>
+          <dd>{event.sourceVersion ?? "Не измерено"}</dd>
+        </div>
+        <div>
+          <dt>Установленная сборка</dt>
+          <dd>{event.installedBuildID ?? "Не измерено"}</dd>
+        </div>
         <div>
           <dt>Идентификатор запроса</dt>
           <dd>{event.eventID}</dd>

@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/CodexAccountClient.adapter.ts
- * @version 1.1.1
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Выполняет официальный протокол авторизации в отдельном временном профиле Codex.
  */
 
@@ -24,6 +24,7 @@ import { CodexBrowserLoginAdapter } from "./CodexBrowserLogin.adapter";
 import { CodexLoginError } from "./CodexLogin.error";
 import { classifyCodexLoginFailure } from "./classifyCodexLoginFailure.util";
 import { JsonLineRPCClient } from "./JsonLineRpcClient.adapter";
+import { parseCodexModelPage, type CodexModelDTO } from "@realize/ai-contracts";
 
 export { CodexLoginError } from "./CodexLogin.error";
 
@@ -184,6 +185,30 @@ export class CodexAccountClient {
 
   async checkAccountAccess(): Promise<void> {
     await this.client.request("account/rateLimits/read");
+  }
+
+  /** Использует настоящий RPC каталог; ограничивает пагинацию и всегда завершается владельцем lease. */
+  async listModels(): Promise<CodexModelDTO[]> {
+    const models = new Map<string, CodexModelDTO>();
+    const seen = new Set<string>();
+    let cursor: string | undefined;
+    for (let page = 0; page < 4; page++) {
+      const result = parseCodexModelPage(
+        await this.client.request("model/list", {
+          limit: 100,
+          includeHidden: false,
+          ...(cursor ? { cursor } : {}),
+        }),
+      );
+      for (const model of result.models) models.set(model.model, model);
+      if (!result.nextCursor) return [...models.values()];
+      if (seen.has(result.nextCursor)) break;
+      cursor = result.nextCursor;
+      seen.add(cursor);
+    }
+    throw new Error(
+      "Каталог моделей не удалось получить полностью. Повторите позже.",
+    );
   }
 
   /** Возвращает секрет только серверному vault; запрещено передавать результат в DTO. */

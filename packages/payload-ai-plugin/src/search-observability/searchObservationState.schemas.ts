@@ -1,10 +1,12 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/searchObservationState.schemas.ts
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Ограничивает persistent policy, runtime snapshots и журнал операций диагностики.
  */
 import { z } from "zod";
+import { searchQualityRunSchema } from "@realize/ai-contracts";
+import { searchAggregateHistorySchema } from "./searchAggregateHistory.schemas";
 import {
   searchObservationSettingsSchema,
   SEARCH_OBSERVATION_MANAGEMENT_LIMITS as limits,
@@ -41,6 +43,13 @@ const action = z.strictObject({
 });
 
 export const searchObservationControlStateSchema = z.strictObject({
+  qualityClearedBefore: instant.nullable().default(null),
+  aggregateHistory: searchAggregateHistorySchema.default({
+    initialized: false,
+    availableFrom: null,
+    days: [],
+  }),
+  qualityRuns: z.array(searchQualityRunSchema).max(64).default([]),
   revision,
   settings: searchObservationSettingsSchema,
   clearedBefore: instant.nullable(),

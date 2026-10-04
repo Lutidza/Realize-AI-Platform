@@ -1,11 +1,29 @@
 /**
  * @file .ai/tools/agent-search/acceptance/searchAcceptance.config.mjs
- * @version 1.0.0
- * @date 2026-09-29
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Задаёт обязательные наборы приёмки поиска и пределы её процессов.
  * @see documentation/architecture/repository-search.md
  */
 export const SEARCH_ACCEPTANCE_SUITES = Object.freeze({
+  consumers: {
+    minimum: 80,
+    files: [
+      "tests/int/repositoryChatTools.int.spec.ts",
+      "tests/int/repositoryMcpBridge.int.spec.ts",
+      "tests/int/closeNativeSearchThreads.int.spec.ts",
+      "tests/int/codex-runtime-consumers.int.spec.ts",
+      "tests/int/codexSearchSettings.int.spec.ts",
+      "tests/int/CodexAgentSettingsUI.int.spec.ts",
+      "tests/int/codexReadTools.int.spec.ts",
+      "tests/int/createChatMessage.service.int.spec.ts",
+      "tests/int/workflowSegments.int.spec.ts",
+      "tests/int/codex-integration-api.int.spec.ts",
+      "tests/int/search-quality.int.spec.ts",
+      "tests/int/productionBuild.int.spec.ts",
+      "tests/int/installed-search-acceptance.int.spec.ts",
+    ],
+  },
   repository: {
     minimum: 62,
     files: [

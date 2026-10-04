@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/mcp/McpRuntime.service.ts
- * @version 1.2.0
- * @date 2026-09-26
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Применяет managed snapshots и проверяет свежие grants перед каждым MCP dispatch.
  */
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
@@ -279,6 +279,14 @@ export class McpRuntime {
       ) as McpLimits;
       return {
         principalID: String(client.principalID),
+        consumer:
+          configuration.chatgptTunnel &&
+          configuration.chatgptTunnel.clientID === client.clientID &&
+          applied.configuration.chatgptTunnel?.tunnelID ===
+            configuration.chatgptTunnel.tunnelID &&
+          applied.configuration.chatgptTunnel?.clientID === client.clientID
+            ? ("chatgpt" as const)
+            : ("mcp" as const),
         installationID: "single",
         repositoryRead:
           grants.repositoryRead === true &&

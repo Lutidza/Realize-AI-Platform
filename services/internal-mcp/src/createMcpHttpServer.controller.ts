@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/createMcpHttpServer.controller.ts
- * @version 1.2.0
- * @date 2026-09-26
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Обслуживает loopback HTTP с Host/Origin/auth/body guards перед официальным SDK.
  */
 import { MCP_WORKSHOP_REQUEST_BYTES } from "@realize/ai-contracts";
@@ -13,6 +13,7 @@ import { McpCallBudget } from "./McpCallBudget.service";
 import { McpError } from "./Mcp.error";
 import { createMcpRegistry } from "./createMcpRegistry.config";
 import type { McpRuntimeOptions } from "./McpRuntime.types";
+import { MCP_SERVER_VERSION } from "./mcpToolCatalog.config";
 
 /** port=0 используется только programmatic тестами; CLI разрешает фиксированный непривилегированный port. */
 export async function createMcpHttpServer(options: McpRuntimeOptions) {
@@ -51,7 +52,14 @@ export async function createMcpHttpServer(options: McpRuntimeOptions) {
           return fail(403, "Origin is not allowed.");
         if (req.method === "GET" && req.url === "/health") {
           res.writeHead(200, { "content-type": "application/json" });
-          res.end('{"status":"ok","version":"1.2.0"}');
+          res.end(
+            JSON.stringify({
+              status: "ok",
+              version: MCP_SERVER_VERSION,
+              sourceVersion: options.sourceVersion,
+              installedBuildID: options.installedBuildID,
+            }),
+          );
           return;
         }
         if (req.url !== "/mcp") return fail(404, "Not found.");

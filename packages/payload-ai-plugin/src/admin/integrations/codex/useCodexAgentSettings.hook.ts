@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/integrations/codex/useCodexAgentSettings.hook.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Сохраняет операционные настройки и повторяет неподтверждённую запись с тем же ключом.
  */
 
@@ -11,8 +11,11 @@ import {
   CODEX_AGENT_SETTINGS_DEFAULTS,
   parseCodexAgentSettings,
 } from "@realize/ai-contracts";
-import type { CodexAgentSettingsDTO } from "@realize/ai-contracts";
-import { useRef, useState } from "react";
+import type {
+  CodexAgentSettingsDTO,
+  CodexModelCatalogDTO,
+} from "@realize/ai-contracts";
+import { useEffect, useRef, useState } from "react";
 import { RealizeAIRequestError } from "../../RealizeAIRequest.error";
 import { loadIntegrationCatalog } from "../integrationAPI";
 import { codexIntegrationAPI } from "./codexIntegrationAPI.adapter";
@@ -42,6 +45,11 @@ export const useCodexAgentSettings = ({
   const [hasRetry, setRetry] = useState(false);
   const [error, setError] = useState<string>();
   const [hasSaved, setSaved] = useState(false);
+  const [modelCatalog, setModelCatalog] = useState<CodexModelCatalogDTO>();
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsError, setModelsError] = useState<string>();
+  const modelRequest = useRef<AbortController | undefined>(undefined);
+  useEffect(() => () => modelRequest.current?.abort(), []);
   const inFlight = useRef(false);
   const pending = useRef<CodexAgentSettingsRequest | undefined>(undefined);
   const isDirty =
@@ -55,7 +63,7 @@ export const useCodexAgentSettings = ({
       draft.revision !== (connection?.revision ?? 0))
   )
     setDraft({ ...saved, revision: connection?.revision ?? 0, sourceKey });
-  const isDisabled = disabled || isSaving || hasRetry;
+  const isDisabled = disabled || isSaving || hasRetry || modelsLoading;
   const isConflicted =
     isDirty &&
     (draft.sourceKey !== sourceKey ||
@@ -71,7 +79,13 @@ export const useCodexAgentSettings = ({
     setSaved(false);
   };
   const save = async () => {
-    if (disabled || inFlight.current || (!isDirty && !pending.current)) return;
+    if (
+      disabled ||
+      modelsLoading ||
+      inFlight.current ||
+      (!isDirty && !pending.current)
+    )
+      return;
     let request = pending.current;
     if (!request) {
       try {
@@ -145,6 +159,35 @@ export const useCodexAgentSettings = ({
     }
   };
   return {
+    searchModels:
+      modelCatalog?.revision === (connection?.revision ?? 0)
+        ? modelCatalog.models.filter(
+            (model) => model.multiAgentVersion !== "disabled",
+          )
+        : undefined,
+    modelCatalog:
+      modelCatalog?.revision === (connection?.revision ?? 0)
+        ? modelCatalog
+        : undefined,
+    modelsLoading,
+    modelsError,
+    loadModels: async () => {
+      if (isDisabled || modelRequest.current) return;
+      const controller = new AbortController();
+      modelRequest.current = controller;
+      setModelsLoading(true);
+      setModelsError(undefined);
+      try {
+        setModelCatalog(await codexIntegrationAPI.models(controller.signal));
+      } catch {
+        setModelsError(
+          "Каталог недоступен. Проверьте подключение Codex и повторите загрузку.",
+        );
+      } finally {
+        modelRequest.current = undefined;
+        setModelsLoading(false);
+      }
+    },
     isBlocked: disabled,
     settings: draft.settings,
     enabled: draft.enabled,

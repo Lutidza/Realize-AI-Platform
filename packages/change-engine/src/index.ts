@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 1.8.0
- * @date 2026-09-25
+ * @version 1.9.0
+ * @date 2026-09-30
  * @description Экспортирует Change Engine policies, registries и configuration compiler.
  */
 
@@ -96,7 +96,10 @@ export * from "./capabilityRegistry";
 export * from "./executionCapability";
 export * from "./executionPolicy";
 export * from "./previewPolicy";
-export { buildRepositorySearchTaskPrompt } from "./repositorySearchPolicy";
+export {
+  buildRepositorySearchTaskPrompt,
+  buildRepositorySearchInstructions,
+} from "./repositorySearchPolicy";
 export * from "./releasePolicy";
 export * from "./sourcePromotionPolicy";
 export * from "./systemCapabilityRegistry";

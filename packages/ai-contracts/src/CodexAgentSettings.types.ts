@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/CodexAgentSettings.types.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Задаёт безопасные настройки работы административного агента без инфраструктуры и секретов.
  * @see documentation/architecture/codex-integration.md
  */
@@ -10,6 +10,7 @@
 export type CodexAgentSettingsDTO = {
   model: string;
   reviewModel: string;
+  search: CodexRepositorySearchSettings;
   execution: {
     enabled: boolean;
     capabilityTTLSeconds: number;
@@ -19,6 +20,17 @@ export type CodexAgentSettingsDTO = {
   release: { enabled: boolean; ttlSeconds: number };
   sourcePromotion: { enabled: boolean };
 };
+
+/** Модель используется только native child; область чтения задаёт сервер, а не настройка. */
+export type CodexRepositorySearchSettings = {
+  enabled: boolean;
+  mode: "direct" | "subagent";
+  model: string;
+  developerInstructions: boolean;
+};
+
+/** Закрытый server-to-server допуск chat actor; browser не задаёт его в сообщении. */
+export type RepositoryChatAccess = { developerInstructions: boolean };
 
 /** enabled изменяет единственный переключатель подключения вместе с полной версией настроек. */
 export type SaveCodexAgentSettingsInput = {

@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/parseCodexAgentSettings.validator.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Проверяет полную замену параметров агента и ограниченные сроки действия операций.
  * @see documentation/architecture/codex-integration.md
  */
@@ -54,6 +54,7 @@ export const parseCodexAgentSettings = (
   const input = objectOf(value, [
     "model",
     "reviewModel",
+    "search",
     "execution",
     "preview",
     "release",
@@ -75,9 +76,34 @@ export const parseCodexAgentSettings = (
   const preview = objectOf(input.preview, ["enabled", "ttlSeconds"]);
   const release = objectOf(input.release, ["enabled", "ttlSeconds"]);
   const sourcePromotion = objectOf(input.sourcePromotion, ["enabled"]);
+  const search = objectOf(input.search, [
+    "enabled",
+    "mode",
+    "model",
+    "developerInstructions",
+  ]);
+  if (
+    !validModel(search.model) ||
+    !["direct", "subagent"].includes(String(search.mode))
+  )
+    throw new ContractValidationError("Некорректная модель или режим поиска.");
+  if (
+    search.enabled === true &&
+    search.mode === "subagent" &&
+    !search.model.trim()
+  )
+    throw new ContractValidationError(
+      "Выберите модель поискового субагента из каталога Codex.",
+    );
   return {
     model: input.model.trim(),
     reviewModel: input.reviewModel.trim(),
+    search: {
+      enabled: booleanOf(search.enabled),
+      mode: search.mode as "direct" | "subagent",
+      model: search.model.trim(),
+      developerInstructions: booleanOf(search.developerInstructions),
+    },
     execution: {
       enabled: booleanOf(execution.enabled),
       capabilityTTLSeconds: ttlOf(execution.capabilityTTLSeconds, 60),

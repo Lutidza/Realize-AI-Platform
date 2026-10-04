@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/benchmark/repositoryNavigation.corpus.mjs
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.1.0
+ * @date 2026-09-30
  * @description Задаёт независимые anchors 24 реальных задач навигации по репозиторию.
  */
 const observability = "packages/payload-ai-plugin/src/search-observability";
@@ -153,7 +153,7 @@ export const repositoryNavigationCorpus = [
     "searchRepository",
     `${mcp}/executeMcpTool.service.ts`,
     `${mcp}/executeMcpTool.service.ts`,
-    "return searchRepository(context, mcpToolInputs.repo_search.parse(input));",
+    "const data = await searchRepository(",
   ],
   [
     "store-mapper-import",

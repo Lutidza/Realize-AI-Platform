@@ -1,11 +1,12 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.10.0
+ * @version 2.11.0
  * @date 2026-09-30
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
 export * from "./agent";
+export type { InstalledSearchBuildDTO } from "./InstalledSearchBuild.types";
 export { mcpToolInputs } from "./mcpToolInputs.config";
 export type * from "./DesignWorkshop.types";
 export type * from "./DesignWorkspace.types";
@@ -168,6 +169,8 @@ export * from "./parseProjectFileReference.validator";
 export * from "./normalizeChatAttachmentMime.validator";
 
 export * from "./CodexAgentSettings.types";
+export type * from "./CodexModelCatalog.types";
+export { parseCodexModelPage } from "./parseCodexModels.validator";
 export * from "./codexAgentSettings.config";
 export * from "./parseCodexAgentSettings.validator";
 
@@ -239,3 +242,5 @@ export * from "./searchObservationManagement.constants";
 export type * from "./SearchObservationAnalytics.types";
 export * from "./searchObservationManagement.schemas";
 export type * from "./SearchObservationManagement.types";
+export * from "./searchQuality.schemas";
+export type * from "./SearchQuality.types";

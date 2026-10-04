@@ -1,12 +1,13 @@
 /**
  * @file services/internal-mcp/src/mcpToolCatalog.config.ts
- * @version 1.3.0
- * @date 2026-09-28
+ * @version 1.4.0
+ * @date 2026-09-30
  * @description Задаёт единый каталог регистраций, read grants и зависимостей MCP.
  */
 import { MCP_WORKSHOP_POLICY } from "@realize/ai-contracts";
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
 import type { AiCapabilitiesDto } from "../../../packages/ai-contracts/src/AiInstructions.types";
+export const MCP_SERVER_VERSION = "1.3.0";
 
 export const mcpToolCatalog: Record<
   McpToolName,

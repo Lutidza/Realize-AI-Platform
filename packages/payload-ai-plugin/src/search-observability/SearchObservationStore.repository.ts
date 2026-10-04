@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/SearchObservationStore.repository.ts
- * @version 1.3.0
+ * @version 1.4.0
  * @date 2026-09-30
  * @description Хранит диагностику по действующей политике, сохраняя dedupe и границу очищенной истории.
  * @see documentation/architecture/repository-search.md
@@ -21,6 +21,12 @@ import type {
 import { SearchObservationControl } from "./SearchObservationControl.repository";
 import { withSearchObservationTransaction } from "./withSearchObservationTransaction.adapter";
 import { readSearchObservationAnalytics } from "./readSearchObservationAnalytics.repository";
+import {
+  initializeSearchAggregateHistory,
+  retainSearchAggregateHistory,
+  mapSearchAggregateHistory,
+} from "./retainSearchAggregateHistory.service";
+import { mapSearchQualityHistory } from "./mapSearchQualityHistory.mapper";
 
 export class SearchObservationStore {
   readonly control: SearchObservationControl;
@@ -51,6 +57,7 @@ export class SearchObservationStore {
       );
     return withSearchObservationTransaction(this.database, async (client) => {
       const state = await this.control.load(client);
+      await initializeSearchAggregateHistory(client, state);
       const cutoff = Math.max(
         Date.now() - state.settings.retentionDays * 86400000,
         state.clearedBefore ? Date.parse(state.clearedBefore) : 0,
@@ -64,7 +71,7 @@ export class SearchObservationStore {
         (storage_key,origin,source,outcome,observed_at,duration_ms,event,created_at,updated_at)
         SELECT $2 || ':' || (e->>'eventID'),$2,e->>'source',e->>'outcome',
           (e->>'observedAt')::timestamptz,(e->>'durationMs')::numeric,e,now(),now()
-        FROM jsonb_array_elements($1::jsonb) e ON CONFLICT (storage_key) DO NOTHING RETURNING id`,
+        FROM jsonb_array_elements($1::jsonb) e ON CONFLICT (storage_key) DO NOTHING RETURNING id,event`,
         [JSON.stringify(values), origin],
       );
       const conflict = await client.query(
@@ -79,6 +86,10 @@ export class SearchObservationStore {
           "Этот eventID уже связан с другой диагностикой.",
           409,
         );
+      retainSearchAggregateHistory(
+        state,
+        inserted.rows.map((row) => searchObservationSchema.parse(row.event)),
+      );
       await this.control.prune(client, state, "automatic");
       await this.control.persist(client, state);
       return inserted.rowCount ?? 0;
@@ -103,6 +114,8 @@ export class SearchObservationStore {
           now,
           oldest,
         );
+        analytics.history = mapSearchAggregateHistory(state);
+        analytics.quality = mapSearchQualityHistory(state.qualityRuns);
         const params: unknown[] = [new Date(oldest)];
         const conditions = ["observed_at >= $1"];
         for (const [column, value] of [
@@ -117,6 +130,10 @@ export class SearchObservationStore {
         if (query.operation) {
           params.push(query.operation);
           conditions.push(`event->>'operation' = $${params.length}`);
+        }
+        if (query.consumer) {
+          params.push(query.consumer);
+          conditions.push(`event->>'consumer' = $${params.length}`);
         }
         if (query.slow) {
           params.push(SEARCH_OBSERVATION_POLICY.slowMs);

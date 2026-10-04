@@ -356,13 +356,13 @@ target запускается при загрузке системы. Компь
 
 Unit-файлы принадлежат оператору и находятся в `~/.config/systemd/user/`:
 
-| Служба | Процесс |
-| --- | --- |
-| `realize-postgres.service` | Существующий PostgreSQL 18 на `127.0.0.1:55432` |
-| `realize-web.service` | Production standalone Next.js на `127.0.0.1:3000` |
-| `realize-control-plane.service` | Локальный AI control plane на `127.0.0.1:3100` |
-| `realize-execution.service` | Штатный AI execution worker |
-| `realize-media.service` | Штатный Payload Media worker |
+| Служба                          | Процесс                                           |
+| ------------------------------- | ------------------------------------------------- |
+| `realize-postgres.service`      | Существующий PostgreSQL 18 на `127.0.0.1:55432`   |
+| `realize-web.service`           | Production standalone Next.js на `127.0.0.1:3000` |
+| `realize-control-plane.service` | Локальный AI control plane на `127.0.0.1:3100`    |
+| `realize-execution.service`     | Штатный AI execution worker                       |
+| `realize-media.service`         | Штатный Payload Media worker                      |
 
 Службы автоматически перезапускаются после завершения процесса. Явный
 `systemctl stop` оставляет их остановленными. Execution worker при остановке
@@ -394,7 +394,7 @@ Preload загружает штатные `.env.production.local`, `.env.local`,
 `REALIZE_AI_RUNTIME_MODE=local-development` сохраняет доверенный локальный
 AI transport; эта настройка не выбирает dev-сборку Next.
 
-Web использует `.next/standalone/server.js`. Перед его запуском production build
+Web запускает подготовленный standalone bundle внутри `.next`. Перед его запуском production build
 комплектуется `.next/static` и `public` по существующему
 [Dockerfile](../../Dockerfile). `.next/standalone/public/media` ссылается на
 постоянный `public/media` исходного проекта. Unit явно задаёт абсолютные
@@ -412,6 +412,55 @@ Web использует `.next/standalone/server.js`. Перед его зап�
 standalone assets и перезапуск служб. Выполняйте это после завершения активных
 заданий, остановив web и workers и оставив PostgreSQL доступным для сборки.
 Одновременный `npm run dev` на тех же портах не запускайте.
+
+Для изменений поиска build owner создаёт `.next/realize-search-build.json`
+после typegen, TypeScript и Next build с неизменными search sources.
+Manifest также копируется в standalone .next. Optional searchBuild в
+/api/health/live подтверждает bundle реально работающего web-процесса. Это
+generated manifest: вручную его не меняют. При переносе подготовленной сборки
+сохраните его рядом с её BUILD_ID. Статус установленной версии требует
+совпадения manifest, BUILD_ID и текущего source hash. Меняйте web/control plane/
+execution/MCP согласованно: старые parsers JSONB state не должны работать
+одновременно с новой записью aggregate/quality полей. Сохраняйте прежний bundle
+для rollback и проверяйте отсутствие активных jobs перед переключением.
+
+Для отдельного web bundle внутри `.next` подтвердите новый `/api/health/live`,
+затем используйте `activateInstalledSearchBinding` из CLI owner: он проверяет
+actual source/build и создаёт `.next/realize-search-active.json` атомарно.
+Generated pointer позволяет CLI и службам читать receipt активного bundle,
+сохраняя прежнюю сборку. Ручная запись manifest, pointer или BUILD_ID не допускается.
+Production source snapshot создаётся с `readinessMarker=false`; fixture API
+`/api/search-acceptance` в установленную систему не переносится.
+
+1 октября 2026 года локальный web переключён на bundle
+`.next/search-runtime-43b7`; actual health подтвердил BUILD_ID
+`HU811fKNC2LyfWTuDT4AQ`, после чего создан active pointer. Новый override
+`realize-web.service.d/60-search-production-integration.conf` задаёт только
+launcher; прежний `50-search-observability-release.conf` и bundle сохранены.
+Control plane, execution и оба MCP listeners перезапущены согласованно;
+PostgreSQL, Media и отдельные workshop fixtures продолжают прежнюю работу.
+Managed discovery подтверждает 9 инструментов; SDK search/read и доставка
+событий подтверждены на этом build. Реальный пользовательский запрос ChatGPT
+пока не подтверждён, поэтому полная installed acceptance остаётся неполной.
+
+Для этой установки deployment copier сохранил generated JS/manifests побайтно
+и пропустил только tracing-копии внешних Node/Codex launcher каталогов
+`home/gio/.local` и `home/gio/.codex`. Исходные абсолютные platform paths и
+корневые `node_modules` должны оставаться доступными на этой машине. Это
+условие переноса локального bundle; проверка health не доказывает его
+переносимость на другую машину. Media нового runtime ссылается на постоянный
+`public/media`. Disposable source snapshot удалён после проверки bundle,
+health и отсутствия зависимостей symlinks от временного каталога.
+
+При недостатке RAM тяжёлые этапы запускайте по одному под жёстким лимитом
+systemd/cgroup; `REALIZE_BUILD_LOW_MEMORY=true` использует один Next page/static
+worker. Heap не ограничивает суммарный RSS.
+Low-memory режим отключает webpack cache и ограничивает heap Next/его дочерних
+workers до 1024 MiB после успешного полного TypeScript. Это уменьшает cache
+overhead, но может увеличить время сборки; outer cgroup остаётся обязательным.
+Candidate/fixture snapshot может
+находиться в собственном `/tmp`; проверяйте его место и влияние tmpfs на память.
+Успешные fixture checks не заменяют `check:search` для установленной версии.
 
 Для администратора MCP доступен через «Настройки → MCP-серверы» и прямой адрес
 `/admin/mcp-servers`. Если пункт отсутствует, а адрес возвращает Not Found,

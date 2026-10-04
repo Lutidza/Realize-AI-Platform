@@ -1,8 +1,8 @@
 /**
  * @file .ai/tools/agent-search/acceptance/runSearchAcceptance.controller.mjs
- * @version 1.0.0
- * @date 2026-09-29
- * @description Выполняет полную приёмку поиска в собственных процессах и БД; сохраняет отчёты и закрывает fixture инфраструктуру.
+ * @version 1.1.0
+ * @date 2026-09-30
+ * @description Проверяет installed evidence и изолированные сценарии последовательно; без обязательного потребителя full acceptance остаётся incomplete.
  * @see documentation/architecture/repository-search.md
  */
 import {
@@ -17,6 +17,9 @@ import {
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomBytes } from "node:crypto";
+import { Pool } from "pg";
+import nextEnvironment from "@next/env";
+import { readInstalledSearchAcceptance } from "./readInstalledSearchAcceptance.adapter.mjs";
 import { SearchAcceptanceProcess } from "./SearchAcceptanceProcess.adapter.mjs";
 import { createSearchAcceptanceDatabase } from "./createSearchAcceptanceDatabase.adapter.mjs";
 import { runSearchAcceptanceBrowser } from "./runSearchAcceptanceBrowser.adapter.mjs";
@@ -32,9 +35,10 @@ import {
   SEARCH_ACCEPTANCE_SUITES as suites,
 } from "./searchAcceptance.config.mjs";
 
-if (process.argv.length > 2)
+const isolated = process.argv.length === 3 && process.argv[2] === "--isolated";
+if (process.argv.length > 2 && !isolated)
   throw new Error(
-    "npm run check:search запускает полную приёмку без частичных режимов.",
+    "check:search проверяет installed consumers; --isolated запускает только явно помеченную fixture проверку.",
   );
 process.umask(0o077);
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -63,6 +67,7 @@ processes.secrets.add(env.PAYLOAD_SECRET);
 processes.secrets.add(env.REALIZE_INTEGRATIONS_ENCRYPTION_KEY);
 const report = {
   version: 1,
+  scope: isolated ? "isolated" : "installed-and-isolated",
   outcome: "failed",
   startedAt: new Date().toISOString(),
   phases: {},
@@ -101,6 +106,9 @@ const testSuite = async (name, fixtureEnv = {}) => {
         "run",
         "--config",
         "vitest.config.mts",
+        "--maxWorkers=1",
+        "--no-file-parallelism",
+        "--pool=forks",
         ...suites[name].files,
         "--reporter=json",
         `--outputFile=${join(artifacts, "reports", `${name}.json`)}`,
@@ -131,6 +139,47 @@ const migrate = async (name, kind) => {
 };
 
 try {
+  if (!isolated) {
+    // Только read-only диагностика рабочей БД. Секреты не наследуются fixture процессами.
+    nextEnvironment.loadEnvConfig(root, false, {
+      info: () => undefined,
+      error: () => undefined,
+    });
+    const installed = await readInstalledSearchAcceptance(
+      root,
+      process.env.SEARCH_ACCEPTANCE_INSTALLED_EVIDENCE,
+      async (ids) => {
+        const pool = new Pool({
+          connectionString:
+            process.env.DATABASE_URI ?? process.env.DATABASE_URL,
+          max: 1,
+          connectionTimeoutMillis: 3000,
+          query_timeout: 5000,
+          options:
+            "-c default_transaction_read_only=on -c statement_timeout=5000",
+        });
+        pool.on("error", () => {});
+        try {
+          return (
+            await pool.query(
+              "SELECT event FROM realize_ai_search_observations WHERE event->>'eventID'=ANY($1::text[]) LIMIT 112",
+              [ids],
+            )
+          ).rows.map((row) => row.event);
+        } finally {
+          await pool.end();
+        }
+      },
+    );
+    await save("installed", installed);
+    report.phases.installed = installed;
+    if (installed.outcome !== "passed") {
+      report.outcome = "incomplete";
+      throw new Error(
+        `Приёмка установленной версии не завершена: ${installed.reason}. Требуются: ${installed.missing.join(", ")}.`,
+      );
+    }
+  }
   await processes.run("runtime", "npm", ["run", "--silent", "verify:runtime"], {
     cwd: root,
   });
@@ -143,12 +192,12 @@ try {
     const output = await processes.run(
       "cli",
       process.execPath,
-      ["--test", "--test-reporter=tap", ...files],
+      ["--test", "--test-concurrency=1", "--test-reporter=tap", ...files],
       { cwd: root },
     );
     return assertNodeReport(output, 90);
   });
-  for (const name of ["repository", "delivery"])
+  for (const name of ["repository", "delivery", "consumers"])
     await phase(name, () => testSuite(name));
   // Benchmark выполняется до БД/Next: их фоновая нагрузка не смешивается с замерами адаптеров.
   for (const [name, file, args] of [
@@ -200,7 +249,7 @@ try {
     }
     return assertPlaywrightReport(await readReport("browser"));
   });
-  report.outcome = "passed";
+  report.outcome = isolated ? "isolated_passed" : "passed";
 } catch (error) {
   report.error = processes.redact(error.message);
   console.error(report.error);
@@ -221,6 +270,7 @@ try {
   }
 }
 console.log(
-  `Приёмка ${report.outcome === "passed" ? "пройдена" : "не пройдена"}: ${join(artifacts, "reports/acceptance.json")}`,
+  `${report.outcome === "isolated_passed" ? "Изолированные проверки пройдены; установленная система и ChatGPT не проверены" : report.outcome === "passed" ? "Приёмка пройдена" : report.outcome === "incomplete" ? "Приёмка не завершена" : "Приёмка не пройдена"}: ${join(artifacts, "reports/acceptance.json")}`,
 );
-if (report.outcome !== "passed") process.exitCode = 1;
+if (!["passed", "isolated_passed"].includes(report.outcome))
+  process.exitCode = 1;

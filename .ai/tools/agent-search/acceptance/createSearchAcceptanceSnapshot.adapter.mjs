@@ -1,16 +1,28 @@
 /**
  * @file .ai/tools/agent-search/acceptance/createSearchAcceptanceSnapshot.adapter.mjs
- * @version 1.0.0
- * @date 2026-09-29
+ * @version 1.3.0
+ * @date 2026-09-30
  * @description Создаёт disposable source snapshot для Next: генерация и cache не затрагивают рабочий checkout.
  * @see documentation/architecture/repository-search.md
  */
-import { cp, lstat, mkdir, symlink, writeFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
+import {
+  cp,
+  lstat,
+  mkdir,
+  realpath,
+  readdir,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
+import { basename, dirname, join, relative } from "node:path";
 import { randomBytes } from "node:crypto";
 
 /** Включены только исходники и необходимые статические assets; .env, runtime, uploads и установленные зависимости не копируются. */
-export async function createSearchAcceptanceSnapshot(root, directory) {
+export async function createSearchAcceptanceSnapshot(
+  root,
+  directory,
+  { readinessMarker = true } = {},
+) {
   const site = join(directory, "site");
   await mkdir(site); // Уже существующий каталог не переиспользуется.
   const excluded = new Set([
@@ -27,6 +39,8 @@ export async function createSearchAcceptanceSnapshot(root, directory) {
     "services",
     "scripts/runtime",
     ".ai/tools/agent-search/src",
+    ".ai/tools/agent-search/bin",
+    ".ai/tools/agent-search/package-lock.json",
     ".ai/tools/git-delivery/src",
     "package.json",
     "package-lock.json",
@@ -59,13 +73,35 @@ export async function createSearchAcceptanceSnapshot(root, directory) {
       },
     });
   }
-  await symlink(join(root, "node_modules"), join(site, "node_modules"), "dir");
+  // Shared сторонние dependencies сохраняются; workspace exports должны вести в snapshot,
+  // иначе tsc/Next одновременно загружают исходные и скопированные @realize/* owners.
+  const dependencies = join(site, "node_modules");
+  await mkdir(dependencies);
+  for (const entry of await readdir(join(root, "node_modules"))) {
+    if (entry === "@realize") continue;
+    await symlink(join(root, "node_modules", entry), join(dependencies, entry));
+  }
+  const workspaceScope = join(dependencies, "@realize");
+  await mkdir(workspaceScope);
+  const canonicalRoot = await realpath(root);
+  for (const entry of await readdir(join(root, "node_modules/@realize"))) {
+    const installed = join(root, "node_modules/@realize", entry);
+    const target = await realpath(installed);
+    const local = relative(canonicalRoot, target);
+    await symlink(
+      local.startsWith("packages/") ? join(site, local) : installed,
+      join(workspaceScope, entry),
+      "dir",
+    );
+  }
   // Shared syntax engine использует собственную установленную TypeScript dependency.
   await symlink(
     join(root, ".ai/tools/agent-search/node_modules"),
     join(site, ".ai/tools/agent-search/node_modules"),
     "dir",
   );
+  // Production candidate использует actual health/build identity и не содержит fixture API.
+  if (!readinessMarker) return { site };
   // Readiness доказывает принадлежность слушателя этому snapshot, даже при гонке за свободный порт.
   const identity = randomBytes(16).toString("hex");
   const marker = join(site, "src/app/(app)/api/search-acceptance/route.ts");

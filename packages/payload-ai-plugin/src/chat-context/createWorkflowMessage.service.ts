@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createWorkflowMessage.service.ts
- * @version 1.1.0
- * @date 2026-09-12
+ * @version 1.2.0
+ * @date 2026-09-30
  * @description Создаёт первый сегмент процесса и его исходное сообщение в одной транзакции.
  */
 import type { CreateMessageInput } from "@realize/ai-contracts";
@@ -94,6 +94,11 @@ export const createWorkflowMessage = async (
     }
   })();
   const context: ChatRunContext = {
+    repositoryAccess: {
+      developerInstructions: Boolean(
+        await options.access.canManageAIConfiguration({ req }),
+      ),
+    },
     attachments: [],
     projectFiles: [],
     webSearch: input.webSearch ?? false,

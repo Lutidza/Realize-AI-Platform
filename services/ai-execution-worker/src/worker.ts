@@ -1,12 +1,18 @@
 /**
  * @file services/ai-execution-worker/src/worker.ts
- * @version 1.4.0
- * @date 2026-09-25
+ * @version 1.5.0
+ * @date 2026-09-30
  * @description Обрабатывает Code Lane и независимую от моделей очередь capture preview Мастерской.
  * @see documentation/specifications/design-workshop.md
  */
 
 import { Pool } from "pg";
+import {
+  SearchObservationStore,
+  SearchObservationCollector,
+} from "@realize/payload-ai-control/server/search-observability";
+import { readSearchSourceVersion } from "../../../.ai/tools/agent-search/src/searchSourceBinding.adapter.mjs";
+import { readInstalledSearchBinding } from "../../../.ai/tools/agent-search/src/installedSearchBinding.adapter.mjs";
 import { config as loadEnvironment } from "dotenv";
 import {
   CodexConnectionService,
@@ -57,6 +63,11 @@ const codex = new CodexConnectionService({
   encryptionKey: config.integrationEncryptionKey,
 });
 const repository = new ExecutionJobRepository(pool);
+const searchObservationStore = new SearchObservationStore({ pool });
+const searchCollector = new SearchObservationCollector(
+  searchObservationStore,
+  (event) => console.warn(JSON.stringify(event)),
+);
 const promotionRepository = new PromotionRepository(pool);
 const releaseRepository = new ReleaseWorkerRepository(pool);
 const sourcePromotionRepository = new SourcePromotionWorkerRepository(pool);
@@ -74,6 +85,21 @@ const wait = async (milliseconds: number): Promise<void> => {
 };
 
 const run = async (): Promise<void> => {
+  const sourceVersion = await readSearchSourceVersion(
+    config.repositoryRoot,
+  ).catch(() => undefined);
+  const installed = await readInstalledSearchBinding(
+    config.repositoryRoot,
+    sourceVersion,
+  );
+  const observeSearch = (
+    event: import("@realize/ai-contracts").SearchObservation,
+  ) =>
+    searchCollector.record({
+      ...event,
+      ...(sourceVersion ? { sourceVersion } : {}),
+      ...(installed ? { installedBuildID: installed.installedBuildID } : {}),
+    });
   await heartbeat.start();
   try {
     workshop = await createDesignPreviewRuntime(pool, config);
@@ -123,7 +149,14 @@ const run = async (): Promise<void> => {
       console.log(
         `[ai-execution-worker] claimed execution=${job.executionKey}; change=${job.changeRequestID}`,
       );
-      await executeClaimedJob({ config, codex, job, repository });
+      await executeClaimedJob({
+        config,
+        codex,
+        job,
+        repository,
+        observeSearch,
+        searchObservationStore,
+      });
       continue;
     }
     const designPreview =
@@ -149,6 +182,8 @@ const run = async (): Promise<void> => {
         codex,
         job: promotion,
         repository: promotionRepository,
+        observeSearch,
+        searchObservationStore,
       });
       continue;
     }
@@ -209,5 +244,6 @@ void run()
   .finally(async () => {
     await heartbeat.finish(process.exitCode === 1);
     await workshop?.close();
+    await searchCollector.close();
     await Promise.all([pool.end(), heartbeatPool.end()]);
   });
