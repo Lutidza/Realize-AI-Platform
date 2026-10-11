@@ -1,6 +1,6 @@
 /**
  * @file src/components/admin/task-manager/TaskManager.types.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-10-11
  * @description Описывает свойства рабочего интерфейса и клиентский транспорт постоянных задач.
  * @see documentation/specifications/task-management-execution.md
@@ -18,12 +18,10 @@ import type {
   TaskProjectDto,
   TaskUpdateInput,
 } from "@realize/payload-task-manager/contracts";
+import type { SystemAdminContext } from "../system-shell/systemAdmin.types";
 
 /** Host передаёт безопасную сессию; право записи повторно проверяет API. */
-export type TaskManagerWorkbenchProps = {
-  initialTheme: "light" | "dark";
-  currentActor: TaskParticipantDto;
-};
+export type TaskManagerWorkbenchProps = SystemAdminContext;
 
 /** Клиент получает только публичные DTO; mutations всегда имеют ключ повторной доставки. */
 export type TaskManagerTransport = {

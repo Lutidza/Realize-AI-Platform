@@ -1,6 +1,6 @@
 /**
  * @file tests/int/task-manager-durable-client.int.spec.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-11
  * @description Проверяет повторную доставку, конфликт draft и подавление устаревших ответов Task Manager.
  * @see documentation/specifications/task-management-execution.md
@@ -202,7 +202,14 @@ describe("Постоянный Task Manager: клиентские границы
           }),
     );
     const { result } = renderHook(() =>
-      useTaskManager({ initialTheme: "light", currentActor: actor }, api),
+      useTaskManager(
+        {
+          initialTheme: "light",
+          themeCookieName: "payload-theme",
+          currentActor: actor,
+        },
+        api,
+      ),
     );
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
     act(() => result.current.setSelectedId(taskId));
@@ -290,7 +297,14 @@ describe("Постоянный Task Manager: клиентские границы
       .mockReturnValueOnce(staleEvents.promise)
       .mockResolvedValue(page([event]));
     const { result } = renderHook(() =>
-      useTaskManager({ initialTheme: "light", currentActor: actor }, api),
+      useTaskManager(
+        {
+          initialTheme: "light",
+          themeCookieName: "payload-theme",
+          currentActor: actor,
+        },
+        api,
+      ),
     );
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
     act(() => result.current.setSelectedId(taskId));

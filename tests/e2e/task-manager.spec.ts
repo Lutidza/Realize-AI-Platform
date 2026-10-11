@@ -1,6 +1,6 @@
 /**
  * @file tests/e2e/task-manager.spec.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-11
  * @description Проверяет реальные постоянные задачи, сохранение черновика при конфликте и мобильный интерфейс в отдельной fixture.
  * @see documentation/specifications/task-management-execution.md
@@ -40,9 +40,18 @@ test.describe("durable Task Manager browser acceptance", () => {
           await page.request.get("/api/task-manager/projects", { headers })
         ).status(),
       ).toBe(401);
-      await page.goto("/system/task-manager");
-      await expect(page).toHaveURL(/\/admin\/login\?/);
-      expect(new URL(page.url()).searchParams.get("redirect")).toBe(
+      // Проверяем ответ защищённого route, не компилируя посторонний Payload Admin.
+      const anonymous = await page.request.get("/system/task-manager", {
+        headers,
+        maxRedirects: 0,
+      });
+      expect(anonymous.status()).toBe(307);
+      const loginURL = new URL(
+        anonymous.headers().location,
+        process.env.PLAYWRIGHT_BASE_URL!,
+      );
+      expect(loginURL.pathname).toBe("/admin/login");
+      expect(loginURL.searchParams.get("redirect")).toBe(
         "/system/task-manager",
       );
       await login("task-customer@example.test");
@@ -51,8 +60,15 @@ test.describe("durable Task Manager browser acceptance", () => {
           await page.request.get("/api/task-manager/projects", { headers })
         ).status(),
       ).toBe(403);
-      await page.goto("/system/task-manager");
-      await expect(page).toHaveURL(/\/admin\/unauthorized/);
+      const customer = await page.request.get("/system/task-manager", {
+        headers,
+        maxRedirects: 0,
+      });
+      expect(customer.status()).toBe(307);
+      expect(
+        new URL(customer.headers().location, process.env.PLAYWRIGHT_BASE_URL!)
+          .pathname,
+      ).toBe("/admin/unauthorized");
       await page.context().clearCookies();
       await login("task-owner@example.test");
     });
@@ -292,6 +308,12 @@ test.describe("durable Task Manager browser acceptance", () => {
         scrollWidth: document.documentElement.scrollWidth,
       }));
       expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width + 1);
+      const titleColumn = page.getByRole("cell").filter({
+        has: page.getByRole("button", { name: /Изменение первой вкладки/ }),
+      });
+      const titleColumnWidth = (await titleColumn.boundingBox())?.width;
+      // Таблица прокручивается внутри; названия сохраняют читаемую колонку на мобильном.
+      expect(titleColumnWidth).toBeGreaterThanOrEqual(200);
       await page.screenshot({
         path: resolve(directory, "task-manager-mobile.png"),
         fullPage: true,
@@ -301,7 +323,7 @@ test.describe("durable Task Manager browser acceptance", () => {
         JSON.stringify(
           {
             desktop: { width: 1440, height: 1000 },
-            mobile: { ...layout, height: 844 },
+            mobile: { ...layout, height: 844, titleColumnWidth },
             conflictStatus: 409,
             historyEvents: 3,
             pageErrors: errors,
@@ -310,6 +332,32 @@ test.describe("durable Task Manager browser acceptance", () => {
           2,
         ),
       );
+    });
+    await test.step("shared shell switches and restores both themes", async () => {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.getByRole("button", { name: "Светлая", exact: true }).click();
+      await expect(
+        page.locator('[data-ui-theme="light"]').first(),
+      ).toBeVisible();
+      await page.reload();
+      await expect(
+        page.locator('[data-ui-theme="light"]').first(),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: /Мобильная задача/ }),
+      ).toBeVisible();
+      await page.screenshot({
+        path: resolve(directory, "task-manager-light.png"),
+        fullPage: true,
+      });
+      await page.getByRole("button", { name: "Тёмная", exact: true }).click();
+      await expect(
+        page.locator('[data-ui-theme="dark"]').first(),
+      ).toBeVisible();
+      await page.reload();
+      await expect(
+        page.locator('[data-ui-theme="dark"]').first(),
+      ).toBeVisible();
     });
     expect(errors).toEqual([]);
   });

@@ -1,32 +1,25 @@
 /**
  * @file packages/payload-task-manager/src/server/withTaskMutation.service.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-11
  * @description Сохраняет task mutation и actor-bound durable replay receipt в одной транзакции.
  * @see documentation/specifications/task-management-execution.md
  */
 import { createHash } from "node:crypto";
-import type { PayloadRequest } from "payload";
 import { taskPublicIdSchema } from "../contracts/taskManager.schemas";
 import { TASK_OPERATIONS_SLUG } from "../taskManager.constants";
 import { TaskManagerError } from "./TaskManager.error";
 import { TaskStoreRepository } from "./TaskStore.repository";
 import { withTaskTransaction } from "./withTaskTransaction.repository";
+import type { TaskMutationContext } from "./TaskMutation.types";
 
 const hash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 /** Проверка текущего ACL предшествует replay: receipt не восстанавливает отозванное право. */
-export async function withTaskMutation<T>(context: {
-  req: PayloadRequest;
-  actorId: string;
-  projectId: string | null;
-  operation: string;
-  command: unknown;
-  authorize: () => Promise<void>;
-  readReceipt: (receipt: unknown) => T | Promise<T>;
-  work: () => Promise<{ result: T; projectId: string }>;
-}): Promise<T> {
+export async function withTaskMutation<T>(
+  context: TaskMutationContext<T>,
+): Promise<T> {
   const key = context.req.headers.get("idempotency-key");
   if (!key || !taskPublicIdSchema.safeParse(key).success)
     throw new TaskManagerError(

@@ -1,6 +1,6 @@
 /**
  * @file src/components/admin/task-manager/TaskManagerWorkbench.module.css
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-11
  * @description Размещает рабочие формы и карточку задач на общих tokens UI-kit.
  * @see documentation/architecture/system-admin-shell.md
@@ -115,6 +115,7 @@
 }
 .taskTitle small {
   color: var(--ui-color-muted);
+  white-space: nowrap;
 }
 .tableScroll {
   min-width: 0;
@@ -122,8 +123,14 @@
 }
 .taskTable {
   width: 100%;
+  min-width: 680px;
   border-collapse: collapse;
   text-align: left;
+}
+.taskTable th:first-child,
+.taskTable td:first-child {
+  width: 45%;
+  min-width: 220px;
 }
 .taskTable th,
 .taskTable td {

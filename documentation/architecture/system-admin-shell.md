@@ -1,6 +1,6 @@
 # Системный шаблон админки Realize
 
-Версия: 0.38, 2026-10-11. Потребители — Task Manager Foundation, reference и Мастерская.
+Версия: 0.39, 2026-10-11. Потребители — Task Manager Foundation, reference и Мастерская.
 
 ## Ответственность и границы
 
@@ -480,7 +480,11 @@ block и прокрутку; абсолютные вспомогательные
 роль admin, затем открывает client reference. Client получает только безопасные
 props. `/system/task-manager` использует тот же gate и shell с постоянными
 данными `@realize/payload-task-manager`; его client context содержит только
-`initialTheme` и `currentActor: { id, name }`, без email, token и Payload document.
+`initialTheme`, `themeCookieName` и `currentActor: { id, name }`, без email, token
+и Payload document. Имя theme cookie задаётся host как `${cookiePrefix}-theme`.
+`useSystemAdminTheme` сохраняет выбранный режим рабочего Task Manager в эту
+существующую cookie на год; сервер восстанавливает выбор после reload и перехода
+между защищёнными страницами. UI-kit получает mode/callback и не владеет cookies.
 Доступ к данным дополнительно проверяется task domain на каждом запросе.
 `src/components/admin/system-shell/` адаптирует host context/авторизацию.
 `/reference/task-manager` остаётся публичной демонстрацией вымышленных данных.

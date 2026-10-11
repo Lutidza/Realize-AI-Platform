@@ -1,6 +1,6 @@
 /**
  * @file src/components/admin/task-manager/useTaskManager.hook.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-10-11
  * @description Загружает постоянные задачи и подавляет ответы устаревшего выбранного контекста.
  * @see documentation/specifications/task-management-execution.md
@@ -17,6 +17,7 @@ import type {
   TaskProjectDto,
 } from "@realize/payload-task-manager/contracts";
 import { taskManagerApi } from "./TaskManagerApi.adapter";
+import { useSystemAdminTheme } from "../system-shell/useSystemAdminTheme.hook";
 import type {
   TaskManagerTransport,
   TaskManagerWorkbenchProps,
@@ -48,7 +49,7 @@ export function useTaskManager(
   props: TaskManagerWorkbenchProps,
   api: TaskManagerTransport = taskManagerApi,
 ) {
-  const [theme, setTheme] = useState(props.initialTheme);
+  const { theme, setTheme } = useSystemAdminTheme(props);
   const [projects, setProjects] = useState<TaskProjectDto[]>([]);
   const [projectCursor, setProjectCursor] = useState<string | null>(null);
   const [projectId, setProjectId] = useState("");

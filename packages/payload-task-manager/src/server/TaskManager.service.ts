@@ -1,6 +1,6 @@
 /**
  * @file packages/payload-task-manager/src/server/TaskManager.service.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-11
  * @description Координирует membership, постоянные задачи и revision CAS без AI или Git provider исполнения.
  * @see documentation/specifications/task-management-execution.md
@@ -24,6 +24,7 @@ import {
 import type { ResolvedTaskManagerOptions } from "../TaskManagerOptions.types";
 import {
   TASK_EVENTS_SLUG,
+  TASK_FIELD_LABELS,
   TASK_LISTS_SLUG,
   TASK_PROJECTS_SLUG,
   TASKS_SLUG,
@@ -345,7 +346,7 @@ export class TaskManagerService {
         await this.appendEvent(
           task,
           "updated",
-          `Изменены поля: ${changed.join(", ")}.`,
+          `Изменены поля: ${changed.map((field) => TASK_FIELD_LABELS[field]).join(", ")}.`,
         );
         return { result: mapTask(task), projectId: task.projectId };
       },

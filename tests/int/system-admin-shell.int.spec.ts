@@ -1,6 +1,6 @@
 /**
  * @file tests/int/system-admin-shell.int.spec.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-10-11
  * @description Проверяет отказ в доступе и безопасный контекст самостоятельной системной админки.
  * @see documentation/architecture/system-admin-shell.md
@@ -90,6 +90,7 @@ describe("Проверка доступа системной админки", ()
     );
     expect(result).toStrictEqual({
       initialTheme: "light",
+      themeCookieName: "payload-theme",
       currentActor: { id: "1", name: "Участник" },
     });
     expect(mocks.auth).toHaveBeenCalledWith({ headers: requestHeaders });
@@ -105,6 +106,7 @@ describe("Проверка доступа системной админки", ()
       await requireSystemAdmin(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE),
     ).toStrictEqual({
       initialTheme: "dark",
+      themeCookieName: "payload-theme",
       currentActor: { id: "1", name: "Администратор" },
     });
     mocks.auth.mockResolvedValueOnce({
@@ -114,6 +116,25 @@ describe("Проверка доступа системной админки", ()
       requireSystemAdmin(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE),
     ).rejects.toThrow("redirect:/admin/unauthorized");
     expect(mocks.auth).toHaveBeenCalledTimes(2);
+  });
+
+  it("передаёт имя theme cookie из конфигурации host", async () => {
+    mocks.auth.mockResolvedValue({
+      user: { id: 1, collection: "users", roles: ["admin"] },
+    });
+    mocks.getPayload.mockResolvedValue({
+      auth: mocks.auth,
+      config: {
+        routes: { admin: "/admin" },
+        admin: { routes: { login: "/login", unauthorized: "/unauthorized" } },
+        cookiePrefix: "customer-admin",
+      },
+    });
+    const context = await requireSystemAdmin(
+      SYSTEM_TASK_MANAGER_REFERENCE_ROUTE,
+    );
+    expect(context.themeCookieName).toBe("customer-admin-theme");
+    expect(mocks.cookieGet).toHaveBeenCalledWith("customer-admin-theme");
   });
 
   it("не открывает UI при ошибке проверки сессии", async () => {
