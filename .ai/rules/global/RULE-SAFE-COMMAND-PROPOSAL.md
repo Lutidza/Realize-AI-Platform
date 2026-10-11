@@ -23,69 +23,39 @@ related_codex_artifacts:
   - .codex/skills/git-commit-push/SKILL.md
 ```
 
-## Назначение
+## Применение
 
-Правило задаёт минимальный contract для команд, которые агент предлагает
-пользователю или запускает сам в рамках `work_task`. Команда должна быть
-воспроизводимой, понятной по цели и не должна маскировать destructive,
-delivery, network или secret-adjacent риск.
+Перед предложением или запуском shell/CLI/tool команды проверь её назначение,
+рабочую директорию, target и побочные эффекты. Для обычного чтения достаточно
+контекста текущего шага; отдельный отчёт на каждый вызов не нужен.
 
-Commit/push, destructive actions, secrets, network writes и scope expansion
-проходят свои workflow gates and approval requirements.
+Для записи, внешнего или необратимого действия установи:
 
-## Условие срабатывания
-
-Применять перед тем, как агент:
-
-- предлагает пользователю pasteable shell/CLI command;
-- запускает shell/CLI/tool command в текущей рабочей сессии;
-- формирует delivery, git, package manager, migration, cleanup, runtime writer
-  или network command;
-- показывает команду в task/checklist/report как рекомендуемое действие.
-
-Для тривиального read-only поиска или просмотра файлов достаточно кратко
-понимать purpose и working directory внутри текущего шага. Для write, network,
-delivery, destructive или secret-adjacent commands полный command contract
-обязателен.
-
-## Контракт команды (`command_contract`)
-
-Перед запуском или предложением нетривиальной команды агент фиксирует:
-
-- `purpose` - зачем нужна команда;
-- `command` - сама команда без секретов и tokenized URLs;
-- `working_directory` - директория запуска;
-- `safety_class` - `read_only`, `local_write`, `network`, `delivery`,
+- что и где изменится, ожидаемый результат и способ проверки;
+- класс действия: `read_only`, `local_write`, `network`, `delivery`,
   `destructive` или `secret_adjacent`;
-- `expected_output` - что должно появиться в выводе или измениться в состоянии;
-- `destructive_risk` - `none`, `possible` или `high`;
-- `secrets_handling` - как исключается попадание secret/token в command,
-  output, logs, task state, commit message или ответ пользователю;
-- `approval_required` - нужен ли отдельный user approval, delivery gate или
-  escalation.
+- покрыто ли действие заданием и применимыми разрешениями;
+- как исключены исполнение данных как кода и утечка секретов.
 
-## Запрещено
+Эти сведения можно один раз сохранить в плане/TASK для группы одинаковых
+действий. Новое назначение или изменившийся риск требуют повторной оценки.
+Обычная обратимая запись и network read внутри задания не требуют отдельного
+подтверждения. Для commit/push, deploy, удаления, production mutation и доступа
+к защищённым данным действуют профильные правила и разрешения. Учитывай уже
+выданные полномочия; не запрашивай их повторно.
 
-- Вставлять secrets, private keys, passwords, tokenized remotes или bearer/API
-  tokens в pasteable shell-команды.
-- Предлагать HTTP command с secret-bearing URL или token query string.
-- Скрывать destructive, network, delivery или secret-adjacent риск под видом
-  обычной read-only команды.
-- Запускать destructive command, commit/push, production data mutation или
-  secret-adjacent operation без профильного gate и approval.
-- Давать команду без working directory, если результат зависит от cwd.
+## Ограничения
 
-## Обязательный вывод
+- Не помещай secrets, токены, private keys и secret-bearing URLs в команды,
+  ответы, prompts, журналы и сообщения commit. Используй предусмотренный
+  механизм безопасной передачи, а не shell interpolation.
+- Передавай данные через структурированные аргументы или файлы, корректно
+  экранируй shell. `JSON.stringify` не является shell quoting; строки с
+  backticks и `$()` не должны исполняться как команды.
+- Не называй запись, сетевую доставку или destructive action чтением.
+- Если результат зависит от cwd, рабочая директория должна быть явной.
+- Отсутствующее разрешение, неоднозначный опасный target или риск утечки
+  останавливают соответствующую команду. Независимую работу продолжай.
 
-```text
-safe_command_contract: passed|not_required|stop-for-approval|failed
-command_purpose:
-command_redacted:
-working_directory:
-safety_class:
-expected_output:
-destructive_risk:
-secrets_handling:
-approval_required: yes|no
-blocker:
-```
+Критерии — [CHECK](../../checks/pre-implementation/CHECK-SAFE-COMMAND-PROPOSAL.md).
+В общий итог выноси только существенный результат, пропуск или препятствие.

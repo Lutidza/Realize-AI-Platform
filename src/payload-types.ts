@@ -80,6 +80,11 @@ export interface Config {
     'media-originals': MediaOriginal;
     'media-processing-sets': MediaProcessingSet;
     'media-variants': MediaVariant;
+    'realize-task-projects': RealizeTaskProject;
+    'realize-task-lists': RealizeTaskList;
+    'realize-tasks': RealizeTask;
+    'realize-task-events': RealizeTaskEvent;
+    'realize-task-operations': RealizeTaskOperation;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -90,6 +95,11 @@ export interface Config {
     carts: Cart;
     orders: Order;
     transactions: Transaction;
+    'realize-ai-usage-attempts': RealizeAiUsageAttempt;
+    'realize-ai-usage-events': RealizeAiUsageEvent;
+    'realize-ai-usage-prices': RealizeAiUsagePrice;
+    'realize-ai-usage-budgets': RealizeAiUsageBudget;
+    'realize-ai-usage-reservations': RealizeAiUsageReservation;
     'realize-ai-search-observations': RealizeAiSearchObservation;
     'realize-ai-search-state': RealizeAiSearchState;
     'realize-design-projects': RealizeDesignProject;
@@ -149,6 +159,11 @@ export interface Config {
     'media-originals': MediaOriginalsSelect<false> | MediaOriginalsSelect<true>;
     'media-processing-sets': MediaProcessingSetsSelect<false> | MediaProcessingSetsSelect<true>;
     'media-variants': MediaVariantsSelect<false> | MediaVariantsSelect<true>;
+    'realize-task-projects': RealizeTaskProjectsSelect<false> | RealizeTaskProjectsSelect<true>;
+    'realize-task-lists': RealizeTaskListsSelect<false> | RealizeTaskListsSelect<true>;
+    'realize-tasks': RealizeTasksSelect<false> | RealizeTasksSelect<true>;
+    'realize-task-events': RealizeTaskEventsSelect<false> | RealizeTaskEventsSelect<true>;
+    'realize-task-operations': RealizeTaskOperationsSelect<false> | RealizeTaskOperationsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -159,6 +174,11 @@ export interface Config {
     carts: CartsSelect<false> | CartsSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
     transactions: TransactionsSelect<false> | TransactionsSelect<true>;
+    'realize-ai-usage-attempts': RealizeAiUsageAttemptsSelect<false> | RealizeAiUsageAttemptsSelect<true>;
+    'realize-ai-usage-events': RealizeAiUsageEventsSelect<false> | RealizeAiUsageEventsSelect<true>;
+    'realize-ai-usage-prices': RealizeAiUsagePricesSelect<false> | RealizeAiUsagePricesSelect<true>;
+    'realize-ai-usage-budgets': RealizeAiUsageBudgetsSelect<false> | RealizeAiUsageBudgetsSelect<true>;
+    'realize-ai-usage-reservations': RealizeAiUsageReservationsSelect<false> | RealizeAiUsageReservationsSelect<true>;
     'realize-ai-search-observations': RealizeAiSearchObservationsSelect<false> | RealizeAiSearchObservationsSelect<true>;
     'realize-ai-search-state': RealizeAiSearchStateSelect<false> | RealizeAiSearchStateSelect<true>;
     'realize-design-projects': RealizeDesignProjectsSelect<false> | RealizeDesignProjectsSelect<true>;
@@ -1293,6 +1313,114 @@ export interface MediaVariant {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-projects".
+ */
+export interface RealizeTaskProject {
+  id: number;
+  projectId: string;
+  ownerId: string;
+  members: (number | User)[];
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-lists".
+ */
+export interface RealizeTaskList {
+  id: number;
+  listId: string;
+  projectId: string;
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-tasks".
+ */
+export interface RealizeTask {
+  id: number;
+  taskId: string;
+  projectId: string;
+  listId: string;
+  revision: number;
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-events".
+ */
+export interface RealizeTaskEvent {
+  id: number;
+  eventId: string;
+  projectId: string;
+  taskId: string;
+  actorId: string;
+  revision: number;
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-operations".
+ */
+export interface RealizeTaskOperation {
+  id: number;
+  replayKey: string;
+  requestHash: string;
+  actorId: string;
+  projectId: string;
+  receipt:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "form-submissions".
  */
 export interface FormSubmission {
@@ -1305,6 +1433,118 @@ export interface FormSubmission {
         id?: string | null;
       }[]
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-attempts".
+ */
+export interface RealizeAiUsageAttempt {
+  id: number;
+  attemptId: string;
+  installationId: string;
+  projectId: string;
+  purpose: string;
+  source: string;
+  taskId: string;
+  startedAt: string;
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-events".
+ */
+export interface RealizeAiUsageEvent {
+  id: number;
+  eventId: string;
+  subjectKey: string;
+  kind: string;
+  event:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  contentHash: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-prices".
+ */
+export interface RealizeAiUsagePrice {
+  id: number;
+  pricingId: string;
+  installationId: string;
+  basis: string;
+  provider: string;
+  model: string;
+  authMode: string;
+  effectiveFrom: string;
+  snapshot:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-budgets".
+ */
+export interface RealizeAiUsageBudget {
+  id: number;
+  accountKey: string;
+  installationId: string;
+  projectId: string;
+  purpose: string;
+  basis: string;
+  policy:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-reservations".
+ */
+export interface RealizeAiUsageReservation {
+  id: number;
+  storageKey: string;
+  accountKey: string;
+  attemptId: string;
+  period: string;
+  currency: string;
+  basis: string;
+  amountNanos: string;
+  state: string;
   updatedAt: string;
   createdAt: string;
 }
@@ -1641,6 +1881,15 @@ export interface RealizeAiChangeRequest {
   originalRequest: string;
   normalizedIntent: string;
   plan: string;
+  executionContext?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   planHash: string;
   affectedPaths:
     | {
@@ -1875,6 +2124,15 @@ export interface RealizeAiExecutionJob {
   branch: string;
   workspaceID: string;
   approvedVersion: number;
+  executionContext?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
   boundPlanHash: string;
   boundScopeHash: string;
   allowedPaths:
@@ -2592,6 +2850,26 @@ export interface PayloadLockedDocument {
         value: number | Transaction;
       } | null)
     | ({
+        relationTo: 'realize-ai-usage-attempts';
+        value: number | RealizeAiUsageAttempt;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-usage-events';
+        value: number | RealizeAiUsageEvent;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-usage-prices';
+        value: number | RealizeAiUsagePrice;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-usage-budgets';
+        value: number | RealizeAiUsageBudget;
+      } | null)
+    | ({
+        relationTo: 'realize-ai-usage-reservations';
+        value: number | RealizeAiUsageReservation;
+      } | null)
+    | ({
         relationTo: 'realize-ai-search-observations';
         value: number | RealizeAiSearchObservation;
       } | null)
@@ -3051,6 +3329,69 @@ export interface MediaVariantsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-projects_select".
+ */
+export interface RealizeTaskProjectsSelect<T extends boolean = true> {
+  projectId?: T;
+  ownerId?: T;
+  members?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-lists_select".
+ */
+export interface RealizeTaskListsSelect<T extends boolean = true> {
+  listId?: T;
+  projectId?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-tasks_select".
+ */
+export interface RealizeTasksSelect<T extends boolean = true> {
+  taskId?: T;
+  projectId?: T;
+  listId?: T;
+  revision?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-events_select".
+ */
+export interface RealizeTaskEventsSelect<T extends boolean = true> {
+  eventId?: T;
+  projectId?: T;
+  taskId?: T;
+  actorId?: T;
+  revision?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-operations_select".
+ */
+export interface RealizeTaskOperationsSelect<T extends boolean = true> {
+  replayKey?: T;
+  requestHash?: T;
+  actorId?: T;
+  projectId?: T;
+  receipt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "forms_select".
  */
 export interface FormsSelect<T extends boolean = true> {
@@ -3401,6 +3742,81 @@ export interface TransactionsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-attempts_select".
+ */
+export interface RealizeAiUsageAttemptsSelect<T extends boolean = true> {
+  attemptId?: T;
+  installationId?: T;
+  projectId?: T;
+  purpose?: T;
+  source?: T;
+  taskId?: T;
+  startedAt?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-events_select".
+ */
+export interface RealizeAiUsageEventsSelect<T extends boolean = true> {
+  eventId?: T;
+  subjectKey?: T;
+  kind?: T;
+  event?: T;
+  contentHash?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-prices_select".
+ */
+export interface RealizeAiUsagePricesSelect<T extends boolean = true> {
+  pricingId?: T;
+  installationId?: T;
+  basis?: T;
+  provider?: T;
+  model?: T;
+  authMode?: T;
+  effectiveFrom?: T;
+  snapshot?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-budgets_select".
+ */
+export interface RealizeAiUsageBudgetsSelect<T extends boolean = true> {
+  accountKey?: T;
+  installationId?: T;
+  projectId?: T;
+  purpose?: T;
+  basis?: T;
+  policy?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-ai-usage-reservations_select".
+ */
+export interface RealizeAiUsageReservationsSelect<T extends boolean = true> {
+  storageKey?: T;
+  accountKey?: T;
+  attemptId?: T;
+  period?: T;
+  currency?: T;
+  basis?: T;
+  amountNanos?: T;
+  state?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "realize-ai-search-observations_select".
  */
 export interface RealizeAiSearchObservationsSelect<T extends boolean = true> {
@@ -3579,6 +3995,7 @@ export interface RealizeAiChangeRequestsSelect<T extends boolean = true> {
   originalRequest?: T;
   normalizedIntent?: T;
   plan?: T;
+  executionContext?: T;
   planHash?: T;
   affectedPaths?: T;
   checks?: T;
@@ -3779,6 +4196,7 @@ export interface RealizeAiExecutionJobsSelect<T extends boolean = true> {
   branch?: T;
   workspaceID?: T;
   approvedVersion?: T;
+  executionContext?: T;
   boundPlanHash?: T;
   boundScopeHash?: T;
   allowedPaths?: T;

@@ -1,7 +1,7 @@
 # CI, release и выкладка
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 17 сентября 2026 года
+- **Дата сверки release manifest:** 4 октября 2026 года
 
 `RELEASE_APPROVAL` текущего AI lane не связан с production job. Ни один шаг
 ниже не следует трактовать как реализованный approval-bound production
@@ -35,6 +35,13 @@ CI-сборка использует только временную PostgreSQL 
 
 Mutable tag `latest` не является единицей promotion. Deployment script
 принимает только `ghcr.io/...@sha256:<64 hex>`.
+
+Выпуск также содержит [контракт версий платформы](04-platform-versioning.md):
+source inventory, exact hashes компонентов, порядок миграций, Git provenance и
+сопоставление установленного состояния. `release.yml` публикует только из `main`;
+право записи packages ограничено image job. Node/npm и trusted dependencies для
+manifest закреплены отдельно от сборки Docker. Проверка совместимости пока не
+подключена к production deploy controller; это самостоятельный этап roadmap.
 
 ## 2.1. GitHub draft Pull Request
 
@@ -256,3 +263,24 @@ URL и service token; локальный loopback service не является 
 - client API в OCI image использует same-origin URLs; Stripe в текущем
   immutable baseline отключён, пока publishable key не вынесен в
   отдельный runtime public-config contract.
+
+## Проверка агентского baseline перед выпуском
+
+`ci.yml` запускает structural gate `ai:quality:structure` и тесты eval contracts
+без обращений к модели. Reusable CI принимает `require_agent_baseline`;
+`release.yml` и `prepare-release-candidate.yml` передают `true`. Поэтому отсутствие,
+устаревание или обязательное нарушение в baseline останавливает delivery до
+публикации образа. Точный источник кандидата остаётся обязательным.
+
+`ai:eval:gate` читает owner pointer `.github/quality-evidence/current.json` и
+проверяет immutable report/review, текущие hashes runtime/harness/instructions,
+platform/architecture/Node, полный corpus и качественную оценку всех результатов.
+Одинаковые входы допускают переиспользование evidence. Изменённые model/CLI/runtime
+требуют нового bounded прогона по [§29.8](../specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/29-testing-strategy.md#298-контракт-первого-baseline-plat-05).
+Garden/Router должны проверять exact model/catalog/policy candidate дополнительно
+при активации; их lifecycle ещё не реализован.
+
+Evidence из trusted owner checkout имеет локальное происхождение. SHA-256 защищает
+целостность и привязку, но не доказывает независимого автора или реальный вызов
+сам по себе. Недоверенный клиентский отчёт нельзя импортировать как допуск.
+Центральная аттестация и разграничение клиентских репозиториев относятся к PLAT-10.

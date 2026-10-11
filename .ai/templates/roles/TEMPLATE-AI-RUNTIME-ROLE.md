@@ -9,8 +9,6 @@ applies_to:
 runtime_sources:
   - .ai/templates/markdown/TEMPLATE-AI-RUNTIME-MARKDOWN.md
   - .ai/roles/role-groups.md
-related_specs:
-  - documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-031-agent-roles-and-responsibility-gates.md
 excludes:
   - .ai/roles/role-groups.md
   - .ai/rules/**
@@ -43,7 +41,8 @@ Role card описывает runtime-ответственность роли: к
 
 ## Обязательные секции (`required_sections`)
 
-Role card должна содержать:
+Role card должна объяснять следующие сведения; в короткой роли их можно
+объединить в несколько секций без пустых заголовков:
 
 - `Назначение`;
 - `Когда выбирать роль`;
@@ -78,7 +77,7 @@ related_checks:
 related_workflows:
   - .ai/workflows/<domain>/<workflow>/WORKFLOW.md
 related_specs:
-  - documentation/project/specs/<DOC-ID>.md
+  - documentation/architecture/<contract>.md
 related_skills:
   - .codex/skills/<skill-name>/SKILL.md
 related_tools:
@@ -141,7 +140,7 @@ related_tools:
 ## Правила качества role card (`quality_rules`)
 
 - Название роли должно быть конкретным: `Developer Backend`, `Documentation
-  Steward`, `Scope/Contour Owner`.
+Steward`, `Scope/Contour Owner`.
 - `artifact_id` должен быть стабильным и не зависеть от текущей задачи.
 - `owner_role` указывает на саму role card.
 - `runtime_sources` должны ссылаться на active `.ai/*` artifacts, а не
@@ -160,7 +159,7 @@ related_tools:
 
 Запрещено:
 
-- описывать роль только через краткое назначение без входов, выходов и границ;
+- описывать роль без понятных условий применения, результата и границ;
 - дублировать полный текст rules/checks/workflows;
 - превращать role card в исторический отчёт или rationale;
 - объявлять runtime-роль в `.ai/roles/role-groups.md` без отдельной role card;

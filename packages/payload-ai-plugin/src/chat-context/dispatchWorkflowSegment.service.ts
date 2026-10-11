@@ -1,11 +1,12 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/dispatchWorkflowSegment.service.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-10-04
  * @description Повторяет точную отправку сохранённого шага модели без повторения серверных эффектов.
  */
 import {
-  parseAIChatConfigurationSnapshot,
+  assertRuntimeAIConfiguration,
+  requireSystemAIRelease,
   parseWorkflowCheckpoint,
 } from "@realize/change-engine";
 import { AIRepository, type AIDocument } from "../endpoints/repository";
@@ -26,9 +27,21 @@ export const dispatchWorkflowSegment = async (
   const current = await repository.getRun(String(run.id), userID);
   if (current.status !== "queued") return current;
   const context = current.turnContext as ChatRunContext;
-  const agentConfiguration = parseAIChatConfigurationSnapshot(
+  const system = requireSystemAIRelease(context.systemRelease);
+  const systemRelease = {
+    releaseID: system.releaseID,
+    manifestHash: system.manifestHash,
+  };
+  const agentConfiguration = assertRuntimeAIConfiguration(
+    systemRelease,
     context.agentConfiguration,
   );
+  if (!agentConfiguration)
+    throw new EndpointError(
+      "CONFLICT",
+      "Workflow configuration is missing.",
+      409,
+    );
   const workflow = parseWorkflowCheckpoint(
     agentConfiguration,
     context.workflow,
@@ -41,6 +54,7 @@ export const dispatchWorkflowSegment = async (
       prompt: String(workflow.input.request),
       model: typeof current.model === "string" ? current.model : undefined,
       agentConfiguration,
+      systemRelease,
       workflow,
       webSearch: context.webSearch,
       attachments: [],

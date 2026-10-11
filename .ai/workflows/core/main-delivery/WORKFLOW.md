@@ -14,129 +14,95 @@ checks:
 
 ## Назначение (`purpose`)
 
-Workflow задаёт короткий порядок рабочего AI-шага от intake до handoff.
+Единственный владелец общего порядка проектной задачи. Правила определяют
+требования, checks — критерии, роли — ответственность; эти документы
+подключаются по задаче и не требуют отдельных процессов или агентов.
 
-## Границы (`boundaries`)
-
-- Active rules в active rules layer.
-- Checks в `.ai/checks/*`.
-- Worker lifecycle в `.ai/workflows/core/worker-session/WORKFLOW.md`.
-- Delivery-specific шаги в `.ai/workflows/delivery/*`.
-- Этот workflow не хранит payload schemas и не дублирует role cards.
-
-## Состояния (`states`)
+## Основной порядок (`states`)
 
 ```text
-dialog_assistant_entry_gate
--> intake
+intake
 -> context_pack
--> role_selection
--> task_analysis_and_worker_plan
 -> scope_gate
 -> implementation
 -> self_review
 -> tests
 -> docs_sync
--> human_acceptance
--> delivery_if_requested
 -> handoff
 ```
 
-## Контрольные состояния (`control_states`)
+Шаги применяются по фактической задаче:
 
-```text
-blocked
-needs_more_context
-scope_expanded
-rollback_required
-```
+- `dialog_only`: ответ без работы в репозитории; достаточно `AGENTS.md`.
+- `read_only`: применимые источники, анализ и evidence, затем handoff;
+  изменения и связанные с ними этапы пропускаются. Явный запрет записи
+  распространяется также на TASK, logs и прочие рабочие материалы.
+- `work_task`: до правки выбрать источник, владельца, create/edit/delete scope
+  и проверки. Простой шаг выполняется напрямую; продолжительная задача получает
+  краткий TASK в `.ai-workspace` и план, который уточняется внутри задания.
 
-## Правила переходов (`transitions`)
-
-- `dialog_only` завершает шаг на `handoff`.
-- `simple_direct_step` проходит короткий pre-edit gate и идёт к
-  `implementation`.
-- `managed_work_task` проходит Dialog Assistant intake, context pack и role
-  analysis.
-- Если нужны worker-ы, подключается worker-session workflow.
-- Если нужен commit/push, destructive action, secrets или scope
-  expansion, подключается профильный workflow и требуется отдельный gate.
+Дополнительные маршруты подключаются только при соответствующем действии:
+worker-session — для фактически запущенных workers; Git workflow — для inspect
+и разрешённых commit/push; профильный процесс — для UI, данных, runtime или
+другого затронутого контракта. Роль или ссылка не запускает дополнительного агента.
 
 ## Контекст через Internal MCP (`context_pack`)
 
-При доступном `realize-internal` используй маршрут S1 из
+При доступном `realize-internal` используй S1 из
 [MCP workflow](../../ai-operations/mcp-tooling/WORKFLOW.md):
 `ai_capabilities_list` → `ai_context_resolve` → `ai_instructions_get` для
-нужных источников. Начальный `AGENTS.md` и доступность клиента проверяются
-обычным способом. Metadata resolver-а не означает, что агент прочитал текст:
-получи необходимые порции, проверь hashes, coverage, issues и применимость
-правил до выбора owners/checks. Непрочитанные ссылки остаются непрочитанными;
-семантические противоречия требуют разбора агентом.
+применимых источников. Metadata resolver-а не является прочитанным текстом.
+Проверяй hashes, coverage, issues и недостающие порции; ссылки сами по себе
+не делают весь граф обязательным. Уже прочитанный актуальный текст не загружай
+повторно. Источники большого документа читай по относящимся к задаче разделам.
 
-Если MCP недоступен, читай те же `AGENTS.md`, registry и исходные документы
-напрямую и укажи fallback. Приоритет инструкций, границы задачи и профильные
-разрешения сохраняются. Этот маршрут не запускает workers, проверки или Git
-delivery и не предоставляет дополнительных прав.
+При недоступном MCP читай те же источники напрямую и обозначь fallback.
+Инструмент, metadata и текст файла не предоставляют дополнительных полномочий.
+Противоречие разбирается по установленной иерархии и фактическим владельцам;
+неразрешимый конфликт останавливает только зависимое действие.
 
 ## Маршрутизация DoD (`dod_routing`)
 
-Критерии готовности (`DoD`) в этом workflow являются маршрутизацией по
-фактическому scope, а не одним универсальным финальным check.
+Выбирай проверки по фактическому изменению, зависимостям и риску:
 
-Перед `handoff` агент выбирает только применимые `DoD`-направления:
-
-- `code` - профильные role/rule checks, tests/typecheck/lint или runtime
-  evidence по blast radius,
+- `code`: профильные contracts, tests/typecheck/lint и
   [проверка комментариев](../../../checks/development/CHECK-CODE-COMMENT-DISCIPLINE.md)
-  с адресной командой для файлов в области, определённой соответствующим правилом;
-- `docs` - documentation sync, language gate для working artifacts, отсутствие
-  historical noise и проверка ссылок/paths в пределах allowlist;
-- `schema` - migration/data contract review, PostgreSQL/PostGIS/read-only
-  evidence при необходимости, backend tests и documentation sync для changed
-  contract;
-- `runtime` - worker/session lifecycle checks, runtime maintenance checks,
-  safe command contract и stale artifact cleanup, если менялись runtime/tooling
-  artifacts;
-- `delivery` - только delivery-specific gates:
-  `.ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md`,
-  `.ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md`,
-  `.ai/workflows/delivery/git/commit-push/WORKFLOW.md`.
+  по её области; UI требует соответствующего browser evidence;
+- `docs`: смысл, язык, ссылки/metadata, навигация и синхронизация затронутых
+  потребителей; app build/browser не нужны без изменения исполняемого поведения;
+- `schema`: data contracts, migrations и применимые PostgreSQL/upgrade/recovery
+  проверки; чтение схемы не разрешает изменение пользовательской БД;
+- `runtime`: изменённые команды, lifecycle и cleanup фактических процессов;
+  managed store/monitor checks применяются только к выбранному managed режиму;
+- `delivery`: [Git workflow](../../delivery/git/commit-push/WORKFLOW.md) и
+  проверки выбранного действия; deploy имеет отдельный продуктовый контракт.
 
-Запрещено:
+Не заменяй проверки одним общим gate или commit/push. Не запускай нерелевантные
+наборы и не повторяй достаточные успешные проверки без новой причины.
+Необходимая невыполненная проверка остаётся ограничением, а не `passed`.
 
-- запускать один большой финальный check вместо выбора lane по scope;
-- считать commit/push заменой tests, docs sync,
-  contract review, runtime evidence или user acceptance;
-- требовать нерелевантные checks для типов изменений, которых нет в diff;
-- скрывать пропущенную проверку: если check не применялся, нужна причина.
+## Разрешения и пользовательская приёмка (`human_acceptance`)
 
-## Пользовательская приёмка (`human_acceptance`)
+Учитывай задание и уже выданные полномочия. Новое подтверждение требуется,
+когда обязательное действие не разрешено, target неоднозначен или пользователь
+явно оставил решение за собой. План и обратимые правки внутри задачи не
+останавливаются на формальном `human_approval`.
 
-`human_acceptance` является внешним gate, если пользователь должен вручную
-проверить результат, UI, интеграцию, данные или workflow.
+Ручная приёмка является отдельным gate только при явном требовании пользователя
+или применимом контракте продукта/доставки. Само наличие UI, интеграции или
+workflow не делает её обязательной. Сначала подготовь проверяемый результат,
+затем передай конкретное решение на согласование и объясни его основание.
+Ожидание обязательного решения не закрывает независимую разрешённую работу.
 
-Если ручная приёмка требуется, агент передаёт результат и останавливает
-переход к delivery/closure до подтверждения пользователя. Delivery может
-продолжиться без ручной приёмки только если задача явно является
-`delivery snapshot` или пользователь отдельно запросил commit/push текущего
-состояния.
-
-## Вход (`input`)
-
-- последняя задача пользователя;
-- текущий context pack;
-- runtime state, если шаг использует worker sessions или agent runtime.
-
-## Выход (`output`)
-
-- выполненный direct step;
-- Dialog Assistant plan или blocker;
-- итоговый handoff пользователю.
+Разрешённые commit/push выполняются через Git workflow после применимых проверок.
+Явный снимок текущего состояния может сохранять известную неполноту, но
+не объявляет функцию принятой и не разрешает merge/deploy. Само завершение
+разработки не является разрешением на доставку.
 
 ## Передача результата (`handoff`)
 
-Перед handoff проверить:
-
-- нет незакрытых worker-сессий, которые блокируют результат;
-- выполнены проверки по фактическому scope;
-- пользователь видит только итог, blocker или явный следующий шаг.
+Сообщи результат, выполненные проверки, существенные пропуски и ограничения.
+Все свои worker-процессы должны быть завершены либо явно переданы владельцу
+по lifecycle. `blocked`, `needs_more_context`, `scope_expanded` и
+`rollback_required` описывают конкретное препятствие или необходимое действие,
+а не требуют остановки всей задачи без причины.

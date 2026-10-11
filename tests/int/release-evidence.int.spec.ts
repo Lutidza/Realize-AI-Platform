@@ -1,6 +1,7 @@
 /**
  * @file tests/int/release-evidence.int.spec.ts
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-10-04
  * @docref ADR-0011
  * @see documentation/architecture/decisions/ADR-0011-github-ghcr-vps-release-preview.md
  * @description Проверяет воспроизводимый manifest, migration binding и strict worker result.
@@ -12,6 +13,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { createMigrationSetHash } from "@realize/change-engine";
+import { hashCanonicalJSON } from "@realize/change-engine/platform-release";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createReleaseCandidateEvidence } from "../../scripts/release/create-release-candidate-evidence.mjs";
@@ -108,6 +110,15 @@ describe("release candidate evidence", () => {
     });
 
     expect(first.manifestHash).toBe(second.manifestHash);
+    expect(first.manifest.platformBase).toEqual({ status: "unresolved" });
+    expect(first.manifest.sourceInventoryHash).toBe(
+      hashCanonicalJSON(first.manifest.sourceInventory),
+    );
+    expect(
+      first.manifest.sourceInventory.components.some(
+        (item) => item.id === "@realize/ai-contracts",
+      ),
+    ).toBe(true);
     expect(first.manifest.migrationSetHash).toBe(
       createMigrationSetHash(
         first.manifest.migrations.map((migration) => ({

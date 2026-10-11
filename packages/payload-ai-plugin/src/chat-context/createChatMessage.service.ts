@@ -1,12 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createChatMessage.service.ts
- * @version 1.7.0
- * @date 2026-09-30
+ * @version 1.8.0
+ * @date 2026-10-04
  * @description Связывает полный запрос сообщения с владельцем, неизменяемыми файлами и одним run.
  */
 import { createHash, randomUUID } from "node:crypto";
 import { CHAT_ATTACHMENT_LIMITS } from "@realize/ai-contracts";
-import { buildChatDeveloperInstructions } from "@realize/change-engine";
+import {
+  buildChatDeveloperInstructions,
+  SYSTEM_AI_RELEASE_REFERENCE,
+} from "@realize/change-engine";
 import type {
   CreateMessageInput,
   AIStreamEvent,
@@ -170,6 +173,7 @@ export const createChatMessage = async (
   const runtimeContextHash = createHash("sha256")
     .update(
       JSON.stringify({
+        systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
         configuration: agentConfiguration?.compiled.compiledContextHash ?? null,
         model: options.runtime.model ?? null,
         developerInstructions: buildChatDeveloperInstructions(input.webSearch),
@@ -194,6 +198,7 @@ export const createChatMessage = async (
     pageDraftContext,
     pageDiscoveryEnabled,
     agentConfiguration,
+    systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
     runtimeContextHash,
     conversationHistory,
     repositoryAccess: {
@@ -254,6 +259,7 @@ export const createChatMessage = async (
       projectFiles: input.projectFiles,
       webSearch: input.webSearch,
       agentConfiguration,
+      systemRelease: runContext.systemRelease,
       conversationHistory,
       pageDraftContext,
       ...(pageDiscoveryEnabled

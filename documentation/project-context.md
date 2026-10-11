@@ -1,7 +1,7 @@
 # Контекст проекта: Realize
 
 - **Статус:** current implementation
-- **Дата сверки:** 25 сентября 2026 года (MCP A+G+S1, ChatGPT в Admin, W1a/UI и sandbox capture Мастерской)
+- **Дата сверки:** 11 октября 2026 года (Task Manager Foundation; прежние MCP и Мастерская сохранены)
 
 ## Цель проекта
 
@@ -47,6 +47,14 @@ content/data/schema/design/code/delivery от профильных commerce-мо
 - Фактические shared UI owners: `src/components/**`, `src/providers/**`.
 - Миграции: `src/migrations/**`.
 - Workspace packages: `packages/**`.
+
+Task Manager Foundation находится в `packages/payload-task-manager/**` и
+`/system/task-manager`: постоянные проекты/задачи, серверная авторизация,
+ревизии и транзакционная история. Это ограниченная первая поставка;
+Git-привязки пока ручные и непроверенные. Полный контракт и дальнейшие этапы —
+[Task Manager](specifications/task-management.md#128-постоянный-foundation-2026-10-11)
+и [Foundation](specifications/task-management-execution.md#12-первая-постоянная-поставка-foundation).
+Локальные `.ai-workspace/tasks/**` сохраняют прежнюю роль до проверенного cutover.
 
 `src/RealizeCore/**` и `src/app/_realize/**` quarantined по ADR-0001. Пути
 `src/domain/**`, `src/ui/**` и root `src/app/api/**` сейчас не являются
@@ -511,3 +519,65 @@ Host `src/components/admin/design-workshop/` подключает `@realize/ui-k
 Фактический runbook реализации начинается с
 `documentation/delivery/INDEX.md`. Текущие результаты и известные ограничения
 зафиксированы в `documentation/reports/**`.
+
+## Учёт расходов ИИ (PLAT-04, 5 октября 2026)
+
+В `payload-ai-plugin` реализованы durable PostgreSQL ledger и Admin analytics:
+`/admin/analytics/ai` показывает оценки текущей установки,
+`/admin/analytics/ai/platform` доступен только явно назначенному владельцу.
+Оба экрана открываются через «Аналитика → Расходы ИИ»; прежние
+`/admin/ai/usage` и `/admin/ai/usage/platform` сохранены как совместимые пути.
+Финансовые contracts принадлежат
+`ai-contracts`, точный расчёт — `change-engine`; CP/execution worker используют
+единый metering. Есть immutable цены, budgets/reservations, сверка, retries,
+частичные измерения и стоимость исполнения до проверенного preview.
+
+Дашборд показывает динамику по дням, сравнение с предыдущим равным периодом,
+наблюдаемые токены, вызовы моделей, задержку p95 и полноту измерений.
+Модели, процессы, профили админских агентов и типы работы сравниваются по
+агрегатам всего периода, независимо от страницы журнала. Владелец также
+группирует расходы по назначению: разработка платформы, оценка качества,
+работа установки. Из группы можно перейти к операциям; фильтры комбинируются,
+списки моделей/процессов/агентов содержат доступные значения за период.
+Профиль учитывается в чате и связанных workflow/execution attempts, записи
+без профиля выделены отдельно. Вкладка оптимизации предлагает действия по неполным ценам,
+ошибкам, повторам, кешу и бюджетам; гарантированная экономия не выдумывается.
+Цена сохраняет точность nanos, валюты и основания расходов разделены,
+неизвестная стоимость не превращается в ноль. Контракт интерфейса —
+[§28.6](specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/28-observability.md#286-раздел-аналитика--расходы-ии).
+
+Охват и границы — [§25.7](specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/25-subscriptions-and-ai-billing.md#257-реализованный-локальный-контур-plat-04),
+настройка владельца — [локальный runbook](delivery/01-local-admin-ai.md#расходы-ии-и-аккаунт-владельца).
+Model Garden/Router остаются следующими подсистемами платформы; их версии в
+ledger пока null. Внешние IDE расходы автоматически не собираются. Оценки
+провайдера и клиентские тарифы не являются фактическим списанием денег.
+
+## Качество агентского слоя (PLAT-05)
+
+Структурный CI gate проверяет активные `.ai`/`.codex` документы, YAML metadata,
+IDs, локальные ссылки/anchors и registry связи. Поведенческий корпус использует
+продуктовые system instruction builders и overlay compiler, настоящий Codex
+adapter и финансовый ledger. Вызовы помечены `purpose=evaluation` и видны только
+в аналитике платформы; клиентский scope не включает их. Garden/Router пока не
+реализованы; будущие consumers получают versioned DTO через `/evaluation` exports.
+
+Owner CLI `ai:eval:run` ограничен шестью turns, двумя повторами трёх сценариев,
+600 секундами и наблюдаемым token budget. Изолированные fixtures удаляются,
+отчёт с hashes и отдельный качественный review сохраняются. Денежная стоимость
+при отсутствии тарифа остаётся неизвестной. Полезность/честность review не отменяет
+обязательные нарушения. `ai:eval:gate` блокирует release и release candidate при
+неполном или устаревшем evidence. Контракт и границы охвата — [§29.8](specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/29-testing-strategy.md#298-контракт-первого-baseline-plat-05).
+
+Первый baseline принят 5 октября 2026 года: 6/6 случаев на `gpt-6.1-sol`,
+Codex CLI `0.160.0`, 229 220 токенов. Все расходы, включая остановленный
+предыдущий набор, сохранены в ledger; без подтверждённого тарифа денежная
+оценка остаётся неизвестной. Evidence и ограничения — [§29.9](specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/29-testing-strategy.md#299-принятый-baseline-5-октября-2026-года).
+Следующий этап последовательности — PLAT-06, Model Garden.
+
+После baseline выполнены три небольшие документальные задачи через настоящий
+чат: исправление указателя следующего этапа, карта готовых компонентов Garden
+и шесть критериев учёта. Runs 96–98 дали 319 309 tokens за 142,469 секунды
+metered runtime; денежная стоимость unknown. Это пилотные наблюдения, не новый
+release baseline и не измерение расходов IDE. Результаты и последовательность
+оптимизации контекста, измерений, Garden/Router и рабочего слоя —
+[§29.10](specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/29-testing-strategy.md#2910-три-пилотные-задачи-и-план-оптимизации).

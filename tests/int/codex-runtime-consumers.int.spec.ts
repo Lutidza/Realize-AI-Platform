@@ -1,9 +1,12 @@
 /**
  * @file tests/int/codex-runtime-consumers.int.spec.ts
- * @version 1.2.0
- * @date 2026-09-30
+ * @version 1.4.0
+ * @date 2026-10-05
  * @description Проверяет интеграцию, сохранение пояснений при отказе и границы отдельного этапа исполнения.
  */
+import type { CodingAgentAdapter } from "@realize/ai-contracts";
+import { createHash } from "node:crypto";
+import { createExecutionContextFixture } from "./fixtures/systemAIRelease.fixture";
 
 // @vitest-environment node
 
@@ -89,6 +92,13 @@ const fixture = () => {
   return {
     lease,
     input: {
+      usage: {
+        meter: (adapter: CodingAgentAdapter) => adapter,
+        measureOperation: async <T>(
+          _source: unknown,
+          operation: () => Promise<T>,
+        ) => operation(),
+      },
       config: {
         codexBinary: "/fixture-codex-cli",
         reviewTimeoutMs: 30_000,
@@ -201,6 +211,7 @@ describe("Codex reviewer integration consumer", () => {
 describe("Codex implementation integration consumer", () => {
   const execution = () => {
     const test = fixture();
+    const executionContext = createExecutionContextFixture(true);
     const repository = {
       markRunning: vi.fn(),
       markValidating: vi.fn(),
@@ -212,6 +223,13 @@ describe("Codex implementation integration consumer", () => {
       ...test,
       repository,
       executionInput: {
+        usage: {
+          meter: (adapter: CodingAgentAdapter) => adapter,
+          measureOperation: async <T>(
+            _source: unknown,
+            operation: () => Promise<T>,
+          ) => operation(),
+        },
         config: {
           ...test.input.config,
           turnTimeoutMs: 30_000,
@@ -220,6 +238,32 @@ describe("Codex implementation integration consumer", () => {
         codex: test.input.codex,
         repository: repository as unknown as ExecutionJobRepository,
         job: {
+          executionContext,
+          approvedVersion: 1,
+          planHash: createHash("sha256").update("fixture plan").digest("hex"),
+          scopeHash: createHash("sha256")
+            .update(
+              JSON.stringify({ affectedPaths: ["src/fixture.ts"], checks: [] }),
+            )
+            .digest("hex"),
+          capability: {
+            allowedPaths: ["src/fixture.ts"],
+            checks: [],
+            baseCommit: "fixture-base",
+            planHash: createHash("sha256").update("fixture plan").digest("hex"),
+            scopeHash: createHash("sha256")
+              .update(
+                JSON.stringify({
+                  affectedPaths: ["src/fixture.ts"],
+                  checks: [],
+                }),
+              )
+              .digest("hex"),
+            changeRequestID: "1",
+            executionKey: "fixture-run",
+            version: 1,
+            executionContextHash: executionContext.contextHash,
+          },
           executionKey: "fixture-run",
           changeRequestID: 1,
           allowedPaths: ["src/fixture.ts"],
@@ -257,10 +301,38 @@ describe("Codex implementation integration consumer", () => {
     });
     expect(test.repository.complete).toHaveBeenCalledTimes(1);
     expect(test.repository.fail).not.toHaveBeenCalled();
+    expect(mock.turn.mock.calls[0][0].developerInstructions).toContain(
+      "Изменяй каталог только через выбранные capability bindings.",
+    );
     expect(test.lease.dispose.mock.invocationCallOrder[0]).toBeLessThan(
       test.repository.complete.mock.invocationCallOrder[0],
     );
   });
+
+  it.each(["missing", "changed", "protected"])(
+    "blocks %s context/scope before acquiring a model",
+    async (kind) => {
+      const test = execution();
+      if (kind === "missing")
+        test.executionInput.job.executionContext = undefined;
+      if (kind === "changed")
+        test.executionInput.job.capability.executionContextHash = "0".repeat(
+          64,
+        );
+      if (kind === "protected") {
+        test.executionInput.job.allowedPaths = ["AGENTS.md"];
+        test.executionInput.job.capability.allowedPaths = ["AGENTS.md"];
+      }
+      await executeClaimedJob(test.executionInput);
+      expect(test.repository.fail).toHaveBeenCalledWith(
+        test.executionInput.job,
+        expect.objectContaining({ blocked: true }),
+      );
+      expect(test.executionInput.codex.acquire).not.toHaveBeenCalled();
+      expect(mock.turn).not.toHaveBeenCalled();
+      expect(mock.check).not.toHaveBeenCalled();
+    },
+  );
 
   it("не принимает результат при ошибке сохранения refreshed credential", async () => {
     const test = execution();
@@ -325,6 +397,17 @@ describe("Codex implementation integration consumer", () => {
       new WorktreePolicyError("fixture empty diff refusal"),
     );
     test.executionInput.job.checks = ["npm run typecheck"];
+    test.executionInput.job.capability.checks = test.executionInput.job.checks;
+    test.executionInput.job.scopeHash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          affectedPaths: test.executionInput.job.allowedPaths,
+          checks: test.executionInput.job.checks,
+        }),
+      )
+      .digest("hex");
+    test.executionInput.job.capability.scopeHash =
+      test.executionInput.job.scopeHash;
     await executeClaimedJob(test.executionInput);
     expect(test.repository.fail).toHaveBeenCalledExactlyOnceWith(
       test.executionInput.job,
@@ -370,6 +453,17 @@ describe("Codex implementation integration consumer", () => {
       evidenceHash: "raw-check-hash",
     };
     test.executionInput.job.checks = [check.command, "npm run build"];
+    test.executionInput.job.capability.checks = test.executionInput.job.checks;
+    test.executionInput.job.scopeHash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          affectedPaths: test.executionInput.job.allowedPaths,
+          checks: test.executionInput.job.checks,
+        }),
+      )
+      .digest("hex");
+    test.executionInput.job.capability.scopeHash =
+      test.executionInput.job.scopeHash;
     mock.turn.mockImplementation(async function* () {
       yield {
         type: "assistant.completed",
@@ -418,6 +512,15 @@ describe("Codex implementation integration consumer", () => {
       "Файлы не изменены: текущая сессия допускает чтение и подготовку плана. Изменить src/fixture.ts. Оформить план.";
     test.executionInput.job.plan = plan;
     test.executionInput.job.originalRequest = "приступай";
+    test.executionInput.job.planHash = createHash("sha256")
+      .update(plan)
+      .digest("hex");
+    test.executionInput.job.capability.planHash =
+      test.executionInput.job.planHash;
+    const context = createExecutionContextFixture(true, "приступай");
+    test.executionInput.job.executionContext = context;
+    test.executionInput.job.capability.executionContextHash =
+      context.contextHash;
     mock.turn.mockImplementation(async function* () {
       yield { type: "assistant.completed", content: "fixture implemented" };
     });

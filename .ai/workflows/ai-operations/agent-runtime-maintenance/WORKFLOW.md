@@ -5,8 +5,8 @@ artifact_id: agent-runtime-maintenance-workflow
 artifact_type: ai-workflow
 owner_role: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 owner_layer: .ai/workflows/ai-operations/agent-runtime-maintenance/
-related_specs:
-  - documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
+runtime_sources:
+  - .ai/tools/agent-runtime/README.md
 runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
 runtime_writer: .ai/tools/agent-runtime/bin/agent-runtime.mjs
 projection_exporter: .ai/tools/agent-runtime/bin/agent-runtime.mjs projection-export
@@ -23,15 +23,18 @@ runtime состоянию перед handoff.
 
 ## Когда запускать
 
-Запускать workflow только если:
+Запускать workflow только по разрешённой задаче обслуживания managed runtime
+или как явно выбранную проверку изменения его инструмента. Возможные основания:
 
 - пользователь просит обслужить, почистить или проверить runtime worker-сессий;
 - agent monitor показывает stale, expired или закрытые runtime artifacts;
-- перед handoff нужно доказать, что нет брошенных active runtime rows;
+- в используемом managed режиме перед handoff требуется проверка active rows;
 - менялись `.ai/tools/agent-runtime/*`, `.ai/tools/agent-monitor/*` или
   worker-session workflow.
 
-Workflow выполняется на boundary points, а не при каждом poll/wait:
+Обычная работа напрямую, native collaboration и внешний worker без managed режима
+не требуют этого workflow. Наличие каталога/SQLite или чужих stale sessions
+не разрешает обслуживание. При выбранном workflow допустимы boundary points:
 
 - перед финальным ответом;
 - перед паузой шага;
@@ -104,13 +107,15 @@ Dialog Assistant фиксирует цель maintenance:
 
 ### `runtime_store_check`
 
-Проверить, что `runtime.sqlite` существует, инициализирован и доступен:
+Проверить существование и доступность выбранного `runtime.sqlite` без создания
+нового store. Только при разрешённой инициализации используется:
 
 ```bash
 npm --prefix .ai/tools/agent-runtime run runtime -- init
 ```
 
-`init` идемпотентен и не создаёт application database artifacts.
+`init` идемпотентен, но является записью. Отсутствующий store не создаётся
+ради read-only аудита или завершения обычной задачи.
 
 ### `dry_run`
 
@@ -237,7 +242,8 @@ npm --prefix .ai/tools/agent-runtime run runtime -- maintenance-report-write \
 - связанные rule/workflow/check/spec/tool artifacts.
 
 Если workflow остановлен с `decision=blocked` или `decision=failed`, history
-report всё равно создаётся, чтобы blocker не остался только в handoff-тексте.
+report создаётся, если запись разрешена и writer доступен. При запрете записи
+или недоступном store укажи blocker в handoff; не нарушай запрет ради отчёта.
 
 ### `self_review`
 

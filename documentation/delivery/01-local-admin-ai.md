@@ -1,7 +1,7 @@
 # Локальный запуск и чат в Payload Admin
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 28 сентября 2026 года (управление диагностикой поиска)
+- **Дата сверки:** 5 октября 2026 года (аналитика расходов ИИ)
 
 Этот runbook описывает существующий e-commerce baseline. Capability/config
 foundation, hidden Payload persistence и aggregate Config API уже реализованы.
@@ -442,6 +442,41 @@ PostgreSQL, Media и отдельные workshop fixtures продолжают �
 Managed discovery подтверждает 9 инструментов; SDK search/read и доставка
 событий подтверждены на этом build. Реальный пользовательский запрос ChatGPT
 пока не подтверждён, поэтому полная installed acceptance остаётся неполной.
+
+5 октября 2026 года по запросу пользователя локальная админка переключена
+на проверенный bundle `.next/analytics-runtime-e42b`, BUILD_ID
+`WpcmW_wYgjRdbWy1IDHHO`. Раздел **Аналитика → Расходы ИИ** доступен по
+`/admin/analytics/ai`; owner view — `/admin/analytics/ai/platform`.
+Override `70-ai-analytics-dashboard.conf` меняет только launcher;
+прежний bundle и override `60-search-production-integration.conf` сохранены.
+Согласованно перезапущены web, control plane, execution и оба MCP listeners.
+Actual health и current source hash проверены до создания active pointer
+штатным `activateInstalledSearchBinding`. Canary остановлен; PostgreSQL,
+Media и отдельные preview не перезапускались.
+
+Схема usage ledger уже применена, новых миграций при переключении не было.
+`design_preview` и `workshop_mcp` остаются pending, как и до переключения.
+Worker имеет свежий heartbeat `idle`, control plane отвечает `ready`;
+неавторизованный usage API возвращает `401`, браузер перенаправляет на login.
+UI обеих ролей проверен отдельно на fixture; авторизованная браузерная
+приёмка основной установки не заявляется. После явного подтверждения владельца
+в серверном allowlist указан account `1`, перезапущен только web. Доступ
+владельца и отсутствие этого доступа у другого admin проверены.
+
+Проверка настоящего чата обнаружила несовместимость active overlay v4
+с system `1.1.0`. Через штатные draft, validation, release и CAS activation
+опубликован `installation-config-v5`; содержимое всех 27 artifacts сохранено.
+Исторический v4 и системный выпуск не изменялись. Новый read-only run `95`
+в conversation `52` завершён через настоящий control plane. Ledger и API
+аналитики подтверждают 38 879 input / 314 output tokens, включая 17 792 cached
+input, и 23 112 ms. В клиентском scope теперь 1 `customer_runtime` attempt,
+в обзоре владельца — 10 attempts с учётом прежних 9 `evaluation` attempts.
+Запрос выполнен доверенным локальным Payload request подтверждённого владельца
+через зарегистрированные handlers с ACL и idempotency; браузерная сессия
+не создавалась. Денежная стоимость unknown: тариф для ChatGPT не назначался.
+Локальная активация не является release/RC;
+устаревший evaluation baseline необходимо обновить перед таким выпуском.
+Evidence: `.ai-workspace/tasks/2026-10-05-ai-analytics-dashboard-e42b/logs/`.
 
 Для этой установки deployment copier сохранил generated JS/manifests побайтно
 и пропустил только tracing-копии внешних Node/Codex launcher каталогов
@@ -987,3 +1022,84 @@ authenticated browser session; не добавляй Payload cookies или се
 isolation и operational policy. Неоднозначные selectors, уже назначенная
 категория, stale document version и отсутствие Payload access завершаются
 fail-closed без записи.
+
+## Системный AI artifact и обновление runtime
+
+С PLAT-03 (4 октября 2026) выполнять `npm run ai:system:check` перед обновлением
+web/CP/worker. Публикуемый набор задаёт
+`packages/change-engine/src/system-ai/systemAIRelease.source.json`; он включает
+явно выбранное runtime-правило из `.ai` и происхождение исполняемых builders.
+После изменения уже выпущенного набора владелец назначает новую версию/ID,
+выполняет `npm run ai:system:publish` и явно регистрирует artifact в
+`systemAIRelease.registry.ts`. Опубликованный ID не перезаписывается другим
+содержимым. Проверка publication включена в `npm run ci`.
+
+Перед использованием нового кода нужна миграция
+`20261004_161914_ai_execution_context`. Она добавляет private nullable snapshots
+на CR/job. Web, control plane и execution worker должны использовать совместимый
+system artifact. Исторический run/план без binding можно читать; новый execution
+потребует нового run и плана. Active overlay выбирается существующим UI;
+включение release не переписывает прежние snapshots.
+
+Overlay, скомпилированный с прежним system manifest hash, требует нового
+совместимого выпуска и активации через `/admin/ai/settings`. Исторический
+release не переписывается; пока совместимый профиль не активирован, его
+использование для нового запуска отклоняется.
+
+После обновления system перед приёмкой чата проверь `/config/runtime`
+в авторизованном Config API: общий health `ready` не подтверждает совместимость
+активного overlay. При несовместимости создай новый draft на основе активного
+выпуска, проверь его текущим compiler и активируй новый immutable release
+с проверками ожидаемых system hash и pointer version. Изменять compatibility
+старого release вручную нельзя.
+
+Product runtime игнорирует AGENTS.md и project `.codex` как policy Codex.
+Работа разработчика в IDE и отдельный Git worker сохраняют свой рабочий протокол.
+Это локальная доверенная сборка; внешний клиентский host и закрытый vendor AI
+сервис физически разделяются на PLAT-10. Детали —
+[контракт system/overlay](../specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md#1011-опубликованный-system-ai-release-и-исполнение).
+
+## Расходы ИИ и аккаунт владельца
+
+После миграции ledger перезапусти web, control plane и execution worker из одной
+совместимой сборки. В серверном окружении всех трёх задай одинаковые стабильные
+`REALIZE_INSTALLATION_ID` и `REALIZE_PROJECT_ID`. Их смена создаёт другую область
+учёта и не переносит существующую историю.
+
+Раздел «Аналитика → Расходы ИИ», `/admin/analytics/ai`, доступен администратору
+установки: динамика и сравнение периодов, рекомендации по оптимизации,
+история, фильтры и собственный месячный бюджет. `/admin/analytics/ai/platform` требует
+отдельного `canViewPlatformUsage`; в этой установке он проверяет числовые IDs
+существующих admin-аккаунтов из `REALIZE_PLATFORM_OWNER_USER_IDS`. Пустой список
+закрывает доступ. Первый admin автоматически владельцем не назначается.
+Обычный admin не может изменить, удалить или разблокировать owner account.
+Allowlist хранится на сервере и не редактируется в клиентской админке.
+Прежние `/admin/ai/usage` и `/admin/ai/usage/platform` открывают те же экраны.
+Путь в исходниках появляется в работающей установке после обновления её сборки.
+
+Владелец публикует неизменяемые тарифы с источником, задаёт provider budgets и
+сверяет суммы с внешним evidence. Пока тарифа или полного измерения нет, UI
+показывает неизвестную стоимость. Подписка Codex ChatGPT не оценивается
+API-тарифом: для неё нужна отдельная обоснованная allocation policy.
+Это учёт и оценки, без коммерческого списания денег.
+
+Журнал собирает вызовы, прошедшие через metered runtime платформы. Обычная
+работа Codex в IDE автоматически сюда не импортируется. Клиентский scope
+показывает `customer_runtime` своей установки; `evaluation` и прочие внутренние
+цели доступны только владельцу. Поэтому наличие работы над проектом само
+по себе не означает наличие записей в клиентском дашборде.
+
+Для нового Codex thread аналитика использует накопленный `tokenUsage.total`:
+один turn может включать несколько обращений к модели. Cached input входит
+в input и не прибавляется повторно. Legacy счётчик `run.usage` получает
+`tokenUsage.last` и может быть меньше полного расхода turn; источник финансовой
+аналитики — ledger с provider observations.
+
+Для приёмки без платных вызовов: `npm run check:usage:postgres` и
+`npm run check:usage:browser`. Второй создаёт отдельную БД, два fixture-аккаунта,
+web process на `127.0.0.1:3408` и browser evidence в `.ai-workspace/tasks/`;
+фоновое AI-исполнение отключено. Production credentials для него не нужны.
+Для двух одновременных запусков этот фиксированный порт не предназначен.
+
+Точный охват и будущие порты Model Garden/Router находятся в
+[контракте расходов](../specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/25-subscriptions-and-ai-billing.md#257-реализованный-локальный-контур-plat-04).

@@ -1,11 +1,12 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/ChatRunContext.types.ts
- * @version 1.5.0
- * @date 2026-09-30
+ * @version 1.6.0
+ * @date 2026-10-04
  * @description Отделяет исходный контекст и добавляемые сервером чтения запуска от публичного сообщения.
  */
 import type {
   AIChatConfigurationSnapshot,
+  SystemAIReleaseReference,
   WorkflowCheckpoint,
   PageDraftContextDTO,
   PageDiscoveryReadRecord,
@@ -23,6 +24,7 @@ export type ChatRunContext = ChatMessageContext & {
   pageReadContexts?: PageDiscoveryReadRecord[];
   pageStructureReadContexts?: PageDiscoveryStructureReadRecord[];
   agentConfiguration?: AIChatConfigurationSnapshot;
+  systemRelease?: SystemAIReleaseReference;
   runtimeContextHash: string;
   conversationHistory?: string;
   workflow?: WorkflowCheckpoint;

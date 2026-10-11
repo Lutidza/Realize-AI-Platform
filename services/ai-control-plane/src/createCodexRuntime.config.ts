@@ -1,10 +1,11 @@
 /**
  * @file services/ai-control-plane/src/createCodexRuntime.config.ts
- * @version 1.1.0
- * @date 2026-09-27
+ * @version 1.2.0
+ * @date 2026-10-05
  * @description Подключает control plane к серверному resolver интеграции Codex в PostgreSQL.
  */
 
+import { UsageRuntime } from "@realize/payload-ai-control/server/usage";
 import { Pool } from "pg";
 import { SearchObservationStore } from "@realize/payload-ai-control/server/search-observability";
 import { CodexConnectionService } from "@realize/payload-ai-control/server/integration-runtime";
@@ -24,6 +25,7 @@ export const createCodexRuntime = (
     connectionTimeoutMillis: 5_000,
   });
   return {
+    usage: new UsageRuntime({ pool }, environment),
     searchObservations: new SearchObservationStore({ pool }),
     codex: new CodexConnectionService({
       pool,

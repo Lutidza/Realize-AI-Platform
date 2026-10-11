@@ -1,7 +1,8 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/executionJobs.ts
- * @version 2026-08-21
- * @description Defines the durable queue and redacted evidence for isolated code jobs.
+ * @version 1.0.0
+ * @date 2026-10-04
+ * @description Хранит очередь, закрытый AI-снимок и evidence изолированного исполнения.
  */
 
 import type { CollectionConfig, CollectionSlug } from "payload";
@@ -105,6 +106,7 @@ export const createExecutionJobsCollection = (
         unique: true,
       },
       { name: "approvedVersion", required: true, type: "number" },
+      { name: "executionContext", type: "json", access: { read: () => false } },
       { index: true, name: "boundPlanHash", required: true, type: "text" },
       { index: true, name: "boundScopeHash", required: true, type: "text" },
       { name: "allowedPaths", required: true, type: "json" },

@@ -1,7 +1,7 @@
 # 22. API и streaming contracts
 
 - **Статус:** target specification
-- **Дата сверки реализации:** 15 сентября 2026 года
+- **Дата сверки реализации:** 4 октября 2026 года (PLAT-03, §22.8)
 
 ## 22.1. Общие правила
 
@@ -29,11 +29,11 @@ Lane поддерживает `catalog.assignCategory.v1`, `pages.createDraft.v1
 `MessageDTO.changePlan` передаёт вычисленную сервером готовность сохранённого
 ответа к `POST /conversations/:id/changes`:
 
-| `status` | `reason` | Поведение интерфейса |
-| --- | --- | --- |
-| `ready` | — | Доступно «Оформить план изменения» |
-| `needs_clarification` | `missing_paths` или `too_short` | Пояснение и «Уточнить изменение» |
-| `unavailable` | `data_operation` или `not_assistant` | Действия оформления плана кода отсутствуют |
+| `status`              | `reason`                             | Поведение интерфейса                       |
+| --------------------- | ------------------------------------ | ------------------------------------------ |
+| `ready`               | —                                    | Доступно «Оформить план изменения»         |
+| `needs_clarification` | `missing_paths` или `too_short`      | Пояснение и «Уточнить изменение»           |
+| `unavailable`         | `data_operation` или `not_assistant` | Действия оформления плана кода отсутствуют |
 
 Проекция и `deriveChangePlan` используют одну проверку Change Engine. Наличие
 полного или повреждённого `realize-data-operation` блока исключает code plan.
@@ -87,13 +87,13 @@ Change Request возвращается повторно до разбора о�
 Операции используют существующие endpoints; отдельный произвольный Pages
 CRUD для модели не открывается. Пути ниже относительны к `/api/realize-ai`:
 
-| Действие | Endpoint | Strict request body |
-| --- | --- | --- |
-| Подготовить dry-run | `POST /conversations/:id/data-operations` | `{sourceMessageID}` |
-| Прочитать операцию | `GET /data-operations/:id` | — |
-| Подтвердить или отклонить | `POST /data-operations/:id/approve`, `/reject` | `{expectedVersion, expectedOperationHash, comment?}` |
-| Применить | `POST /data-operations/:id/apply` | `{expectedVersion, expectedOperationHash}` |
-| Подтвердить или выполнить откат | `POST /data-operations/:id/approve-rollback`, `/rollback` | `{expectedVersion, expectedRollbackHash, comment?}` |
+| Действие                        | Endpoint                                                  | Strict request body                                  |
+| ------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
+| Подготовить dry-run             | `POST /conversations/:id/data-operations`                 | `{sourceMessageID}`                                  |
+| Прочитать операцию              | `GET /data-operations/:id`                                | —                                                    |
+| Подтвердить или отклонить       | `POST /data-operations/:id/approve`, `/reject`            | `{expectedVersion, expectedOperationHash, comment?}` |
+| Применить                       | `POST /data-operations/:id/apply`                         | `{expectedVersion, expectedOperationHash}`           |
+| Подтвердить или выполнить откат | `POST /data-operations/:id/approve-rollback`, `/rollback` | `{expectedVersion, expectedRollbackHash, comment?}`  |
 
 Mutation требует `Idempotency-Key`; отклонение требует непустой причины.
 Подготовка читает только сохранённый ответ ассистента с одним валидным
@@ -584,7 +584,6 @@ check проверяет его фактическое состояние и aud
 подтверждения и ограничения [системного runtime](../01-architecture/10-ai-codex-layer-integration.md#108-исполнение-workflow-сегментами)
 не заменяются текстом workflow или результатом модели.
 
-
 ## 22.7. Реестр и история запусков процессов
 
 Реализованы authenticated `canUseChat` GET endpoints:
@@ -643,3 +642,55 @@ DataOperation и SSE endpoints. Доступность в DTO — подсказ
 повторно проверяет права, текущую версию и hash. Отмена доступна для активного
 AIRun, а ready/awaiting_input продолжаются существующей командой. GET истории
 не запускает модель и не переключает активный выпуск.
+
+## 22.8. Exact system policy в серверном transport
+
+Срез PLAT-03 (4 октября 2026) требует `systemRelease: {releaseID, manifestHash}`
+в закрытом `POST /v1/runs` control-plane transport. Browser по-прежнему передаёт
+только выбор admin release/profile; произвольные системные инструкции, release
+artifact и capability grants из browser не принимаются. Web сохраняет reference
+в run до dispatch; workflow передаёт сохранённую пару при continuation/retry.
+CP проверяет registry, форму/hashes overlay и его capability/check ceiling.
+Run-ID replay учитывает system reference как часть полного запроса.
+
+`POST /conversations/:id/changes` сохраняет policy исходного завершённого run.
+Plan approval и очередь исполнения требуют этот binding. Несовместимый или
+неизвестный сохранённый system snapshot возвращает `409 CONFLICT` с предложением
+создать новый запуск/план; legacy записи остаются читаемыми. Browser bodies
+create/approve/execute не получают поля для самостоятельного назначения policy.
+
+Формат overlay snapshot остаётся `1.0`. Новое поле server transport требует
+согласованного обновления web, CP и worker. Это не endpoint публикации system
+release и не новый Admin permission: публикацию выполняет владелец сборки.
+
+## 22.9. Расходы и бюджеты PLAT-04
+
+Префикс `/api/realize-ai`; история доступна и при выключенном AI runtime.
+
+| Метод и путь                     | Право                  | Результат                                                               |
+| -------------------------------- | ---------------------- | ----------------------------------------------------------------------- |
+| `GET /usage`                     | `canViewUsage`         | Своя клиентская DTO, агрегаты, cursor и customer budgets                |
+| `POST /usage/budget`             | `canViewUsage`         | Только customer budget своей установки/project/purpose                  |
+| `GET /usage/platform`            | `canViewPlatformUsage` | Owner DTO с себестоимостью, provenance и последними тарифами            |
+| `POST /usage/platform/budget`    | `canViewPlatformUsage` | Owner model budget с CAS                                                |
+| `POST /usage/platform/prices`    | `canViewPlatformUsage` | Новая последовательная revision immutable тарифа                        |
+| `POST /usage/platform/reconcile` | `canViewPlatformUsage` | Корректирующее evidence полной стоимости одной оси                      |
+| `POST /usage/platform/abandon`   | `canViewPlatformUsage` | Явно подтверждённая остановка зависшего учёта, без освобождения резерва |
+
+GET принимает строгий bounded query: `days` (1–366), `before`, `model`, `source`,
+`workflowKey`, `agentProfileKey`, `outcome`. Owner дополнительно использует
+`installationId`, `projectId`, `purpose`, `systemReleaseId`, `overlayReleaseId`,
+`modelCatalogRevision`, `routerPolicyVersion`. Клиентский override scope и
+owner-only filters отклоняются, повторные/неизвестные параметры недопустимы.
+Среднее по подтверждённым preview использует собственный полный task scope,
+описанный в [observability](../04-commercial-and-operations/28-observability.md#285-административная-аналитика-plat-04).
+
+POST требует `Idempotency-Key`, bounded JSON и повторную серверную авторизацию.
+Денежные суммы/ставки — целые nanos в строке; неизвестное значение — `null`.
+Budget/reconciliation/recovery требуют expected revision, конфликт — `409`.
+Сервер назначает event/pricing ID и digest; UI не передаёт raw Payload records.
+Ошибки доступа — `401/403`, невалидный query — `400`, недоступная БД — `503`.
+
+Внутреннее событие адаптера `usage.measured` не является публичным SSE-событием.
+Metering сохраняет его напрямую, не полагаясь на eventPersistence браузерного
+stream. Внешнего client endpoint для произвольного импорта финансовых events нет.

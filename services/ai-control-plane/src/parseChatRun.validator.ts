@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/parseChatRun.validator.ts
- * @version 1.5.0
- * @date 2026-09-30
+ * @version 2.0.0
+ * @date 2026-10-04
  * @description Проверяет серверный запрос turn без браузерных путей к изображениям.
  */
 import {
@@ -13,7 +13,8 @@ import {
 import type { ChatAssetReference } from "@realize/ai-contracts";
 import type { ControlPlaneRun } from "./runStore";
 import {
-  parseAIChatConfigurationSnapshot,
+  assertRuntimeAIConfiguration,
+  requireSystemAIRelease,
   parseWorkflowCheckpoint,
 } from "@realize/change-engine";
 
@@ -32,6 +33,7 @@ export const parseChatRun = (
           "projectFiles",
           "webSearch",
           "agentConfiguration",
+          "systemRelease",
           "conversationHistory",
           "workflow",
           "pageDraftContext",
@@ -87,10 +89,15 @@ export const parseChatRun = (
       Buffer.byteLength(body.conversationHistory, "utf8") > 32 * 1024)
   )
     throw new Error("Conversation history is too large or invalid.");
-  const agentConfiguration =
-    body.agentConfiguration !== undefined
-      ? parseAIChatConfigurationSnapshot(body.agentConfiguration)
-      : undefined;
+  const system = requireSystemAIRelease(body.systemRelease);
+  const systemRelease = {
+    releaseID: system.releaseID,
+    manifestHash: system.manifestHash,
+  };
+  const agentConfiguration = assertRuntimeAIConfiguration(
+    systemRelease,
+    body.agentConfiguration,
+  );
   const workflow =
     body.workflow === undefined
       ? undefined
@@ -123,6 +130,7 @@ export const parseChatRun = (
   )
     throw new Error("Invalid repository access.");
   return {
+    systemRelease,
     ...(access === undefined
       ? {}
       : {

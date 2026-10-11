@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/requireSystemAdmin.service.ts
- * @version 1.0.0
- * @date 2026-09-17
+ * @version 1.1.0
+ * @date 2026-10-11
  * @description Проверяет сессию Payload и роль администратора перед выдачей безопасного UI-контекста.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -42,5 +42,14 @@ export async function requireSystemAdmin(
   }
   const cookieStore = await cookies();
   const theme = cookieStore.get(`${payload.config.cookiePrefix}-theme`)?.value;
-  return { initialTheme: theme === "light" ? "light" : "dark" };
+  return {
+    initialTheme: theme === "light" ? "light" : "dark",
+    currentActor: {
+      id: String(user.id),
+      name:
+        typeof user.name === "string" && user.name.trim()
+          ? user.name
+          : "Администратор",
+    },
+  };
 }

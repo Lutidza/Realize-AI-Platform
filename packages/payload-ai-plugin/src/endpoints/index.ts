@@ -1,10 +1,11 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/index.ts
- * @version 2.5.0
- * @date 2026-09-30
+ * @version 2.6.0
+ * @date 2026-10-05
  * @description Регистрирует runtime, integration и installation Config API endpoints.
  */
 
+import { createUsageEndpoints } from "../usage/usageEndpoints.controller";
 import type { Endpoint } from "payload";
 
 import { DEFAULT_API_ROUTE } from "../constants";
@@ -72,6 +73,7 @@ export const createAIEndpoints = (
   );
 
   return [
+    ...createUsageEndpoints(options),
     ...createDesignWorkshopEndpoints(options),
     ...createMcpEndpoints(options),
     ...createSearchObservationEndpoints(options),

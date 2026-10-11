@@ -1,11 +1,12 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/requireWorkflowDataLane.service.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-10-04
  * @description Проверяет текущие права и системный потолок до Data Lane шага процесса.
  */
 import {
   parseAIChatConfigurationSnapshot,
+  assertRuntimeAIConfiguration,
   SYSTEM_AI_CONFIG_PROJECTION,
 } from "@realize/change-engine";
 import { requireChatUser, requireDataManager } from "./access";
@@ -37,5 +38,12 @@ export const requireWorkflowDataLane = async (input: WorkflowDataLaneInput) => {
       "Системная политика изменилась; этот процесс больше не может готовить или проверять операции данных.",
       409,
     );
+  assertRuntimeAIConfiguration(
+    {
+      releaseID: compiled.systemReleaseID,
+      manifestHash: compiled.systemManifestHash,
+    },
+    configuration,
+  );
   return configuration;
 };

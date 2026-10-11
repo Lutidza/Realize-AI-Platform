@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/realizeAIPlugin.plugin.ts
- * @version 1.9.0
- * @date 2026-09-27
+ * @version 1.11.0
+ * @date 2026-10-05
  * @description Подключает коллекции, endpoints и Admin views плагина Payload.
  */
 
@@ -9,6 +9,7 @@ import type { Plugin } from "payload";
 
 import {
   AI_COLLECTION_SLUGS,
+  ANALYTICS_USAGE_ROUTE,
   REALIZE_AI_SERVER_RUNTIME_KEY,
 } from "./constants";
 import { createAICollections } from "./collections";
@@ -52,6 +53,10 @@ export const realizeAIPlugin = (
       "realizeMcpServers",
       "realizeMcpServer",
       "realizeSearchObservations",
+      "realizeUsage",
+      "realizePlatformUsage",
+      "realizeUsageLegacy",
+      "realizePlatformUsageLegacy",
     ].find((key) => key in views);
     if (conflictingView) {
       throw new Error(`Realize Admin view key collision: ${conflictingView}`);
@@ -70,6 +75,10 @@ export const realizeAIPlugin = (
     const workflowRunRoute = `${workflowRunsRoute}/:rootRunID` as `/${string}`;
     const searchObservationsRoute =
       `${options.admin.route.replace(/\/$/, "")}/search` as `/${string}`;
+    const legacyUsageRoute =
+      `${options.admin.route.replace(/\/$/, "")}/usage` as `/${string}`;
+    const usageRoute = ANALYTICS_USAGE_ROUTE;
+    const platformUsageRoute = `${usageRoute}/platform` as `/${string}`;
     const registeredRoutes = new Set<string>();
     for (const route of [
       options.admin.route,
@@ -78,6 +87,10 @@ export const realizeAIPlugin = (
       workflowRunsRoute,
       workflowRunRoute,
       searchObservationsRoute,
+      usageRoute,
+      platformUsageRoute,
+      legacyUsageRoute,
+      `${legacyUsageRoute}/platform`,
       integrationsRoute,
       integrationSettingsRoute,
       mcpServersRoute,
@@ -134,12 +147,45 @@ export const realizeAIPlugin = (
                 integrationsRoute: options.admin.integrationsRoute,
                 mcpServersRoute,
                 route: options.admin.route,
+                usageRoute,
               },
               path: "@realize/payload-ai-control/client#RealizeAINavLink",
             },
           ],
           views: {
             ...views,
+            realizeUsage: {
+              Component: {
+                path: "@realize/payload-ai-control/usage-rsc#UsageView",
+                serverProps: { view: "installation", usageRoute },
+              },
+              exact: true,
+              path: usageRoute,
+            },
+            realizePlatformUsage: {
+              Component: {
+                path: "@realize/payload-ai-control/usage-rsc#UsageView",
+                serverProps: { view: "platform", usageRoute },
+              },
+              exact: true,
+              path: platformUsageRoute,
+            },
+            realizeUsageLegacy: {
+              Component: {
+                path: "@realize/payload-ai-control/usage-rsc#UsageView",
+                serverProps: { view: "installation", usageRoute },
+              },
+              exact: true,
+              path: legacyUsageRoute,
+            },
+            realizePlatformUsageLegacy: {
+              Component: {
+                path: "@realize/payload-ai-control/usage-rsc#UsageView",
+                serverProps: { view: "platform", usageRoute },
+              },
+              exact: true,
+              path: `${legacyUsageRoute}/platform`,
+            },
             realizeSearchObservations: {
               Component: {
                 path: "@realize/payload-ai-control/search-observations-rsc#SearchObservationsView",
@@ -263,6 +309,8 @@ export const realizeAIPlugin = (
           userCollection: options.userCollection,
           pageDraft: options.pageDraft,
           canUseChat: options.access.canUseChat,
+          canViewUsage: options.access.canViewUsage,
+          canViewPlatformUsage: options.access.canViewPlatformUsage,
           canManageData: options.access.canManageData,
           canManageAIConfiguration: options.access.canManageAIConfiguration,
           canManageIntegrations: options.access.canManageIntegrations,

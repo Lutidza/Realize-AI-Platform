@@ -20,6 +20,12 @@ Legacy-путь `realize-ai-commerce` сохранён для совместим
 6. [Roadmap Phase 0–6](05-implementation-roadmap/INDEX.md)
 7. [Execution governance и Definition of Done](06-execution-governance/INDEX.md)
 
+Приоритеты развития: [PLAT-01–PLAT-12](06-execution-governance/32-immediate-implementation-order.md).
+Сквозные контракты: [версии платформы и обновления клиентов](01-architecture/40-platform-versioning-and-updates.md),
+[Model Garden/Model Router](01-architecture/41-model-garden-and-router.md),
+[учёт расходов](04-commercial-and-operations/25-subscriptions-and-ai-billing.md)
+и [проверки качества](04-commercial-and-operations/29-testing-strategy.md).
+
 ## Исторический контур
 
 [EPIC-000 Phase 0](07-epic-000-phase-0/INDEX.md) — выполненное задание,

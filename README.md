@@ -119,6 +119,16 @@ Media worker используется `npm run media:worker` после прим
 При первом запуске на пустой БД создайте учётную запись администратора в панели
 управления.
 
+## Расходы ИИ
+
+В `/admin/ai/usage` клиентские администраторы видят операции и бюджет своей
+установки. В `/admin/ai/usage/platform` владелец видит себестоимость, тарифы и
+сверку. Доступ владельца задаётся через `REALIZE_PLATFORM_OWNER_USER_IDS`
+на сервере; обычная роль `admin` его не предоставляет. Identity установки
+`REALIZE_INSTALLATION_ID`/`REALIZE_PROJECT_ID` должна совпадать в web, CP и worker.
+Настройка, источники цен и границы покрытия описаны в
+[контракте учёта расходов](documentation/specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/25-subscriptions-and-ai-billing.md#257-реализованный-локальный-контур-plat-04).
+
 ## Сборка и запуск в контейнере
 
 Локальная сборка с настроенным окружением и доступной БД:
@@ -197,3 +207,12 @@ docker compose ps
 - [Инструкции по эксплуатации](documentation/delivery/INDEX.md)
 - [Протокол работы ИИ-агентов](AGENTS.md) — обязательный вход в операционный слой
   `.ai` и процедуры `.codex`.
+
+### Качество агентского слоя
+
+`npm run ai:quality:structure` проверяет активные инструкции без модели.
+`npm run ai:eval:run -- --preflight --allow-unknown-subscription-cost --output .ai-workspace/tasks/<task-id>/logs/baseline.json`
+проверяет возможность bounded eval через текущую интеграцию Codex; без `--preflight`
+выполняет до шести настоящих turns с учётом расходов. Порядок review и release gate:
+[quality tooling](.ai/tools/quality/README.md). Стоимость evals относится к владельцу
+платформы и не попадает в клиентскую аналитику.

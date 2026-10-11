@@ -1,11 +1,39 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.11.0
- * @date 2026-09-30
+ * @version 2.15.0
+ * @date 2026-10-06
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
 export * from "./agent";
+export type {
+  UsageContext,
+  UsageTokens,
+  UsagePrice,
+  UsageObservation,
+  UsageBudgetPolicy,
+  UsageQuery,
+  UsageReconciliation,
+  UsageCostBasis,
+  UsageCost,
+  UsageAttempt,
+  UsageAttemptInput,
+  UsageReservation,
+  UsageBudgetReadiness,
+  ProviderUsageMeasurement,
+} from "./usage/UsageLedger.types";
+export {
+  usageNanosSchema,
+  usageCurrencySchema,
+  usageTokensSchema,
+  usageContextSchema,
+  usagePriceSchema,
+  usageObservationSchema,
+  usageBudgetPolicySchema,
+  usageReconciliationSchema,
+  usageAbandonSchema,
+  usageQuerySchema,
+} from "./usage/usageLedger.schemas";
 export type { InstalledSearchBuildDTO } from "./InstalledSearchBuild.types";
 export { mcpToolInputs } from "./mcpToolInputs.config";
 export type * from "./DesignWorkshop.types";
@@ -244,3 +272,23 @@ export * from "./searchObservationManagement.schemas";
 export type * from "./SearchObservationManagement.types";
 export * from "./searchQuality.schemas";
 export type * from "./SearchQuality.types";
+
+export type {
+  SystemAIRelease,
+  SystemAIReleaseReference,
+  AIExecutionContextSnapshot,
+} from "./SystemAIRelease.types";
+
+export type {
+  UsageAmountDto,
+  UsageCostDto,
+  UsageAttemptDto,
+  PlatformUsageAttemptDto,
+  UsageGroupDto,
+  UsageFilterOptionsDto,
+  UsagePeriodMetricsDto,
+  UsageAnalyticsDto,
+  UsageDashboardDto,
+  PlatformUsageDashboardDto,
+} from "./usage/UsageDashboard.types";
+export { usageGroupKeys } from "./usage/usageGrouping.config";

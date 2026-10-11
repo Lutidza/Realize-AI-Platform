@@ -1,7 +1,8 @@
 /**
  * @file packages/change-engine/src/executionCapability.ts
- * @version 2026-08-21
- * @description Issues and verifies short-lived capabilities bound to one execution job.
+ * @version 1.0.0
+ * @date 2026-10-04
+ * @description Подписывает краткоживущие допуски с привязкой к плану, scope и исходному AI-контексту.
  */
 
 import {
@@ -13,6 +14,7 @@ import {
 
 /** Security-relevant fields signed before a worker may receive workspace-write. */
 export type ExecutionCapabilityClaims = {
+  executionContextHash?: string;
   allowedPaths: string[];
   baseCommit: string;
   changeRequestID: string;
@@ -39,6 +41,9 @@ const sha256 = (value: string): string =>
 const encodeClaims = (claims: ExecutionCapabilityClaims): string =>
   Buffer.from(
     JSON.stringify({
+      ...(claims.executionContextHash
+        ? { executionContextHash: claims.executionContextHash }
+        : {}),
       allowedPaths: [...claims.allowedPaths],
       baseCommit: claims.baseCommit,
       changeRequestID: claims.changeRequestID,
@@ -76,6 +81,7 @@ export const issueExecutionCapability = (
 
 /** Creates fresh claims with a bounded expiry for one approved plan. */
 export const createExecutionCapability = (input: {
+  executionContextHash?: string;
   allowedPaths: string[];
   baseCommit: string;
   changeRequestID: string;
@@ -91,6 +97,9 @@ export const createExecutionCapability = (input: {
   }
   const issuedAt = new Date();
   return {
+    ...(input.executionContextHash
+      ? { executionContextHash: input.executionContextHash }
+      : {}),
     allowedPaths: [...input.allowedPaths],
     baseCommit: input.baseCommit,
     changeRequestID: input.changeRequestID,

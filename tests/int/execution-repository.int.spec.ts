@@ -1,8 +1,10 @@
 /**
  * @file tests/int/execution-repository.int.spec.ts
- * @version 2026-08-21
- * @description Verifies durable queue fields and numeric relationship normalization.
+ * @version 1.0.0
+ * @date 2026-10-04
+ * @description Проверяет persistence связанного AI-контекста и hashed capability очереди.
  */
+import { createExecutionContextFixture } from "./fixtures/systemAIRelease.fixture";
 
 import type { Payload, PayloadRequest } from "payload";
 import { describe, expect, it, vi } from "vitest";
@@ -20,6 +22,7 @@ describe("ExecutionRepository", () => {
     const repository = new ExecutionRepository(payload, {} as PayloadRequest);
 
     await repository.createJob({
+      executionContext: createExecutionContextFixture(),
       allowedPaths: ["src/components/Header/index.tsx"],
       approvedVersion: 1,
       artifactsExpireAt: "2099-01-02T00:00:00.000Z",

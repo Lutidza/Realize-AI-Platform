@@ -1,7 +1,7 @@
 # Миграции и rollback
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 25 сентября 2026 года (MCP/ChatGPT, W1a и очередь capture Мастерской)
+- **Дата сверки:** 5 октября 2026 года (usage ledger и проверка восстановления)
 
 ## 1. Канонический порядок миграций
 
@@ -63,6 +63,10 @@
     полная fixture цепочка, CAS/конкуренция и защищённый `down`/`up`; применена
     в локальной установке 28 сентября 2026 года.
 
+28. `20261004_161914_ai_execution_context` — private nullable snapshots для CR/job.
+29. `20261004_210727_ai_usage_ledger` — пять закрытых таблиц учёта расходов,
+    immutable events/prices и защищённый rollback.
+
 В production `push` отключён. Schema меняется только versioned миграциями:
 
 ```bash
@@ -70,7 +74,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-В пустой PostgreSQL применяется вся последовательность из 27 миграций.
+В пустой PostgreSQL применяется вся последовательность из 29 миграций.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 
@@ -440,3 +444,52 @@ retention/capacity совместимы с прежней версией. Таб
 проверены каталог и полное чтение архива. Переход 24 → 25 через native migration
 API предварительно выполнен на отдельной БД; Workshop 24–25 остаются pending.
 Полная цепочка 27 миграций также проверена в disposable PostgreSQL.
+
+## Привязка системного и админского AI-снимка
+
+`20261004_161914_ai_execution_context` добавляет nullable `execution_context`
+в `realize_ai_change_requests` и `realize_ai_execution_jobs`. Источник —
+[`ai-execution-context.mjs`](../../scripts/migrations/ai-execution-context.mjs);
+TS/JSON/index и Payload types созданы официальными генераторами. Backfill
+текущим release не выполняется: он изменил бы происхождение старых планов.
+Старые записи читаются, новое исполнение требует exact сохранённого binding.
+
+`down` блокирует обе таблицы и отказывает с `AI_CONTEXT_ROLLBACK_BLOCKED`, если
+хотя бы в одной сохранён non-null snapshot. Откат приложения сохраняет эти поля.
+На отдельной PostgreSQL проверены все 28 `up`, nullable upgrade с сохранением
+прежних данных, `down/up` без snapshots и независимые отказы rollback для CR/job.
+
+4 октября новая миграция адресно применена к локальной установке через native
+Payload migration API: сохранены 25 прежних receipt, добавлен 26-й; обе колонки
+проверены. Перед применением создан private custom-format backup вне репозитория,
+проверены каталог и полное чтение архива. Добавление nullable-полей совместимо с
+существующими writers; их задания не отменялись и не переписывались. Для соединения
+миграции заданы lock timeout 5 секунд и statement timeout 30 секунд. Прежние
+pending migrations Мастерской этим адресным действием не применялись.
+
+### Расходы ИИ: PLAT-04
+
+Источником новой миграции служит
+[`ai-usage-ledger.mjs`](../../scripts/migrations/ai-usage-ledger.mjs). Штатный
+Payload generator создаёт TS/JSON и index из schema diff после execution context.
+Events и prices защищены от UPDATE/DELETE триггерами; `down` блокирует пять
+таблиц и отказывает с `USAGE_LEDGER_ROLLBACK_BLOCKED`, если в них есть данные.
+Удалять финансовую историю ради rollback нельзя. Откат приложения сохраняет
+расширенную схему; предыдущая версия приложения не обеспечивает новый metering.
+
+`npm run check:usage:postgres` создаёт отдельную PostgreSQL fixture, применяет
+все 29 native migrations, проверяет пустой down/up, отказ непустого down,
+конкурентные резервы и сверку. Вызов не использует модели и не меняет основную БД.
+
+5 октября ledger migration адресно применена к локальной установке: сохранены
+26 прежних receipts, добавлен 27-й. Все 17 execution jobs остались без изменений.
+Перед применением создан private custom-format backup вне репозитория, проверены
+его целостность и восстановление в отдельную БД; на восстановленной копии успешно
+применена новая миграция. Основные credentials и dump в workspace не сохранялись.
+Прежние pending migrations Мастерской этим действием не применялись.
+
+До перезапуска web/CP/worker требуется эта схема и совместимая сборка: отсутствие
+ledger блокирует новые модельные вызовы. Зависшие финансовые attempts закрывает
+владелец после фактической остановки процесса; резерв остаётся до явной сверки.
+Операционная семантика и точный охват —
+[§25.7](../specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/25-subscriptions-and-ai-billing.md#257-реализованный-локальный-контур-plat-04).

@@ -1,10 +1,11 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/executionRepository.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Сохраняет очередь выполнения и читает проверки и состояние фонового исполнителя.
  */
 
+import type { AIExecutionContextSnapshot } from "@realize/ai-contracts";
 import type { Payload, PayloadRequest } from "payload";
 
 import { CHECK_RESULTS_SLUG, EXECUTION_JOBS_SLUG } from "../constants";
@@ -39,6 +40,7 @@ export class ExecutionRepository {
   }
 
   async createJob(input: {
+    executionContext: AIExecutionContextSnapshot;
     allowedPaths: string[];
     approvedVersion: number;
     artifactsExpireAt: string;
@@ -60,6 +62,7 @@ export class ExecutionRepository {
     return await this.api.create({
       collection: EXECUTION_JOBS_SLUG,
       data: {
+        executionContext: input.executionContext,
         allowedPaths: input.allowedPaths,
         approvedVersion: input.approvedVersion,
         artifactsExpireAt: input.artifactsExpireAt,

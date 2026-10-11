@@ -25,6 +25,9 @@ import * as migration_20260925_170325_design_preview from './20260925_170325_des
 import * as migration_20260926_112722_workshop_mcp from './20260926_112722_workshop_mcp';
 import * as migration_20260927_070914_search_observations from './20260927_070914_search_observations';
 import * as migration_20260928_102009_search_observation_state from './20260928_102009_search_observation_state';
+import * as migration_20261004_161914_ai_execution_context from './20261004_161914_ai_execution_context';
+import * as migration_20261004_210727_ai_usage_ledger from './20261004_210727_ai_usage_ledger';
+import * as migration_20261011_162630_task_manager_foundation from './20261011_162630_task_manager_foundation';
 
 export const migrations = [
   {
@@ -160,6 +163,21 @@ export const migrations = [
   {
     up: migration_20260928_102009_search_observation_state.up,
     down: migration_20260928_102009_search_observation_state.down,
-    name: '20260928_102009_search_observation_state'
+    name: '20260928_102009_search_observation_state',
+  },
+  {
+    up: migration_20261004_161914_ai_execution_context.up,
+    down: migration_20261004_161914_ai_execution_context.down,
+    name: '20261004_161914_ai_execution_context',
+  },
+  {
+    up: migration_20261004_210727_ai_usage_ledger.up,
+    down: migration_20261004_210727_ai_usage_ledger.down,
+    name: '20261004_210727_ai_usage_ledger',
+  },
+  {
+    up: migration_20261011_162630_task_manager_foundation.up,
+    down: migration_20261011_162630_task_manager_foundation.down,
+    name: '20261011_162630_task_manager_foundation'
   },
 ];

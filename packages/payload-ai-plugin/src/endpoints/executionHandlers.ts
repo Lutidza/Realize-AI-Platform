@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/executionHandlers.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-10-04
  * @description Ставит approved code jobs в очередь и фиксирует human acceptance.
  */
 
@@ -15,6 +15,7 @@ import {
 } from "@realize/ai-contracts";
 import {
   assessExecutionScope,
+  parseAIExecutionContext,
   createExecutionCapability,
   createImplementationAcceptanceBinding,
   createPlanApprovalBinding,
@@ -65,6 +66,8 @@ const requirePlanApprovalBinding = (input: {
   changeRequestID: string;
 }): void => {
   const expected = createPlanApprovalBinding({
+    executionContextHash: parseAIExecutionContext(input.change.executionContext)
+      .contextHash,
     actorID: relationID(input.approval.actor),
     actorRoles: stringArray(input.approval.roleSnapshot),
     changeRequestID: input.changeRequestID,
@@ -321,6 +324,7 @@ export const createExecutionHandlers = (
       changeRequestID,
     });
 
+    const executionContext = parseAIExecutionContext(change.executionContext);
     const affectedPaths = stringArray(change.affectedPaths);
     const checks = stringArray(change.checks);
     const assessment = assessExecutionScope({
@@ -340,6 +344,7 @@ export const createExecutionHandlers = (
     const branch = `ai/change-${suffix}`;
     const workspaceID = `change-${suffix}`;
     const claims = createExecutionCapability({
+      executionContextHash: executionContext.contextHash,
       allowedPaths: affectedPaths,
       baseCommit,
       changeRequestID,
@@ -356,6 +361,7 @@ export const createExecutionHandlers = (
     ).toISOString();
     try {
       await executionRepository.createJob({
+        executionContext,
         allowedPaths: affectedPaths,
         approvedVersion,
         artifactsExpireAt,

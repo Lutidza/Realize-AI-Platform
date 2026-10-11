@@ -1,9 +1,13 @@
 # Task manager — контракт исполнения и интеграции с AI
 
-Версия: **0.8**, 2026-09-18. Статус: **проект технической части ТЗ**.
+Версия: **0.9**, 2026-10-11. Статус: **проект технической части ТЗ**.
 Читается вместе с [продуктовым ТЗ](task-management.md). Все новые сущности,
 команды и состояния ниже — целевой контракт, а не описание готовых API.
 Этот документ не меняет действующие AI rules и не разрешает запуск/публикацию кода.
+
+Подтверждённое направление постоянного Task Manager, commit/release связей и
+cutover описано в [продуктовом ТЗ §15](task-management.md#15-разработка-платформы-git-и-переход-к-постоянным-задачам).
+Граница первого bounded Foundation — §12; остальные новые API остаются целевыми.
 
 ## 1. Проверенное состояние и владельцы
 
@@ -638,3 +642,100 @@ Save/member/archive проверяют expectedRevision; owner не удаляе
 операции. Guards запрещают запись в недоступную/архивную среду и учитывают
 принадлежность проекта, списка и task. Архив не меняет состояния задач и запусков.
 Metadata-команды среды не вызывают advanceQueue, включая восстановление.
+
+## 12. Первая постоянная поставка Foundation
+
+Это ограниченный срез существующих требований, не полная поставка Task Manager.
+Owner — `packages/payload-task-manager`, пакет `@realize/payload-task-manager`;
+host подключает Payload plugin и задаёт admission/каталог участников.
+Публичные DTO/validators — export `./contracts`; server composition — `./server`.
+Пакет не импортирует host `@/`, `payload-types` или внутренности AI runtime.
+Текущий atomic adapter требует Payload 3.88.0/PostgreSQL; иные DB и независимая
+установка npm-архива должны пройти отдельную проверку переносимости.
+
+### 12.1. Данные, права и транзакции
+
+Пять закрытых collections: `realize-task-projects`, `realize-task-lists`,
+`realize-tasks`, `realize-task-events`, `realize-task-operations`.
+Обычные collection REST/GraphQL CRUD запрещены: операции идут через фасад,
+который проверяет admission, project membership и инварианты, затем использует
+Local API в общей транзакции. Host Realize допускает только администраторов.
+Owner автоматически включён в members; в пилоте все разрешённые члены имеют
+read/write. Участники каталогизируются с сохранением host user-read ACL;
+публичный DTO содержит ID/name без email или credentials.
+
+Project create атомарно создаёт List «Задачи». У Project/List/Task постоянные
+UUID IDs; task key `TASK-<numeric storage ID>` выдаётся сервером. Основные
+Project/List связи задачи неизменны в пилоте. Task содержит title/description
+plain text, status `backlog/in_progress/review`, priority, assignee либо null,
+revision, Git bindings, авторов и даты. Исполнитель — разрешённый project member.
+Done/Closed, приёмка, архив, перенос и AI-запуск входят в следующие поставки.
+
+Update требует `expectedRevision`; PostgreSQL transaction/advisory locks
+сериализуют competing writers. Audit event и task mutation фиксируются вместе.
+Автор определяется только серверной сессией. Immutable receipts сохраняют
+результат create/update по actor/operation/Idempotency-Key/request hash;
+повтор с другим payload — conflict, повтор прежнего запроса возвращает прежний
+результат после новой проверки доступа. Audit/receipts нельзя перезаписать.
+Mutation facade в пилоте требует request без внешней `transactionID`:
+вызов внутри чужой транзакции отклоняется до чтения/записи task domain.
+В установленном Payload collection Local API при ошибке завершает общую
+транзакцию; поэтому обещание вложенной атомарной task unit через savepoint
+было бы неверным. Собственная транзакция сохраняет атомарность task/event/receipt,
+а отклонённый внешний request оставляет транзакцию caller без изменений.
+Миграции проверяются на пустой и обновляемой изолированной БД; schema push
+пользовательской установки не применяется. Down не уничтожает накопленное досье.
+
+### 12.2. API и интерфейс
+
+| Endpoint после host `/api` | Результат |
+| --- | --- |
+| GET/POST `/task-manager/projects` | Доступные проекты / создание проекта и default List |
+| GET `/task-manager/lists?projectId=…` | Доступные списки проекта |
+| GET `/task-manager/participants` | Ограниченный каталог допустимых участников |
+| GET/POST `/task-manager/tasks` | Страница задач выбранных projectId/listId / создание |
+| GET/PATCH `/task-manager/tasks/:id` | Точная Task revision / изменение с expectedRevision |
+| GET `/task-manager/tasks/:id/events` | Страница истории доступной задачи |
+
+Create/update требуют UUID `Idempotency-Key`. Envelope: `{ok:true,data}` либо
+`{ok:false,error:{code,message,fieldErrors?}}`. Страницы имеют `{items,nextCursor}`;
+`after` задаёт курсор следующей страницы. Cursor связан с actor и scope запроса,
+не раскрывает storage IDs и не расширяет доступ. Ошибки authentication, ACL,
+validation и revision конфликтов различимы; raw Payload documents не выдаются.
+
+Рабочий host route `/system/task-manager` использует общую системную оболочку,
+реальные Project/List и API-adapter. Данные формы сохраняются при conflict;
+загрузка актуальной revision выполняется явно. Устаревший response не подменяет
+новый выбор. Публичный `/reference/task-manager` и защищённый reference остаются
+демонстрацией; неподключённые команды не изображают реальное исполнение.
+
+Git binding содержит `repositoryId`, полный `commitSha` (40/64 hex),
+`purpose: platform-core|customer-project`, `source: manual`,
+`verification: unverified`. Он не вызывает Git-команды и не подтверждает
+существование коммита. Следующий Git observation adapter получает факты от
+существующего source-control owner; новый provider client внутри task domain
+не создаётся. Releases и установленная версия читаются через их владельцев.
+
+### 12.3. Приёмка Foundation
+
+- Project/Task create и update переживают reload/restart; default List и audit
+  создаются атомарно, повтор команды не создаёт повторные сущности/события.
+- Другой project member имеет разрешённый доступ; посторонний/неадминистратор
+  не получает task, историю, списки или counts через API и прямой collection CRUD.
+- Два edits одной revision дают один успех и один conflict; проигравшая форма
+  сохраняет ввод. Unknown outcome повторяется с тем же ключом.
+- Actor, revision, созданные Git bindings и история совпадают с сервером;
+  клиент не может присвоить авторство, verification или статус приёмки.
+- Пагинация не теряет записи и курсор не переносится на другой actor/scope.
+- Миграции, типы, browser формы/focus/mobile и заданные contract tests проверены;
+  существенные непроверенные границы явно указаны.
+
+Срез не разрешает удаление локальных задач: import, artifact storage, agent
+access и cutover из продуктового §15 остаются последующими поставками.
+
+Проверки PostgreSQL и браузера запускаются через `npm run check:tasks:postgres`
+и `npm run check:tasks:browser`. Обе создают и удаляют собственную временную БД
+на loopback PostgreSQL, отключают schema push и фоновые AI workers. Browser
+fixture использует отдельный Next process/dist, сохраняет logs/screenshots в
+текущем TASK и удаляет только добавленные ею записи Next types из `tsconfig.json`.
+Рабочая БД установки этими командами не мигрируется.

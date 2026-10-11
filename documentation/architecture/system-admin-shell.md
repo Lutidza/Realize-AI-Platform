@@ -1,6 +1,6 @@
 # Системный шаблон админки Realize
 
-Версия: 0.36, 2026-09-27. Потребители — task manager reference и Мастерская.
+Версия: 0.38, 2026-10-11. Потребители — Task Manager Foundation, reference и Мастерская.
 
 ## Ответственность и границы
 
@@ -48,6 +48,15 @@ React и общие primitives; он не импортирует Next, Payload, 
 прототипом задач; доступ к каждой странице проверяется сервером.
 Подпункты Главной, AI и Задач описаны ниже; остальные разделы пока
 сохраняют краткое описание и существующие переходы.
+
+«Аналитика» получила рабочий переход `/admin/analytics/ai` и подпункт
+«Расходы ИИ» в группе «Искусственный интеллект». Host registry навигации
+ссылается на Payload view плагина, не переносит его данные и формы в shell.
+В Payload этот же view доступен из группы «Аналитика». Владелец отдельно
+открывает `/admin/analytics/ai/platform` после серверной проверки прав.
+Прежний запланированный пункт расходов в группе AI удалён; у раздела один
+владелец навигации. Совместимые `/admin/ai/usage` пути сохранены.
+Контракт дашборда — [§28.6](../specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/28-observability.md#286-раздел-аналитика--расходы-ии).
 
 Rail занимает 74px: цветная навигация 58px и симметричные поля по 8px.
 Цветная панель имеет тёмный неоновый фиолетовый фон в обеих темах,
@@ -469,10 +478,15 @@ block и прокрутку; абсолютные вспомогательные
 без `@payloadcms/next/css`, Payload RootLayout или DefaultTemplate.
 `/system/task-manager/reference` проверяет сессию через серверный Payload API и
 роль admin, затем открывает client reference. Client получает только безопасные
-props. `src/components/admin/system-shell/` адаптирует host context/авторизацию.
+props. `/system/task-manager` использует тот же gate и shell с постоянными
+данными `@realize/payload-task-manager`; его client context содержит только
+`initialTheme` и `currentActor: { id, name }`, без email, token и Payload document.
+Доступ к данным дополнительно проверяется task domain на каждом запросе.
+`src/components/admin/system-shell/` адаптирует host context/авторизацию.
 `/reference/task-manager` остаётся публичной демонстрацией вымышленных данных.
 
-Admin navigation ведёт прямо на новый системный route. Ранее введённый
+Admin entry «Задачи» ведёт на `/system/task-manager`; reference доступен
+отдельной явно подписанной ссылкой в Мастерской. Ранее введённый
 `/admin/task-manager/reference` перестаёт владеть UI: его registration/view
 удаляются после перевода ссылки. Это не постоянная двойная оболочка.
 Существующие `/admin` экраны и сессии сохраняют своих владельцев.

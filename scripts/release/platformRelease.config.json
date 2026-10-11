@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "id": "realize-platform",
+      "kind": "core-package",
+      "packagePath": "package.json",
+      "sources": [
+        "package.json",
+        "package-lock.json",
+        "Dockerfile",
+        "next.config.ts",
+        "src",
+        "services"
+      ]
+    },
+    {
+      "id": "e-commerce",
+      "kind": "profile",
+      "version": "1.1.0",
+      "sources": ["src/payload.config.ts", "src/plugins", "src/collections"]
+    },
+    {
+      "id": "ai-api",
+      "kind": "api-contract",
+      "version": "1.4.0",
+      "sources": ["packages/ai-contracts/src"]
+    },
+    {
+      "id": "payload-schema",
+      "kind": "data-schema",
+      "version": "1.2.0",
+      "sources": ["src/migrations"]
+    },
+    {
+      "id": "system-ai-runtime",
+      "kind": "system-ai",
+      "version": "1.1.1",
+      "sources": [
+        "packages/change-engine/src/systemCapabilityRegistry.ts",
+        "packages/change-engine/src/capabilityRegistry.ts",
+        "packages/change-engine/src/system-ai"
+      ]
+    },
+    {
+      "id": "admin-ai-contract",
+      "kind": "admin-ai-schema",
+      "version": "1.0.0",
+      "sources": [
+        "packages/ai-contracts/src/aiConfiguration.ts",
+        "packages/ai-contracts/src/aiConfigurationAPI.ts",
+        "packages/ai-contracts/src/aiConfigurationInputValidation.ts"
+      ]
+    },
+    {
+      "id": "ai-configuration-compiler",
+      "kind": "compiler",
+      "version": "1.0.0",
+      "sources": [
+        "packages/change-engine/src/aiConfigurationCompiler.ts",
+        "packages/change-engine/src/aiConfigurationSystemValidation.ts",
+        "packages/change-engine/src/hashCompiledAgentConfiguration.util.ts"
+      ]
+    },
+    {
+      "id": "development-agent-layer",
+      "kind": "development-instructions",
+      "version": "1.3.0",
+      "sources": [
+        "AGENTS.md",
+        ".ai/README.md",
+        ".ai/STRUCTURE.md",
+        ".ai/rules",
+        ".ai/checks",
+        ".ai/workflows",
+        ".ai/registry",
+        ".ai/roles",
+        ".ai/system",
+        ".ai/templates",
+        ".codex/skills",
+        ".codex/prompts",
+        ".codex/agents",
+        ".codex/README.md",
+        ".codex/STRUCTURE.md"
+      ]
+    },
+    {
+      "id": "quality-checks",
+      "kind": "quality-pack",
+      "version": "1.5.0",
+      "sources": [
+        "tests",
+        "vitest.config.mts",
+        "vitest.setup.ts",
+        "playwright.config.ts",
+        "eslint.config.mjs",
+        "scripts/security",
+        ".ai/tools/quality",
+        ".ai/tools/source-headers",
+        ".ai/tools/git-delivery/test",
+        "packages/ai-contracts/src/evaluation",
+        "packages/change-engine/src/evaluation",
+        "scripts/runtime/evaluation"
+      ]
+    },
+    {
+      "id": "delivery-pipeline",
+      "kind": "ci-policy",
+      "version": "1.3.0",
+      "sources": [
+        ".github/workflows",
+        "scripts/release",
+        "scripts/deploy",
+        "scripts/runtime",
+        "scripts/migrations",
+        ".ai/tools/git-delivery/src",
+        ".ai/tools/git-delivery/package.json",
+        ".ai/tools/git-delivery/tsconfig.json"
+      ]
+    },
+    {
+      "id": "codex-provider-adapter",
+      "kind": "provider-adapter",
+      "packagePath": "packages/codex-adapter/package.json",
+      "sources": ["packages/codex-adapter"]
+    }
+  ],
+  "unavailable": [
+    {
+      "kind": "model-catalog",
+      "reason": "Model Garden is not implemented; Codex model/list is a live provider observation."
+    },
+    {
+      "kind": "routing-policy",
+      "reason": "Model Router is not implemented."
+    },
+    {
+      "kind": "pricing",
+      "reason": "Pricing snapshots are installation-owned ledger data; a build manifest does not pin the runtime tariff."
+    }
+  ],
+  "extensionPoints": [
+    {
+      "id": "payload-ai-plugin-options",
+      "version": "0.1.0",
+      "providerComponentId": "@realize/payload-ai-control"
+    }
+  ],
+  "support": {
+    "status": "development"
+  }
+}

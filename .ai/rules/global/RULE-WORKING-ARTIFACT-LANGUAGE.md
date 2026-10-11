@@ -28,54 +28,22 @@ related_rules:
   - .ai/rules/development/RULE-CODE-COMMENT-DISCIPLINE.md
 ```
 
-## Назначение
-
-Правило отделяет язык ответа ассистента от языка сохраняемых рабочих
-artifacts. Формат ответа пользователю задаётся системными/диалоговыми
-инструкциями и ролью текущей сессии. Рабочие artifacts проекта должны быть
-единообразно читаемы командой и по умолчанию пишутся на русском языке.
-
 ## Требование
 
-На русском языке пишутся:
+Новый поясняющий текст проектных инструкций, задач, отчётов, handoff и
+комментариев по умолчанию пишется на русском. Текст должен быть понятен
+читателю; язык ответа и конкретные требования пользователя учитываются отдельно.
 
-- tasks, assignments, checklists и handoff summaries;
-- audits, reports, reviews и implementation handoff;
-- role cards, rules, checks, workflows, templates и registry prose;
-- project Codex skill descriptions и procedure text;
-- code comments, TSDoc descriptions и `@description`, если нет
-  технической причины использовать другой язык.
+Сохраняй точно identifiers, artifact ids, enum/status values, API/package names,
+paths, команды, flags, hashes, protocol names и внешние цитаты. Английский
+технический термин допустим, когда перевод ухудшает точность. Не переводи
+машинный контракт ради формального language check.
 
-На языке оригинала сохраняются:
+Новые служебные заголовки делай понятными по-русски; существующие headings и
+package conventions допустимы. Не начинай массовый перевод вне задачи и не
+меняй стабильные anchors без проверки потребителей. Отдельные списки языковых
+исключений, отчёты и согласования не нужны.
 
-- code identifiers, artifact ids, enum/status values, API names, package names;
-- file paths, command names, CLI flags, branch names, commit hashes;
-- external protocol names, tool output, errors, quotes и vendor text;
-- технические термины, если перевод делает contract менее точным.
-
-Если рабочий artifact вынужденно содержит английский prose, причина должна быть
-локально понятна из контекста: quote, external output, technical identifier,
-vendor/protocol wording или task-specific exception.
-
-## Запрещено
-
-- Смешивать русский и английский prose без технической причины.
-- Оставлять видимые служебные заголовки на английском, если они не являются
-  stable id, enum, path или внешней цитатой.
-- Переводить code identifiers, API names, command names, flags, paths или
-  protocol names.
-- Использовать английский язык как shortcut для новых tasks, reports, rules,
-  checks, workflows или handoff artifacts.
-- Подменять проверку artifact language проверкой только user-facing response.
-
-## Обязательный вывод
-
-```text
-working_artifact_language: passed|not_required|stop-for-approval|failed
-artifact_paths:
-artifact_language:
-response_language_separate: yes|no
-technical_original_terms_preserved: yes|no
-english_prose_exception:
-blocker:
-```
+Проверь смысл при общем review по
+[CHECK](../../checks/self-review/CHECK-WORKING-ARTIFACT-LANGUAGE.md).
+Шаблоны помогают оформлению и не вводят более строгий языковой gate.

@@ -1,10 +1,12 @@
-// @vitest-environment node
 /**
  * @file tests/int/pageDiscoveryContracts.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-13
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Проверяет строгие границы запросов страниц и недоступность private grant модели и браузеру.
  */
+import { SYSTEM_AI_RELEASE_REFERENCE } from "@realize/change-engine";
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
 import {
   parseCreateMessageInput,
@@ -116,6 +118,7 @@ describe("page discovery data boundaries", () => {
   });
   it("allows private dispatch but never interpolates the credential or endpoint into model instructions", () => {
     const run = parseChatRun({
+      systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
       runID: "run-1",
       prompt: "Найди страницу доставки",
       pageDiscovery: grant,

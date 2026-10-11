@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/contracts.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-10-11
  * @description Проверяет отдельные входы модели и вызывающей среды, сохраняя публичные экспорты Git-контракта.
  */
 import { isAbsolute } from "node:path";
@@ -157,11 +157,21 @@ export function parseContext(value: unknown): Context {
       "Рабочая копия должна иметь абсолютный путь.",
     );
   const auth = object(source.authorization, ["actions", "scope"]);
-  const scope = object(auth.scope, ["mode", "paths"]);
+  const scope = object(auth.scope, ["mode", "paths", "includePartialIndex"]);
+  const hasPartialIndexFlag = Object.hasOwn(scope, "includePartialIndex");
   let parsedScope: Scope;
-  if (scope.mode === "all" && scope.paths === undefined)
-    parsedScope = { mode: "all" };
-  else if (scope.mode === "paths") {
+  if (scope.mode === "all" && scope.paths === undefined) {
+    if (hasPartialIndexFlag && scope.includePartialIndex !== true) {
+      throw new PolicyError(
+        "invalid_scope",
+        "Включение частичного индекса требует явного true в полной области.",
+      );
+    }
+    parsedScope = {
+      mode: "all",
+      ...(hasPartialIndexFlag ? { includePartialIndex: true } : {}),
+    };
+  } else if (scope.mode === "paths" && !hasPartialIndexFlag) {
     const paths = strings(scope.paths, relativeFile);
     if (!paths.length)
       throw new PolicyError("invalid_scope", "Пустая область путей.");

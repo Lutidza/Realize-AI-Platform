@@ -22,74 +22,44 @@ applies_to:
   - code boundary documentation
 ```
 
-## Назначение
+## Условие применения
 
-Правило останавливает contract-level изменения до решения по ближайшей
-canonical documentation. Оно не делает `documentation/**` active runtime
-source для агента: active behavior остаётся в `.ai/rules/**`,
-`.ai/checks/**`, `.ai/workflows/**`, role-gates и `.codex/**`.
+Перед изменением product/API/DTO/schema, validation, auth, route, integration,
+shared UI/backend boundary, workflow, role, rule или check определи владельца
+контракта и нужную синхронизацию. Локальная неконтрактная правка не требует
+полного аудита спецификаций.
 
-## Условие срабатывания
+## Источник контракта
 
-Правило применяется, если планируемое изменение создаёт, меняет или удаляет:
+- Product/architecture contract принадлежит ближайшему документу
+  `documentation/**`, проверенному по текущему коду. Target specification
+  не является доказательством реализованной возможности.
+- Поведение рабочего агента принадлежит применимому `.ai/rules`, `checks`,
+  `workflows` или роли; `.codex` содержит адаптер. Эти активные документы сами
+  являются canonical source своих требований. Отдельная long-form spec для
+  каждой правки инструкции не нужна.
+- `AGENTS.md` владеет входным протоколом, README/INDEX — навигацией своего
+  раздела. Они не заменяют предметное правило, API contract или workflow.
+- Task, audit, history и code comments являются контекстом/evidence,
+  а не конкурирующим владельцем требований.
 
-- product, architecture, API, DTO, validation, schema, route, auth,
-  integration, runtime state, workflow, role, rule, check или owner-layer
-  contract;
-- reusable frontend/backend contract, shared Next/React behavior, mapper,
-  adapter, migration-flow или data boundary;
-- `@docref`/`@see` для contract-facing code boundary.
+Выбирай ближайший источник по затронутой области. Сохраняй
+`canonical_doc_decision`: `existing_doc_found`, `existing_doc_insufficient`,
+`missing_doc` или `not_contract_level` в плане/TASK, если задача требует записи.
+Для простой правки достаточно решения в ходе подготовки без отдельного отчёта.
 
-Правило не требует полного spec audit для локальной неконтрактной правки:
-typo, narrow visual adjustment, formatting, dependency-free helper cleanup или
-internal refactor без изменения observable contract могут пройти с
-`canonical_doc_decision: not_contract_level`.
+## Синхронизация и разрешения
 
-## Требование
+Если источник достаточен, выполняй задачу и согласуй изменённые требования
+с прямыми потребителями. Если он отсутствует или неполон, сначала определи
+владельца и содержание изменения. Когда documentation sync входит в задание,
+дополни источник в его существующем разделе и продолжай без повторного approval.
 
-Перед реализацией агент обязан зафиксировать `canonical_doc_decision`:
+Если необходимое решение выходит за разрешённую область или владелец неясен,
+останови зависимое изменение и назови конкретную причину. Отложить обязательную
+синхронизацию можно только по явному решению пользователя, с `docs_sync_debt`,
+владельцем и следующим шагом. Не создавай пустую спецификацию ради gate.
 
-- `existing_doc_found` - ближайший canonical doc найден и достаточен для
-  планируемого contract-level изменения;
-- `existing_doc_insufficient` - doc найден, но не покрывает новый contract;
-- `missing_doc` - применимый canonical doc не найден;
-- `not_contract_level` - изменение не затрагивает contract-level поведение.
-
-Developer frontend/backend обязан искать ближайший применимый canonical doc в
-рамках затронутого контура и не превращать локальную правку в полный audit
-всей документации.
-
-Documentation steward проверяет sync и alignment, если изменение затрагивает
-`documentation/`, `.ai`, `.codex`, README, AGENTS или contract-level
-договорённость.
-
-Если decision равен `existing_doc_insufficient` или `missing_doc`, реализация
-contract-level изменения останавливается до spec alignment, расширения
-allowlist на docs sync или явного user-approved deferral.
-
-После approved contract-level изменения соответствующий canonical doc должен
-быть синхронизирован в текущем scope либо должен быть явно зафиксирован
-`docs_sync_debt` с владельцем и следующим шагом.
-
-## Запрещено
-
-- Начинать contract-level реализацию без `canonical_doc_decision`.
-- Использовать README, AGENTS, task, audit report, code comments или локальный
-  helper как замену canonical doc.
-- Требовать полный documentation/spec audit для локальной неконтрактной правки.
-- Создавать пустой или декоративный spec/docref только для прохождения gate.
-- Скрывать `existing_doc_insufficient`, `missing_doc` или `docs_sync_debt`.
-
-## Обязательный вывод
-
-```text
-canonical_documentation_gate: passed|not_required|stop-for-approval|failed
-contract_level_change: yes|no
-affected_contract:
-nearest_canonical_doc:
-canonical_doc_decision:
-documentation_sync_required: yes|no
-documentation_sync_scope: in_scope|needs_scope|deferred_with_approval|not_required
-docs_sync_debt:
-blocker:
-```
+Порядок синхронизации —
+[skill-documentation-sync](../../../.codex/skills/skill-documentation-sync/SKILL.md),
+критерии — [CHECK](../../checks/pre-implementation/CHECK-CANONICAL-DOCUMENTATION-BEFORE-CONTRACT-CHANGE.md).

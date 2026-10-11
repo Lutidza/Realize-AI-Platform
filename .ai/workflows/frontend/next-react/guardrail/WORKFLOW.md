@@ -1,7 +1,7 @@
 # Workflow: Next/React frontend guardrail
 
 ```yaml
-workflow_id: frontend-next-react-guardrail
+artifact_id: frontend-next-react-guardrail
 owner_layer: .ai/workflows/frontend/next-react/guardrail/
 applies_to:
   - src/app/(app)/**

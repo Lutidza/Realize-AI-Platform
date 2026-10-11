@@ -29,7 +29,7 @@
     "check:search": "node --import=tsx/esm .ai/tools/agent-search/acceptance/runSearchAcceptance.controller.mjs",
     "check:search:isolated": "node --import=tsx/esm .ai/tools/agent-search/acceptance/runSearchAcceptance.controller.mjs --isolated",
     "git:worker": "node --import tsx .ai/tools/git-delivery/src/worker/runGitWorker.controller.ts",
-    "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,mjs,css,json}\" \"services/**/*.{ts,tsx,js,mjs,json}\" \"scripts/{migrations,release,runtime,security}/**/*.{js,mjs}\" \"tests/**/*.{ts,tsx}\" \"src/app/\\(app\\)/api/health/**/*.ts\" \"src/payload.config.ts\" \"src/plugins/index.ts\" \"{eslint,next,playwright}.config.{ts,mjs}\" \"{package,tsconfig}.json\" \"compose*.yaml\" \".github/workflows/*.{yml,yaml}\"",
+    "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,mjs,css,json}\" \"services/**/*.{ts,tsx,js,mjs,json}\" \"scripts/{migrations,release,runtime,security}/**/*.{js,mjs}\" \"scripts/release/**/*.{ts,json}\" \"tests/**/*.{ts,tsx}\" \"src/app/\\(app\\)/api/health/**/*.ts\" \"src/payload.config.ts\" \"src/plugins/index.ts\" \"{eslint,next,playwright}.config.{ts,mjs}\" \"{package,tsconfig}.json\" \"compose*.yaml\" \".github/workflows/*.{yml,yaml}\" \"scripts/runtime/evaluation/**/*.ts\" \".ai/tools/quality/*.ts\"",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "lint:fix": "cross-env NODE_OPTIONS=--no-deprecation eslint . --fix",
     "payload": "cross-env NODE_OPTIONS=--no-deprecation payload",
@@ -46,7 +46,16 @@
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --import=tsx/esm\" playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
     "check": "npm run lint && npm run typecheck && npm run test:int && npm run build",
-    "ci": "npm run verify:runtime && npm run format:check && npm run check"
+    "ci": "npm run verify:runtime && npm run ai:system:check && npm run ai:quality:structure && npm run format:check && npm run check",
+    "ai:system:publish": "node --import=tsx/esm scripts/release/publishSystemAIRelease.controller.ts",
+    "ai:system:check": "npm run ai:system:publish -- --check",
+    "check:usage:postgres": "node scripts/runtime/verifyUsageLedger.controller.mjs",
+    "check:usage:browser": "node --import=tsx/esm tests/e2e/support/runUsageAcceptance.fixture.ts",
+    "check:tasks:postgres": "node scripts/runtime/verifyTaskManager.controller.mjs",
+    "check:tasks:browser": "node --import=tsx/esm tests/e2e/support/runTaskManagerAcceptance.fixture.ts",
+    "ai:quality:structure": "node --import=tsx/esm .ai/tools/quality/checkInstructions.controller.ts",
+    "ai:eval:run": "node --import=tsx/esm scripts/runtime/evaluation/runEvaluation.controller.ts",
+    "ai:eval:gate": "node --import=tsx/esm scripts/runtime/evaluation/checkEvaluationGate.controller.ts"
   },
   "keywords": [],
   "author": "",
@@ -77,6 +86,7 @@
     "@realize/change-engine": "0.1.0",
     "@realize/codex-adapter": "0.1.0",
     "@realize/payload-ai-control": "0.1.0",
+    "@realize/payload-task-manager": "0.1.0",
     "@realize/ui-kit": "0.1.0",
     "@stripe/react-stripe-js": "^6.7.0",
     "@stripe/stripe-js": "^9.9.0",
@@ -85,9 +95,9 @@
     "cross-env": "^10.1.0",
     "date-fns": "^4.4.0",
     "dotenv": "^17.4.2",
-    "esbuild": "0.28.2",
     "embla-carousel-auto-scroll": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "esbuild": "0.28.2",
     "geist": "^1.7.2",
     "graphql": "^16.14.2",
     "gsap": "^3.15.0",
@@ -136,6 +146,7 @@
     "tsx": "^4.23.1",
     "tw-animate-css": "^1.4.0",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "yaml": "2.9.1"
   }
 }

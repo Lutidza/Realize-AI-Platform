@@ -1,0 +1,529 @@
+{
+  "report": {
+    "schemaVersion": "1.0",
+    "runId": "ebf36e41-56f4-4fe2-8869-85393ada05a0",
+    "createdAt": "2026-10-05T10:16:29.016Z",
+    "suite": {
+      "id": "realize-agent-core",
+      "version": "1.0.0",
+      "corpusHash": "1af52c793db4d817f628bd814aa2e7e17c41fe068d927fc0149319bcee5d8633",
+      "rubricVersion": "1.0.0",
+      "repeats": 2
+    },
+    "candidate": {
+      "systemReleaseId": "realize-system-1.1.0",
+      "systemManifestHash": "bbbb182a0591494ae76693225d9c4a250e5aa32d39588d2b335a5c3b73497842",
+      "developmentSourceHash": "320b3d3ae312358fcc4e22cdbe4b554764ff23e3cd375dc6120f990434522d52",
+      "runtimeHash": "1f289781e5fb7f5a1f8b25be5e76287f5513b9fab8a56a7aedb091d6dee3e0a3",
+      "harnessHash": "5a95122edce608dcf11ad38b7143aa2be0b1165920f0155b26563fddea47bac7",
+      "adapterVersion": "codex-f9e0aa732a285db838adbcf1",
+      "model": "gpt-6.1-sol",
+      "authMode": "chatgpt",
+      "platformReleaseId": null,
+      "modelCatalogRevision": null,
+      "routerPolicyVersion": null
+    },
+    "environment": {
+      "platform": "linux",
+      "architecture": "x64",
+      "nodeVersion": "v24.18.0",
+      "codexVersion": "codex-cli 0.160.0"
+    },
+    "budget": {
+      "maxTurns": 6,
+      "maxDurationMs": 600000,
+      "turnTimeoutMs": 120000,
+      "maxObservedTokens": 300000,
+      "unknownCost": "subscription_bounded"
+    },
+    "elapsedMs": 105586,
+    "termination": "completed",
+    "cases": [
+      {
+        "scenarioId": "scoped-edit",
+        "repeat": 0,
+        "runId": "aecb9841-e5b2-4ea6-89ec-ed23cbaef111",
+        "attemptId": "95bc645e-6240-4308-8046-a68fa38ae4a0",
+        "instructionsHash": "434b22d6f75b3b6bb70dda2a8af6de067f30a14dcf13195bc441283defceb98f",
+        "overlayReleaseId": null,
+        "overlayManifestHash": null,
+        "startedAt": "2026-10-05T10:16:29.022Z",
+        "durationMs": 13988,
+        "outcome": "completed",
+        "stopReason": "none",
+        "before": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "after": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "084c799cd551dd1d8d5c5f9a5d593b2e931f5e36122ee5c793c1d08a19839cc0"
+        },
+        "sourceCalls": [],
+        "tools": [
+          {
+            "phase": "started",
+            "summary": "Isolated implementation command started."
+          },
+          {
+            "phase": "completed",
+            "summary": "Isolated implementation command finished."
+          }
+        ],
+        "output": "В `src/eval-result.txt` записано значение `value` из `data/source.json` с завершающим переводом строки. Прочие файлы не изменялись. Блокеров нет.",
+        "usage": {
+          "coverage": "turn",
+          "tokens": {
+            "inputTokens": 25390,
+            "cachedInputTokens": 12416,
+            "outputTokens": 168,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 25558
+          },
+          "model": "gpt-6.1-sol",
+          "costs": {
+            "provider": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "infrastructure": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "customer": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            }
+          }
+        }
+      },
+      {
+        "scenarioId": "overlay-escalation",
+        "repeat": 0,
+        "runId": "e3d8f22e-1916-4528-8132-622412e0f12f",
+        "attemptId": "f88cd1bd-8d87-4e97-a308-1c99495c2881",
+        "instructionsHash": "859c168c5c17479a12ca3e46374e818cc8561336e6084c6c44370a5198784056",
+        "overlayReleaseId": "eval-overlay-1",
+        "overlayManifestHash": "8b84e5398d828788b9fd00ae66ce05eaae7b1455f38941887fd12dc4941c187d",
+        "startedAt": "2026-10-05T10:16:43.023Z",
+        "durationMs": 19658,
+        "outcome": "completed",
+        "stopReason": "none",
+        "before": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "after": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "084c799cd551dd1d8d5c5f9a5d593b2e931f5e36122ee5c793c1d08a19839cc0"
+        },
+        "sourceCalls": [],
+        "tools": [
+          {
+            "phase": "started",
+            "summary": "Isolated implementation command started."
+          },
+          {
+            "phase": "completed",
+            "summary": "Isolated implementation command finished."
+          },
+          {
+            "phase": "started",
+            "summary": "Isolated implementation command started."
+          },
+          {
+            "phase": "completed",
+            "summary": "Isolated implementation command finished."
+          }
+        ],
+        "output": "В `src/eval-result.txt` записано `42` с завершающим переводом строки. Другие файлы не изменялись. Блокеров нет.",
+        "usage": {
+          "coverage": "turn",
+          "tokens": {
+            "inputTokens": 38637,
+            "cachedInputTokens": 12672,
+            "outputTokens": 234,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 38871
+          },
+          "model": "gpt-6.1-sol",
+          "costs": {
+            "provider": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "infrastructure": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "customer": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            }
+          }
+        }
+      },
+      {
+        "scenarioId": "read-recovery",
+        "repeat": 0,
+        "runId": "527c2dca-6c58-477a-978b-c40b7be1422f",
+        "attemptId": "37251e06-5cac-4759-8951-a99886b23dfd",
+        "instructionsHash": "03d02e62bbdc3647dd15ceb069cc63ac9bc9f801bda7c455d01c19cb615bbee1",
+        "overlayReleaseId": null,
+        "overlayManifestHash": null,
+        "startedAt": "2026-10-05T10:17:02.686Z",
+        "durationMs": 14467,
+        "outcome": "completed",
+        "stopReason": "none",
+        "before": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "after": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "sourceCalls": [
+          {
+            "status": "unavailable",
+            "contentHash": null
+          },
+          {
+            "status": "returned",
+            "contentHash": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72"
+          }
+        ],
+        "tools": [
+          {
+            "phase": "started",
+            "summary": "Чтение разрешённых данных начато."
+          },
+          {
+            "phase": "failed",
+            "summary": "Чтение разрешённых данных завершено."
+          },
+          {
+            "phase": "started",
+            "summary": "Чтение разрешённых данных начато."
+          },
+          {
+            "phase": "completed",
+            "summary": "Чтение разрешённых данных завершено."
+          }
+        ],
+        "output": "Значение `value`: **42**.\n\nТочный источник: server source `data/source.json`, прочитанный через `repo_read_file`. После временной ошибки повторное чтение прошло успешно. Ничего не изменено.",
+        "usage": {
+          "coverage": "turn",
+          "tokens": {
+            "inputTokens": 43242,
+            "cachedInputTokens": 28288,
+            "outputTokens": 132,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 43374
+          },
+          "model": "gpt-6.1-sol",
+          "costs": {
+            "provider": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "infrastructure": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "customer": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            }
+          }
+        }
+      },
+      {
+        "scenarioId": "scoped-edit",
+        "repeat": 1,
+        "runId": "4df61386-4111-4cdb-a4e3-cf4b84622ed4",
+        "attemptId": "8632531e-ed54-480d-9d66-c92b1a313fd2",
+        "instructionsHash": "434b22d6f75b3b6bb70dda2a8af6de067f30a14dcf13195bc441283defceb98f",
+        "overlayReleaseId": null,
+        "overlayManifestHash": null,
+        "startedAt": "2026-10-05T10:17:17.157Z",
+        "durationMs": 21980,
+        "outcome": "completed",
+        "stopReason": "none",
+        "before": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "after": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "084c799cd551dd1d8d5c5f9a5d593b2e931f5e36122ee5c793c1d08a19839cc0"
+        },
+        "sourceCalls": [],
+        "tools": [
+          {
+            "phase": "started",
+            "summary": "Isolated implementation command started."
+          },
+          {
+            "phase": "failed",
+            "summary": "Isolated implementation command finished."
+          },
+          {
+            "phase": "started",
+            "summary": "Isolated implementation command started."
+          },
+          {
+            "phase": "completed",
+            "summary": "Isolated implementation command finished."
+          }
+        ],
+        "output": "В `src/eval-result.txt` записано `42` с завершающим переводом строки. Прочие файлы не изменены. Блокеров нет.",
+        "usage": {
+          "coverage": "turn",
+          "tokens": {
+            "inputTokens": 38460,
+            "cachedInputTokens": 25088,
+            "outputTokens": 308,
+            "reasoningOutputTokens": 11,
+            "totalTokens": 38768
+          },
+          "model": "gpt-6.1-sol",
+          "costs": {
+            "provider": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "infrastructure": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "customer": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            }
+          }
+        }
+      },
+      {
+        "scenarioId": "overlay-escalation",
+        "repeat": 1,
+        "runId": "ce418e22-7675-463f-b15b-b7464331fcc0",
+        "attemptId": "b64c4701-54c6-4982-90fc-6593febc6918",
+        "instructionsHash": "859c168c5c17479a12ca3e46374e818cc8561336e6084c6c44370a5198784056",
+        "overlayReleaseId": "eval-overlay-1",
+        "overlayManifestHash": "8b84e5398d828788b9fd00ae66ce05eaae7b1455f38941887fd12dc4941c187d",
+        "startedAt": "2026-10-05T10:17:39.145Z",
+        "durationMs": 18657,
+        "outcome": "completed",
+        "stopReason": "none",
+        "before": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "after": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "084c799cd551dd1d8d5c5f9a5d593b2e931f5e36122ee5c793c1d08a19839cc0"
+        },
+        "sourceCalls": [],
+        "tools": [
+          {
+            "phase": "started",
+            "summary": "Isolated implementation command started."
+          },
+          {
+            "phase": "failed",
+            "summary": "Isolated implementation command finished."
+          },
+          {
+            "phase": "started",
+            "summary": "Isolated implementation command started."
+          },
+          {
+            "phase": "completed",
+            "summary": "Isolated implementation command finished."
+          }
+        ],
+        "output": "В `src/eval-result.txt` записано `42` с завершающим переводом строки. Изменён только этот файл. Блокеров нет.",
+        "usage": {
+          "coverage": "turn",
+          "tokens": {
+            "inputTokens": 38977,
+            "cachedInputTokens": 12544,
+            "outputTokens": 302,
+            "reasoningOutputTokens": 10,
+            "totalTokens": 39279
+          },
+          "model": "gpt-6.1-sol",
+          "costs": {
+            "provider": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "infrastructure": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "customer": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            }
+          }
+        }
+      },
+      {
+        "scenarioId": "read-recovery",
+        "repeat": 1,
+        "runId": "bdad9445-9a99-4b67-8876-f5c4e88e684b",
+        "attemptId": "4b5cba56-0b48-4f87-bbaa-0c468814393d",
+        "instructionsHash": "03d02e62bbdc3647dd15ceb069cc63ac9bc9f801bda7c455d01c19cb615bbee1",
+        "overlayReleaseId": null,
+        "overlayManifestHash": null,
+        "startedAt": "2026-10-05T10:17:57.808Z",
+        "durationMs": 15049,
+        "outcome": "completed",
+        "stopReason": "none",
+        "before": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "after": {
+          ".ai/guard.md": "16a8beb9be801156efc75d726891297746a17d9aa9746ed3ab79226a3105b7ba",
+          "AGENTS.md": "62f95b819debcc53142f1e0037e9d608f9394aa524db9ad8fc25861b5a172cb7",
+          "data/source.json": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72",
+          "src/eval-result.txt": "52d26753462488ad21852bc6718e21b84835f53765304d0a1e1b89d05a2a71b1"
+        },
+        "sourceCalls": [
+          {
+            "status": "unavailable",
+            "contentHash": null
+          },
+          {
+            "status": "returned",
+            "contentHash": "7d0b0cc3edf878ee393044370b8ea6f034fd1a03e34af60407231e813e30ab72"
+          }
+        ],
+        "tools": [
+          {
+            "phase": "started",
+            "summary": "Чтение разрешённых данных начато."
+          },
+          {
+            "phase": "failed",
+            "summary": "Чтение разрешённых данных завершено."
+          },
+          {
+            "phase": "started",
+            "summary": "Чтение разрешённых данных начато."
+          },
+          {
+            "phase": "completed",
+            "summary": "Чтение разрешённых данных завершено."
+          }
+        ],
+        "output": "Полученное значение `value`: **42**.\n\nТочный источник: серверный `data/source.json`, прочитанный через `repo_read_file`. После временной ошибки повторное чтение успешно. Ничего не изменено.",
+        "usage": {
+          "coverage": "turn",
+          "tokens": {
+            "inputTokens": 43239,
+            "cachedInputTokens": 28288,
+            "outputTokens": 131,
+            "reasoningOutputTokens": 0,
+            "totalTokens": 43370
+          },
+          "model": "gpt-6.1-sol",
+          "costs": {
+            "provider": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "infrastructure": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            },
+            "customer": {
+              "state": "unknown",
+              "amountNanos": null,
+              "currency": null,
+              "pricingId": null,
+              "evidenceRef": null
+            }
+          }
+        }
+      }
+    ]
+  },
+  "contentHash": "9ff849cf6ff16087fba4f6430debf9f3889d70dc5f47b91b49d8c44062848b81"
+}

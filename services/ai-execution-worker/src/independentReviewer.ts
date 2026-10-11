@@ -1,10 +1,11 @@
 /**
  * @file services/ai-execution-worker/src/independentReviewer.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-10-05
  * @description Запускает отдельную read-only проверку через выбранную интеграцию Codex.
  */
 
+import type { UsageRuntime } from "@realize/payload-ai-control/server/usage";
 import { createHash, randomUUID } from "node:crypto";
 
 import type { AgentEvent, SearchObservation } from "@realize/ai-contracts";
@@ -130,6 +131,7 @@ export const parseIndependentReview = (
 export const runIndependentReview = async (input: {
   config: ExecutionWorkerConfig;
   codex: CodexConnectionResolver;
+  usage: Pick<UsageRuntime, "meter">;
   job: ClaimedPreviewDeployment;
   workspace: string;
   observeSearch?: (event: SearchObservation) => void;
@@ -169,29 +171,37 @@ export const runIndependentReview = async (input: {
   }, input.config.reviewTimeoutMs);
   timer.unref();
   try {
-    for await (const event of adapter.runTurn({
-      cwd: input.workspace,
-      developerInstructions: buildIndependentReviewDeveloperInstructions(
-        lease.search,
-      ),
-      // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
-      ephemeral: false,
-      model: lease.reviewModel,
-      prompt: buildRepositorySearchTaskPrompt(
-        [
-          `Change Request: ${input.job.changeRequestID}.`,
-          `Base commit: ${input.job.baseCommit}.`,
-          `Accepted diff SHA-256: ${input.job.sourceDiffHash}.`,
-          `Approved paths: ${JSON.stringify(input.job.allowedPaths)}.`,
-          `Original request: ${input.job.originalRequest}`,
-          `Approved plan: ${input.job.plan}`,
-          "Inspect git diff --cached and relevant repository context, then return the required JSON verdict.",
-        ].join("\n\n"),
-        lease.search,
-      ),
-      runID,
-      sandboxProfile: "review-readonly",
-    })) {
+    for await (const event of input.usage
+      .meter(adapter, {
+        changeRequestId: String(input.job.changeRequestID),
+        taskId: `change:${input.job.changeRequestID}`,
+        source: "review",
+        authMode: lease.authMode,
+        model: lease.reviewModel,
+      })
+      .runTurn({
+        cwd: input.workspace,
+        developerInstructions: buildIndependentReviewDeveloperInstructions(
+          lease.search,
+        ),
+        // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
+        ephemeral: false,
+        model: lease.reviewModel,
+        prompt: buildRepositorySearchTaskPrompt(
+          [
+            `Change Request: ${input.job.changeRequestID}.`,
+            `Base commit: ${input.job.baseCommit}.`,
+            `Accepted diff SHA-256: ${input.job.sourceDiffHash}.`,
+            `Approved paths: ${JSON.stringify(input.job.allowedPaths)}.`,
+            `Original request: ${input.job.originalRequest}`,
+            `Approved plan: ${input.job.plan}`,
+            "Inspect git diff --cached and relevant repository context, then return the required JSON verdict.",
+          ].join("\n\n"),
+          lease.search,
+        ),
+        runID,
+        sandboxProfile: "review-readonly",
+      })) {
       const normalized = event as AgentEvent;
       if (normalized.type === "assistant.completed")
         content = normalized.content;

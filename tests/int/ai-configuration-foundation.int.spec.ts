@@ -1,6 +1,7 @@
 /**
  * @file tests/int/ai-configuration-foundation.int.spec.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-10-04
  * @description Проверяет capability registry и immutable installation AI config foundation.
  * @docref Realize AI Commerce v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
@@ -12,6 +13,7 @@ import {
   CapabilityRegistryError,
   SYSTEM_CAPABILITY_REGISTRY,
   SYSTEM_AI_CONFIG_PROJECTION,
+  SYSTEM_AI_RELEASE,
   SYSTEM_CHECK_IDS,
   canonicalizeJSON,
   compileAgentConfiguration,
@@ -82,7 +84,8 @@ describe("server capability registry", () => {
   });
 
   it("publishes a content-addressed immutable system projection", () => {
-    const { manifestHash, ...payload } = SYSTEM_AI_CONFIG_PROJECTION;
+    const { manifestHash, ...payload } = SYSTEM_AI_RELEASE;
+    expect(SYSTEM_AI_CONFIG_PROJECTION.manifestHash).toBe(manifestHash);
     expect(manifestHash).toBe(hashCanonicalJSON(payload));
     expect(SYSTEM_AI_CONFIG_PROJECTION.capabilities).toEqual(
       SYSTEM_CAPABILITY_REGISTRY.list(),

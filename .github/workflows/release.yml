@@ -1,3 +1,7 @@
+# @file .github/workflows/release.yml
+# @version 1.1.0
+# @date 2026-10-05
+# @description Выпускает exact образ и version manifest после CI и передаёт digest в delivery.
 name: Release and deploy
 
 on:
@@ -17,19 +21,22 @@ concurrency:
   group: release-${{ github.ref }}
 
 permissions:
-  attestations: write
   contents: read
-  id-token: write
-  packages: write
 
 jobs:
   verify:
     uses: ./.github/workflows/ci.yml
+    with:
+      require_agent_baseline: true
 
   image:
+    if: github.ref == 'refs/heads/main'
     needs: verify
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     outputs:
       digest: ${{ steps.build.outputs.digest }}
       image_repository: ${{ steps.image.outputs.repository }}
@@ -37,6 +44,18 @@ jobs:
     steps:
       - name: Checkout exact commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up manifest runtime
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.18.0
+
+      - name: Install trusted manifest dependencies
+        run: |
+          npm install --global npm@11.15.0
+          npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Resolve immutable image identity
         id: image

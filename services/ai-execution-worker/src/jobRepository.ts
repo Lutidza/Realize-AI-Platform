@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/jobRepository.ts
- * @version 1.1.0
- * @date 2026-09-15
+ * @version 1.2.0
+ * @date 2026-10-04
  * @description Атомарно сохраняет состояния заданий, серверную причину отказа и отдельное пояснение исполнителя.
  */
 
@@ -16,6 +16,7 @@ import type {
 } from "./types";
 
 type JobRow = QueryResultRow & {
+  execution_context?: unknown;
   allowed_paths: unknown;
   approved_version: string | number;
   artifacts_expire_at: Date | string;
@@ -48,7 +49,13 @@ const mapJob = (row: JobRow): ClaimedExecutionJob => {
   const allowedPaths = strings(row.allowed_paths);
   const checks = strings(row.checks);
   const approvedVersion = Number(row.approved_version);
+  const contextHash = (
+    row.execution_context as { contextHash?: unknown } | undefined
+  )?.contextHash;
   const capability: ExecutionCapabilityClaims = {
+    ...(typeof contextHash === "string"
+      ? { executionContextHash: contextHash }
+      : {}),
     allowedPaths,
     baseCommit: row.base_commit,
     changeRequestID: String(row.change_request_id),
@@ -62,6 +69,7 @@ const mapJob = (row: JobRow): ClaimedExecutionJob => {
     version: approvedVersion,
   };
   return {
+    executionContext: row.execution_context,
     allowedPaths,
     approvedVersion,
     artifactsExpireAt: iso(row.artifacts_expire_at),

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/RealizeAINavLink.types.ts
- * @version 1.3.0
- * @date 2026-09-20
+ * @version 1.4.0
+ * @date 2026-10-05
  * @description Задаёт настраиваемые ссылки навигации AI и интеграций.
  */
 
@@ -11,6 +11,7 @@ export type RealizeAINavLinkProps = {
   integrationsRoute: `/${string}`;
   mcpServersRoute: `/${string}`;
   route: `/${string}`;
+  usageRoute: `/${string}`;
 };
 
 export type RealizeAINavigationItem = {

@@ -1,10 +1,12 @@
-// @vitest-environment node
 /**
  * @file tests/int/pageDraftChatContext.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-12
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Проверяет границу CMS-контекста между браузером, сохранённым run и моделью.
  */
+import { SYSTEM_AI_RELEASE_REFERENCE } from "@realize/change-engine";
+// @vitest-environment node
+
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { Payload, PayloadRequest } from "payload";
 import { parseCreateMessageInput } from "@realize/ai-contracts";
@@ -122,6 +124,7 @@ describe("CMS page context trust boundary", () => {
       ],
     };
     const input = parseChatRun({
+      systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
       runID: "7",
       prompt: "Сократи",
       pageDraftContext: injected,
@@ -146,7 +149,11 @@ describe("CMS page context trust boundary", () => {
   });
   it("explicitly invalidates page snapshots from earlier turns when selection is absent", () => {
     const run = new RunStore().create(
-      parseChatRun({ runID: "8", prompt: "Продолжай" }),
+      parseChatRun({
+        systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
+        runID: "8",
+        prompt: "Продолжай",
+      }),
     );
     expect(
       buildConfiguredChatTurn({

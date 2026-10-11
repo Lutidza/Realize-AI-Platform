@@ -1,7 +1,7 @@
 /**
  * @file tests/int/payload-ai-plugin.int.spec.ts
- * @version 1.5.2
- * @date 2026-09-30
+ * @version 1.6.0
+ * @date 2026-10-05
  * @description Проверяет регистрацию и доступ к разделам конфигурации и интеграций Payload.
  */
 
@@ -22,6 +22,8 @@ import {
 import { loadWorkflowRunsView } from "../../packages/payload-ai-plugin/src/admin/workflow-runs/loadWorkflowRunsView.service";
 import type { WorkflowRunsViewProps } from "../../packages/payload-ai-plugin/src/admin/workflow-runs/WorkflowRunsView.types";
 import { sanitizeOptions } from "../../packages/payload-ai-plugin/src/options";
+import { loadUsageView } from "../../packages/payload-ai-plugin/src/admin/usage/loadUsageView.service";
+import type { UsageViewProps } from "../../packages/payload-ai-plugin/src/admin/usage/UsageView.types";
 
 vi.mock("next/navigation.js", () => ({
   notFound: () => {
@@ -243,6 +245,11 @@ describe("realizeAIPlugin", () => {
 
     expect(slugs).toEqual([
       "existing",
+      "realize-ai-usage-attempts",
+      "realize-ai-usage-events",
+      "realize-ai-usage-prices",
+      "realize-ai-usage-budgets",
+      "realize-ai-usage-reservations",
       "realize-ai-search-observations",
       "realize-ai-search-state",
       "realize-design-projects",
@@ -705,5 +712,77 @@ describe("workflow registry Admin views", () => {
     expect(() => loadWorkflowRunsView(props)).toThrow(
       "NEXT_REDIRECT;/control/unauthorized",
     );
+  });
+});
+
+describe("analytics Admin routing", () => {
+  it("registers canonical analytics routes and retains a custom legacy AI path", async () => {
+    const result = await realizeAIPlugin({
+      ...options,
+      admin: { route: "/tools/assist" },
+    })(baseConfig());
+    expect(result.admin?.components?.views).toMatchObject({
+      realizeUsage: {
+        exact: true,
+        path: "/analytics/ai",
+        Component: {
+          serverProps: { view: "installation", usageRoute: "/analytics/ai" },
+        },
+      },
+      realizePlatformUsage: { exact: true, path: "/analytics/ai/platform" },
+      realizeUsageLegacy: { exact: true, path: "/tools/assist/usage" },
+      realizePlatformUsageLegacy: {
+        exact: true,
+        path: "/tools/assist/usage/platform",
+      },
+    });
+  });
+  it.each([
+    "/analytics/ai",
+    "/analytics/ai/platform",
+    "/ai/usage",
+    "/ai/usage/platform",
+  ] as const)("rejects collisions at %s", (path) => {
+    const config = baseConfig();
+    config.admin!.components!.views = {
+      existing: { Component: "./existing", path },
+    };
+    expect(() => realizeAIPlugin(options)(config)).toThrow(
+      "Realize Admin route collision",
+    );
+  });
+  it("keeps owner authorization on the server and links through the configured admin base", async () => {
+    const runtime = {
+      canViewUsage: () => true,
+      canViewPlatformUsage: () => false,
+    };
+    const props = {
+      initPageResult: { req: { user: { id: 42 } } },
+      view: "installation",
+      usageRoute: "/analytics/ai",
+      payload: {
+        config: {
+          routes: { admin: "/cms", api: "/data" },
+          admin: { routes: { login: "/login", unauthorized: "/unauthorized" } },
+          custom: { realizeAIControl: runtime },
+        },
+      },
+    } as unknown as UsageViewProps;
+    await expect(loadUsageView(props)).resolves.toEqual({
+      apiUrl: "/data/realize-ai/usage",
+      platform: false,
+      switchUrl: null,
+    });
+    await expect(loadUsageView({ ...props, view: "platform" })).rejects.toThrow(
+      "NEXT_REDIRECT;/cms/unauthorized",
+    );
+    runtime.canViewPlatformUsage = () => true;
+    await expect(
+      loadUsageView({ ...props, view: "platform" }),
+    ).resolves.toMatchObject({
+      apiUrl: "/data/realize-ai/usage/platform",
+      platform: true,
+      switchUrl: "/cms/analytics/ai",
+    });
   });
 });

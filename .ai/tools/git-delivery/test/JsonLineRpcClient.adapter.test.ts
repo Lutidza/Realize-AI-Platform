@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/JsonLineRpcClient.adapter.test.ts
- * @version 1.0.1
- * @date 2026-09-12
+ * @version 1.0.2
+ * @date 2026-10-11
  * @description Проверяет RPC, пределы вывода и завершение транспорта тестовыми Node-процессами.
  */
 
@@ -160,6 +160,10 @@ test(
   "скрывает ошибку callback в ответе серверу",
   { timeout: 5_000 },
   async (context) => {
+    let resolveResponse!: (value: unknown) => void;
+    const response = new Promise<unknown>((resolve) => {
+      resolveResponse = resolve;
+    });
     const client = startServer(
       context,
       `
@@ -170,9 +174,16 @@ test(
         onRequest: async () => {
           throw new Error("private callback detail");
         },
+        // Wire-ответ проверяется отдельно: отказ имеет приоритет в очереди потребителя.
+        onNotification: (message) => {
+          if (message.method === "response") resolveResponse(message.params);
+        },
       },
     );
-    assert.deepEqual(await nextNotification(client, "response"), {
+    assert.deepEqual((await notificationIterator(client).next()).value, {
+      method: "realize/securityViolation",
+    });
+    assert.deepEqual(await response, {
       id: 11,
       error: { code: -32603, message: "codex_handler_failed" },
     });
@@ -192,7 +203,6 @@ test(
     const iterator = notificationIterator(client);
     assert.deepEqual((await iterator.next()).value, {
       method: "realize/securityViolation",
-      params: { blockedMethod: "unexpected/tool" },
     });
   },
 );

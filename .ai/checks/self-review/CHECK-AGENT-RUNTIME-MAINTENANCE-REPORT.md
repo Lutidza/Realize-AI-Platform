@@ -10,8 +10,8 @@ runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
 runtime_writer: .ai/tools/agent-runtime/bin/agent-runtime.mjs
 projection_exporter: .ai/tools/agent-runtime/bin/agent-runtime.mjs projection-export
 maintenance_history: .ai/tools/agent-runtime/runtime/maintenance-history/
-related_specs:
-  - documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
+runtime_sources:
+  - .ai/tools/agent-runtime/README.md
 ```
 
 ## Условие срабатывания
@@ -19,6 +19,9 @@ related_specs:
 Запускать после `agent-runtime-maintenance` workflow, после ручного запуска
 `retention-cleanup`, перед handoff maintenance-шага и перед финальным ответом,
 если текущий шаг обслуживал `.ai/tools/agent-runtime/runtime/runtime.sqlite`.
+Для direct/native работы и шага без managed maintenance — `not_required`.
+Запрет записи или недоступность writer не обходятся ради history report:
+причина пропуска фиксируется в handoff, успешное обслуживание не заявляется.
 
 ## Входы
 
@@ -74,31 +77,33 @@ related_specs:
    - `monitor_heartbeat_monitor_url_matches_expected`;
    - `monitor_heartbeat_gateway_url_matches_expected`;
    - `monitor_heartbeat_expected_url_mismatch`.
-9. Проверить, что если workflow применён, создан machine-readable report через
+9. Проверить, что если workflow выполнен с разрешённой записью, создан machine-readable report через
    `maintenance-report-write`, а report path указывает на
    `.ai/tools/agent-runtime/runtime/maintenance-history/*.json`.
 10. Проверить, что maintenance report является валидным JSON и содержит:
-   - `schema_version`;
-   - `artifact_type: agent-runtime-maintenance-report`;
-   - `report_id`;
-   - `created_at`;
-   - `runtime_store`;
-   - `policy_trigger`;
-   - `mode`;
-   - `decision`;
-   - `dry_run_summary`;
-   - `active_rows_report`.
+
+- `schema_version`;
+- `artifact_type: agent-runtime-maintenance-report`;
+- `report_id`;
+- `created_at`;
+- `runtime_store`;
+- `policy_trigger`;
+- `mode`;
+- `decision`;
+- `dry_run_summary`;
+- `active_rows_report`.
+
 11. Проверить, что `dry_run_summary`, `cleanup_summary`,
-   `active_rows_report`, `cutoffs` и `projection` являются JSON object, а
-   `related_artifacts` является JSON list.
+    `active_rows_report`, `cutoffs` и `projection` являются JSON object, а
+    `related_artifacts` является JSON list.
 12. Если есть `running`, `result-ready`, `needs-review` или `blocked` sessions,
-   проверить, что по ним запущен или явно запланирован
-   `CHECK-WORKER-SESSION-LIFECYCLE-BEFORE-HANDOFF`.
+    проверить, что по ним запущен или явно запланирован
+    `CHECK-WORKER-SESSION-LIFECYCLE-BEFORE-HANDOFF`.
 13. Если есть unread high/urgent notifications или blocking peer messages,
-   проверить, что Dialog Assistant записал acknowledgement/resolution или указал
-   blocker.
+    проверить, что Dialog Assistant записал acknowledgement/resolution или указал
+    blocker.
 14. Если projection обновлялась, проверить, что она создана через
-   `agent-runtime.mjs projection-export`, а не ручной правкой JSON.
+    `agent-runtime.mjs projection-export`, а не ручной правкой JSON.
 15. Проверить, что handoff содержит residual risk и next step, если active rows
     намеренно остаются.
 
@@ -111,7 +116,8 @@ related_specs:
 - Cleanup не скрывает нерешённые worker-сессии.
 - Active rows report сформирован и отделяет lifecycle issues от retention
   leftovers.
-- Maintenance history report создан через writer-команду и валиден по схеме.
+- Maintenance history report создан через writer-команду и валиден по схеме;
+  невозможность его записи обозначена как ограничение, а не `passed` maintenance.
 - Blocking notifications/messages acknowledged, resolved или явно вынесены как
   blocker.
 - Projection, если нужна, обновлена exporter-ом.
@@ -138,7 +144,7 @@ related_specs:
 ## Обязательный вывод
 
 ```text
-agent_runtime_maintenance_check: pass|fail
+agent_runtime_maintenance_check: pass|fail|not_required
 runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
 policy_trigger:
 mode: audit_only|cleanup_allowed|projection_refresh|full_maintenance|n/a

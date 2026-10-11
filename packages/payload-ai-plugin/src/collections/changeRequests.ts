@@ -1,6 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/changeRequests.ts
- * @version 2026-08-22
+ * @version 1.0.0
+ * @date 2026-10-04
  * @description Задаёт immutable plan snapshots и управляемый lifecycle до release approval.
  */
 
@@ -125,6 +126,7 @@ export const createChangeRequestsCollection = (
       { name: "originalRequest", required: true, type: "textarea" },
       { name: "normalizedIntent", required: true, type: "textarea" },
       { name: "plan", required: true, type: "textarea" },
+      { name: "executionContext", type: "json", access: { read: () => false } },
       { index: true, name: "planHash", required: true, type: "text" },
       { name: "affectedPaths", required: true, type: "json" },
       { name: "checks", required: true, type: "json" },

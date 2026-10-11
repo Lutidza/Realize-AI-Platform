@@ -1,16 +1,19 @@
 #!/usr/bin/env node
 /**
  * @file scripts/release/create-release-candidate-evidence.mjs
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-10-04
  * @docref ADR-0011
  * @see documentation/architecture/decisions/ADR-0011-github-ghcr-vps-release-preview.md
- * @description Creates the exact release manifest and worker evidence envelope after signed preview verification.
+ * @description Создаёт exact manifest кандидата и evidence после проверки подписанного preview.
  */
 
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+
+import { hashCanonicalJSON } from "@realize/change-engine/platform-release";
 
 import { createReleaseSourceInventory } from "./release-source-inventory.mjs";
 
@@ -178,6 +181,9 @@ export const createReleaseCandidateEvidence = async (input) => {
     migrationSetHash: inventory.migrationSetHash,
     migrations: inventory.migrations,
     pluginVersions: inventory.pluginVersions,
+    sourceInventory: inventory.platform,
+    sourceInventoryHash: hashCanonicalJSON(inventory.platform),
+    platformBase: { status: "unresolved" },
     provenanceHash: security.provenanceHash,
     provenanceRef: required(environment.PROVENANCE_REF, "PROVENANCE_REF"),
     releaseID: candidateKey,

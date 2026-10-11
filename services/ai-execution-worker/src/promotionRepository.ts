@@ -1,10 +1,11 @@
 /**
  * @file services/ai-execution-worker/src/promotionRepository.ts
- * @version 1.0.0
- * @date 2026-09-17
- * @description Атомарно получает preview jobs и сохраняет проверки, review и runtime evidence.
+ * @version 1.1.0
+ * @date 2026-10-05
+ * @description Сохраняет продвижение preview и подтверждение результата задачи в одной transaction.
  */
 
+import { recordVerifiedPreviewUsage } from "@realize/payload-ai-control/server/usage";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
 
 import type { WorkerCheckResult } from "./types";
@@ -369,6 +370,12 @@ export class PromotionRepository {
       if (deployment.rowCount !== 1 || change.rowCount !== 1) {
         throw new Error("Preview completion state conflict.");
       }
+      await recordVerifiedPreviewUsage(
+        client,
+        job.deploymentKey,
+        job.changeRequestID,
+        input.evidenceHash,
+      );
     });
   }
 

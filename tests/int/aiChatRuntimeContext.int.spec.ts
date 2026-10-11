@@ -1,10 +1,12 @@
-// @vitest-environment node
 /**
  * @file tests/int/aiChatRuntimeContext.int.spec.ts
- * @version 1.0.1
- * @date 2026-09-15
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Проверяет границы конфигурации control plane, reuse thread и публичную проекцию без вызовов модели.
  */
+import { SYSTEM_AI_RELEASE_REFERENCE } from "@realize/change-engine";
+// @vitest-environment node
+
 import { describe, expect, it, vi } from "vitest";
 import type { Payload, PayloadRequest } from "payload";
 import { parseCreateMessageInput } from "@realize/ai-contracts";
@@ -66,6 +68,7 @@ describe("chat configuration transport and policy", () => {
   it("keeps the immutable config in the run fingerprint and rejects substitution on replay", () => {
     const store = new RunStore();
     const input = parseChatRun({
+      systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
       runID: "42",
       prompt: "hello",
       agentConfiguration,
@@ -84,6 +87,7 @@ describe("chat configuration transport and policy", () => {
     tampered.compiled.profile.title = "forged";
     expect(() =>
       parseChatRun({
+        systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
         runID: "43",
         prompt: "hello",
         agentConfiguration: tampered,
@@ -93,6 +97,7 @@ describe("chat configuration transport and policy", () => {
   it("passes actual role/rule/skill instructions under the read-only policy and history as user data", () => {
     const turn = buildConfiguredChatTurn({
       run: {
+        systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
         prompt: "Категория А",
         agentConfiguration,
         conversationHistory: JSON.stringify({
@@ -125,7 +130,11 @@ describe("chat configuration transport and policy", () => {
     "передаёт строгий code-plan протокол в developer policy при webSearch=%s",
     (webSearch) => {
       const turn = buildConfiguredChatTurn({
-        run: { prompt: "Подготовь изменение интерфейса", webSearch },
+        run: {
+          systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
+          prompt: "Подготовь изменение интерфейса",
+          webSearch,
+        },
         fileCount: 1,
         totalBytes: 100,
         selectedFiles: [
@@ -155,6 +164,7 @@ describe("chat configuration transport and policy", () => {
   it("rejects oversized history and total provider payload before a model call", () => {
     expect(() =>
       parseChatRun({
+        systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
         runID: "42",
         prompt: "hello",
         conversationHistory: "я".repeat(20_000),
@@ -162,7 +172,7 @@ describe("chat configuration transport and policy", () => {
     ).toThrow("history");
     expect(() =>
       buildConfiguredChatTurn({
-        run: { prompt: "hello" },
+        run: { systemRelease: SYSTEM_AI_RELEASE_REFERENCE, prompt: "hello" },
         fileCount: 0,
         totalBytes: 0,
         selectedFiles: [],
@@ -171,7 +181,11 @@ describe("chat configuration transport and policy", () => {
     ).toThrow("слишком большой");
   });
   it("retains legacy unconfigured requests without inventing a configuration", () => {
-    const input = parseChatRun({ runID: "legacy", prompt: "hello" });
+    const input = parseChatRun({
+      systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
+      runID: "legacy",
+      prompt: "hello",
+    });
     expect(input.agentConfiguration).toBeUndefined();
     expect(
       buildConfiguredChatTurn({

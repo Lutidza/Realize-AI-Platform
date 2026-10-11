@@ -1,7 +1,7 @@
 /**
  * @file tests/int/JsonLineRpcWebSearch.int.spec.ts
- * @version 1.0.2
- * @date 2026-09-15
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Проверяет web_search и доверенный Linux tool PATH без наследования окружения shell.
  */
 
@@ -24,6 +24,28 @@ afterEach(() => {
 });
 
 describe("RPC web-search arguments", () => {
+  it("disables worktree instructions and project config only for product runtime", async () => {
+    const child = Object.assign(new EventEmitter(), {
+      stdin: new PassThrough(),
+      stdout: new PassThrough(),
+      stderr: new PassThrough(),
+    });
+    processMock.spawn.mockReturnValue(child);
+    const client = new JsonLineRPCClient({
+      workingDirectory: "/fixture-customer",
+      environment: { NODE_ENV: "test", CODEX_HOME: "/fixture-profile" },
+      ignoreProjectInstructions: true,
+    });
+    client.start();
+    const args = processMock.spawn.mock.calls[0][1] as string[];
+    expect(args).toContain("project_doc_max_bytes=0");
+    expect(args).toContain(
+      'projects={"/fixture-customer"={trust_level="untrusted"}}',
+    );
+    const closed = client.close();
+    child.emit("close");
+    await closed;
+  });
   it.each([undefined, "disabled", "live"] as const)(
     "использует %s с strict config, пустым MCP и безопасным окружением shell",
     async (webSearch) => {

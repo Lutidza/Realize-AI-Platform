@@ -1,0 +1,162 @@
+/**
+ * @file src/components/admin/task-manager/TaskManagerWorkbench.module.css
+ * @version 1.0.0
+ * @date 2026-10-11
+ * @description Размещает рабочие формы и карточку задач на общих tokens UI-kit.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+.workbench,
+.stack,
+.navigation,
+.detail,
+.formFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.navigation,
+.detail,
+.empty,
+.binding {
+  padding: var(--ui-layout-gap);
+}
+.navigation h2,
+.detail h2,
+.stack h3 {
+  margin: 0;
+}
+.detail h2,
+.binding {
+  overflow-wrap: anywhere;
+}
+.sectionHeading,
+.actions,
+.dialogFooter {
+  display: flex;
+  gap: var(--ui-layout-gap);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.sectionHeading,
+.dialogFooter {
+  justify-content: space-between;
+}
+.field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.formFields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ui-layout-gap);
+}
+.fullWidth {
+  grid-column: 1 / -1;
+}
+.muted {
+  color: var(--ui-color-muted);
+  font-size: 13px;
+}
+.error {
+  color: var(--ui-color-danger);
+  overflow-wrap: anywhere;
+}
+.error:focus {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 4px;
+}
+.description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.metadata {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 8px var(--ui-layout-gap);
+}
+.metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.metadata dt {
+  color: var(--ui-color-muted);
+}
+.sha {
+  overflow-wrap: anywhere;
+}
+.history {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  padding-left: 20px;
+}
+.history li {
+  display: grid;
+  gap: 6px;
+  overflow-wrap: anywhere;
+}
+.member {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.taskTitle {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.taskTitle small {
+  color: var(--ui-color-muted);
+}
+.tableScroll {
+  min-width: 0;
+  overflow-x: auto;
+}
+.taskTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.taskTable th,
+.taskTable td {
+  padding: var(--ui-layout-gap);
+  vertical-align: middle;
+}
+.taskTable th {
+  color: var(--ui-color-muted);
+  font-weight: 500;
+}
+.taskTable td {
+  border-top: 1px solid var(--ui-color-border);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+@media (max-width: 600px) {
+  .formGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .dialogFooter {
+    align-items: stretch;
+  }
+  .dialogFooter .actions {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .metadata {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

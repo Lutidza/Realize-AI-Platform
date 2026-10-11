@@ -1,12 +1,15 @@
 /**
  * @file .ai/tools/git-delivery/src/GitDelivery.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-10-11
  * @description Определяет команду, доверенное разрешение и безопасный результат локальной Git-операции.
  */
 
 export type Action = "inspect" | "commit" | "push" | "commit_push";
-export type Scope = { mode: "all" } | { mode: "paths"; paths: string[] };
+/** Полный снимок может явно разрешать замену частичного индекса проверенными рабочими bytes. */
+export type Scope =
+  | { mode: "all"; includePartialIndex?: true }
+  | { mode: "paths"; paths: string[] };
 /** Команда модели не назначает разрешение, автора или выполненные проверки. */
 export type Command = { action: Action; message?: string };
 export type CheckResult = {

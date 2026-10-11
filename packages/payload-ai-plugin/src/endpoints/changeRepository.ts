@@ -1,10 +1,11 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeRepository.ts
- * @version 1.0.0
- * @date 2026-09-17
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Сохраняет Change Requests и append-only approval decisions.
  */
 
+import type { AIExecutionContextSnapshot } from "@realize/ai-contracts";
 import type { Payload, PayloadRequest } from "payload";
 
 import {
@@ -38,6 +39,7 @@ export class ChangeRepository {
   }
 
   async createChange(input: {
+    executionContext: AIExecutionContextSnapshot;
     affectedPaths: string[];
     checks: string[];
     conversationID: string;
@@ -55,6 +57,7 @@ export class ChangeRepository {
     type: string;
   }): Promise<AIDocument> {
     return await this.create(CHANGE_REQUESTS_SLUG, {
+      executionContext: input.executionContext,
       affectedPaths: input.affectedPaths,
       checks: input.checks,
       conversation: this.documentID(input.conversationID),
@@ -215,6 +218,10 @@ export class ChangeRepository {
         and: [
           { conversation: { equals: this.documentID(conversationID) } },
           { role: { equals: "user" } },
+          // Параллельный run того же диалога не подменяет исходный запрос плана.
+          ...(typeof assistant.runID === "string" && assistant.runID
+            ? [{ runID: { equals: assistant.runID } }]
+            : []),
           { sequence: { less_than: Number(assistant.sequence) } },
         ],
       },

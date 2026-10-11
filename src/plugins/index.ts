@@ -1,7 +1,7 @@
 /**
  * @file src/plugins/index.ts
- * @version 1.8.0
- * @date 2026-09-25
+ * @version 1.10.0
+ * @date 2026-10-11
  * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
 
@@ -21,6 +21,8 @@ import {
 } from "@payloadcms/richtext-lexical";
 import { ecommercePlugin } from "@payloadcms/plugin-ecommerce";
 import { realizeAIPlugin } from "@realize/payload-ai-control";
+import { taskManagerPlugin } from "@realize/payload-task-manager";
+import { taskManagerOptions } from "./taskManager.config";
 
 import { stripeAdapter } from "@payloadcms/plugin-ecommerce/payments/stripe";
 
@@ -32,6 +34,7 @@ import { adminOnlyFieldAccess } from "@/access/adminOnlyFieldAccess";
 import { customerOnlyFieldAccess } from "@/access/customerOnlyFieldAccess";
 import { isAdmin } from "@/access/isAdmin";
 import { isDocumentOwner } from "@/access/isDocumentOwner";
+import { isPlatformOwner } from "@/access/platformOwner.policy";
 import { checkRole } from "@/access/utilities";
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -61,6 +64,9 @@ const realizeAI = realizeAIPlugin({
     canManageIntegrations: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
     canUseChat: ({ req }) =>
+      Boolean(req.user && checkRole(["admin"], req.user)),
+    canViewPlatformUsage: ({ req }) => isPlatformOwner(req),
+    canViewUsage: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
     canViewRuns: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
@@ -103,6 +109,7 @@ const generateURL: GenerateURL<Product | Page> = ({ doc }) => {
 };
 
 export const plugins: Plugin[] = [
+  taskManagerPlugin(taskManagerOptions),
   seoPlugin({
     generateTitle,
     generateURL,

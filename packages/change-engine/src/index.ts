@@ -1,13 +1,22 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 1.9.0
- * @date 2026-09-30
+ * @version 1.11.0
+ * @date 2026-10-05
  * @description Экспортирует Change Engine policies, registries и configuration compiler.
  */
 
 import { createHash } from "node:crypto";
 
 import { buildDataOperationProtocolInstructions } from "./dataOperationProtocol";
+
+export {
+  calculateUsageCost,
+  unknownUsageCost,
+} from "./usage/calculateUsageCost.service";
+export {
+  createUsagePrice,
+  parseUsagePrice,
+} from "./usage/usagePriceIntegrity.validator";
 
 export { ChangePlanError } from "./ChangePlan.error";
 export { assessChangePlanReadiness } from "./assessChangePlanReadiness.validator";
@@ -22,6 +31,7 @@ const sha256 = (value: string): string =>
 
 /** Hashes every security-relevant field bound by a plan decision. */
 export const createPlanApprovalBinding = (input: {
+  executionContextHash?: string;
   actorID: string;
   actorRoles: string[];
   changeRequestID: string;
@@ -41,6 +51,7 @@ export const createPlanApprovalBinding = (input: {
       input.actorID,
       [...input.actorRoles].sort(),
       input.expiresAt,
+      ...(input.executionContextHash ? [input.executionContextHash] : []),
     ]),
   );
 
@@ -134,3 +145,16 @@ export type {
   PageDraftStructureOperationHashInput,
   PageDraftStructureRollbackHashInput,
 } from "./PageDraftStructurePolicy.types";
+
+export {
+  SYSTEM_AI_RELEASE,
+  SYSTEM_AI_RELEASE_REFERENCE,
+  requireSystemAIRelease,
+  buildSystemAIInstructions,
+} from "./system-ai/systemAIRelease.registry";
+
+export { assertRuntimeAIConfiguration } from "./system-ai/assertRuntimeAIConfiguration.validator";
+export {
+  createAIExecutionContext,
+  parseAIExecutionContext,
+} from "./system-ai/aiExecutionContext.service";

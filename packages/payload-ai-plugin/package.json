@@ -20,7 +20,9 @@
     "./rsc": "./src/admin/RealizeAIView.tsx",
     "./workflow-runs-rsc": "./src/admin/workflow-runs/WorkflowRunsView.view.tsx",
     "./server/search-observability": "./src/search-observability/searchObservability.server.index.ts",
-    "./search-observations-rsc": "./src/admin/search-observability/SearchObservationsView.view.tsx"
+    "./search-observations-rsc": "./src/admin/search-observability/SearchObservationsView.view.tsx",
+    "./server/usage": "./src/usage/usage.server.index.ts",
+    "./usage-rsc": "./src/admin/usage/UsageView.view.tsx"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "2.0.0",

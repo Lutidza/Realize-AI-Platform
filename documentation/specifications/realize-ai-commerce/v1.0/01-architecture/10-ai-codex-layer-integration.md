@@ -1,13 +1,17 @@
 # 10. Интеграция системного и installation AI-layer
 
 - **Статус:** target specification
-- **Дата сверки реализации:** 13 сентября 2026 года
+- **Дата сверки реализации:** 4 октября 2026 года (PLAT-03, §10.11)
 
 ## 10.1. Разделение владельцев
 
 Системный слой поставляется платформой и включает security/license policy,
 `.ai/**`, `.codex/**` adapters, capability/check registries, system prompts и
 runtime compiler. Он не доступен для изменения из обычной клиентской Admin.
+Авторитетные production policy и системные инструкции публикует владелец
+платформы в своём AI-сервисе. Клиент может менять код сайта и installation
+overlay; это не даёт изменения системного ядра. Граница поставки и общие
+версии определены в [контракте платформы](40-platform-versioning-and-updates.md).
 
 Installation overlay хранится в Payload как versioned product data: skills,
 knowledge, prompt templates, local rules, roles, check bindings, agent profiles
@@ -18,17 +22,22 @@ workflows и evals. Он только сужает или дополняет п�
 
 Для каждого run compiler фиксирует:
 
+- manifest платформы и версию контракта совместимости;
 - system release/version;
 - installation config release и hash;
 - actor, installation и license projection;
 - разрешённые capabilities и protected scopes;
 - выбранные instructions и bounded knowledge excerpts;
 - check/policy versions;
+- происхождение и hashes реально включённых инструкций;
 - request и correlation IDs.
 
 Context Pack ограничен по размеру, redacted и immutable для конкретного run.
 Secrets, скрытые ресурсы, binary/runtime state и данные других инсталляций в
 него не попадают.
+Решения [Model Router](41-model-garden-and-router.md) связываются с конкретными
+run/step/attempt до provider-вызова, сохраняя версии model/catalog/adapter/policy
+и тарифного снимка. Новый выбор для этапа не переписывает исторический Context Pack.
 
 ## 10.3. Приоритет и недоверенный контент
 
@@ -114,6 +123,12 @@ Control plane принимает его только через авторизо
 и проверяет форму, content hashes и общий compiled hash. Эта проверка
 подтверждает целостность, не предоставляет полномочия и не заменяет compiler
 или текущую runtime policy.
+
+С 4 октября каждый новый run, в том числе без overlay, дополнительно сохраняет
+`systemRelease` и передаёт его в control plane. Сервер требует точную пару
+release ID/hash из встроенного доверенного registry и повторно проверяет
+capability ceiling и обязательные checks. Самостоятельно пересчитанный
+клиентом compiled hash не проходит эту проверку при расширении полномочий.
 
 Renderer применяет описание и locale профиля, прямые роли, правила по убыванию
 priority с ключом как вторичным порядком, навыки как условные процедуры
@@ -222,7 +237,6 @@ checkpoints переживают перезапуск; потерянный не
 файлов проекта; существующий явный переключатель web search применяется
 к его read-only agent turns.
 
-
 ## 10.9. Управление запусками
 
 Раздел `/admin/ai/runs` показывает актуальные процессы текущего пользователя
@@ -236,3 +250,111 @@ checkpoints переживают перезапуск; потерянный не
 этого запуска. Они не подменяют её текущим черновиком или активным выпуском.
 Реестр не становится новым workflow engine или runtime store. Его DTO и
 границы чтения заданы в [API реестра](../03-runtime-delivery-and-security/22-api-and-streaming-contracts.md#227-реестр-и-история-запусков-процессов).
+
+## 10.10. Инженерный контракт рабочего слоя
+
+Целевая дисциплина развития инструкций реализуется задачей
+[PLAT-01](../06-execution-governance/32-immediate-implementation-order.md).
+Рабочие требования хранятся у существующих владельцев:
+
+| Артефакт        | Ответственность                                          |
+| --------------- | -------------------------------------------------------- |
+| `AGENTS.md`     | Короткий вход, обязательные ограничения и маршрутизация  |
+| `.ai/rules`     | Требования, условия применения и допустимые исключения   |
+| `.ai/checks`    | Критерии проверки и достаточное evidence                 |
+| `.ai/workflows` | Порядок действий и условия переходов/остановки           |
+| `.ai/roles`     | Ответственность и основания для привлечения специалистов |
+| `.ai/registry`  | Навигация и связи, без второго текста требования         |
+| `.codex`        | Настройки и процедуры конкретной среды Codex             |
+| `documentation` | Архитектура и контракты продукта                         |
+
+У требования один основной источник; изменение синхронизирует связанные
+проверки и adapters. Обязательное ядро компактно, профильные инструкции
+загружаются по применимости. Для правила определены требование, trigger,
+проверка, исключения и действительное основание остановки. Сложность проверки
+соответствует риску изменения; уже предоставленное разрешение не запрашивается
+повторно. Роль сама по себе не запускает отдельного worker.
+
+Проектный слой действует в пределах инструкций среды и задания пользователя.
+Его название «системный» не повышает приоритет файлов над реальными системными
+инструкциями модели и не создаёт tool authority.
+
+Разработка платформы и клиентский runtime используют разные применимые наборы
+инструкций из общей управляемой системы. Publisher явно определяет состав,
+версии и совместимость; автоматическое копирование всего `.ai/.codex` в каждый
+run или в редактор Admin не является синхронизацией. Структурная проверка и
+сценарные evals описаны в [стратегии качества](../04-commercial-and-operations/29-testing-strategy.md),
+их расходы входят в общий ledger. Эта целевая глава не подменяет действующие
+правила `.ai` до их отдельного обновления.
+
+## 10.11. Опубликованный system AI release и исполнение
+
+**Текущий срез PLAT-03 с обновлением PLAT-04, 5 октября 2026 года.** Owner source находится в
+`.ai/rules/runtime/RULE-CUSTOMER-AI-RUNTIME.md`. Явный состав публикации задан
+`packages/change-engine/src/system-ai/systemAIRelease.source.json`;
+capabilities берутся из `systemCapabilities.config.ts`. Publisher
+`scripts/release/publishSystemAIRelease.controller.ts` выпускает JSON artifact
+с ID, версией, текстами и hashes инструкций, hashes исходников builders и
+consumers, capability/check registry, protected resources и командами проверок.
+Время запуска генератора и локальный абсолютный путь в manifest не входят.
+`npm run ai:system:check` обнаруживает расхождение источников и artifact и
+включён в `npm run ci`.
+
+Runtime импортирует artifact из контролируемой владельцем сборки. Он не читает
+`.ai`, `.codex` или AGENTS.md из клиентского checkout для восстановления policy.
+`SYSTEM_AI_CONFIG_PROJECTION.manifestHash` теперь относится к полному system
+release, сохраняя существующий compiler и формат overlay snapshot `1.0`.
+Изменение active overlay pointer не меняет сохранённый run или workflow.
+Activate/rollback сохраняют прежние транзакции, optimistic lock, replay и audit.
+Новый system release требует явной регистрации; отсутствие или несовпадение
+reference останавливает новый turn/continuation/execution без latest fallback.
+С PLAT-04 registry использовал `realize-system-1.1.0`. С 11 октября 2026 года
+текущий выпуск — `realize-system-1.1.1`: patch обновляет provenance hashes после
+изменений usage/schema, сохраняя policy и capability/check contracts. Registry
+сохраняет неизменные `realize-system-1.1.0` и `realize-system-1.0.0` для
+исторических bindings. Все зарегистрированные artifacts проходят
+проверку целостности; ID и hash должны совпасть с одним зарегистрированным выпуском.
+Новые runs используют 1.1.1. Исторические инструкции не заменяются новыми, но
+текущий runtime применяет metering и admission ко всем calls. Это сохранение
+policy, а не эмуляция прежнего бинарного кода. Owner provenance 1.1.0 включает
+финансовые contracts, нормализацию usage, runtime admission и consumers.
+
+Chat и workflow получают опубликованный текст системного правила, затем
+действующие mode-specific builders и выбранный overlay. При создании Change
+Request сервер читает завершённый run того же пользователя и диалога.
+Закрытый `AIExecutionContextSnapshot` сохраняет system reference, exact overlay,
+source run ID, digest исходного контекста и запроса, собственный context hash.
+Снимок копируется в job; context hash входит в plan approval и HMAC execution
+capability. Executor до создания worktree проверяет подпись, system registry,
+целостность/ceiling overlay, исходный запрос, plan/scope hashes и равенство полей
+job подписанным claims. Реальные инструкции исполнителя включают этот snapshot;
+повторной компиляции из активного overlay или изменённого черновика нет.
+
+Server policy отклоняет защищённые owner paths, AGENTS.md/AGENTS.override.md,
+`.ai`, `.codex`, `.agents`, `.git`, `.github`, environment/credential files и
+dependency manifests. Она проверяется при выдаче допуска, перед worktree и при
+приёмке diff; directory scope не расширяет доступ к защищённым именам.
+Пути Next с `(group)` и `[slug]` остаются literal paths. Изолированный результат
+не получает права на commit, push, deploy или изменение ядра платформы.
+Работа владельца из IDE использует отдельный корневой протокол разработки.
+
+В product adapter Codex устанавливаются `project_doc_max_bytes=0`, пустой
+fallback AGENTS и `projects={cwd={trust_level="untrusted"}}`. На CLI 0.160.0
+проверены effective config и игнорирование тестовой `.codex/config.toml`;
+вызов модели для этого не выполнялся. Режим не включён в отдельном Git worker.
+Семантика параметров описана в [официальной документации Codex](https://learn.chatgpt.com/docs/config-file/config-reference).
+
+Исторические runs/CR/jobs без нового binding остаются читаемыми. Они не получают
+текущий release автоматически: для нового исполнения нужен новый run и план.
+Web, control plane и execution worker обновляются согласованно после миграции;
+переход БД и защита rollback описаны в [runbook миграций](../../../../delivery/03-migrations-and-rollback.md).
+Overlay с прежним system manifest hash нужно заново выпустить и активировать
+через существующий Config. Автоматическая перепривязка исторического release
+к новому системному artifact запрещена.
+
+Hash обеспечивает целостность, а происхождение policy обеспечивается доверенной
+сборкой/процессом владельца. Этот срез не является удалённым multi-tenant AI
+сервисом, подписью release или защитой от пользователя, контролирующего сам host.
+Физическое отделение закрытого ядра, tenant credentials и production isolation
+остаются обязательным PLAT-10 до внешнего пилота. Publisher доменных инструкций
+Мастерской и её capabilities также не объявляются реализованными этим срезом.

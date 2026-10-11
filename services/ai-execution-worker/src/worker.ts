@@ -1,11 +1,12 @@
 /**
  * @file services/ai-execution-worker/src/worker.ts
- * @version 1.5.0
- * @date 2026-09-30
+ * @version 1.6.0
+ * @date 2026-10-05
  * @description Обрабатывает Code Lane и независимую от моделей очередь capture preview Мастерской.
  * @see documentation/specifications/design-workshop.md
  */
 
+import { UsageRuntime } from "@realize/payload-ai-control/server/usage";
 import { Pool } from "pg";
 import {
   SearchObservationStore,
@@ -58,6 +59,7 @@ const heartbeatPool = new Pool({
 const presenceRepository = new WorkerPresenceRepository(heartbeatPool);
 const heartbeat = new WorkerHeartbeat(presenceRepository);
 watchWorkerPoolErrors([pool, heartbeatPool], () => heartbeat.markUnhealthy());
+const usage = new UsageRuntime({ pool });
 const codex = new CodexConnectionService({
   pool,
   encryptionKey: config.integrationEncryptionKey,
@@ -152,6 +154,7 @@ const run = async (): Promise<void> => {
       await executeClaimedJob({
         config,
         codex,
+        usage,
         job,
         repository,
         observeSearch,
@@ -180,6 +183,7 @@ const run = async (): Promise<void> => {
       await executeClaimedPromotion({
         config,
         codex,
+        usage,
         job: promotion,
         repository: promotionRepository,
         observeSearch,

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/preview-promotion-preflight.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-17
+ * @version 1.1.0
+ * @date 2026-10-05
  * @description Проверяет раннюю остановку promotion и сохранение evidence недоступного Chromium.
  */
 
@@ -54,6 +54,13 @@ vi.mock("../../services/ai-execution-worker/src/workspaceDependencies", () => ({
 
 import { executeClaimedPromotion } from "../../services/ai-execution-worker/src/promotionExecutor";
 import type { WorkerCheckResult } from "../../services/ai-execution-worker/src/types";
+import type { UsageRuntime } from "@realize/payload-ai-control/server/usage";
+
+// Этот тест проверяет preview orchestration; финансовый admission имеет отдельные native tests.
+const usage: Pick<UsageRuntime, "meter" | "measureOperation"> = {
+  meter: (adapter) => adapter,
+  measureOperation: (_source, operation) => operation(),
+};
 
 const checkResult = (
   command: string,
@@ -85,6 +92,7 @@ const input = () =>
       promotionWorkspaceRoot: "/workspaces",
     },
     codex: {},
+    usage,
     repository,
     job: {
       allowedPaths: [referencePage],

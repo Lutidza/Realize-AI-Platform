@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./platform-release": "./src/platform-release/platformRelease.server.index.ts",
+    "./evaluation": "./src/evaluation/evaluation.server.index.ts"
   },
   "dependencies": {
     "@realize/ai-contracts": "0.1.0"

@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 2.2.0
- * @date 2026-09-30
+ * @version 2.4.0
+ * @date 2026-10-05
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
@@ -10,7 +10,6 @@ import type {
   CodingAgentAdapter,
   RunTurnInput,
   ChatSourceDto,
-  UsageSummary,
 } from "@realize/ai-contracts";
 
 import { JsonLineRPCClient } from "./JsonLineRpcClient.adapter";
@@ -26,28 +25,10 @@ import { validateCodexImageInputs } from "./validateCodexImageInputs.validator";
 import { createCodexChatPermissions } from "./createCodexChatPermissions.config";
 import { CodexReadTools } from "./CodexReadTools.adapter";
 import { closeNativeSearchThreads } from "./closeNativeSearchThreads.service";
-import type {
-  RPCMessage,
-  ThreadStartResult,
-  TokenUsage,
-  TurnStartResult,
-} from "./protocol";
+import { readCodexUsage } from "./readCodexUsage.mapper";
+import type { ThreadStartResult, TurnStartResult } from "./protocol";
 
 export type { OpenAICodexAdapterOptions } from "./OpenAICodex.types";
-
-const readTokenUsage = (message: RPCMessage): UsageSummary | undefined => {
-  const params = message.params;
-  const tokenUsage = asRecord(params?.tokenUsage);
-  const last = asRecord(tokenUsage?.last) as TokenUsage | undefined;
-  if (!last) return undefined;
-
-  return {
-    cachedInputTokens: Number(last.cachedInputTokens || 0),
-    inputTokens: Number(last.inputTokens || 0),
-    outputTokens: Number(last.outputTokens || 0),
-    totalTokens: Number(last.totalTokens || 0),
-  };
-};
 
 const finalMessageFromTurn = (turn: Record<string, unknown>): string => {
   const items = Array.isArray(turn.items) ? turn.items : [];
@@ -150,6 +131,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     }
 
     const client = new JsonLineRPCClient({
+      ignoreProjectInstructions: true,
       codexBinary: chatPermissions?.binaryPath ?? this.options.codexBinary,
       environment: this.options.environment,
       signal: this.options.signal,
@@ -248,9 +230,20 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       readTools?.bind(active.threadID, active.turnID);
       this.activeRuns.set(input.runID, active);
       yield { threadID: active.threadID, type: "run.started" };
+      let observedModel: string | null = thread.model ?? input.model ?? null;
+      let measurementSequence = 0;
+      // Cumulative total старого thread включает предыдущие turns: без baseline не тарифицируем.
+      const freshThread = !input.threadID || Boolean(readTools);
+      const childUsagePossible =
+        this.options.search?.enabled && this.options.search.mode === "subagent";
 
       for await (const message of client.getNotifications()) {
         const params = message.params || {};
+        if (
+          message.method === "model/rerouted" &&
+          matchesActiveTurn(params, active)
+        )
+          observedModel = null;
 
         if (message.method === "realize/securityViolation") {
           await this.cancelRun(input.runID);
@@ -274,8 +267,50 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
 
         if (message.method === "thread/tokenUsage/updated") {
           if (!matchesActiveTurn(params, active)) continue;
-          const usage = readTokenUsage(message);
-          if (usage) yield { type: "usage.updated", usage };
+          const usage = asRecord(params.tokenUsage);
+          const last = readCodexUsage(usage?.last);
+          if (
+            last &&
+            last.inputTokens !== null &&
+            last.cachedInputTokens !== null &&
+            last.outputTokens !== null &&
+            last.totalTokens !== null
+          ) {
+            yield {
+              type: "usage.updated",
+              usage: {
+                inputTokens: last.inputTokens,
+                cachedInputTokens: last.cachedInputTokens,
+                outputTokens: last.outputTokens,
+                totalTokens: last.totalTokens,
+              },
+            };
+          }
+          const total = freshThread ? readCodexUsage(usage?.total) : null;
+          yield {
+            type: "usage.measured",
+            measurement: {
+              measurementId: `${active.turnID}:${++measurementSequence}`,
+              model: observedModel,
+              providerThreadId: active.threadID,
+              providerTurnId: active.turnID,
+              tokens: total ?? {
+                inputTokens: null,
+                cachedInputTokens: null,
+                outputTokens: null,
+                reasoningOutputTokens: null,
+                totalTokens: null,
+              },
+              coverage:
+                total &&
+                !childUsagePossible &&
+                total.inputTokens !== null &&
+                total.cachedInputTokens !== null &&
+                total.outputTokens !== null
+                  ? "turn"
+                  : "partial",
+            },
+          };
           continue;
         }
 

@@ -17,14 +17,20 @@ runtime_sources:
 ├── STRUCTURE.md
 ├── config.toml
 ├── agents/
-│   └── delivery/git/{inspect,commit,push}.json
+│   ├── delivery/git/{inspect,commit,push}.json
+│   └── frontend/next-react/guardrail/{INDEX.md,agent.toml}
 ├── prompts/
-│   └── workflows/delivery/git/{inspect,commit,push}.md
-└── skills/
+│   ├── search-acceptance.md
+│   └── workflows/
+│       ├── delivery/git/{inspect,commit,push}.md
+│       └── frontend/next-react/guardrail.md
+└── skills/README.md
 ```
 
 `.codex/` содержит только Codex adapters. Project rules/checks/workflows
 остаются в `.ai/**`.
+В `skills/` находятся каталог и отдельные `SKILL.md`; в схеме показаны
+основные входы, полный список навыков ведётся в `skills/README.md`.
 
 `agents/delivery/git/{inspect,commit,push}.json` — профили запуска локальных Git-воркеров.
 Их читает `.ai/tools/git-delivery`; это не встроенный формат Codex agent.

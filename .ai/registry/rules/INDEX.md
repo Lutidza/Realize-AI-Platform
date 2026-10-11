@@ -16,19 +16,20 @@ checks. Текст правила живёт в `.ai/rules/*`, текст про
 
 ## Shards
 
-| shard_id | path | coverage | open_when |
-| --- | --- | --- | --- |
-| `global` | `.ai/registry/rules/global/INDEX.md` | `.ai/rules/global/*` | Любой project guardrail |
-| `development` | `.ai/registry/rules/development/INDEX.md` | `.ai/rules/development/*.md` | Project-wide development |
-| `development-frontend` | `.ai/registry/rules/development/frontend/INDEX.md` | `.ai/rules/development/frontend/**` | Next/React/Tailwind frontend |
-| `development-backend` | `.ai/registry/rules/development/backend/INDEX.md` | `.ai/rules/development/backend/**` | Payload/Next backend, data, search, cache |
-| `documentation` | `.ai/registry/rules/documentation/INDEX.md` | `.ai/rules/documentation/*` | Documentation sync |
-| `agent-runtime` | `.ai/registry/rules/agent-runtime/INDEX.md` | `.ai/rules/agent-runtime/*` | Agent runtime lifecycle |
-| `worker-runtime` | `.ai/registry/rules/worker-runtime/INDEX.md` | `.ai/rules/worker-runtime/*` | Worker sessions |
-| `scope-control` | `.ai/registry/rules/scope-control/INDEX.md` | `.ai/rules/scope-control/*` | Disposition/stale cleanup |
-| `git` | `.ai/registry/rules/git/INDEX.md` | `.ai/rules/git/*` | Git-операции через воркера |
-| `delivery` | `.ai/registry/rules/delivery/INDEX.md` | `.ai/rules/delivery/*` | Project delivery extensions |
-| `external-tools` | `.ai/registry/rules/external-tools/INDEX.md` | `.ai/rules/external-tools/*` | MCP/tooling and external tool fallback |
+| shard_id               | path                                               | coverage                            | open_when                                 |
+| ---------------------- | -------------------------------------------------- | ----------------------------------- | ----------------------------------------- |
+| `global`               | `.ai/registry/rules/global/INDEX.md`               | `.ai/rules/global/*`                | Любой project guardrail                   |
+| `development`          | `.ai/registry/rules/development/INDEX.md`          | `.ai/rules/development/*.md`        | Project-wide development                  |
+| `development-frontend` | `.ai/registry/rules/development/frontend/INDEX.md` | `.ai/rules/development/frontend/**` | Next/React/Tailwind frontend              |
+| `development-backend`  | `.ai/registry/rules/development/backend/INDEX.md`  | `.ai/rules/development/backend/**`  | Payload/Next backend, data, search, cache |
+| `documentation`        | `.ai/registry/rules/documentation/INDEX.md`        | `.ai/rules/documentation/*`         | Documentation sync                        |
+| `runtime`              | `.ai/registry/rules/runtime/INDEX.md`              | `.ai/rules/runtime/*`               | System AI release и runtime продукта      |
+| `agent-runtime`        | `.ai/registry/rules/agent-runtime/INDEX.md`        | `.ai/rules/agent-runtime/*`         | Agent runtime lifecycle                   |
+| `worker-runtime`       | `.ai/registry/rules/worker-runtime/INDEX.md`       | `.ai/rules/worker-runtime/*`        | Worker sessions                           |
+| `scope-control`        | `.ai/registry/rules/scope-control/INDEX.md`        | `.ai/rules/scope-control/*`         | Disposition/stale cleanup                 |
+| `git`                  | `.ai/registry/rules/git/INDEX.md`                  | `.ai/rules/git/*`                   | Git-операции через воркера                |
+| `delivery`             | `.ai/registry/rules/delivery/INDEX.md`             | `.ai/rules/delivery/*`              | Project delivery extensions               |
+| `external-tools`       | `.ai/registry/rules/external-tools/INDEX.md`       | `.ai/rules/external-tools/*`        | MCP/tooling and external tool fallback    |
 
 ## Routing
 

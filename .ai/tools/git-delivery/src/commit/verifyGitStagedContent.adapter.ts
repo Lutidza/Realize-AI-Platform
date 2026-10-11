@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/verifyGitStagedContent.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-10-11
  * @description Сверяет staged-пути, режимы и байты с проверенным снимком.
  */
 import { createHash } from "node:crypto";
@@ -10,13 +10,16 @@ import type { Git } from "../Git.adapter.ts";
 import type { Snapshot, GitContentValidator } from "../GitSnapshot.types.ts";
 import { assertIndexScope } from "./assertGitIndexScope.adapter.ts";
 
+/** Полный разрешённый снимок допускает исчезновение diff-пути после возврата bytes к HEAD; все bytes проверяются. */
 export async function verifyGitStagedContent(
   git: Git,
   snapshot: Snapshot,
   paths: string[],
   validateContent?: GitContentValidator,
+  allowUnchangedPaths = false,
 ): Promise<void> {
-  await assertIndexScope(git, paths, true);
+  // Ослабляется только равенство состава diff: посторонние staged-пути запрещены при любом режиме.
+  await assertIndexScope(git, paths, !allowUnchangedPaths);
   const entries = await git.run(["ls-files", "--stage", "-z", "--", ...paths]);
   const objects = new Map<string, { mode: number; oid: string }>();
   for (const record of entries.split("\0").filter(Boolean)) {

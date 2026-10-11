@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/handler.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-10-11
  * @description Локальные inspect/commit: доверенная область, привязанные проверки и повтор по журналу ADR-0016.
  */
 import { realpath, lstat } from "node:fs/promises";
@@ -160,6 +160,9 @@ export async function runDelivery(
       ? "not_attempted"
       : "not_requested";
     context = parseContext(trustedContext);
+    const includePartialIndex =
+      context.authorization.scope.mode === "all" &&
+      context.authorization.scope.includePartialIndex === true;
     result.requestId = context.requestId;
     if (context.recovery && command.action !== "commit") {
       throw new PolicyError(
@@ -266,7 +269,7 @@ export async function runDelivery(
         );
       }
       result.recoveryAttempts = journal.recovery?.attempt ?? 0;
-      validateChanges(journal.original);
+      validateChanges(journal.original, undefined, includePartialIndex);
       if (journal.noop && context.recovery) {
         throw new PolicyError(
           "commit_recovery_unavailable",
@@ -331,7 +334,7 @@ export async function runDelivery(
           "Восстановление требует существующего журнала commit.",
         );
       }
-      const paths = validateChanges(snapshot);
+      const paths = validateChanges(snapshot, undefined, includePartialIndex);
       await assertIndexScope(git, paths);
       if (!paths.length) {
         result.status = "noop";
@@ -371,7 +374,12 @@ export async function runDelivery(
       let alreadyStaged = false;
       if (beforeStaging.indexHash !== activeSnapshot.indexHash) {
         try {
-          await verifyStaged(git, activeSnapshot, activePaths);
+          await verifyStaged(
+            git,
+            activeSnapshot,
+            activePaths,
+            includePartialIndex,
+          );
           alreadyStaged = true;
         } catch {
           throw new PolicyError(
@@ -388,11 +396,11 @@ export async function runDelivery(
         );
       }
       await frozenSnapshot(git, context, journal);
-      await verifyStaged(git, activeSnapshot, activePaths);
+      await verifyStaged(git, activeSnapshot, activePaths, includePartialIndex);
       journal.preparedTree = (await git.run(["write-tree"])).trim();
       await saveJournal(context, journal);
     } else {
-      await verifyStaged(git, activeSnapshot, activePaths);
+      await verifyStaged(git, activeSnapshot, activePaths, includePartialIndex);
       if ((await git.run(["write-tree"])).trim() !== journal.preparedTree) {
         throw new PolicyError(
           "index_changed",
@@ -402,7 +410,7 @@ export async function runDelivery(
     }
     await frozenSnapshot(git, context, journal);
     await assertNoOperation(journal.original);
-    await assertIndexScope(git, activePaths, true);
+    await assertIndexScope(git, activePaths, !includePartialIndex);
     if ((await git.run(["write-tree"])).trim() !== journal.preparedTree) {
       throw new PolicyError(
         "index_changed",

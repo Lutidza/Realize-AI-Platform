@@ -1,8 +1,10 @@
 /**
  * @file tests/int/change-repository.int.spec.ts
- * @version 2026-08-18
- * @description Verifies normalized persistence for Change Requests and immutable decisions.
+ * @version 1.0.0
+ * @date 2026-10-04
+ * @description Проверяет точный источник плана, сохранение AI-контекста и immutable decisions.
  */
+import { createExecutionContextFixture } from "./fixtures/systemAIRelease.fixture";
 
 import type { Payload, PayloadRequest } from "payload";
 import { describe, expect, it, vi } from "vitest";
@@ -26,9 +28,35 @@ const repositoryWith = () => {
 };
 
 describe("ChangeRepository persistence", () => {
+  it("binds the original request to the assistant run when turns interleave", async () => {
+    const find = vi
+      .fn()
+      .mockResolvedValueOnce({ docs: [{ id: 4, createdBy: 7 }], totalDocs: 1 })
+      .mockResolvedValueOnce({
+        docs: [{ id: 9, role: "assistant", sequence: 4, runID: "42" }],
+        totalDocs: 1,
+      })
+      .mockResolvedValueOnce({
+        docs: [{ id: 6, role: "user", runID: "42", content: "original" }],
+        totalDocs: 1,
+      });
+    const payload = {
+      find,
+      db: { defaultIDType: "number" },
+    } as unknown as Payload;
+    const source = await new ChangeRepository(
+      payload,
+      {} as PayloadRequest,
+    ).getPlanSource("4", "9", 7);
+    expect(source.originalRequest.runID).toBe("42");
+    expect(find.mock.calls[2][0].where.and).toContainEqual({
+      runID: { equals: "42" },
+    });
+  });
   it("persists an approval-only plan with normalized relationships", async () => {
     const { create, repository } = repositoryWith();
     await repository.createChange({
+      executionContext: createExecutionContextFixture(),
       affectedPaths: ["src/plugins/index.ts"],
       checks: ["npm run typecheck"],
       conversationID: "4",

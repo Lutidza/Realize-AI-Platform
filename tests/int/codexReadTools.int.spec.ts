@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codexReadTools.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-10-05
  * @description Проверяет привязку read tools к turn и закрытый RPC без обращения к модели.
  */
 
@@ -277,7 +277,12 @@ describe("Codex server-owned read tools", () => {
           threadId,
           turnId,
           tokenUsage: {
-            last: { inputTokens: 3, outputTokens: 2, totalTokens: 5 },
+            last: {
+              inputTokens: 3,
+              cachedInputTokens: 0,
+              outputTokens: 2,
+              totalTokens: 5,
+            },
           },
         },
       },
@@ -324,6 +329,49 @@ describe("Codex server-owned read tools", () => {
       content: "Текст текущего родителя.",
     });
     expect(JSON.stringify(events)).not.toMatch(/Child text|Stale parent/);
+  });
+
+  it("измеряет total нового thread, не тарифицирует history resumed thread и потерянные counters", async () => {
+    const tokens = {
+      inputTokens: 100,
+      cachedInputTokens: 20,
+      outputTokens: 50,
+      reasoningOutputTokens: 10,
+      totalTokens: 150,
+    };
+    rpc.notifications.unshift({
+      method: "thread/tokenUsage/updated",
+      params: {
+        threadId: params.threadId,
+        turnId: params.turnId,
+        tokenUsage: {
+          last: { ...tokens, inputTokens: 30, totalTokens: 80 },
+          total: tokens,
+        },
+      },
+    });
+    const fresh = await collect(undefined, {
+      ...input,
+      model: "measured-model",
+    });
+    expect(
+      fresh.find((event) => event.type === "usage.measured"),
+    ).toMatchObject({
+      measurement: { tokens, model: "measured-model", coverage: "turn" },
+    });
+    const resumed = await collect(undefined, {
+      ...input,
+      model: "measured-model",
+      threadID: "prior-thread",
+    });
+    expect(
+      resumed.find((event) => event.type === "usage.measured"),
+    ).toMatchObject({
+      measurement: {
+        tokens: { inputTokens: null, outputTokens: null },
+        coverage: "partial",
+      },
+    });
   });
 
   it("синтетические child terminal и прежний parent turn не завершают активный parent", async () => {

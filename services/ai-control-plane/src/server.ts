@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/server.ts
- * @version 1.5.0
- * @date 2026-09-30
+ * @version 1.6.0
+ * @date 2026-10-05
  * @description Предоставляет loopback control plane для read-only запуска выбранной интеграции Codex.
  */
 
@@ -186,17 +186,25 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
       repositorySearch,
     });
 
-    for await (const event of adapter.runTurn({
-      cwd: snapshot.root,
-      sandboxProfile: "analysis-readonly",
-      images: context.images,
-      webSearch: run.webSearch,
-      developerInstructions: turn.developerInstructions,
-      model: run.model,
-      prompt: turn.prompt,
-      runID: run.id,
-      threadID: run.threadID,
-    })) {
+    for await (const event of runtime.usage
+      .meter(adapter, {
+        runId: run.id,
+        taskId: run.workflow?.rootRunID ?? run.id,
+        source: "chat",
+        authMode: lease.authMode,
+        model: run.model ?? lease.model,
+      })
+      .runTurn({
+        cwd: snapshot.root,
+        sandboxProfile: "analysis-readonly",
+        images: context.images,
+        webSearch: run.webSearch,
+        developerInstructions: turn.developerInstructions,
+        model: run.model ?? lease.model,
+        prompt: turn.prompt,
+        runID: run.id,
+        threadID: run.threadID,
+      })) {
       if (run.cancelRequested) {
         await adapter.cancelRun(run.id);
         break;

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-shell.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-17
+ * @version 1.1.0
+ * @date 2026-10-11
  * @description Проверяет отказ в доступе и безопасный контекст самостоятельной системной админки.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -71,12 +71,13 @@ describe("Проверка доступа системной админки", ()
     expect(mocks.cookies).not.toHaveBeenCalled();
   });
 
-  it("передаёт клиенту только допустимую тему после проверки текущих заголовков", async () => {
+  it("передаёт клиенту безопасного участника и тему после проверки текущих заголовков", async () => {
     const requestHeaders = new Headers({ "x-test-request": "system-admin" });
     mocks.headers.mockResolvedValue(requestHeaders);
     mocks.auth.mockResolvedValue({
       user: {
         id: 1,
+        name: "Участник",
         collection: "users",
         roles: ["admin"],
         email: "fixture@example.test",
@@ -87,7 +88,10 @@ describe("Проверка доступа системной админки", ()
     const result = await requireSystemAdmin(
       SYSTEM_TASK_MANAGER_REFERENCE_ROUTE,
     );
-    expect(result).toStrictEqual({ initialTheme: "light" });
+    expect(result).toStrictEqual({
+      initialTheme: "light",
+      currentActor: { id: "1", name: "Участник" },
+    });
     expect(mocks.auth).toHaveBeenCalledWith({ headers: requestHeaders });
     expect(mocks.cookieGet).toHaveBeenCalledWith("payload-theme");
     expect(mocks.redirect).not.toHaveBeenCalled();
@@ -95,12 +99,13 @@ describe("Проверка доступа системной админки", ()
 
   it("повторно проверяет роль при следующем обращении", async () => {
     mocks.auth.mockResolvedValueOnce({
-      user: { collection: "users", roles: ["admin"] },
+      user: { id: 1, collection: "users", roles: ["admin"] },
     });
     expect(
       await requireSystemAdmin(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE),
     ).toStrictEqual({
       initialTheme: "dark",
+      currentActor: { id: "1", name: "Администратор" },
     });
     mocks.auth.mockResolvedValueOnce({
       user: { collection: "users", roles: ["customer"] },

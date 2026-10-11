@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/changeHandlers.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-10-04
  * @description Реализует создание Change Request и immutable plan decisions.
  */
 
@@ -13,11 +13,13 @@ import {
 } from "@realize/ai-contracts";
 import {
   ChangePlanError,
+  parseAIExecutionContext,
   createPlanApprovalBinding,
   deriveChangePlan,
 } from "@realize/change-engine";
 import type { PayloadHandler as PayloadEndpointHandler } from "payload";
 
+import { readChangeExecutionContext } from "./readChangeExecutionContext.service";
 import { requireCodexChatTool } from "./requireCodexChatTool.service";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { consumeRateLimit, requireChatUser } from "./access";
@@ -135,6 +137,15 @@ const decisionHandler = (
       );
     }
 
+    const executionContext = change.executionContext
+      ? parseAIExecutionContext(change.executionContext)
+      : undefined;
+    if (decision === "approved" && !executionContext)
+      throw new EndpointError(
+        "CONFLICT",
+        "План не содержит снимка AI policy. Подготовьте новый план.",
+        409,
+      );
     const actorRoles = rolesOf(user);
     const boundHash = createPlanApprovalBinding({
       actorID: String(user.id),
@@ -142,6 +153,7 @@ const decisionHandler = (
       changeRequestID,
       decision,
       expiresAt,
+      executionContextHash: executionContext?.contextHash,
       planHash: String(change.planHash || ""),
       scopeHash: String(change.scopeHash || ""),
       version: input.expectedVersion,
@@ -266,6 +278,13 @@ export const createChangeHandlers = (
     const originalRequest = redactText(
       String(source.originalRequest.content || ""),
     );
+    const executionContext = await readChangeExecutionContext(
+      req,
+      source.assistant,
+      conversationID,
+      user.id,
+      originalRequest,
+    );
     let derived;
     try {
       derived = deriveChangePlan({ originalRequest, plan });
@@ -280,6 +299,7 @@ export const createChangeHandlers = (
     try {
       change = await repository.createChange({
         ...derived,
+        executionContext,
         conversationID,
         expiresAt,
         idempotencyKey,

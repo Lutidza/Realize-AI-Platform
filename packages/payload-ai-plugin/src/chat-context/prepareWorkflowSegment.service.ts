@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/prepareWorkflowSegment.service.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Выполняет серверные шаги до одного вызова модели, вопроса или завершения.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
@@ -10,6 +10,8 @@ import {
   type AIStreamEvent,
 } from "@realize/ai-contracts";
 import {
+  assertRuntimeAIConfiguration,
+  requireSystemAIRelease,
   advanceWorkflowBranch,
   awaitWorkflowInput,
   blockWorkflow,
@@ -35,6 +37,11 @@ export const prepareWorkflowSegment = async (input: WorkflowSegmentInput) => {
   const configuration = context.agentConfiguration;
   if (!configuration || !context.workflow || !context.workflowSourceMessageID)
     throw new Error("Workflow segment is missing its persisted context.");
+  const system = requireSystemAIRelease(context.systemRelease);
+  assertRuntimeAIConfiguration(
+    { releaseID: system.releaseID, manifestHash: system.manifestHash },
+    configuration,
+  );
   let checkpoint = parseWorkflowCheckpoint(configuration, context.workflow);
   let content = "";
   try {

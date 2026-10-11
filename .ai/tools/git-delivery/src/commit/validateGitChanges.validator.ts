@@ -1,15 +1,17 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/validateGitChanges.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-10-11
  * @description Проверяет разрешённые пути и статусы перед подготовкой commit.
  */
 import { PolicyError } from "../Policy.error.ts";
 import type { Snapshot } from "../GitSnapshot.types.ts";
 
+/** Полный рабочий снимок допускает частичный индекс только по отдельному разрешению контекста. */
 export function validateChanges(
   snapshot: Snapshot,
   ownedPartialPaths: ReadonlySet<string> = new Set(),
+  includePartialIndex = false,
 ): string[] {
   const paths = snapshot.changes.map((change) => change.path);
   if (paths.length > 2048)
@@ -31,7 +33,8 @@ export function validateChanges(
       status !== "??" &&
       status[0] !== " " &&
       status[1] !== " " &&
-      !ownedPartialPaths.has(path)
+      !ownedPartialPaths.has(path) &&
+      !includePartialIndex
     ) {
       throw new PolicyError(
         "partial_index",

@@ -49,3 +49,24 @@ events append-only, correlated и защищены от изменения об�
 injection, hidden-resource inference, cross-installation selectors, path
 traversal, stale hash replay, SSRF/egress, secret exfiltration и mismatch между
 plan, preview, release и production artifact.
+
+## 23.7. Git и CI как границы доверия
+
+[Системное и клиентское Git-подключения](../01-architecture/40-platform-versioning-and-updates.md)
+имеют разные identities, credentials и разрешения. Клиентские настройки,
+repository files и `.github/workflows` не меняют права основного репозитория
+или policy центрального сервиса. Credential reference разрешается сервером
+для точного installation/project, назначения и revision подключения.
+
+Внешний CI result и webhook требуют проверки происхождения, repository ID,
+точного commit и актуальных полномочий. Название успешного job не заменяет
+доверенного check pack и evidence. Права PR/build/publish/deploy разделены;
+недоверенный checkout, cache или artifact не исполняется с системными секретами.
+Изоляция исполнения и проверка артефактов заданы в
+[CI/CD](../04-commercial-and-operations/26-ci-cd-pipeline.md).
+
+Обязательны попытки подмены Git-назначения, cross-installation credentials,
+stale connection revision, ложного/replayed webhook, CI status spoofing,
+workflow/check-pack downgrade и artifact substitution. Клиентский root может
+самостоятельно развернуть собственный сайт, но это не даёт доверенный статус
+в центральном сервисе и не изменяет его защищённое ядро.

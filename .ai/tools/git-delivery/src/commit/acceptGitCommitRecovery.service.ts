@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/acceptGitCommitRecovery.service.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-10-11
  * @description Принимает проверенное исправление прерванного commit с сохранением его назначения.
  */
 import { PolicyError } from "../Policy.error.ts";
@@ -25,6 +25,9 @@ export async function acceptGitCommitRecovery(
   result: Result,
 ): Promise<Journal> {
   const recovery = context.recovery;
+  const scope = context.authorization.scope;
+  const includePartialIndex =
+    scope.mode === "all" && scope.includePartialIndex === true;
   const previous = resolveGitCommitSnapshot(journal);
   const counter = journal.recovery?.attempt ?? 0;
   result.recoveryAttempts = counter;
@@ -82,7 +85,13 @@ export async function acceptGitCommitRecovery(
   if (snapshot.indexHash !== previous.indexHash) {
     try {
       // Старый индекс может содержать отвергнутые bytes, но должен целиком принадлежать операции.
-      await verifyGitStagedContent(git, previous, previousPaths);
+      await verifyGitStagedContent(
+        git,
+        previous,
+        previousPaths,
+        undefined,
+        includePartialIndex,
+      );
     } catch {
       throw new PolicyError(
         "index_changed",
@@ -90,7 +99,11 @@ export async function acceptGitCommitRecovery(
       );
     }
   }
-  const paths = validateChanges(snapshot, new Set(previousPaths));
+  const paths = validateChanges(
+    snapshot,
+    new Set(previousPaths),
+    includePartialIndex,
+  );
   if (!paths.length) {
     throw new PolicyError(
       "commit_recovery_unavailable",

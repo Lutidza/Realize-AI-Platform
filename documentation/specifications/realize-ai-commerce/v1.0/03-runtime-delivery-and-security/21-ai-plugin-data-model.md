@@ -1,7 +1,7 @@
 # 21. AI plugin data model
 
 - **Статус:** target specification
-- **Дата сверки реализации:** 11 сентября 2026 года
+- **Дата сверки реализации:** 4 октября 2026 года (PLAT-03, §21.5)
 
 ## 21.1. Operational aggregates
 
@@ -239,7 +239,6 @@ Runs/Change Requests ссылаются на exact system/config/capability vers
 Retention и hard delete определяются отдельной policy, а не cascade по запросу
 модели.
 
-
 Реестр `/admin/ai/runs` читает эти же AIRun и checkpoint. Корневая строка
 соединяется с дочерними сегментами по существующему unique idempotency key;
 отдельная workflow-run коллекция и дублирующие поля не добавляются. История
@@ -248,3 +247,51 @@ outputs между сегментами. DTO выдаёт только типи�
 и owned DataOperation, сверенную с workflow audit. Пагинация применяется к
 актуальным процессам на сервере; лимиты загрузки чата на неё не влияют.
 Точный surface описан в [реестре запусков](22-api-and-streaming-contracts.md#227-реестр-и-история-запусков-процессов).
+
+## 21.5. Снимок системного слоя для исполнения
+
+Срез PLAT-03 (4 октября 2026): `runs.turnContext.systemRelease` содержит exact
+`releaseID`/`manifestHash`; существующий `agentConfiguration` остаётся immutable
+overlay snapshot. Новая JSON-схема БД для run не нужна.
+
+`changeRequests.executionContext` и `executionJobs.executionContext` — закрытые
+nullable JSON поля, недоступные через обычное чтение Payload fields. Они
+содержат `AIExecutionContextSnapshot` schema `1.0`: `systemRelease`, optional
+`agentConfiguration`, `sourceRunID`, `inputContextHash`, `originalRequestHash`,
+`contextHash`. Полный snapshot не выдаётся через ChangeRequestDTO/ExecutionJobDTO.
+Hash исходного контекста охватывает сохранённый `requestHash` и `turnContext`,
+включая ссылки на вложения/файлы и сведения чтения CMS, если они были в run.
+Raw credentials в snapshot не добавляются.
+
+Создание CR получает снимок из завершённого owned run, а не из тела browser
+request. Job получает копию CR snapshot. Approval и execution HMAC привязаны к
+context hash; worker сверяет его с snapshot и фактическими plan/scope/request.
+Исходные записи без нового поля сохраняются без backfill из текущей policy,
+и новый execution для них блокируется.
+
+Миграция `20261004_161914_ai_execution_context` добавляет ровно два nullable
+`jsonb` поля. Источник генерации —
+[`ai-execution-context.mjs`](../../../../../scripts/migrations/ai-execution-context.mjs).
+Откат схемы запрещён при любом сохранённом context в CR или job. Application
+rollback может оставить добавленные столбцы; удаление истории ради down
+не допускается. Подробности — [контракт AI-слоёв](../01-architecture/10-ai-codex-layer-integration.md#1011-опубликованный-system-ai-release-и-исполнение).
+
+## 21.6. Usage ledger PLAT-04
+
+Миграция `20261004_210727_ai_usage_ledger` создаёт пять закрытых коллекций:
+`realize-ai-usage-attempts` (projection), `realize-ai-usage-events` (append-only),
+`realize-ai-usage-prices` (immutable snapshots), `realize-ai-usage-budgets`
+(CAS policy), `realize-ai-usage-reservations` (остаток и состояние резерва).
+Generated schema/types создаются штатными командами Payload.
+
+Attempt содержит bounded `UsageContext`, validated cumulative counters,
+provider/model/auth mode, сроки, исход, sequence/revision, prices и раздельные
+provider/infrastructure/customer cost states. Raw prompt, content, diff и secrets
+не записываются. Идентичность установки назначается сервером. Provider evidence
+ограничено thread/turn/measurement IDs и проверенными числовыми счётчиками.
+
+Доменные подтверждения `task_verified` сохраняются в существующем event ledger
+в той же PostgreSQL transaction, что и успешный preview. Проекция стоимости
+успешной задачи не выводится из числа завершённых модельных ответов.
+Write/price immutability, reservations, recovery и ограничения контуров заданы
+[контрактом расходов](../04-commercial-and-operations/25-subscriptions-and-ai-billing.md#257-реализованный-локальный-контур-plat-04).

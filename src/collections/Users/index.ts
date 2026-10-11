@@ -1,90 +1,97 @@
-import type { CollectionConfig } from 'payload'
+/**
+ * @file src/collections/Users/index.ts
+ * @version 1.0.0
+ * @date 2026-10-05
+ * @description Настраивает пользователей и защищает аккаунт владельца от других администраторов.
+ */
+import type { CollectionConfig } from "payload";
 
-import { adminOnly } from '@/access/adminOnly'
-import { adminOnlyFieldAccess } from '@/access/adminOnlyFieldAccess'
-import { publicAccess } from '@/access/publicAccess'
-import { adminOrSelf } from '@/access/adminOrSelf'
-import { checkRole } from '@/access/utilities'
+import { protectPlatformOwner } from "@/access/platformOwner.policy";
+import { adminOnly } from "@/access/adminOnly";
+import { adminOnlyFieldAccess } from "@/access/adminOnlyFieldAccess";
+import { publicAccess } from "@/access/publicAccess";
+import { adminOrSelf } from "@/access/adminOrSelf";
+import { checkRole } from "@/access/utilities";
 
-import { ensureFirstUserIsAdmin } from './hooks/ensureFirstUserIsAdmin'
+import { ensureFirstUserIsAdmin } from "./hooks/ensureFirstUserIsAdmin";
 
 export const Users: CollectionConfig = {
-  slug: 'users',
+  slug: "users",
   access: {
-    admin: ({ req: { user } }) => checkRole(['admin'], user),
+    admin: ({ req: { user } }) => checkRole(["admin"], user),
     create: publicAccess,
-    delete: adminOnly,
+    delete: protectPlatformOwner(adminOnly),
     read: adminOrSelf,
-    unlock: adminOnly,
-    update: adminOrSelf,
+    unlock: protectPlatformOwner(adminOnly),
+    update: protectPlatformOwner(adminOrSelf),
   },
   admin: {
-    group: 'Users',
-    defaultColumns: ['name', 'email', 'roles'],
-    useAsTitle: 'name',
+    group: "Users",
+    defaultColumns: ["name", "email", "roles"],
+    useAsTitle: "name",
   },
   auth: {
     tokenExpiration: 1209600,
   },
   fields: [
     {
-      name: 'name',
-      type: 'text',
+      name: "name",
+      type: "text",
     },
     {
-      name: 'roles',
-      type: 'select',
+      name: "roles",
+      type: "select",
       access: {
         create: adminOnlyFieldAccess,
         read: adminOnlyFieldAccess,
         update: adminOnlyFieldAccess,
       },
-      defaultValue: ['customer'],
+      defaultValue: ["customer"],
       hasMany: true,
       hooks: {
         beforeChange: [ensureFirstUserIsAdmin],
       },
       options: [
         {
-          label: 'admin',
-          value: 'admin',
+          label: "admin",
+          value: "admin",
         },
         {
-          label: 'customer',
-          value: 'customer',
+          label: "customer",
+          value: "customer",
         },
       ],
     },
     {
-      name: 'orders',
-      type: 'join',
-      collection: 'orders',
-      on: 'customer',
+      name: "orders",
+      type: "join",
+      collection: "orders",
+      on: "customer",
       admin: {
         allowCreate: false,
-        defaultColumns: ['id', 'createdAt', 'total', 'currency', 'items'],
+        defaultColumns: ["id", "createdAt", "total", "currency", "items"],
       },
     },
     {
-      name: 'cart',
-      type: 'join',
-      collection: 'carts',
-      on: 'customer',
+      name: "cart",
+      type: "join",
+      collection: "carts",
+      on: "customer",
       admin: {
         allowCreate: false,
-        defaultColumns: ['id', 'createdAt', 'total', 'currency', 'items'],
+        defaultColumns: ["id", "createdAt", "total", "currency", "items"],
       },
     },
     {
-      name: 'addresses',
-      type: 'join',
-      collection: 'addresses',
-      on: 'customer',
+      name: "addresses",
+      type: "join",
+      collection: "addresses",
+      on: "customer",
       admin: {
         allowCreate: false,
-        defaultColumns: ['id'],
+        defaultColumns: ["id"],
       },
     },
   ],
   versions: false,
-}
+};

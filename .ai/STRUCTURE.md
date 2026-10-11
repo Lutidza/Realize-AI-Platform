@@ -58,6 +58,7 @@ runtime_sources:
 │   ├── agent-monitor/README.md
 │   ├── agent-search/README.md
 │   ├── git-delivery/README.md
+│   ├── quality/README.md
 │   └── source-headers/README.md
 ├── worker-profiles/
 │   └── INDEX.md
@@ -73,7 +74,12 @@ runtime_sources:
 
 - `rules/`, `checks/`, `roles/` и `workflows/` содержат действующие инструкции;
   связи и условия применения правил находятся в [реестре](registry/rules/INDEX.md).
+- `rules/runtime/` и `checks/runtime/` задают применимый набор для AI runtime
+  продукта. Его явный publisher выпускает artifact; runtime не читает инструкции
+  из клиентского checkout. Вход — [реестр runtime](registry/rules/runtime/INDEX.md).
 - `tools/` содержит исходники и документацию локальных инструментов агентов.
+- `tools/quality/` проверяет metadata и связи активного слоя для CI;
+  поведенческие evals используют продуктовый adapter через `scripts/runtime/evaluation/`.
 - `tools/git-delivery/src/worker/` запускает Git-воркера для inspect, commit и push; настройки
   находятся в `.codex/`, общий транспорт — в `packages/codex-adapter/`.
 - `worker-profiles/` предназначен для необязательных повторно используемых

@@ -1,14 +1,18 @@
 /**
  * @file scripts/release/release-source-inventory.mjs
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-10-04
  * @docref ADR-0011
  * @see documentation/architecture/decisions/ADR-0011-github-ghcr-vps-release-preview.md
- * @description Derives deterministic migration, config and plugin evidence from an exact source checkout.
+ * @description Собирает воспроизводимые версии, миграции и конфигурацию exact checkout.
  */
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+
+import { createMigrationSetHash } from "@realize/change-engine/platform-release";
+import { createPlatformSourceInventory } from "./createPlatformSourceInventory.service.ts";
 
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 
@@ -114,24 +118,23 @@ const configDigest = async (root) => {
   return `sha256:${sha256(JSON.stringify(hashes))}`;
 };
 
-/** Uses the same canonical algorithm as Change Engine for migration-set binding. */
-export const createReleaseMigrationSetHash = (migrations) =>
-  sha256(
-    JSON.stringify(
-      [...migrations]
-        .sort((left, right) => left.id.localeCompare(right.id))
-        .map(({ checksum, direction, id }) => [id, checksum, direction]),
-    ),
-  );
+/** Сохраняет публичное имя и прежний migration-set hash; владелец алгоритма — Change Engine. */
+export const createReleaseMigrationSetHash = createMigrationSetHash;
 
-/** Builds immutable inventory fields used by the release manifest. */
+/** Добавляет общий source inventory, сохраняя существующие hashes release candidate. */
 export const createReleaseSourceInventory = async (sourceRoot) => {
   const root = resolve(sourceRoot);
   const migrations = await migrationInventory(root);
+  const migrationSetHash = createReleaseMigrationSetHash(migrations);
   return {
     configVersion: await configDigest(root),
     migrations,
-    migrationSetHash: createReleaseMigrationSetHash(migrations),
+    migrationSetHash,
+    platform: await createPlatformSourceInventory({
+      sourceRoot: root,
+      migrations,
+      migrationSetHash,
+    }),
     pluginVersions: pluginInventory(
       await readJSON(resolve(root, "package-lock.json")),
     ),

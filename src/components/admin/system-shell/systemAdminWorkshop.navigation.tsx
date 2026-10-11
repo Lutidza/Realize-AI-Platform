@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdminWorkshop.navigation.tsx
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.1.0
+ * @date 2026-10-11
  * @description Задаёт единые ссылки раздела Мастерской для общей навигации.
  * @see documentation/specifications/design-workshop.md
  */
@@ -9,6 +9,7 @@
 import { FolderOpen, ListTodo } from "lucide-react";
 import type { SystemAdminNavigationGroup } from "@realize/ui-kit";
 import {
+  SYSTEM_TASK_MANAGER_ROUTE,
   SYSTEM_TASK_MANAGER_REFERENCE_ROUTE,
   SYSTEM_WORKSHOP_ROUTE,
 } from "./systemAdmin.routes";
@@ -31,6 +32,12 @@ export const SYSTEM_ADMIN_WORKSHOP_NAVIGATION: SystemAdminNavigationGroup[] = [
     id: "workshop-references",
     label: "В проекте",
     items: [
+      {
+        id: "workshop-tasks",
+        label: "Задачи",
+        icon: <ListTodo size={17} />,
+        href: SYSTEM_TASK_MANAGER_ROUTE,
+      },
       {
         id: "workshop-task-reference",
         label: "Task Manager · референс",

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/types.ts
- * @version 1.5.0
- * @date 2026-09-25
+ * @version 1.6.0
+ * @date 2026-10-05
  * @description Задаёт public plugin options для AI config, delivery и integrations.
  */
 
@@ -27,6 +27,8 @@ export type RealizeAIPluginOptions = {
     canManageIntegrations: RealizeAIAccessResolver;
     canUseChat: RealizeAIAccessResolver;
     canViewRuns: RealizeAIAccessResolver;
+    canViewUsage?: RealizeAIAccessResolver;
+    canViewPlatformUsage?: RealizeAIAccessResolver;
   };
   admin?: {
     group?: string;
@@ -109,6 +111,8 @@ export type SanitizedRealizeAIPluginOptions = {
 export type RealizeAIServerRuntime = {
   userCollection?: CollectionSlug;
   pageDraft?: PageDraftAdapter;
+  canViewUsage?: RealizeAIAccessResolver;
+  canViewPlatformUsage?: RealizeAIAccessResolver;
   canUseChat: RealizeAIAccessResolver;
   canManageData: RealizeAIAccessResolver;
   canManageAIConfiguration: RealizeAIAccessResolver;

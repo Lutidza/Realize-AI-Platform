@@ -11,10 +11,12 @@
 3. **Installation configuration plane** — drafts/releases локальных skills,
    knowledge, prompts, rules, roles, checks, agents и evals.
 4. **AI control plane** — identity resolution, Context Pack compiler,
-   orchestration, policy, Change Engine, events, audit и usage.
+   orchestration, policy, Change Engine, Model Garden/Model Router, events,
+   audit, usage и контроль бюджетов.
 5. **Execution plane** — изолированные data/schema/code executors, workspaces,
    checks, preview и artifact verification.
 6. **Build/release plane** — source promotion, OCI build, signing, deployment,
+   manifest/совместимость версий, обновления клиентских проектов,
    health verification и rollback.
 7. **Commercial/operator plane** — installation identity, license,
    subscriptions, metering, fleet operations и escalation.
@@ -54,3 +56,11 @@ allowed tool set. Central services хранят минимальные мета�
 Site runtime продолжает обслуживать публичные read-сценарии при временной
 недоступности AI или commercial control plane. AI mutation и новый production
 transition в неопределённом состоянии прекращаются fail-closed.
+
+## 6.5. Сквозные контракты развития
+
+[Версионирование и обновления](40-platform-versioning-and-updates.md) охватывают
+всю платформу и установленную основу клиентского проекта.
+[Model Garden/Model Router](41-model-garden-and-router.md) принадлежат
+существующему AI control plane и используют общий usage/cost ledger.
+Их реализация следует [единому backlog](../06-execution-governance/32-immediate-implementation-order.md).

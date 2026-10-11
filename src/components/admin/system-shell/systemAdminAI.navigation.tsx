@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdminAI.navigation.tsx
- * @version 1.2.0
- * @date 2026-09-27
+ * @version 1.3.0
+ * @date 2026-10-05
  * @description Задаёт группы AI, существующие переходы и планируемые подпункты системного reference.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -12,7 +12,6 @@ import {
   Cpu,
   Files,
   FlaskConical,
-  Gauge,
   GitBranch,
   Layers,
   LayoutDashboard,
@@ -165,13 +164,6 @@ export const SYSTEM_ADMIN_AI_NAVIGATION: SystemAdminNavigationGroup[] = [
         icon: <ScrollText {...iconProps} />,
         description:
           "Действия агентов и пользователей, изменения и технические события.",
-        ...planned,
-      },
-      {
-        id: "ai-usage",
-        label: "Использование и лимиты",
-        icon: <Gauge {...iconProps} />,
-        description: "Токены, стоимость, квоты и ограничения использования.",
         ...planned,
       },
       {

@@ -6,8 +6,8 @@ artifact_type: ai-workflow-directory-index
 owner_role: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 owner_layer: .ai/workflows/ai-operations/agent-runtime-maintenance/
 runtime_entrypoint: .ai/workflows/ai-operations/agent-runtime-maintenance/WORKFLOW.md
-related_specs:
-  - documentation/project/specs/ai-engineering-workflow/DOC-SYSTEM-SPEC-032-agent-runtime-and-worker-sessions.md
+runtime_sources:
+  - .ai/tools/agent-runtime/README.md
 runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
 runtime_writer: .ai/tools/agent-runtime/bin/agent-runtime.mjs
 check: .ai/checks/self-review/CHECK-AGENT-RUNTIME-MAINTENANCE-REPORT.md

@@ -1,3 +1,7 @@
+# @file .github/workflows/prepare-release-candidate.yml
+# @version 1.1.0
+# @date 2026-10-05
+# @description Готовит подписанный OCI-кандидат с exact source inventory и отдельным preview.
 name: Prepare release candidate
 run-name: Realize release candidate ${{ inputs.candidate_key }}
 
@@ -44,6 +48,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       checkout_ref: ${{ inputs.git_commit }}
+      require_agent_baseline: true
 
   build:
     needs: verify
@@ -220,6 +225,12 @@ jobs:
         with:
           name: release-build-${{ inputs.candidate_key }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: artifacts/build
+
+      - name: Install trusted manifest dependencies
+        working-directory: trusted
+        run: |
+          npm install --global npm@11.15.0
+          npm ci --ignore-scripts --no-audit --no-fund
 
       - name: Validate release-preview environment
         env:

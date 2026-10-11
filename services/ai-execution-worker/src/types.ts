@@ -1,13 +1,16 @@
 /**
  * @file services/ai-execution-worker/src/types.ts
- * @version 2026-08-21
- * @description Defines internal durable job and verification evidence records.
+ * @version 1.0.0
+ * @date 2026-10-04
+ * @description Задаёт durable job с проверяемым исходным контекстом и результатами проверок.
  */
 
 import type { ExecutionCapabilityClaims } from "@realize/change-engine";
 
 /** Worker-owned projection loaded atomically from PostgreSQL. */
 export type ClaimedExecutionJob = {
+  /** Проверяется после claim, чтобы повреждённое задание стало blocked, а не зациклило очередь. */
+  executionContext?: unknown;
   allowedPaths: string[];
   approvedVersion: number;
   artifactsExpireAt: string;

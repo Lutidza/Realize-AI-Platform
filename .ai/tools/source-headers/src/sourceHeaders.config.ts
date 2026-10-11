@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/source-headers/src/sourceHeaders.config.ts
- * @version 1.0.0
- * @date 2026-09-08
+ * @version 1.3.0
+ * @date 2026-10-11
  * @description Описывает поддерживаемые форматы и подтверждённые исключения проверки шапок.
  */
 
@@ -35,6 +35,14 @@ export const sourceHeaderStyles: Readonly<Record<string, HeaderCommentStyle>> =
 
 // Точные пути: соседние собственные файлы Payload и рукописные .d.ts не исключаются.
 export const generatedHeaderExceptions: Readonly<Record<string, string>> = {
+  "src/migrations/index.ts":
+    "Payload migrate:create; автоматически создаваемый migration registry",
+  "src/migrations/20261011_162630_task_manager_foundation.ts":
+    "Payload migrate:create --file scripts/migrations/task-manager.mjs; источник — schema и template",
+  "src/migrations/20261004_210727_ai_usage_ledger.ts":
+    "Payload migrate:create --file scripts/migrations/ai-usage-ledger.mjs; источник — schema и template",
+  "src/migrations/20261004_161914_ai_execution_context.ts":
+    "Payload migrate:create --file scripts/migrations/ai-execution-context.mjs; источник — schema и template",
   "src/payload-types.ts":
     "Payload generate:types; outputFile в src/payload.config.ts",
   "src/app/(payload)/admin/importMap.js":

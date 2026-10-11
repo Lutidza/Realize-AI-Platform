@@ -32,7 +32,11 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    ".ai-workspace/tasks/2026-10-06-ai-usage-groups-a6c2/tmp/next/types/**/*.ts",
+    ".ai-workspace/tasks/2026-10-06-ai-usage-groups-a6c2/tmp/next/dev/types/**/*.ts",
+    ".ai-workspace/tasks/2026-10-11-task-manager-foundation-d3c9/tmp/task-browser-ab461b90e457207b/next/types/**/*.ts",
+    ".ai-workspace/tasks/2026-10-11-task-manager-foundation-d3c9/tmp/task-browser-ab461b90e457207b/next/dev/types/**/*.ts"
   ],
   "exclude": ["node_modules", "src/RealizeCore/**", "src/app/_realize/**"]
 }

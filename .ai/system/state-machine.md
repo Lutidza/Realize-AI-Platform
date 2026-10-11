@@ -26,27 +26,21 @@ related_artifacts:
 ## Основная цепочка (`primary_chain`)
 
 ```text
-dialog_assistant_entry_gate
--> intake
--> specification_gate
+intake
 -> context_pack
--> role_selection
--> task_analysis_and_worker_plan
 -> scope_gate
--> architecture_gate
--> human_approval
 -> implementation
 -> self_review
 -> tests
--> performance_review
--> security_review
--> code_review
 -> docs_sync
--> ci_gate
--> human_acceptance
--> commit_push
--> task_close
+-> handoff
 ```
+
+Это карта основного workflow, а не отдельный набор обязательных gates.
+`dialog_only` и `read_only` пропускают неприменимые этапы; roles, workers,
+ручная приёмка и доставка подключаются только по условиям основного workflow.
+Разрешённая задача не требует повторного `human_approval`; commit/push
+не являются обязательным завершением правки.
 
 ## Контрольные состояния (`control_states`)
 

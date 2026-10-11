@@ -1,10 +1,11 @@
 /**
  * @file services/ai-execution-worker/src/promotionExecutor.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-10-05
  * @description Проверяет принятый diff, выполняет независимый Codex review и запускает local preview.
  */
 
+import type { UsageRuntime } from "@realize/payload-ai-control/server/usage";
 import { createHash } from "node:crypto";
 import type { SearchObservation } from "@realize/ai-contracts";
 import type { SearchObservationCollectorStore } from "@realize/payload-ai-control/server/search-observability";
@@ -76,6 +77,7 @@ const cleanupStartedRuntime = async (input: {
 export const executeClaimedPromotion = async (input: {
   config: ExecutionWorkerConfig;
   codex: CodexConnectionResolver;
+  usage: Pick<UsageRuntime, "meter" | "measureOperation">;
   job: ClaimedPreviewDeployment;
   repository: PromotionRepository;
   observeSearch?: (event: SearchObservation) => void;
@@ -109,11 +111,21 @@ export const executeClaimedPromotion = async (input: {
       workspace,
       async () => {
         for (const [index, command] of input.job.requiredChecks.entries()) {
-          const result = await runExecutionCheck({
-            command,
-            repositoryRoot: input.config.repositoryRoot,
-            workspace,
-          });
+          const result = await input.usage.measureOperation(
+            {
+              source: "build",
+              operationKey: `preview-check:${index + 1}`,
+              taskId: `change:${input.job.changeRequestID}`,
+              changeRequestId: String(input.job.changeRequestID),
+            },
+            () =>
+              runExecutionCheck({
+                command,
+                repositoryRoot: input.config.repositoryRoot,
+                workspace,
+              }),
+            (result) => result.status === "passed",
+          );
           checks.push(result);
           await input.repository.addCheckResult(
             input.job,
@@ -134,6 +146,7 @@ export const executeClaimedPromotion = async (input: {
     const review = await runIndependentReview({
       config: input.config,
       codex: input.codex,
+      usage: input.usage,
       job: input.job,
       workspace,
       observeSearch: input.observeSearch,
@@ -149,13 +162,22 @@ export const executeClaimedPromotion = async (input: {
     await input.repository.markCommitting(input.job);
     const commit = await commitPromotion({ job: input.job, workspace });
     await input.repository.markStartingPreview(input.job, commit);
-    runtime = await startLocalPreview({
-      commit,
-      config: input.config,
-      job: input.job,
-      targetPath,
-      workspace,
-    });
+    runtime = await input.usage.measureOperation(
+      {
+        source: "preview",
+        operationKey: "preview-start",
+        taskId: `change:${input.job.changeRequestID}`,
+        changeRequestId: String(input.job.changeRequestID),
+      },
+      () =>
+        startLocalPreview({
+          commit,
+          config: input.config,
+          job: input.job,
+          targetPath,
+          workspace,
+        }),
+    );
 
     const smoke = await runPreviewBrowserSmoke(runtime.previewURL);
     checks.push(smoke);

@@ -1,13 +1,15 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/http.ts
- * @version 2026-08-17
- * @description Produces predictable API envelopes, endpoint errors and correlation IDs.
+ * @version 1.0.0
+ * @date 2026-10-04
+ * @description Формирует API envelopes и различает конфликт policy, ошибку запроса и сбой сервиса.
  */
 
 import { randomUUID } from "node:crypto";
 
 import type { APIErrorCode, APIResponse } from "@realize/ai-contracts";
 import { ContractValidationError } from "@realize/ai-contracts";
+import { AIConfigurationPolicyError } from "@realize/change-engine";
 import type { PayloadRequest } from "payload";
 
 export class EndpointError extends Error {
@@ -49,7 +51,13 @@ export const failure = (
   let endpointError: EndpointError;
 
   if (error instanceof EndpointError) endpointError = error;
-  else if (
+  else if (error instanceof AIConfigurationPolicyError) {
+    endpointError = new EndpointError(
+      "CONFLICT",
+      "Сохранённый снимок AI policy недоступен или несовместим. Создайте новый запуск или план.",
+      409,
+    );
+  } else if (
     error instanceof ContractValidationError ||
     error instanceof SyntaxError
   ) {

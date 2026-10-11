@@ -1,12 +1,13 @@
 /**
  * @file packages/ai-contracts/src/Agent.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-10-05
  * @description Задаёт независимый от провайдера контракт запуска агента и нормализованных событий.
  */
 
 import type { UsageSummary } from "./api";
 import type { ChatSourceDto } from "./ChatContext.types";
+import type { ProviderUsageMeasurement } from "./usage/UsageLedger.types";
 
 /** Политика выбирается сервером; пути изображений разрешаются только внутри снимка cwd. */
 export type RunTurnInput = {
@@ -36,6 +37,8 @@ export type AgentEvent =
     }
   | { summary: string; type: "tool.started" }
   | { type: "usage.updated"; usage: UsageSummary }
+  /** Закрытое измерение для ledger; consumer не передаёт его в SSE. */
+  | { type: "usage.measured"; measurement: ProviderUsageMeasurement }
   | { message: string; type: "run.failed" }
   | { type: "run.cancelled" };
 

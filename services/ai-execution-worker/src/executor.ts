@@ -1,23 +1,27 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.2.0
- * @date 2026-09-30
+ * @version 1.4.0
+ * @date 2026-10-05
  * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
 
+import type { UsageRuntime } from "@realize/payload-ai-control/server/usage";
 import { createHash } from "node:crypto";
 
 import type { AgentEvent, SearchObservation } from "@realize/ai-contracts";
 import type { SearchObservationCollectorStore } from "@realize/payload-ai-control/server/search-observability";
 import { createRepositoryRunAccess } from "../../ai-control-plane/src/createRepositoryRunAccess.service";
 import {
-  buildCodeExecutionDeveloperInstructions,
+  assessExecutionScope,
+  parseAIExecutionContext,
+  hashCanonicalJSON,
   buildRepositorySearchTaskPrompt,
   verifyExecutionCapability,
 } from "@realize/change-engine";
 import { OpenAICodexAdapter } from "@realize/codex-adapter";
 import type { CodexConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 
+import { buildExecutionInstructions } from "./buildExecutionInstructions.service";
 import { runExecutionCheck } from "./checkRunner";
 import type { ExecutionWorkerConfig } from "./config";
 import { ExecutionJobRepository } from "./jobRepository";
@@ -40,6 +44,7 @@ class ValidationFailure extends Error {
 const runAgent = async (input: {
   config: ExecutionWorkerConfig;
   codex: CodexConnectionResolver;
+  usage: Pick<UsageRuntime, "meter" | "measureOperation">;
   job: ClaimedExecutionJob;
   workspace: string;
   onSummary: (summary: string) => void;
@@ -78,25 +83,30 @@ const runAgent = async (input: {
   }, input.config.turnTimeoutMs);
   timer.unref();
   try {
-    for await (const event of adapter.runTurn({
-      cwd: input.workspace,
-      developerInstructions: buildCodeExecutionDeveloperInstructions({
-        affectedPaths: input.job.allowedPaths,
-        baseCommit: input.job.baseCommit,
-        changeRequestID: String(input.job.changeRequestID),
-        checks: input.job.checks,
-        search: lease.search,
-      }),
-      // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
-      ephemeral: false,
-      model: lease.model,
-      prompt: buildRepositorySearchTaskPrompt(
-        `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
-        lease.search,
-      ),
-      runID: input.job.executionKey,
-      sandboxProfile: "code-workspace-write",
-    })) {
+    for await (const event of input.usage
+      .meter(adapter, {
+        changeRequestId: String(input.job.changeRequestID),
+        taskId: `change:${input.job.changeRequestID}`,
+        source: "execution",
+        authMode: lease.authMode,
+        model: lease.model,
+      })
+      .runTurn({
+        cwd: input.workspace,
+        developerInstructions: buildExecutionInstructions(
+          input.job,
+          lease.search,
+        ),
+        // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
+        ephemeral: false,
+        model: lease.model,
+        prompt: buildRepositorySearchTaskPrompt(
+          `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
+          lease.search,
+        ),
+        runID: input.job.executionKey,
+        sandboxProfile: "code-workspace-write",
+      })) {
       const normalized = event as AgentEvent;
       if (normalized.type === "assistant.completed") {
         input.onSummary(normalized.content);
@@ -122,6 +132,7 @@ const runAgent = async (input: {
 export const executeClaimedJob = async (input: {
   config: ExecutionWorkerConfig;
   codex: CodexConnectionResolver;
+  usage: Pick<UsageRuntime, "meter" | "measureOperation">;
   job: ClaimedExecutionJob;
   repository: ExecutionJobRepository;
   observeSearch?: (event: SearchObservation) => void;
@@ -142,6 +153,57 @@ export const executeClaimedJob = async (input: {
         "Execution capability is invalid, expired or no longer bound to this job.",
       );
     }
+    try {
+      const context = parseAIExecutionContext(input.job.executionContext);
+      if (
+        context.contextHash !== input.job.capability.executionContextHash ||
+        hashCanonicalJSON({
+          paths: input.job.allowedPaths,
+          checks: input.job.checks,
+          base: input.job.baseCommit,
+          plan: input.job.planHash,
+          scope: input.job.scopeHash,
+          id: String(input.job.changeRequestID),
+          key: input.job.executionKey,
+          version: input.job.approvedVersion,
+        }) !==
+          hashCanonicalJSON({
+            paths: input.job.capability.allowedPaths,
+            checks: input.job.capability.checks,
+            base: input.job.capability.baseCommit,
+            plan: input.job.capability.planHash,
+            scope: input.job.capability.scopeHash,
+            id: input.job.capability.changeRequestID,
+            key: input.job.capability.executionKey,
+            version: input.job.capability.version,
+          })
+      )
+        throw new Error("Job differs from the signed execution capability.");
+      if (
+        createHash("sha256").update(input.job.plan.trim()).digest("hex") !==
+          input.job.planHash ||
+        createHash("sha256")
+          .update(
+            JSON.stringify({
+              affectedPaths: input.job.allowedPaths,
+              checks: input.job.checks,
+            }),
+          )
+          .digest("hex") !== input.job.scopeHash
+      )
+        throw new Error("Plan text or scope differs from approved evidence.");
+      const scope = assessExecutionScope({
+        affectedPaths: input.job.allowedPaths,
+        checks: input.job.checks,
+        type: "CODE_CHANGE",
+      });
+      if (!scope.allowed) throw new Error(scope.reason);
+      buildExecutionInstructions(input.job);
+    } catch (error) {
+      throw new WorktreePolicyError(
+        error instanceof Error ? error.message : "Invalid execution context.",
+      );
+    }
     workspace = await createExecutionWorktree({
       job: input.job,
       repositoryRoot: input.config.repositoryRoot,
@@ -151,6 +213,7 @@ export const executeClaimedJob = async (input: {
     await runAgent({
       config: input.config,
       codex: input.codex,
+      usage: input.usage,
       job: input.job,
       workspace,
       observeSearch: input.observeSearch,
@@ -175,11 +238,21 @@ export const executeClaimedJob = async (input: {
       workspace,
       async () => {
         for (const [index, command] of input.job.checks.entries()) {
-          const result = await runExecutionCheck({
-            command,
-            repositoryRoot: input.config.repositoryRoot,
-            workspace,
-          });
+          const result = await input.usage.measureOperation(
+            {
+              source: "build",
+              operationKey: `execution-check:${index + 1}`,
+              taskId: `change:${input.job.changeRequestID}`,
+              changeRequestId: String(input.job.changeRequestID),
+            },
+            () =>
+              runExecutionCheck({
+                command,
+                repositoryRoot: input.config.repositoryRoot,
+                workspace,
+              }),
+            (result) => result.status === "passed",
+          );
           checkResults.push(result);
           await input.repository.addCheckResult(input.job, result, index + 1);
           if (result.status === "failed") {

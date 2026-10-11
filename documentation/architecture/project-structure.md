@@ -1,7 +1,7 @@
 # Структура проекта (источник для AI-layer)
 
 - **Статус:** current implementation
-- **Дата сверки:** 11 сентября 2026 года
+- **Дата сверки:** 11 октября 2026 года (добавлен Task Manager Foundation)
 
 ## Активный продуктовый контур
 
@@ -9,6 +9,8 @@
   API routes.
 - `src/app/(payload)/**` — generated Payload Admin/API bridge; generated
   page/layout вручную не редактируются.
+- `src/app/(system-admin)/**` — authenticated System Admin shell, Мастерская
+  и постоянный Task Manager `/system/task-manager`; reference остаётся отдельным маршрутом.
 - `src/payload.config.ts` — root Payload config и migration owner.
 - `src/plugins/index.ts` — единая точка регистрации Payload plugins.
 - `src/collections/**`, `src/globals/**`, `src/blocks/**` — активная Payload
@@ -17,6 +19,10 @@
   shared UI и application helpers текущего storefront.
 - `src/migrations/**` — versioned Payload migrations; production schema push
   запрещён.
+- `packages/payload-task-manager/**` — Task Manager Foundation: contracts,
+  hidden collections, membership ACL, transactional mutations/replay/history,
+  endpoints и узкий server facade. Host policy — `src/plugins/taskManager.config.ts`;
+  operational UI — `src/components/admin/task-manager/**` вне `reference/`.
 
 ADR-0001 фиксирует этот contour как active. `src/RealizeCore/**` и
 `src/app/_realize/**` остаются quarantined experimental/legacy contour и не
@@ -45,6 +51,18 @@ storefront.
   чата, включая отдельные `DataOperation`, `SourcePromotion` и
   `ReleaseCandidate` aggregates, provider-neutral integration registry и
   installation Config API с redacted/audited DTO boundaries.
+- `packages/ai-contracts/src/evaluation/` — versioned evaluation DTO; `packages/change-engine/src/evaluation/` — corpus, обязательные критерии и сравнение кандидатов.
+- `.ai/tools/quality/` — structural CI gate инструкций; `scripts/runtime/evaluation/` — trusted owner CLI для настоящих Codex turns с общим ledger. `.github/quality-evidence/` связывает reviewed baseline с release/candidate gate.
+- `packages/ai-contracts/src/usage/` — строгие contracts ledger и отдельные DTO
+  владельца и клиентской установки; `packages/change-engine/src/usage/` — точный
+  расчёт nanos и проверка неизменяемых тарифных снимков.
+- `packages/payload-ai-plugin/src/usage/` — PostgreSQL ledger, budgets/reservations,
+  metering ports, авторизация, аналитика и сверка. Control plane и execution worker
+  используют `@realize/payload-ai-control/server/usage`.
+- `packages/payload-ai-plugin/src/admin/usage/` — представления расходов клиента
+  и владельца. `src/access/platformOwner.policy.ts` связывает owner-доступ с
+  серверным allowlist и защищает аккаунт владельца от других admin. Точный охват —
+  [контракт расходов](../specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/25-subscriptions-and-ai-billing.md#257-реализованный-локальный-контур-plat-04).
 - `packages/payload-ai-plugin/src/chat-context/*Workflow*.ts` и
   `*workflow*.ts` — создание и продолжение workflow сегментов в существующих
   AIRun, private checkpoints, event projection и отмена.

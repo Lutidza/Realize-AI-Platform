@@ -7,6 +7,8 @@
     "zod": "4.6.5"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./platform-release": "./src/platform-release/platformRelease.index.ts",
+    "./evaluation": "./src/evaluation/evaluation.index.ts"
   }
 }

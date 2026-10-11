@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.adapter.ts
- * @version 2.2.0
- * @date 2026-09-30
+ * @version 2.3.0
+ * @date 2026-10-04
  * @description Ограниченный JSONL RPC и завершение изолированного процесса Codex App Server.
  */
 
@@ -40,6 +40,16 @@ const DEFAULT_ARGUMENTS = [
 
 const defaultArguments = (options: JsonLineRPCClientOptions): string[] => [
   ...DEFAULT_ARGUMENTS,
+  ...(options.ignoreProjectInstructions
+    ? [
+        "-c",
+        "project_doc_max_bytes=0",
+        "-c",
+        "project_doc_fallback_filenames=[]",
+        "-c",
+        `projects={${JSON.stringify(options.workingDirectory)}={trust_level="untrusted"}}`,
+      ]
+    : []),
   ...(!options.repositoryMcpURL
     ? []
     : [

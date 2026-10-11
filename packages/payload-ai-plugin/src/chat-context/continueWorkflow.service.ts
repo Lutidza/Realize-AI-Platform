@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/continueWorkflow.service.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-10-04
  * @description Создаёт единственного потомка неизменяемого checkpoint с проверкой владельца и запроса.
  */
 import type { ContinueWorkflowInput } from "@realize/ai-contracts";
 import {
   hashCanonicalJSON,
-  parseAIChatConfigurationSnapshot,
+  assertRuntimeAIConfiguration,
+  requireSystemAIRelease,
   parseWorkflowCheckpoint,
   resumeWorkflowInput,
 } from "@realize/change-engine";
@@ -52,9 +53,21 @@ export const continueWorkflow = async (
       "Этот запуск не содержит завершённого сегмента процесса.",
       409,
     );
-  const agentConfiguration = parseAIChatConfigurationSnapshot(
+  const system = requireSystemAIRelease(context.systemRelease);
+  const systemRelease = {
+    releaseID: system.releaseID,
+    manifestHash: system.manifestHash,
+  };
+  const agentConfiguration = assertRuntimeAIConfiguration(
+    systemRelease,
     context.agentConfiguration,
   );
+  if (!agentConfiguration)
+    throw new EndpointError(
+      "CONFLICT",
+      "Workflow configuration is missing.",
+      409,
+    );
   const checkpoint = parseWorkflowCheckpoint(
     agentConfiguration,
     context.workflow,

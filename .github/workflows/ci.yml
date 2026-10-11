@@ -1,7 +1,7 @@
 # @file .github/workflows/ci.yml
-# @version 1.2.0
-# @date 2026-09-30
-# @description Проверяет приложение и изолированные сценарии поиска; installed consumers и ChatGPT принимаются отдельно.
+# @version 1.4.0
+# @date 2026-10-05
+# @description Проверяет приложение, ledger и owner/customer UI на PostgreSQL; внешние integrations принимаются отдельно.
 name: CI
 
 on:
@@ -11,6 +11,11 @@ on:
         description: Exact commit SHA to verify when called by a trusted workflow
         required: false
         type: string
+      require_agent_baseline:
+        description: Require reviewed agent evidence for release and candidate delivery
+        required: false
+        type: boolean
+        default: false
   pull_request:
   push:
     branches:
@@ -89,6 +94,15 @@ jobs:
       - name: Repository secret scan
         run: node scripts/security/check-secrets.mjs
 
+      - name: Agent quality tooling checks
+        run: |
+          node_modules/.bin/eslint --no-ignore .ai/tools/quality/*.ts
+          npm run check:headers -- .ai/tools/quality/*.ts packages/ai-contracts/src/evaluation/*.ts packages/change-engine/src/evaluation/*.ts scripts/runtime/evaluation/*.ts
+
+      - name: Require current reviewed agent baseline for delivery
+        if: inputs.require_agent_baseline == true
+        run: npm run ai:eval:gate
+
       - name: Dependency audit
         run: npm audit --audit-level=high
 
@@ -96,6 +110,9 @@ jobs:
         run: |
           npm run payload:migrate
           npm run payload:migrate:status
+
+      - name: Isolated usage ledger and migration checks
+        run: npm run check:usage:postgres
 
       - name: Static and integration checks
         run: npm run ci
@@ -108,6 +125,21 @@ jobs:
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+
+      - name: Isolated owner and customer usage UI
+        run: npm run check:usage:browser
+
+      - name: Preserve usage acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: usage-acceptance
+          path: |
+            .ai-workspace/tasks/*-usage-acceptance-*/logs/
+            .ai-workspace/tasks/*-usage-acceptance-*/screenshots/
+          include-hidden-files: true
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Isolated search checks
         env:
