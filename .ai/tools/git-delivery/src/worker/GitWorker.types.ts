@@ -1,18 +1,26 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorker.types.ts
- * @version 1.3.0
- * @date 2026-09-09
+ * @version 1.4.0
+ * @date 2026-10-12
  * @description Определяет контракты Git-воркеров, транспорта и подтверждённого отчёта.
  */
 
 import type { GitCommitAuthor } from "@realize/ai-contracts";
 import type { Context, Result } from "../contracts.ts";
 import type { GitPushContext, GitPushResult } from "../push/GitPush.types.ts";
+import type {
+  GitManageContext,
+  GitManageResult,
+} from "../manage/GitManage.types.ts";
+import type { GitSyncContext, GitSyncResult } from "../sync/GitSync.types.ts";
+import type { GIT_WORKER_ACTIONS } from "./gitWorkerActions.constants.ts";
 
-export type GitWorkerAction = "inspect" | "commit" | "push";
+export type GitWorkerAction = (typeof GIT_WORKER_ACTIONS)[number];
 export type GitWorkerCommand = { action: GitWorkerAction; message?: string };
-export type GitWorkerContext = Context | GitPushContext;
-export type GitWorkerResult = Result | GitPushResult;
+export type GitWorkerContext =
+  Context | GitPushContext | GitManageContext | GitSyncContext;
+export type GitWorkerResult =
+  Result | GitPushResult | GitManageResult | GitSyncResult;
 
 export type GitWorkerSettings = {
   model: string;

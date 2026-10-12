@@ -1,12 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/validateGitWorkerContext.validator.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-10-12
  * @description Проверяет отдельный контекст Git-воркера без назначения разрешений и результатов проверок.
  */
 
 import { parseContext, PolicyError } from "../contracts.ts";
 import { validateGitPushContext } from "../push/validateGitPushContext.validator.ts";
+import { validateGitManageContext } from "../manage/validateGitManageContext.validator.ts";
+import { validateGitSyncContext } from "../sync/validateGitSyncContext.validator.ts";
 import type { GitWorkerAction, GitWorkerContext } from "./GitWorker.types.ts";
 
 /**
@@ -19,6 +21,9 @@ export function validateGitWorkerContext(
   requireIdentity = true,
 ): GitWorkerContext {
   if (action === "push") return validateGitPushContext(input);
+  if (action === "manage") return validateGitManageContext(input);
+  if (action === "fetch" || action === "pull")
+    return validateGitSyncContext(input, action);
   if (action !== "inspect" && action !== "commit") {
     throw new PolicyError(
       "worker_action_unavailable",

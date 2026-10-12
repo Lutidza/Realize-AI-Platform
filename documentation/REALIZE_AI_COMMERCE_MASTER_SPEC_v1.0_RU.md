@@ -4,7 +4,7 @@
 
 - **Статус:** target specification
 - **Версия:** 1.0
-- **Базовый репозиторий:** `Lutidza/Realize-E-Commerce`
+- **Базовый репозиторий:** `Lutidza/Realize-AI-Platform`
 - **Целевой стек:** Payload CMS 3, Next.js App Router, PostgreSQL и управляемые AI-агенты
 - **Deployment V1:** single-tenant, отдельное приложение и база данных для каждой инсталляции
 

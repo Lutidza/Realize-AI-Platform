@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.controller.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-10-12
  * @description Принимает Git-действие и передаёт его воркеру с контекстом вызывающей среды.
  */
 
@@ -13,19 +13,27 @@ import { createGitWorkerTransport } from "./createGitWorkerTransport.adapter.ts"
 import { loadGitWorkerSettings } from "./loadGitWorkerSettings.adapter.ts";
 import { loadGitWorkerContext } from "./loadGitWorkerContext.adapter.ts";
 import { runGitWorker } from "./runGitWorker.service.ts";
+import {
+  isGitWorkerAction,
+  parseGitWorkerCommand,
+} from "./parseGitWorkerCommand.validator.ts";
 
 async function main(): Promise<void> {
   const [action, message, ...extra] = process.argv.slice(2);
   if (
-    (action !== "inspect" && action !== "commit" && action !== "push") ||
+    !isGitWorkerAction(action) ||
     extra.length ||
     (action !== "commit" && message !== undefined)
   ) {
     throw new PolicyError(
       "worker_action_unavailable",
-      "Использование: npm run git:worker -- inspect | commit [message] | push",
+      "Использование: npm run git:worker -- inspect | commit [message] | push | manage | fetch | pull",
     );
   }
+  const command = parseGitWorkerCommand({
+    action,
+    ...(message !== undefined ? { message } : {}),
+  });
   const repositoryRoot = await realpath(
     fileURLToPath(new URL("../../../../../", import.meta.url)),
   );
@@ -41,7 +49,7 @@ async function main(): Promise<void> {
   process.once("SIGTERM", cancel);
   try {
     const report = await runGitWorker(
-      { action, ...(message !== undefined ? { message } : {}) },
+      command,
       context,
       settings,
       {

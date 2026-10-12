@@ -1,12 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/deliverGitWorkerCommand.service.ts
- * @version 1.0.0
- * @date 2026-09-09
- * @description Направляет действие воркера существующему локальному обработчику или сетевой операции push.
+ * @version 1.1.0
+ * @date 2026-10-12
+ * @description Направляет назначенное действие Git-воркера локальному, управляющему или сетевому владельцу.
  */
 
 import { runDelivery } from "../handler.ts";
 import { runGitPush } from "../push/runGitPush.service.ts";
+import { runGitManage } from "../manage/runGitManage.service.ts";
+import { deliverGitSyncWorkerCommand } from "./deliverGitSyncWorkerCommand.service.ts";
 import type { GitPushResources } from "../push/GitPush.types.ts";
 import type {
   GitWorkerCommand,
@@ -18,6 +20,9 @@ export async function deliverGitWorkerCommand(
   command: GitWorkerCommand,
   context: GitWorkerContext,
 ): Promise<GitWorkerResult> {
+  if (command.action === "manage") return runGitManage(context);
+  if (command.action === "fetch" || command.action === "pull")
+    return deliverGitSyncWorkerCommand(command.action, context);
   if (command.action !== "push") return runDelivery(command, context);
   let resources: GitPushResources | undefined;
   const getResources = async () => {

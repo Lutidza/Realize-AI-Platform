@@ -10,11 +10,14 @@ runtime_sources:
   - .ai/rules/git/RULE-GIT-DELIVERY.md
   - .ai/checks/pre-commit/CHECK-DELIVERY-COMMIT-SCOPE.md
   - .ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md
+  - .ai/checks/git/CHECK-GIT-MANAGEMENT-SCOPE.md
+  - .ai/checks/git/CHECK-GIT-SYNC-READINESS.md
 codex_adapter:
   - .codex/skills/git-commit-push/SKILL.md
 ```
 
 ## Назначение
 
-Чтение состояния и разрешённые commit/push через отдельного Git-воркера.
+Чтение состояния, управление remote/worktrees/ветками и разрешённые
+commit/fetch/pull/push через отдельного Git-воркера.
 Порядок и выбор проверок — [WORKFLOW.md](WORKFLOW.md).

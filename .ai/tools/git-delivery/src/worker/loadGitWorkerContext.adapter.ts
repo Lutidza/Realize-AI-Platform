@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/loadGitWorkerContext.adapter.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-10-12
  * @description Привязывает контекст вызывающей среды к рабочей копии установленного Git-воркера.
  */
 
@@ -36,7 +36,12 @@ export async function loadGitWorkerContext(
       );
     }
     context.repositoryRoot = root;
-    if (action === "commit" && !("target" in context) && !context.identity) {
+    if (
+      action === "commit" &&
+      !("target" in context) &&
+      !("operation" in context) &&
+      !context.identity
+    ) {
       const resolveAuthor =
         dependencies?.resolveCommitAuthor ??
         (await import("./loadGitCommitAuthor.adapter.ts")).loadGitCommitAuthor;

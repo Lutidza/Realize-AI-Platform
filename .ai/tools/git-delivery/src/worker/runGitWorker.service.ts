@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.service.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-10-12
  * @description Ведёт ограниченную сессию Git-воркера и возвращает фактический результат Git-операции.
  */
 
-import { parseCommand, PolicyError } from "../contracts.ts";
+import { PolicyError } from "../contracts.ts";
+import { parseGitWorkerCommand } from "./parseGitWorkerCommand.validator.ts";
 import { GitWorkerCapabilityService } from "./GitWorkerCapability.service.ts";
 import { GIT_WORKER_CONFIG } from "./gitWorker.config.ts";
 import type {
@@ -79,16 +80,7 @@ export async function runGitWorker(
   let stopped = false;
   try {
     signal.throwIfAborted();
-    const command = parseCommand(input);
-    if (
-      command.action !== "inspect" &&
-      command.action !== "commit" &&
-      command.action !== "push"
-    )
-      throw new PolicyError(
-        "worker_action_unavailable",
-        "Через воркера доступны inspect, commit и push.",
-      );
+    const command = parseGitWorkerCommand(input);
     capability = new GitWorkerCapabilityService(
       { ...command, action: command.action },
       context,
@@ -319,7 +311,13 @@ export async function runGitWorker(
   } finally {
     stopped = true;
     turnReady.resolve();
-    if (client) await client.close();
+    try {
+      await client?.close();
+    } catch {
+      // Ошибка транспорта не отменяет уже начавшуюся Git-операцию и не скрывает её результат.
+      report.status = "failed";
+      report.errorCode ??= "worker_transport_cleanup_failed";
+    }
     if (capability) {
       // Начавшаяся операция завершается по лимитам handler даже при обрыве модели.
       // Его результат сохраняется отдельно от статуса самого воркера.

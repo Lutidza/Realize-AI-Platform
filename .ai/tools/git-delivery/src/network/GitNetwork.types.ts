@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/network/GitNetwork.types.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.1.0
+ * @date 2026-10-12
  * @description Определяет доверенное GitHub-подключение и ограниченную сетевую сессию Git.
  */
 
@@ -44,4 +44,9 @@ export type GitNetworkSession = {
   readRemoteHead(): Promise<string | null>;
   push(): Promise<void>;
   close(): Promise<void>;
+};
+
+/** Fetch записывает только назначенный namespaced ref, сохраняя контракт прежних push-сессий. */
+export type GitFetchNetworkSession = GitNetworkSession & {
+  fetch(trackingRef: string, previousOid: string | null): Promise<void>;
 };

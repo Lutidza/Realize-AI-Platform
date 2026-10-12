@@ -1,8 +1,9 @@
 # Обработчик Git-операций
 
 Программная часть [ADR-0016](../../../documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md).
-Через отдельного Git-воркера доступны `inspect`, локальный `commit` и `push`.
-Push получает подключение из БД интеграций и использует HTTPS-токен либо SSH-профиль.
+Через отдельного Git-воркера выполняются `inspect`, локальный `commit`, `push`,
+`manage`, `fetch` и `pull`. Сетевые действия получают подключение из БД интеграций
+и используют HTTPS-токен либо SSH-профиль; pull допускает только fast-forward.
 Объединённый `commit_push` пока недоступен. Прямой локальный CLI сохраняет только
 `inspect`/`commit`; сетевое действие подключено через вход воркера.
 
@@ -26,7 +27,7 @@ delivery не затрагиваются; модель на каждый read RP
 REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile npm run --silent git:worker -- inspect
 ```
 
-Для всех действий (`inspect`, `commit`, `push`) вызывающая среда обязана явно
+Для всех действий вызывающая среда обязана явно
 назначить `REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL к каталогу
 development-профиля Codex CLI. `/absolute/authorized-codex-profile` в примерах —
 placeholder; оператор заменяет его на существующий каталог с заранее
@@ -47,25 +48,33 @@ placeholder; оператор заменяет его на существующ�
 Используется существующий `tsx` и общий транспорт
 `@realize/codex-adapter/rpc`, без нового SDK или установки зависимостей.
 [Профили inspect](../../../.codex/agents/delivery/git/inspect.json),
-[commit](../../../.codex/agents/delivery/git/commit.json) и
-[push](../../../.codex/agents/delivery/git/push.json) задаёт модель,
+[commit](../../../.codex/agents/delivery/git/commit.json),
+[push](../../../.codex/agents/delivery/git/push.json),
+[manage](../../../.codex/agents/delivery/git/manage.json),
+[fetch](../../../.codex/agents/delivery/git/fetch.json) и
+[pull](../../../.codex/agents/delivery/git/pull.json) задают модель,
 уровень рассуждения и время ожидания; это конфигурация проектного механизма
 запуска, а не встроенный формат агента Codex.
 
-Вход принимает `inspect`, `commit [message]` или `push`; сообщение допустимо только для commit.
+Вход принимает `inspect`, `commit [message]`, `push`, `manage`, `fetch` или `pull`;
+сообщение допустимо только для commit.
 Корень определяется по размещению инструмента. Обычный `inspect` получает
 контекст чтения всей рабочей копии в памяти. Для адресного чтения и разрешённого
-commit/push вызывающая среда передаёт отдельный контекст, описанный ниже.
+commit/push/manage/fetch/pull вызывающая среда передаёт отдельный контекст, описанный ниже.
 
 Механизм запуска создаёт новую ephemeral-сессию Codex App Server и предоставляет
 инструменты выбранного действия. Модель остаётся в режиме чтения файлов;
-запись выполняет только обработчик по проверенному вызову `git_commit` или `git_push`.
+операции выполняет только обработчик по проверенному вызову инструмента назначенного действия.
 Проверяются модель, сессия и ограничения доступа.
 Shell, web, MCP, приложения, плагины и делегирование отключены; список MCP
 проверяется до обращения к модели. Модель получает только
 [инструкцию inspect](../../../.codex/prompts/workflows/delivery/git/inspect.md),
-[commit](../../../.codex/prompts/workflows/delivery/git/commit.md)
-или [push](../../../.codex/prompts/workflows/delivery/git/push.md) и команду; AGENTS, правила, workflow, навыки и история не загружаются.
+[commit](../../../.codex/prompts/workflows/delivery/git/commit.md),
+[push](../../../.codex/prompts/workflows/delivery/git/push.md),
+[manage](../../../.codex/prompts/workflows/delivery/git/manage.md),
+[fetch](../../../.codex/prompts/workflows/delivery/git/fetch.md)
+или [pull](../../../.codex/prompts/workflows/delivery/git/pull.md) и команду;
+AGENTS, правила, workflow, навыки и история не загружаются.
 Это исключение ограниченных воркеров из
 [Git-правила](../../rules/git/RULE-GIT-DELIVERY.md), которое основной агент
 применяет до запуска. Инструкция не заменяет программные ограничения.
@@ -80,12 +89,139 @@ Shell, web, MCP, приложения, плагины и делегирован�
 `1` — ошибка. Сырые сообщения Codex и stderr не выдаются.
 При недоступной модели или несоответствии конфигурации автоматической замены нет.
 
-Лимит сессии модели: 60 секунд для inspect/commit, 120 секунд для push. Процесс закрывается в любом
+Лимит сессии модели: 60 секунд для inspect/commit, 120 секунд для push/manage/fetch/pull.
+Процесс закрывается в любом
 исходе; уже начавшаяся операция завершается по собственным лимитам обработчика,
 поэтому общее время может превышать таймаут модели. При обрыве воркера его статус
 не становится успешным даже при отдельно полученном `result` операции.
-Commit и push используют общий файловый журнал с разными схемами; inspect его не создаёт.
+Commit, push, fetch, pull и изменяющий manage используют общий файловый журнал
+с разными схемами; inspect и читающий manage его не создают.
 Дополнительные БД, сессия для продолжения и Markdown-отчёт на каждый вызов не нужны.
+
+## Контекст manage
+
+Назначь `REALIZE_GIT_CONTEXT_FILE` и передай `npm run --silent git:worker -- manage`.
+Модель получает только `git_manage({})`. Контракт
+[GitManageContext](src/manage/GitManage.types.ts) принимает общие поля `version: 1`,
+`requestId`, `projectId`, `taskId`, абсолютный `repositoryRoot`,
+`authorization: { "actions": ["manage"], "scope": { "mode": "repository" } }`
+и ровно одну `operation`. Незнакомые поля отклоняются. Пример контекста чтения:
+
+```json
+{
+  "version": 1,
+  "requestId": "remote-inspect-1",
+  "projectId": "realize-ai-platform",
+  "taskId": "repository-rename",
+  "repositoryRoot": "/absolute/checkout",
+  "authorization": { "actions": ["manage"], "scope": { "mode": "repository" } },
+  "operation": { "kind": "remote-inspect", "remote": "origin" }
+}
+```
+
+Значения примеров заменяет вызывающая среда по фактическому запросу пользователя.
+
+| `operation.kind`  | Остальные поля и действие                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `remote-inspect`  | `remote`: точное имя; безопасные fetch/push URL без сети                                                                          |
+| `remote-set-url`  | `remote`, `expectedURL`, `url`: сверка прежнего URL и локальная смена GitHub repository name с тем же владельцем и транспортом    |
+| `worktree-list`   | Без дополнительных полей; ограниченный список зарегистрированных worktrees                                                        |
+| `worktree-repair` | `paths`: 1–100 точных абсолютных путей из `authorization.externalWorktrees`                                                       |
+| `branches-list`   | Без дополнительных полей; локальные ветки и HEAD                                                                                  |
+| `branch-create`   | `name`, обязательный `switch: boolean`: новая ветка от ожидаемого HEAD; по флагу переключение                                     |
+| `branch-switch`   | `name`: существующая локальная ветка                                                                                              |
+| `log`             | `limit`: 1–100 записей; OID и subject                                                                                             |
+| `diff`            | `scope: "index"` либо `"working-tree"`, `paths`: до 100 точных относительных путей, `contextLines`: 0–20, `limitBytes`: 1–1048576 |
+
+Для записей обязателен `expected: { "head": "<40-char OID>", "branch": "main" }`;
+при detached HEAD поле `branch` равно `null`. Для чтения expected необязателен.
+Создание и переключение ветки требуют чистого индекса и рабочей копии.
+Skip-worktree/assume-unchanged flags и незавершённые Git-операции блокируют их;
+переключение использует `--no-guess --no-recurse-submodules --no-overwrite-ignore`.
+`log`, `diff`, создание и переключение веток отклоняют partial clone:
+`remote.*.promisor` и `extensions.partialClone` могут включить неявную сеть.
+Чтение remote, списка веток и worktree metadata остаётся доступным.
+Diff с пустым paths читает набор tracked-файлов. Проверяются полные исходные
+bytes без textconv/filters: обычные файлы до 1 MiB каждый, суммарно до 16 MiB
+и 2000 файлов. Binary, symlink, submodule и unmerged данные блокируются.
+`externalWorktrees` допустим только для repair; каждый путь операции должен
+входить в этот список; paths должен покрывать весь существующий зарегистрированный
+внешний набор, который затрагивает штатный repair. Неполный список блокируется с
+`manage_worktree_scope_invalid`: выборочный repair после переноса основной копии
+Git не гарантирует. Метаданные отсутствующих каталогов сохраняются без prune/create;
+существующий каталог с недопустимым `.git` или symlink блокируется.
+Repair выполняется из основной рабочей копии и поддерживает
+перенос её корня с прежними путями связанных worktrees. Перенос внешнего worktree
+требует отдельного контракта; существующая metadata должна указывать на разрешённый
+путь. Изменение GitHub, БД интеграции и перенос файлов выполняют их владельцы.
+Отдельный старый `pushurl` блокирует rename remote вместо скрытого изменения.
+
+Запись сохраняет binding контекста, before и ожидаемое after в журнал до Git.
+Повтор с тем же requestId сверяет журнал: достигнутое after даёт `noop`,
+подтверждённое before допускает прежнюю запись; другое состояние блокирует её.
+Результат содержит обычные безопасные поля и `details` выбранной операции.
+Diff, subjects и URLs проверяются на секреты и ограничиваются до передачи модели.
+При лимите или неоднозначности обработчик возвращает блокировку, а не полный успех.
+
+## Контекст fetch и pull
+
+Назначь `REALIZE_GIT_CONTEXT_FILE` и передай `npm run --silent git:worker -- fetch`
+либо `npm run --silent git:worker -- pull`. Модель получает только `git_fetch({})`
+или `git_pull({})`. Контракт
+[GitSyncContext](src/sync/GitSync.types.ts) сохраняет общие поля запроса;
+authorization разрешает ровно выбранное действие с `scope: { "mode": "repository" }`.
+
+```json
+{
+  "version": 1,
+  "requestId": "fetch-1",
+  "projectId": "realize-ai-platform",
+  "taskId": "repository-sync",
+  "repositoryRoot": "/absolute/checkout",
+  "authorization": { "actions": ["fetch"], "scope": { "mode": "repository" } },
+  "target": {
+    "connectionKey": "github:primary",
+    "connectionRevision": 1,
+    "repositorySlug": "example/project",
+    "transport": "https",
+    "branch": "main",
+    "sourceOid": "1111111111111111111111111111111111111111",
+    "remoteOid": "2222222222222222222222222222222222222222"
+  }
+}
+```
+
+Хеши примера условные. SourceOid — текущий локальный HEAD, remoteOid — заранее
+установленный commit разрешённой удалённой ветки; оба обязательны, ненулевые,
+одинаковой длины 40 или 64 hex. Для pull поле actions содержит только `"pull"`.
+Произвольные URL, refspec, режимы merge, identity и evidence commit не принимаются.
+
+Обработчик сверяет HEAD/ветку, отсутствие незавершённых Git-операций, полную
+историю без shallow/replace/grafts/partial clone и текущую ревизию подключения.
+Fetch проверяет удалённую ветку до/после обмена и получает закреплённый remoteOid
+в `refs/remotes/realize-sync/<branch>` без tags/prune/submodules.
+Прежний OID этой ссылки сохраняется под общим lock; после получения объектов
+и проверки типа commit ссылка обновляется через CAS. Fetch не пишет FETCH_HEAD.
+Текущие HEAD, индекс и рабочие файлы сохраняются. Эта ссылка остаётся доступной
+в результате fetch; повтор подтверждает тот же OID без нового сетевого запроса.
+
+Pull дополнительно требует чистого состояния, включая untracked, и отсутствия
+index skip-worktree/assume-unchanged flags. Gitlinks в текущем индексе блокируются
+до сети, в полученном дереве — до применения. Fetch может получать commit с
+gitlinks, сохраняя запрет на вложенный checkout. После fetch допускается только
+`merge --ff-only --no-edit --no-autostash` к закреплённому commit. Затем только
+служебная ссылка закреплённой ветки удаляется через CAS. Pull не создаёт merge commit,
+не делает stash/rebase и не запускает автоматическое исправление конфликтов.
+
+Журнал фиксирует `prepared/fetching/fetched/applying/succeeded/unknown` до этапов
+записи и хранит `previousOid: string | null`. Повтор сверяет binding и фактический полученный commit; выполненный fetch
+или fast-forward не запускается заново. При неизвестном результате повтор не
+расширяет назначение до новой версии upstream. Неожиданное изменение служебной
+ссылки блокирует запись; число ссылок зависит от числа веток, а не запросов.
+Результат содержит `fetchedCommit`,
+`trackingRef`, `syncStatus` и безопасную `diagnostic`, когда она доступна.
+`partial` означает возможную выполненную часть; `unknown` требует сверки состояния.
+Сценарий настройки и получения исходного remoteOid не заменяет разрешение pull.
 
 ## Контекст локального commit
 
@@ -260,6 +396,15 @@ GitHub не подтверждает SSH-доступ.
 серверного владельца. Inspect и commit с явной `identity` не обращаются к БД;
 commit без неё читает только настроенного автора до запуска модели.
 
+GitHub-токен хранится в `credential_envelope` записи `github:primary` таблицы
+`realize_ai_integrations` и расшифровывается общим vault (AES-256-GCM).
+`REALIZE_INTEGRATIONS_ENCRYPTION_KEY` — ключ шифрования хранилища,
+`REALIZE_GIT_CODEX_HOME` — отдельный профиль авторизации Codex CLI для модели.
+Они не являются GitHub-токеном и не задают права репозитория. Для GitHub REST
+используется API credential общего resolver; SSH identity разрешает Git transport.
+Права выдаёт GitHub конкретному credential. Подтверждение repository permission
+не доказывает доступ ко всем административным endpoints или настройкам.
+
 HTTPS использует токен только в окружении дочернего процесса и временный
 `GIT_ASKPASS`. Токен не попадает в URL, Git config, аргументы модели или отчёт.
 Для SSH назначь `REALIZE_GIT_SSH_PROFILES_FILE`: абсолютный путь к личному JSON
@@ -284,8 +429,10 @@ HTTPS использует токен только в окружении доч�
 смена транспорта или credentials, URL rewriting и обход TLS/host keys запрещены.
 HTTPS останавливается при обнаружении `.netrc`/`_netrc` или конфликтующих настроек
 HTTP/credentials, чтобы Git не подставил другое подключение. Временные файлы
-авторизации удаляются при закрытии сетевой операции. Hooks сохраняют свои
-полномочия и требуют доверенной рабочей среды.
+авторизации удаляются при закрытии сетевой операции. Настроенные hooks commit/push
+сохраняют свои полномочия и требуют доверенной рабочей среды. Переключение ветки
+в manage и fast-forward pull выполняются с отключёнными hooks и рекурсией
+submodules; они не запускают попутные команды локального checkout.
 
 ## Прямой локальный вход
 
@@ -308,17 +455,17 @@ REALIZE_GIT_CONTEXT_FILE=/absolute/context.json node .ai/tools/git-delivery/src/
 в контекст версии `1`. Его локальный формат определён в
 [contracts.ts](src/contracts.ts):
 
-| Поле                               | Значение                                                                 |
-| ---------------------------------- | ------------------------------------------------------------------------ |
-| `version`                          | `1`                                                                      |
-| `requestId`, `projectId`, `taskId` | Идентификаторы операции, проекта и задачи                                |
-| `repositoryRoot`                   | Абсолютный корень рабочей копии                                          |
-| `authorization.actions`            | Разрешённые действия                                                     |
+| Поле                               | Значение                                                                                                                                                |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `version`                          | `1`                                                                                                                                                     |
+| `requestId`, `projectId`, `taskId` | Идентификаторы операции, проекта и задачи                                                                                                               |
+| `repositoryRoot`                   | Абсолютный корень рабочей копии                                                                                                                         |
+| `authorization.actions`            | Разрешённые действия                                                                                                                                    |
 | `authorization.scope`              | `{ "mode": "all" }`, явно разрешённый полный снимок `{ "mode": "all", "includePartialIndex": true }` либо `{ "mode": "paths", "paths": ["README.md"] }` |
-| `identity`                         | Разрешённые `name` и `email` автора и коммитера; нужны для commit        |
-| `verification.inputPaths`          | Точные пути значимых конфигураций, зависимостей и других входов проверок |
-| `verification.requiredChecks`      | Идентификаторы проверок, выбранных по изменению                          |
-| `verification.results`             | Результаты `{ "id", "status", "fingerprint" }`                           |
+| `identity`                         | Разрешённые `name` и `email` автора и коммитера; нужны для commit                                                                                       |
+| `verification.inputPaths`          | Точные пути значимых конфигураций, зависимостей и других входов проверок                                                                                |
+| `verification.requiredChecks`      | Идентификаторы проверок, выбранных по изменению                                                                                                         |
+| `verification.results`             | Результаты `{ "id", "status", "fingerprint" }`                                                                                                          |
 
 Файл контекста принадлежит текущему пользователю, недоступен группе и остальным
 пользователям, является обычным файлом и занимает не больше 1 MiB. Эти проверки
@@ -405,14 +552,16 @@ Commit без изменений также сохраняет результа�
 `packages/codex-adapter/src/JsonLineRpcClient.adapter.ts`; его прежний
 потребитель `OpenAICodexAdapter` сохраняет свой API.
 
-| Файл                                                                                                                                           | Ответственность                                                   |
-| ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [runGitDelivery.controller.ts](src/runGitDelivery.controller.ts), [contracts.ts](src/contracts.ts)                                             | Разделение входов, валидация, JSON-ответ                          |
-| [handler.ts](src/handler.ts)                                                                                                                   | Порядок операции и восстановление                                 |
-| [repository.ts](src/repository.ts)                                                                                                             | Ограниченный снимок состояния и файлов                            |
-| [Git.adapter.ts](src/Git.adapter.ts)                                                                                                           | Исполнитель Git, пределы, байты и UTF-8                           |
-| [safety.ts](src/safety.ts), [commit/](src/commit/)                                                                                             | Совместимые экспорты, проверки и восстановление локального commit |
-| [state.ts](src/state.ts), [GitJournal.repository.ts](src/GitJournal.repository.ts), [acquireGitLock.adapter.ts](src/acquireGitLock.adapter.ts) | Журнал и отдельная блокировка                                     |
+| Файл                                                                                                                                           | Ответственность                                                             |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [runGitDelivery.controller.ts](src/runGitDelivery.controller.ts), [contracts.ts](src/contracts.ts)                                             | Разделение входов, валидация, JSON-ответ                                    |
+| [handler.ts](src/handler.ts)                                                                                                                   | Порядок операции и восстановление                                           |
+| [repository.ts](src/repository.ts)                                                                                                             | Ограниченный снимок состояния и файлов                                      |
+| [Git.adapter.ts](src/Git.adapter.ts)                                                                                                           | Исполнитель Git, пределы, байты и UTF-8                                     |
+| [safety.ts](src/safety.ts), [commit/](src/commit/)                                                                                             | Совместимые экспорты, проверки и восстановление локального commit           |
+| [manage/](src/manage/)                                                                                                                         | Контекст, локальное управление remote/worktrees/ветками и безопасное чтение |
+| [sync/](src/sync/)                                                                                                                             | Закреплённые fetch/pull, fast-forward и восстановление этапов               |
+| [state.ts](src/state.ts), [GitJournal.repository.ts](src/GitJournal.repository.ts), [acquireGitLock.adapter.ts](src/acquireGitLock.adapter.ts) | Журнал и отдельная блокировка                                               |
 
 Старые публичные входы `contracts.ts`, `safety.ts`, `state.ts` и `repository.ts`
 сохраняют совместимость; типы, ошибка, блокировка и проверки commit имеют
@@ -420,7 +569,7 @@ Commit без изменений также сохраняет результа�
 
 Сетевую операцию координирует `src/push/`, авторизацию и Git-протокол —
 `src/network/`. Общие ресурсы БД находятся в `src/integrations/`; их используют
-push и загрузчик автора для commit без явной `identity`.
+push, fetch, pull и загрузчик автора для commit без явной `identity`.
 
 Проверки запускаются из корня проекта:
 

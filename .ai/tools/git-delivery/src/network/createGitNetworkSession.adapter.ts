@@ -1,8 +1,8 @@
 /**
  * @file .ai/tools/git-delivery/src/network/createGitNetworkSession.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
- * @description Создаёт ограниченную HTTPS/SSH сессию чтения и non-force push в канонический GitHub remote.
+ * @version 1.1.0
+ * @date 2026-10-12
+ * @description Создаёт ограниченную HTTPS/SSH сессию чтения, адресного fetch и non-force push в канонический GitHub remote.
  */
 
 import { mkdtemp, rm } from "node:fs/promises";
@@ -12,7 +12,7 @@ import { GitFailure } from "../GitFailure.error.ts";
 import type { GitNetworkEnvironment } from "../Git.types.ts";
 import type {
   GitNetworkOptions,
-  GitNetworkSession,
+  GitFetchNetworkSession,
 } from "./GitNetwork.types.ts";
 import { assertGitNetworkConfiguration } from "./assertGitNetworkConfiguration.adapter.ts";
 import { createGitAskpass } from "./createGitAskpass.adapter.ts";
@@ -43,7 +43,7 @@ NETWORK_CONFIG.unshift("--no-replace-objects");
 /** Авторизация приходит только из trusted server DTO; URL модели и произвольные transport env не принимаются. */
 export async function createGitNetworkSession(
   options: GitNetworkOptions,
-): Promise<GitNetworkSession> {
+): Promise<GitFetchNetworkSession> {
   const { git } = options;
   const connection = { ...options.connection };
   const expected = { ...options.expected };
@@ -145,6 +145,7 @@ export async function createGitNetworkSession(
       return pending;
     };
     let pushed = false;
+    let fetched = false;
     return {
       readRemoteHead: () =>
         execute(async () => {
@@ -184,6 +185,76 @@ export async function createGitNetworkSession(
               "Ответ remote не соответствует разрешённой ветке.",
             );
           return match[1]!;
+        }),
+      fetch: (trackingRef, previousOid) =>
+        execute(async () => {
+          if (fetched)
+            throw new GitFailure(
+              "git_fetch_already_attempted",
+              "Fetch уже был запущен в этой сессии.",
+            );
+          if (
+            typeof trackingRef !== "string" ||
+            trackingRef !== `refs/remotes/realize-sync/${expected.branch}` ||
+            expected.remoteOid === null ||
+            (previousOid !== null &&
+              (typeof previousOid !== "string" ||
+                !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(previousOid) ||
+                previousOid.length !== expected.sourceOid.length ||
+                /^0+$/.test(previousOid)))
+          )
+            throw new GitFailure(
+              "git_fetch_target_invalid",
+              "Fetch требует назначенную ветку и служебный tracking ref.",
+            );
+          await git.run(["check-ref-format", trackingRef]);
+          fetched = true;
+          await assertGitNetworkConfiguration(git, connection.transport);
+          // Точный OID исключает configured fetch mappings, tags, submodules и общий FETCH_HEAD.
+          await git.run(
+            [
+              ...NETWORK_CONFIG,
+              "-c",
+              "core.hooksPath=/dev/null",
+              "-c",
+              "fetch.prune=false",
+              "-c",
+              "fetch.pruneTags=false",
+              "-c",
+              "fetch.writeCommitGraph=false",
+              "-c",
+              "submodule.recurse=false",
+              "fetch",
+              "--no-tags",
+              "--no-prune",
+              "--no-write-fetch-head",
+              "--no-recurse-submodules",
+              "--no-auto-maintenance",
+              "--no-show-forced-updates",
+              "--refmap=",
+              "--",
+              remote,
+              expected.remoteOid,
+            ],
+            { network },
+          );
+          const objectType = (
+            await git.run(["cat-file", "-t", expected.remoteOid], {
+              machineRead: true,
+            })
+          ).trim();
+          if (objectType !== "commit")
+            throw new GitFailure(
+              "git_fetch_object_invalid",
+              "Назначенный fetch OID не является commit.",
+            );
+          // CAS защищает ранее наблюдённый ref: fetch не получает права перезаписать новое чужое значение.
+          await git.run([
+            "update-ref",
+            trackingRef,
+            expected.remoteOid,
+            previousOid ?? "0".repeat(expected.sourceOid.length),
+          ]);
         }),
       push: () =>
         execute(async () => {

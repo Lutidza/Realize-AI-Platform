@@ -80,7 +80,8 @@ runtime_sources:
 - `tools/` содержит исходники и документацию локальных инструментов агентов.
 - `tools/quality/` проверяет metadata и связи активного слоя для CI;
   поведенческие evals используют продуктовый adapter через `scripts/runtime/evaluation/`.
-- `tools/git-delivery/src/worker/` запускает Git-воркера для inspect, commit и push; настройки
+- `tools/git-delivery/src/worker/` запускает Git-воркера для inspect, commit, push,
+  manage, fetch и pull; настройки
   находятся в `.codex/`, общий транспорт — в `packages/codex-adapter/`.
 - `worker-profiles/` предназначен для необязательных повторно используемых
   профилей делегирования. Сейчас содержит только индекс, готовых профилей нет.

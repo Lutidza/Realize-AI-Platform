@@ -1,11 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorkerCapability.service.ts
- * @version 1.2.0
- * @date 2026-09-09
+ * @version 1.3.0
+ * @date 2026-10-12
  * @description Ограничивает инструменты Git-воркера назначенной операцией и сохраняет фактические результаты обработчика.
  */
 
 import { parseCommand, PolicyError } from "../contracts.ts";
+import type { Context } from "../contracts.ts";
+import { parseGitWorkerCommand } from "./parseGitWorkerCommand.validator.ts";
+import { GIT_ASSIGNED_OPERATION_TOOLS } from "./gitWorkerActions.constants.ts";
 import type {
   GitWorkerCommand,
   GitWorkerContext,
@@ -50,25 +53,18 @@ export class GitWorkerCapabilityService {
   private inspectionResult: GitWorkerResult | null = null;
   private commit?: Promise<GitWorkerResult>;
   private push?: Promise<GitWorkerResult>;
+  private assignedOperation?: Promise<GitWorkerResult>;
 
   constructor(
     command: GitWorkerCommand,
     context: GitWorkerContext,
     deliver: GitWorkerDependencies["deliver"],
   ) {
-    const parsed = parseCommand(command);
-    if (
-      parsed.action !== "inspect" &&
-      parsed.action !== "commit" &&
-      parsed.action !== "push"
-    ) {
-      throw new PolicyError(
-        "worker_action_unavailable",
-        "Воркер поддерживает inspect, commit и push.",
-      );
-    }
-    this.effectiveCommand = parsed as GitWorkerCommand;
-    this.context = validateGitWorkerContext(parsed.action, context);
+    const parsed = parseGitWorkerCommand(command);
+    this.effectiveCommand = parsed;
+    this.context = structuredClone(
+      validateGitWorkerContext(parsed.action, context),
+    );
     this.deliver = deliver;
     this.needsMessage =
       parsed.action === "commit" && parsed.message === undefined;
@@ -81,6 +77,11 @@ export class GitWorkerCapabilityService {
 
   /** Определения не открывают модели контекст вызывающей среды или выбор действия Git. */
   get tools() {
+    const action = this.effectiveCommand.action;
+    if (action === "manage" || action === "fetch" || action === "pull") {
+      const assigned = GIT_ASSIGNED_OPERATION_TOOLS[action];
+      return [tool(assigned.name, assigned.description)];
+    }
     if (this.effectiveCommand.action === "push")
       return [
         tool(
@@ -127,7 +128,21 @@ export class GitWorkerCapabilityService {
     }
     const fields = args as Record<string, unknown>;
     let operation: Promise<GitWorkerResult>;
-    if (params.tool === "git_push" && this.effectiveCommand.action === "push") {
+    const action = this.effectiveCommand.action;
+    if (
+      (action === "manage" || action === "fetch" || action === "pull") &&
+      params.tool === GIT_ASSIGNED_OPERATION_TOOLS[action].name
+    ) {
+      if (Object.keys(fields).length !== 0) this.deny();
+      this.assignedOperation ??= this.execute(
+        this.effectiveCommand,
+        this.context,
+      );
+      operation = this.assignedOperation;
+    } else if (
+      params.tool === "git_push" &&
+      this.effectiveCommand.action === "push"
+    ) {
       if (Object.keys(fields).length !== 0) this.deny();
       this.push ??= this.execute(this.effectiveCommand, this.context);
       operation = this.push;
@@ -184,6 +199,7 @@ export class GitWorkerCapabilityService {
 
   /** Успешный preview не является результатом commit; отказ preview остаётся доступным как блокер. */
   async getResult(): Promise<GitWorkerResult | null> {
+    if (this.assignedOperation) return await this.assignedOperation;
     if (this.push) return await this.push;
     if (this.commit) return await this.commit;
     if (!this.inspection) return null;
@@ -195,26 +211,32 @@ export class GitWorkerCapabilityService {
 
   /** Дожидается уже начавшихся вызовов; результат и ошибки читает getResult, новые запросы закрывает orchestrator. */
   async drain(): Promise<void> {
-    await Promise.allSettled([this.inspection, this.commit, this.push]);
+    await Promise.allSettled([
+      this.inspection,
+      this.commit,
+      this.push,
+      this.assignedOperation,
+    ]);
   }
 
   private async inspect(): Promise<GitWorkerResult> {
-    if ("target" in this.context) this.deny();
+    if ("target" in this.context || "operation" in this.context) this.deny();
+    const legacyContext = this.context as Context;
     const context =
       this.effectiveCommand.action === "inspect"
         ? this.context
         : validateGitWorkerContext("inspect", {
-            version: this.context.version,
-            requestId: this.context.requestId,
-            projectId: this.context.projectId,
-            taskId: this.context.taskId,
-            repositoryRoot: this.context.repositoryRoot,
+            version: legacyContext.version,
+            requestId: legacyContext.requestId,
+            projectId: legacyContext.projectId,
+            taskId: legacyContext.taskId,
+            repositoryRoot: legacyContext.repositoryRoot,
             authorization: {
               actions: ["inspect"],
-              scope: this.context.authorization.scope,
+              scope: legacyContext.authorization.scope,
             },
             verification: {
-              inputPaths: this.context.verification!.inputPaths,
+              inputPaths: legacyContext.verification!.inputPaths,
               requiredChecks: [],
               results: [],
             },

@@ -517,7 +517,7 @@ input, и 23 112 ms. В клиентском scope теперь 1 `customer_runt
 не создавалась. Денежная стоимость unknown: тариф для ChatGPT не назначался.
 Локальная активация не является release/RC;
 устаревший evaluation baseline необходимо обновить перед таким выпуском.
-Evidence: `.ai-workspace/tasks/2026-10-05-ai-analytics-dashboard-e42b/logs/`.
+Результаты приёмки приведены выше; временные логи завершённой задачи очищены.
 
 Для этой установки deployment copier сохранил generated JS/manifests побайтно
 и пропустил только tracing-копии внешних Node/Codex launcher каталогов

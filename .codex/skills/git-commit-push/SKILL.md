@@ -1,8 +1,8 @@
 ---
 name: git-commit-push
 description: >-
-  Передаёт Git-операции отдельному воркеру: чтение состояния, разрешённые
-  commit и push через HTTPS/SSH. Используй для операций Git рабочего слоя.
+  Передаёт Git-операции отдельному воркеру: чтение, управление remote/worktrees/ветками,
+  разрешённые commit, fetch, pull и push через HTTPS/SSH. Используй для Git рабочего слоя.
 ---
 
 # Git через воркера
@@ -12,7 +12,7 @@ description: >-
 
 ## Передача задания
 
-- Для любого `inspect`, `commit` или `push` явно назначь в окружении запуска
+- Для любого действия явно назначь в окружении запуска
   `REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL. Каталог должен
   существовать и быть заранее авторизован оператором для Codex CLI. Например,
   из корня проекта, заменив placeholder на подготовленный путь:
@@ -26,6 +26,7 @@ description: >-
   Унаследованные `HOME`, `CODEX_HOME` и API keys не заменяют явный выбор.
   Это профиль development Git worker; контракт окружения и границы продуктовой
   авторизации описаны в [README обработчика](../../../.ai/tools/git-delivery/README.md#git-воркер).
+
 - Для обычного `inspect` выполни из корня проекта `npm run --silent git:worker -- inspect`.
   Этот вход запускает отдельного воркера через Codex App Server; сам вызов
   основным агентом является передачей задания, Git выполняет обработчик по
@@ -46,7 +47,17 @@ description: >-
   `npm run --silent git:worker -- push`. Состав контекста и настройки
   подключения — в [README обработчика](../../../.ai/tools/git-delivery/README.md#контекст-push).
   Подключение получает обработчик из БД; модель вызывает `git_push` без аргументов.
-- Передай `action` (`inspect`, `commit`, `push`) и необязательный
+- Для `manage` назначь `REALIZE_GIT_CONTEXT_FILE` с одной разрешённой операцией и
+  выполни `npm run --silent git:worker -- manage`. Контекст и лимиты описаны в
+  [README обработчика](../../../.ai/tools/git-delivery/README.md#контекст-manage).
+  Читающие операции требуют разрешённого анализа; запись — разрешённого изменения.
+  Модель вызывает только `git_manage({})`, параметры назначает вызывающая среда.
+- Для разрешённого `fetch` или `pull` назначь `REALIZE_GIT_CONTEXT_FILE` по
+  [sync-контракту](../../../.ai/tools/git-delivery/README.md#контекст-fetch-и-pull)
+  и выполни `npm run --silent git:worker -- fetch` либо `npm run --silent git:worker -- pull`.
+  Назначение закрепляется ожидаемыми хешами и ревизией подключения. Pull требует
+  чистой рабочей копии и допускает только fast-forward; отказ не разрешает stash/rebase.
+- Передай `action` (`inspect`, `commit`, `push`, `manage`, `fetch`, `pull`) и необязательный
   `message` для действия с commit. Заданный текст сохраняй; при его отсутствии
   воркер составляет краткое сообщение Conventional Commits по изменениям.
 - Доверенный контекст передаётся механизмом запуска, отдельно от текста задания:
@@ -60,16 +71,27 @@ description: >-
 
 ## Доступность
 
-`inspect`, локальный `commit` и отдельный `push` подключены. Профили
+`inspect`, локальный `commit`, отдельный `push`, `manage`, `fetch` и `pull` используют
+отдельные профили. Профили
 [чтения](../../agents/delivery/git/inspect.json),
 [коммита](../../agents/delivery/git/commit.json) и
-[отправки](../../agents/delivery/git/push.json) задают модель и предел времени;
+[отправки](../../agents/delivery/git/push.json),
+[управления](../../agents/delivery/git/manage.json),
+[fetch](../../agents/delivery/git/fetch.json) и
+[pull](../../agents/delivery/git/pull.json) задают модель и предел времени;
 инструкции — [inspect](../../prompts/workflows/delivery/git/inspect.md),
 [commit](../../prompts/workflows/delivery/git/commit.md) и
-[push](../../prompts/workflows/delivery/git/push.md).
+[push](../../prompts/workflows/delivery/git/push.md),
+[manage](../../prompts/workflows/delivery/git/manage.md),
+[fetch](../../prompts/workflows/delivery/git/fetch.md) и
+[pull](../../prompts/workflows/delivery/git/pull.md).
 Запуск возвращает фактический `result`, эффективную `command` и сведения о воркере.
 Успех требует `status: succeeded`; наличие текста модели его не доказывает.
 Для повтора commit сохраняй исходный контекст, requestId и сообщение из `command`.
+
+Для повтора `manage`, `fetch` или `pull` сохраняй requestId и точный контекст.
+Обработчик сверяет журнал и состояние; неизвестный исход или расхождение
+не разрешают другую запись. Успешный повтор может вернуть `result.status: noop`.
 
 Для разрешённого исправления прерванного commit используй
 [восстановление локального commit](../../../.ai/tools/git-delivery/README.md#восстановление-локального-commit):

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/runGitWorker.service.test.ts
- * @version 1.1.1
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Проверяет границы inspect и завершение оркестратора через управляемый транспорт без Git и Codex.
  */
 
@@ -95,6 +95,7 @@ function createHarness(action: "inspect" | "commit" = "inspect") {
     Parameters<GitWorkerDependencies["createTransport"]>[0] | undefined;
 
   const driver = {
+    closeError: null as Error | null,
     async reply(
       method: string,
       _params?: Record<string, unknown>,
@@ -152,6 +153,7 @@ function createHarness(action: "inspect" | "commit" = "inspect") {
         async close() {
           counts.closed += 1;
           closed.resolve();
+          if (driver.closeError) throw driver.closeError;
         },
       };
     },
@@ -359,6 +361,57 @@ test("подтверждённый tool возвращает точный Result
   assert.deepEqual(harness.notifications, [
     { method: "initialized", params: undefined },
   ]);
+});
+
+test("ошибка закрытия транспорта сохраняет начавшийся commit и безопасный отчёт", async () => {
+  const harness = createHarness("commit");
+  const started = Promise.withResolvers<void>();
+  const completed = Promise.withResolvers<Result>();
+  let toolResult: Promise<unknown> | undefined;
+  harness.driver.closeError = new Error("private cleanup details");
+  harness.dependencies.deliver = async () => {
+    harness.counts.delivered += 1;
+    started.resolve();
+    return completed.promise;
+  };
+  harness.driver.events = () =>
+    (async function* () {
+      toolResult = harness.runtime().onRequest("item/tool/call", {
+        ...toolCall,
+        tool: "git_commit",
+      });
+      await started.promise;
+      throw new Error("private transport failure");
+    })();
+  const operation = harness.run();
+  await harness.closed.promise;
+  completed.resolve(harness.result);
+  const report = await operation;
+  await toolResult;
+  assert.equal(report.status, "failed");
+  assert.equal(report.errorCode, "worker_transport_failed");
+  assert.strictEqual(report.result, harness.result);
+  assert.equal(report.result.commitCreated, true);
+  assert.equal(report.worker.handlerCalls, 1);
+  assert.equal(harness.counts.closed, 1);
+  assert.ok(!JSON.stringify(report).includes("private"));
+});
+
+test("отказ cleanup после успешного tool не теряет подтверждённый результат", async () => {
+  const harness = createHarness();
+  harness.driver.closeError = new Error("private cleanup details");
+  harness.driver.events = () =>
+    (async function* () {
+      await harness.runtime().onRequest("item/tool/call", toolCall);
+      yield completedEvent;
+    })();
+  const report = await harness.run();
+  assert.equal(report.status, "failed");
+  assert.equal(report.errorCode, "worker_transport_cleanup_failed");
+  assert.strictEqual(report.result, harness.result);
+  assert.equal(report.worker.handlerCalls, 1);
+  assert.equal(harness.counts.closed, 1);
+  assert.ok(!JSON.stringify(report).includes("private"));
 });
 
 test("аргументы server request за пределами пустого inspect не доходят до handler", async () => {

@@ -28,7 +28,7 @@ runtime_sources:
   `.ai/workflows/frontend/next-react/guardrail/`.
 - Мастерская дизайна — бриф, направление, версии и передача между каналами:
   [.ai/workflows/frontend/design-workshop/WORKFLOW.md](frontend/design-workshop/WORKFLOW.md).
-- Git: чтение состояния, commit и push — `.ai/workflows/delivery/git/commit-push/`.
+- Git: чтение, управление, commit/fetch/pull/push — `.ai/workflows/delivery/git/commit-push/`.
 
 ## Planned taxonomy
 

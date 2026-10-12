@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/loadGitWorkerContext.adapter.test.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Проверяет привязку контекста запуска к рабочей копии и отказ при отсутствии разрешённых данных.
  */
 
@@ -50,6 +50,7 @@ test("обычный inspect получает только чтение, commit 
     scope: { mode: "all" },
   });
   assert.ok(!("target" in context));
+  assert.ok(!("operation" in context));
   assert.equal(context.identity, undefined);
   assert.equal(context.verification, undefined);
   await assert.rejects(loadGitWorkerContext("commit", f.root), {
@@ -137,6 +138,7 @@ test("автор из БД дополняет только разрешённы�
   assert.deepEqual(result, { ...input, identity: author });
   author.name = "Changed after resolution";
   assert.ok(!("target" in result));
+  assert.ok(!("operation" in result));
   assert.equal(result.identity?.name, "Configured Author");
 });
 
