@@ -1,13 +1,15 @@
 # Task manager — контракт исполнения и интеграции с AI
 
-Версия: **0.10**, 2026-10-11. Статус: **проект технической части ТЗ**.
+Версия: **0.12**, 2026-10-12. Статус: **проект технической части ТЗ**.
 Читается вместе с [продуктовым ТЗ](task-management.md). Все новые сущности,
 команды и состояния ниже — целевой контракт, а не описание готовых API.
 Этот документ не меняет действующие AI rules и не разрешает запуск/публикацию кода.
 
 Подтверждённое направление постоянного Task Manager, commit/release связей и
 cutover описано в [продуктовом ТЗ §15](task-management.md#15-разработка-платформы-git-и-переход-к-постоянным-задачам).
-Граница первого bounded Foundation — §12; остальные новые API остаются целевыми.
+Граница первого bounded Foundation — §12; ограниченное чтение Git-фактов — §13.
+Долговечная синхронизация по явному запросу — §14.
+Остальные новые API остаются целевыми.
 
 ## 1. Проверенное состояние и владельцы
 
@@ -15,37 +17,37 @@ cutover описано в [продуктовом ТЗ §15](task-management.md#
 [интеграция Codex](../architecture/codex-integration.md),
 [delivery](../delivery/02-ci-release-deploy.md).
 
-| Область | Существующий источник | Что можно использовать |
-| --- | --- | --- |
-| Диалоги, сообщения, AIRun | [repository](../../packages/payload-ai-plugin/src/endpoints/repository.ts), [runs](../../packages/payload-ai-plugin/src/collections/runs.ts) | IDs, история, idempotency, контекст и run status |
-| AI-конфигурация | [aiConfiguration](../../packages/ai-contracts/src/aiConfiguration.ts), [compiler](../../packages/change-engine/src/aiConfigurationCompiler.ts) | Draft, immutable release, active pointer, profiles, roles, rules, skills, templates, bindings |
-| Снимок запуска | [AIChatConfiguration](../../packages/ai-contracts/src/AIChatConfiguration.types.ts), [resolver](../../packages/payload-ai-plugin/src/chat-context/resolveAIChatConfiguration.service.ts) | Серверная сборка exact release/profile и закрытый snapshot |
-| Workflow definition | [workflows](../../packages/ai-contracts/src/workflows.ts), [policy](../../packages/change-engine/src/workflowPolicy.ts) | Ограниченные шаги, ветвление и проверка графа |
-| Workflow continuation | [continue](../../packages/payload-ai-plugin/src/chat-context/continueWorkflow.service.ts), [dispatch](../../packages/payload-ai-plugin/src/chat-context/dispatchWorkflowSegment.service.ts) | Checkpoint, сегменты, продолжение, фактический child run |
-| «Запуски процессов» | [registry](../../packages/payload-ai-plugin/src/endpoints/WorkflowRunRegistry.repository.ts), [SQL](../../packages/payload-ai-plugin/src/endpoints/workflowRunRegistry.sql.ts) | Проекция workflow по существующим AIRun |
-| Code Lane | [executionHandlers](../../packages/payload-ai-plugin/src/endpoints/executionHandlers.ts), [jobRepository](../../services/ai-execution-worker/src/jobRepository.ts), [worker](../../services/ai-execution-worker/src/worker.ts) | Approved plan, durable очередь jobs, claim, исполнение, проверки и delivery |
-| Reviewer и изоляция | [reviewer](../../services/ai-execution-worker/src/independentReviewer.ts), [worktree](../../services/ai-execution-worker/src/worktree.ts) | Независимая проверка и отдельный checkout |
-| Provider connection | [service](../../packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnection.service.ts), [lock](../../packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnectionLock.adapter.ts) | Credentials lease, фактические модели и сериализация доступа |
-| События | [stream bridge](../../packages/payload-ai-plugin/src/endpoints/stream.ts), [workflow persistence](../../packages/payload-ai-plugin/src/chat-context/persistWorkflowAgentEvent.service.ts), [RunStore](../../services/ai-control-plane/src/runStore.ts) | Формат событий, durable replay/checkpoint при обработке потока |
-| Readiness | [release guard](../../packages/payload-ai-plugin/src/endpoints/releaseWorkerReadiness.validator.ts), [availability](../../packages/payload-ai-plugin/src/integrations/runtime/mapWorkerAvailability.mapper.ts) | Проверка конкретной capability и свежести worker перед принятием работы |
+| Область                   | Существующий источник                                                                                                                                                                                                                                  | Что можно использовать                                                                        |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| Диалоги, сообщения, AIRun | [repository](../../packages/payload-ai-plugin/src/endpoints/repository.ts), [runs](../../packages/payload-ai-plugin/src/collections/runs.ts)                                                                                                           | IDs, история, idempotency, контекст и run status                                              |
+| AI-конфигурация           | [aiConfiguration](../../packages/ai-contracts/src/aiConfiguration.ts), [compiler](../../packages/change-engine/src/aiConfigurationCompiler.ts)                                                                                                         | Draft, immutable release, active pointer, profiles, roles, rules, skills, templates, bindings |
+| Снимок запуска            | [AIChatConfiguration](../../packages/ai-contracts/src/AIChatConfiguration.types.ts), [resolver](../../packages/payload-ai-plugin/src/chat-context/resolveAIChatConfiguration.service.ts)                                                               | Серверная сборка exact release/profile и закрытый snapshot                                    |
+| Workflow definition       | [workflows](../../packages/ai-contracts/src/workflows.ts), [policy](../../packages/change-engine/src/workflowPolicy.ts)                                                                                                                                | Ограниченные шаги, ветвление и проверка графа                                                 |
+| Workflow continuation     | [continue](../../packages/payload-ai-plugin/src/chat-context/continueWorkflow.service.ts), [dispatch](../../packages/payload-ai-plugin/src/chat-context/dispatchWorkflowSegment.service.ts)                                                            | Checkpoint, сегменты, продолжение, фактический child run                                      |
+| «Запуски процессов»       | [registry](../../packages/payload-ai-plugin/src/endpoints/WorkflowRunRegistry.repository.ts), [SQL](../../packages/payload-ai-plugin/src/endpoints/workflowRunRegistry.sql.ts)                                                                         | Проекция workflow по существующим AIRun                                                       |
+| Code Lane                 | [executionHandlers](../../packages/payload-ai-plugin/src/endpoints/executionHandlers.ts), [jobRepository](../../services/ai-execution-worker/src/jobRepository.ts), [worker](../../services/ai-execution-worker/src/worker.ts)                         | Approved plan, durable очередь jobs, claim, исполнение, проверки и delivery                   |
+| Reviewer и изоляция       | [reviewer](../../services/ai-execution-worker/src/independentReviewer.ts), [worktree](../../services/ai-execution-worker/src/worktree.ts)                                                                                                              | Независимая проверка и отдельный checkout                                                     |
+| Provider connection       | [service](../../packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnection.service.ts), [lock](../../packages/payload-ai-plugin/src/integrations/codex/runtime/CodexConnectionLock.adapter.ts)                                          | Credentials lease, фактические модели и сериализация доступа                                  |
+| События                   | [stream bridge](../../packages/payload-ai-plugin/src/endpoints/stream.ts), [workflow persistence](../../packages/payload-ai-plugin/src/chat-context/persistWorkflowAgentEvent.service.ts), [RunStore](../../services/ai-control-plane/src/runStore.ts) | Формат событий, durable replay/checkpoint при обработке потока                                |
+| Readiness                 | [release guard](../../packages/payload-ai-plugin/src/endpoints/releaseWorkerReadiness.validator.ts), [availability](../../packages/payload-ai-plugin/src/integrations/runtime/mapWorkerAvailability.mapper.ts)                                         | Проверка конкретной capability и свежести worker перед принятием работы                       |
 
 Наличие этих владельцев не означает готовность многоагентного task manager.
 
 ### 1.1. Обязательные разрывы между текущим кодом и целевой моделью
 
-| ID | Сейчас | Что требуется для ТЗ |
-| --- | --- | --- |
-| GAP-01 | Profile — набор конфигурации; назначаемого agentID нет | Устойчивая AI-идентичность, состояние, задания, команды и adapter reference |
-| GAP-02 | Workflow: 6 типов шагов, до 64 шагов; одна цепочка child на parent; agent_turn выбирает шаблон | Версионированное назначение участника/профиля на этап, fan-out/fan-in, правила собирания результатов |
-| GAP-03 | Новый run требует активный release; продолжение наследует старый snapshot/model | Явное поведение queued task при смене active pointer, без молчаливой подмены |
-| GAP-04 | Workflow start отклоняет attachments/projectFiles/pageDraft | Авторизованный context adapter материалов задачи и отдельное расширение input contract |
-| GAP-05 | Workflow capabilities/checks обслуживают ограниченный Data Lane | Task-команды, Code Lane/handoff/check adapters и реальные receipts по новым сценариям |
-| GAP-06 | Code executor использует integration model/server policy; chat profile не переносится автоматически | Проверяемое применение выбранной конфигурации по поддерживаемым lanes, без фиктивных полей UI |
-| GAP-07 | Общий Codex lock и одно основное подключение; busy возвращает отказ | Durable admission, capacity-aware очередь, fairness; параллельность только при подтверждённой изоляции |
-| GAP-08 | Conversation/Run/CR защищены текущим пользователем-владельцем | Командный ACL, scoped projection и service delegation без подстановки чужого req.user |
-| GAP-09 | CP RunStore хранится в памяти; сохранение потока/checkpoint проходит через SSE bridge | Server-owned ingestion/reconciliation, устойчивое состояние без browser connection |
-| GAP-10 | Claim Code jobs есть, общего task scheduler/lease recovery нет | Долговечный план, dependencies/resources, fencing, отмена и восстановление неизвестного исхода |
-| GAP-11 | Task/assignment correlation отсутствует в строгом AI input | Типизированные ссылки на задачу/этап/попытку в контрактах и событиях |
+| ID     | Сейчас                                                                                              | Что требуется для ТЗ                                                                                   |
+| ------ | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| GAP-01 | Profile — набор конфигурации; назначаемого agentID нет                                              | Устойчивая AI-идентичность, состояние, задания, команды и adapter reference                            |
+| GAP-02 | Workflow: 6 типов шагов, до 64 шагов; одна цепочка child на parent; agent_turn выбирает шаблон      | Версионированное назначение участника/профиля на этап, fan-out/fan-in, правила собирания результатов   |
+| GAP-03 | Новый run требует активный release; продолжение наследует старый snapshot/model                     | Явное поведение queued task при смене active pointer, без молчаливой подмены                           |
+| GAP-04 | Workflow start отклоняет attachments/projectFiles/pageDraft                                         | Авторизованный context adapter материалов задачи и отдельное расширение input contract                 |
+| GAP-05 | Workflow capabilities/checks обслуживают ограниченный Data Lane                                     | Task-команды, Code Lane/handoff/check adapters и реальные receipts по новым сценариям                  |
+| GAP-06 | Code executor использует integration model/server policy; chat profile не переносится автоматически | Проверяемое применение выбранной конфигурации по поддерживаемым lanes, без фиктивных полей UI          |
+| GAP-07 | Общий Codex lock и одно основное подключение; busy возвращает отказ                                 | Durable admission, capacity-aware очередь, fairness; параллельность только при подтверждённой изоляции |
+| GAP-08 | Conversation/Run/CR защищены текущим пользователем-владельцем                                       | Командный ACL, scoped projection и service delegation без подстановки чужого req.user                  |
+| GAP-09 | CP RunStore хранится в памяти; сохранение потока/checkpoint проходит через SSE bridge               | Server-owned ingestion/reconciliation, устойчивое состояние без browser connection                     |
+| GAP-10 | Claim Code jobs есть, общего task scheduler/lease recovery нет                                      | Долговечный план, dependencies/resources, fencing, отмена и восстановление неизвестного исхода         |
+| GAP-11 | Task/assignment correlation отсутствует в строгом AI input                                          | Типизированные ссылки на задачу/этап/попытку в контрактах и событиях                                   |
 
 Например, один существующий workflow agent turn не может сам выбрать другого
 исполнителя. Прикрепление текста «agent B» в prompt не устраняет GAP-01/02/11.
@@ -79,14 +81,14 @@ Realize. Адаптер использует публичные контракт
 контракты сначала расширяются у владельца; обхода через прямую запись чужой
 коллекции, SQL или подмену HTTP user нет.
 
-| Контур поставки | Целевое условие |
-| --- | --- |
-| Task package | Установка npm-архива в независимый Payload-host, без workspace symlinks/alias Realize |
-| Realize AI adapter | Полная интеграция с Admin Assistant обязательна для продукта; текущая основа PostgreSQL-specific |
-| Другие Payload DB | Поддержка task domain проверяется отдельно; полное AI-исполнение требует совместимого runtime adapter |
-| MongoDB/SQLite | Цель переносимости; не объявляются готовыми вместе с нынешним PostgreSQL-only AI adapter |
-| Hosting | UI не требует shell/writable checkout; исполнение через локальный либо удалённый server adapter с нужной capability |
-| UI dependencies | Общий UI-kit поставляется доступной версией либо утверждается другой единый owner; скрытого private workspace dependency нет |
+| Контур поставки    | Целевое условие                                                                                                              |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Task package       | Установка npm-архива в независимый Payload-host, без workspace symlinks/alias Realize                                        |
+| Realize AI adapter | Полная интеграция с Admin Assistant обязательна для продукта; текущая основа PostgreSQL-specific                             |
+| Другие Payload DB  | Поддержка task domain проверяется отдельно; полное AI-исполнение требует совместимого runtime adapter                        |
+| MongoDB/SQLite     | Цель переносимости; не объявляются готовыми вместе с нынешним PostgreSQL-only AI adapter                                     |
+| Hosting            | UI не требует shell/writable checkout; исполнение через локальный либо удалённый server adapter с нужной capability          |
+| UI dependencies    | Общий UI-kit поставляется доступной версией либо утверждается другой единый owner; скрытого private workspace dependency нет |
 
 Настраиваются auth-коллекция, ACL callbacks, namespace, Admin/API routes,
 tenant resolver при наличии, artifact storage и AI adapter. IDs пользователей
@@ -185,14 +187,14 @@ revisions, вид transfer/coexecution/delegate, исходное/целевое
 Coexecution создаёт отдельный assignment; delegate дополнительно сохраняет
 цепочку делегирования и правило возврата/агрегации результата.
 
-| Состояние handoff | Контракт |
-| --- | --- |
-| requested | Получатель и контекст указаны; прежнее назначение не удаляется |
-| accepted | Получатель или разрешённая policy принял задание; готовность агента проверена, выполнение ещё может ждать ресурс |
-| applying | Для замены исполнителя подтверждается завершение/остановка старой работы; для соисполнения разделяются задания/ресурсы; конфликтующая работа не выдана |
-| completed | Новое назначение и план применены атомарно, история и уведомления сохранены; можно заново пройти admission |
-| declined / cancelled | Причина сохранена; старое назначение не потеряно, дублирующего исполнения нет |
-| blocked / recovery_required | Отсутствует право/контекст/ресурс либо исход старого attempt неизвестен; нужна конкретная корректировка/сверка |
+| Состояние handoff           | Контракт                                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| requested                   | Получатель и контекст указаны; прежнее назначение не удаляется                                                                                         |
+| accepted                    | Получатель или разрешённая policy принял задание; готовность агента проверена, выполнение ещё может ждать ресурс                                       |
+| applying                    | Для замены исполнителя подтверждается завершение/остановка старой работы; для соисполнения разделяются задания/ресурсы; конфликтующая работа не выдана |
+| completed                   | Новое назначение и план применены атомарно, история и уведомления сохранены; можно заново пройти admission                                             |
+| declined / cancelled        | Причина сохранена; старое назначение не потеряно, дублирующего исполнения нет                                                                          |
+| blocked / recovery_required | Отсутствует право/контекст/ресурс либо исход старого attempt неизвестен; нужна конкретная корректировка/сверка                                         |
 
 При замене ожидающего в очереди assignment старый dispatch сначала инвалидируется
 до submit либо подтверждённо отменяется у runtime owner после submit. Для
@@ -219,17 +221,17 @@ credentials и право читать личный чат прежнего ис
 
 Это предлагаемые операции протокола, не существующие названия endpoints.
 
-| Операция | Обязательный контракт |
-| --- | --- |
-| Catalog/Capabilities | Видимые агенты, конфигурации и workflows; protocol/version; supported lanes, control actions и capacity |
-| Resolve/Preflight | Exact plan, readiness, scope/ACL, dependencies, resource needs и причины отказа; без side effects исполнения |
-| Submit | Идемпотентная передача snapshot; accepted receipt с authoritative IDs либо однозначный отказ |
-| LookupByKey/Reconcile | Найти результат submit после потери ответа; сверить внешний эффект/attempt до повтора |
-| Read/Subscribe | Пагинируемые события и snapshot с cursor/sequence; server-to-server доставка не зависит от browser |
-| Continue/Input | Ожидаемая версия/step и разрешённый input; новая attempt/continuation, без перезаписи прошлого |
-| Pause/Cancel | Durable intent, поддерживаемая безопасная точка, подтверждённый outcome; неизвестный исход виден |
-| Retry | Новая связанная попытка после проверки конфигурации/прав/эффектов; не команда сменить status на queued |
-| Result/Acceptance | Версии артефактов, checks/receipts, verdict и допустимые следующие действия |
+| Операция              | Обязательный контракт                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Catalog/Capabilities  | Видимые агенты, конфигурации и workflows; protocol/version; supported lanes, control actions и capacity      |
+| Resolve/Preflight     | Exact plan, readiness, scope/ACL, dependencies, resource needs и причины отказа; без side effects исполнения |
+| Submit                | Идемпотентная передача snapshot; accepted receipt с authoritative IDs либо однозначный отказ                 |
+| LookupByKey/Reconcile | Найти результат submit после потери ответа; сверить внешний эффект/attempt до повтора                        |
+| Read/Subscribe        | Пагинируемые события и snapshot с cursor/sequence; server-to-server доставка не зависит от browser           |
+| Continue/Input        | Ожидаемая версия/step и разрешённый input; новая attempt/continuation, без перезаписи прошлого               |
+| Pause/Cancel          | Durable intent, поддерживаемая безопасная точка, подтверждённый outcome; неизвестный исход виден             |
+| Retry                 | Новая связанная попытка после проверки конфигурации/прав/эффектов; не команда сменить status на queued       |
+| Result/Acceptance     | Версии артефактов, checks/receipts, verdict и допустимые следующие действия                                  |
 
 Command envelope: protocolVersion, host/tenant/project/task/execution/stage/attempt IDs,
 actor/delegation, expectedRevision, idempotencyKey, correlationID и payload
@@ -261,20 +263,20 @@ exactly-once для любого внешнего сервиса. Durable commit
 `readiness`, `executionState`, `acceptanceState` и состояние delivery отдельны.
 Custom status не служит прямой записью в worker state.
 
-| Состояние task execution/stage | Семантика |
-| --- | --- |
-| draft / ready | План готовится / прошёл проверки для будущего запуска |
-| blocked | Не выполнено конкретное prerequisite; reason и путь разрешения обязательны |
-| scheduled | Запланировано на время; это не обещание доступного worker сейчас |
-| queued | Готовый этап принят, ожидает разрешённый ресурс; действует queue deadline |
-| dispatching | Передаётся владельцу runtime; исход восстанавливается по idempotency key |
-| running | Runtime подтвердил исполнение; известны attempt/heartbeat |
-| waiting_input / waiting_approval | Требуется конкретный ввод или решение; ресурсы удерживаются только по явной причине |
-| pause_requested / paused | Запрошена остановка на безопасной точке / она подтверждена |
-| cancel_requested / cancelled | Намерение отмены сохранено / исходный owner подтвердил остановку |
-| publishing_result | Исполнение дало результат, но обязательные файлы/manifest ещё не опубликованы долговечно |
-| succeeded / failed | Получен фактический результат этапа; не равняется приёмке задачи |
-| recovery_required | Потеря связи/lease или неизвестный side effect; новая работа ждёт сверки |
+| Состояние task execution/stage   | Семантика                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------- |
+| draft / ready                    | План готовится / прошёл проверки для будущего запуска                                    |
+| blocked                          | Не выполнено конкретное prerequisite; reason и путь разрешения обязательны               |
+| scheduled                        | Запланировано на время; это не обещание доступного worker сейчас                         |
+| queued                           | Готовый этап принят, ожидает разрешённый ресурс; действует queue deadline                |
+| dispatching                      | Передаётся владельцу runtime; исход восстанавливается по idempotency key                 |
+| running                          | Runtime подтвердил исполнение; известны attempt/heartbeat                                |
+| waiting_input / waiting_approval | Требуется конкретный ввод или решение; ресурсы удерживаются только по явной причине      |
+| pause_requested / paused         | Запрошена остановка на безопасной точке / она подтверждена                               |
+| cancel_requested / cancelled     | Намерение отмены сохранено / исходный owner подтвердил остановку                         |
+| publishing_result                | Исполнение дало результат, но обязательные файлы/manifest ещё не опубликованы долговечно |
+| succeeded / failed               | Получен фактический результат этапа; не равняется приёмке задачи                         |
+| recovery_required                | Потеря связи/lease или неизвестный side effect; новая работа ждёт сверки                 |
 
 Основной путь: ready → queued → dispatching → running → succeeded/failed.
 Любой succeeded требует durable result manifest, даже если список файлов пуст.
@@ -291,14 +293,14 @@ failed/cancelled записи неизменяемы; позднее событ�
 по согласованным критериям. При переоткрытии сохраняются старое решение и причина.
 Сервер применяет одинаковые gates к drag-and-drop, массовой операции и API:
 
-| Категория / событие | Условие и эффект |
-| --- | --- |
-| Active | Работа/ожидание/возврат на исправление; отдельная сводка execution обязательна при наличии запуска |
-| Done | Обязательные результаты исполнения сданы долговечно; может ожидаться тестирование/приёмка, что явно отображается |
-| Closed / принято | Все обязательные критерии, проверки и решение принимающего действуют для текущих revisions; включая deploy, если он входит в критерии |
-| Обязательный failed check | Возврат в Active/исправление; переход в Closed / принято отклоняется |
+| Категория / событие                          | Условие и эффект                                                                                                                                 |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Active                                       | Работа/ожидание/возврат на исправление; отдельная сводка execution обязательна при наличии запуска                                               |
+| Done                                         | Обязательные результаты исполнения сданы долговечно; может ожидаться тестирование/приёмка, что явно отображается                                 |
+| Closed / принято                             | Все обязательные критерии, проверки и решение принимающего действуют для текущих revisions; включая deploy, если он входит в критерии            |
+| Обязательный failed check                    | Возврат в Active/исправление; переход в Closed / принято отклоняется                                                                             |
 | Изменение принятого результата или критериев | Старое acceptance остаётся историческим; текущая приёмка требует пересмотра, задача возвращается в Active и не остаётся принятой по старому hash |
-| Закрытие с исключением | Только отдельное разрешённое решение с причиной и verdict; не равно accepted и не удовлетворяет зависимость, требующую успешной приёмки |
+| Закрытие с исключением                       | Только отдельное разрешённое решение с причиной и verdict; не равно accepted и не удовлетворяет зависимость, требующую успешной приёмки          |
 
 Настраиваемый список статусов должен иметь выбранный статус возврата для Active.
 Отмена/архив не подменяют успешную приёмку и не освобождают зависимые работы как success.
@@ -456,17 +458,17 @@ Retention удалённого текста соблюдается: ссылка
 
 ## 8. Артефакты, TASK.md и источники истины
 
-| Данные | Источник истины |
-| --- | --- |
-| Проекты, задачи, назначения/handoff, task relations/conversation links, декларативный план, доступ, приёмка | Payload task domain и версии сущностей |
-| Диалоги, сообщения и исходные message/run relationships | Существующий conversation owner; task хранит ссылки и разрешённый контекст |
-| Переходы workflow, fan-out/join, текущий этап | Единственный workflow engine; task UI читает проекцию |
-| Конфигурация AI | Существующий AI-layer release/compiler |
-| Фактический run/job/checkpoint/effect | Исходный runtime owner; task хранит refs и восстанавливаемые projections |
-| Метаданные файлов, revisions, hashes и права | Task artifact catalog |
-| Бинарное содержимое | Закрытый storage adapter с контролируемой выдачей |
-| Локальный workspace | Рабочая материализация/явно импортируемый источник, не вторая управляющая БД |
-| Native agent session/SQLite registry | Собственный runtime инструментов; в task dossier только разрешённые ссылки/сводки |
+| Данные                                                                                                      | Источник истины                                                                   |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Проекты, задачи, назначения/handoff, task relations/conversation links, декларативный план, доступ, приёмка | Payload task domain и версии сущностей                                            |
+| Диалоги, сообщения и исходные message/run relationships                                                     | Существующий conversation owner; task хранит ссылки и разрешённый контекст        |
+| Переходы workflow, fan-out/join, текущий этап                                                               | Единственный workflow engine; task UI читает проекцию                             |
+| Конфигурация AI                                                                                             | Существующий AI-layer release/compiler                                            |
+| Фактический run/job/checkpoint/effect                                                                       | Исходный runtime owner; task хранит refs и восстанавливаемые projections          |
+| Метаданные файлов, revisions, hashes и права                                                                | Task artifact catalog                                                             |
+| Бинарное содержимое                                                                                         | Закрытый storage adapter с контролируемой выдачей                                 |
+| Локальный workspace                                                                                         | Рабочая материализация/явно импортируемый источник, не вторая управляющая БД      |
+| Native agent session/SQLite registry                                                                        | Собственный runtime инструментов; в task dossier только разрешённые ссылки/сводки |
 
 Artifact metadata: ID/revision, category, filename, MIME, bytes, content hash,
 storage key, author, task/execution/stage/attempt, createdAt, provenance,
@@ -525,35 +527,35 @@ GC повторно проверяет ссылки перед удаление�
 
 ## 10. Приёмочные проверки
 
-| ID | Сценарий и доказательство |
-| --- | --- |
-| EX-01 | Два одновременных старта одной ревизии возвращают одно execution/dispatch; для каждой разрешённой ветки ровно один исходный run/job |
-| EX-02 | Ответ submit потерян после создания run: lookup/reconcile находит его, повторное исполнение не появляется |
-| EX-03 | Вкладка закрыта до terminal event: очередь, история и последующие разрешённые этапы продолжаются без browser SSE |
-| EX-04 | Рестарт dispatcher/CP/worker в разных фазах: состояние восстановлено либо явно recovery_required, без ложного успеха |
-| EX-05 | Старый worker пишет после истечения/передачи lease: fencing отвергает результат, новый владелец не дублирует side effect |
-| EX-06 | Занятый Codex: задания честно ждут один слот; разные агенты не обходят общий connection lock |
-| EX-07 | Несуществующая capability, потерянный credential или stale heartbeat: actionable blocker до dispatch |
-| EX-08 | Приоритеты, aging, DAG, fan-out/fan-in и partial failure проверены серверными сценариями; нет starvation/циклов |
-| EX-09 | Два code assignments с пересечением scope: изоляция/сериализация; объединение повторно проходит checks/review |
-| EX-10 | Профиль/команда/task revision изменены в очереди: план пересматривается; старый attempt хранит исходный snapshot |
-| EX-11 | Назначенный profile/model действительно дошёл до поддерживаемого runtime lane; неподдержанный выбор отклонён, не проигнорирован |
-| EX-12 | Отзыв ACL/delegation закрывает dispatch/read/write; членство задачи не раскрывает чужой личный чат или артефакт |
-| EX-13 | Pause/cancel в очереди, во время turn и внешнего write имеют разные правдивые исходы; retry не отменяет прошлый audit |
-| EX-14 | Artifact заменён после test/acceptance: старый verdict не распространяется на новый hash; зависимый план требует проверки |
-| EX-15 | Повторные/переставленные events не создают дублей и не откатывают state; уведомления не образуют цикл observer agents |
-| EX-16 | Импорт/экспорт, archive/restore и upgrade проверены на данных и внешних IDs; tmp cleanup не удаляет принятые результаты |
-| EX-17 | npm archive установлен в независимый host; task-domain и полный AI adapter проверены как разные compatibility profiles |
-| EX-18 | Сценарий человек/агенты на всех ролях проходит из Admin Assistant до принятого результата с досье и фактическими runs |
-| EX-19 | Timeout одновременно с claim: authoritative job не выполняет просроченный эффект либо обнаруженный начавшийся исход честно проходит cancel/recovery |
-| EX-20 | Падение при публикации blob/manifest: нет ложного succeeded/fan-in; публикация восстановлена, используемые версии удержаны от GC |
-| EX-21 | Агент → человек → агент: сдача новой ручной версии двигает тот же workflow и сохраняет авторство; provider не требуется ручному этапу |
-| EX-22 | Done/Closed и исключения одинаково проверяются во всех API/UI; изменение criteria/result не сохраняет принятие по старой версии |
+| ID    | Сценарий и доказательство                                                                                                                                             |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EX-01 | Два одновременных старта одной ревизии возвращают одно execution/dispatch; для каждой разрешённой ветки ровно один исходный run/job                                   |
+| EX-02 | Ответ submit потерян после создания run: lookup/reconcile находит его, повторное исполнение не появляется                                                             |
+| EX-03 | Вкладка закрыта до terminal event: очередь, история и последующие разрешённые этапы продолжаются без browser SSE                                                      |
+| EX-04 | Рестарт dispatcher/CP/worker в разных фазах: состояние восстановлено либо явно recovery_required, без ложного успеха                                                  |
+| EX-05 | Старый worker пишет после истечения/передачи lease: fencing отвергает результат, новый владелец не дублирует side effect                                              |
+| EX-06 | Занятый Codex: задания честно ждут один слот; разные агенты не обходят общий connection lock                                                                          |
+| EX-07 | Несуществующая capability, потерянный credential или stale heartbeat: actionable blocker до dispatch                                                                  |
+| EX-08 | Приоритеты, aging, DAG, fan-out/fan-in и partial failure проверены серверными сценариями; нет starvation/циклов                                                       |
+| EX-09 | Два code assignments с пересечением scope: изоляция/сериализация; объединение повторно проходит checks/review                                                         |
+| EX-10 | Профиль/команда/task revision изменены в очереди: план пересматривается; старый attempt хранит исходный snapshot                                                      |
+| EX-11 | Назначенный profile/model действительно дошёл до поддерживаемого runtime lane; неподдержанный выбор отклонён, не проигнорирован                                       |
+| EX-12 | Отзыв ACL/delegation закрывает dispatch/read/write; членство задачи не раскрывает чужой личный чат или артефакт                                                       |
+| EX-13 | Pause/cancel в очереди, во время turn и внешнего write имеют разные правдивые исходы; retry не отменяет прошлый audit                                                 |
+| EX-14 | Artifact заменён после test/acceptance: старый verdict не распространяется на новый hash; зависимый план требует проверки                                             |
+| EX-15 | Повторные/переставленные events не создают дублей и не откатывают state; уведомления не образуют цикл observer agents                                                 |
+| EX-16 | Импорт/экспорт, archive/restore и upgrade проверены на данных и внешних IDs; tmp cleanup не удаляет принятые результаты                                               |
+| EX-17 | npm archive установлен в независимый host; task-domain и полный AI adapter проверены как разные compatibility profiles                                                |
+| EX-18 | Сценарий человек/агенты на всех ролях проходит из Admin Assistant до принятого результата с досье и фактическими runs                                                 |
+| EX-19 | Timeout одновременно с claim: authoritative job не выполняет просроченный эффект либо обнаруженный начавшийся исход честно проходит cancel/recovery                   |
+| EX-20 | Падение при публикации blob/manifest: нет ложного succeeded/fan-in; публикация восстановлена, используемые версии удержаны от GC                                      |
+| EX-21 | Агент → человек → агент: сдача новой ручной версии двигает тот же workflow и сохраняет авторство; provider не требуется ручному этапу                                 |
+| EX-22 | Done/Closed и исключения одинаково проверяются во всех API/UI; изменение criteria/result не сохраняет принятие по старой версии                                       |
 | EX-23 | Many-to-many task/conversation, разные ACL, unlink и удаление источника: обратные ссылки корректны, закрытые данные не раскрыты, происхождение результата не потеряно |
-| EX-24 | Конкурентное добавление A→B/B→A между проектами: один запрос отклонён; related допускает цикл и не блокирует scheduler |
-| EX-25 | Повтор/гонка handoff с claim/result: один переход назначений, старый attempt не пишет от имени нового и не дублирует side effect; decline сохраняет ответственного |
-| EX-26 | Делегирование соисполнителю/цепочке агентов: scope и budget не растут, независимые части работают параллельно, fan-in ждёт нужные revisions |
-| EX-27 | Project/list/parent consistency проверена через UI/API/import; перенос/архив с активными runs не меняет их scope молча, ACL и весь перенос дерева согласованы |
+| EX-24 | Конкурентное добавление A→B/B→A между проектами: один запрос отклонён; related допускает цикл и не блокирует scheduler                                                |
+| EX-25 | Повтор/гонка handoff с claim/result: один переход назначений, старый attempt не пишет от имени нового и не дублирует side effect; decline сохраняет ответственного    |
+| EX-26 | Делегирование соисполнителю/цепочке агентов: scope и budget не растут, независимые части работают параллельно, fan-in ждёт нужные revisions                           |
+| EX-27 | Project/list/parent consistency проверена через UI/API/import; перенос/архив с активными runs не меняет их scope молча, ACL и весь перенос дерева согласованы         |
 
 До реализации по каждому GAP назначаются владелец, контракты, миграции и
 проверки. Это часть инженерной декомпозиции после принятия ТЗ/референсов.
@@ -688,14 +690,14 @@ Mutation facade в пилоте требует request без внешней `tr
 
 ### 12.2. API и интерфейс
 
-| Endpoint после host `/api` | Результат |
-| --- | --- |
-| GET/POST `/task-manager/projects` | Доступные проекты / создание проекта и default List |
-| GET `/task-manager/lists?projectId=…` | Доступные списки проекта |
-| GET `/task-manager/participants` | Ограниченный каталог допустимых участников |
-| GET/POST `/task-manager/tasks` | Страница задач выбранных projectId/listId / создание |
-| GET/PATCH `/task-manager/tasks/:id` | Точная Task revision / изменение с expectedRevision |
-| GET `/task-manager/tasks/:id/events` | Страница истории доступной задачи |
+| Endpoint после host `/api`            | Результат                                            |
+| ------------------------------------- | ---------------------------------------------------- |
+| GET/POST `/task-manager/projects`     | Доступные проекты / создание проекта и default List  |
+| GET `/task-manager/lists?projectId=…` | Доступные списки проекта                             |
+| GET `/task-manager/participants`      | Ограниченный каталог допустимых участников           |
+| GET/POST `/task-manager/tasks`        | Страница задач выбранных projectId/listId / создание |
+| GET/PATCH `/task-manager/tasks/:id`   | Точная Task revision / изменение с expectedRevision  |
+| GET `/task-manager/tasks/:id/events`  | Страница истории доступной задачи                    |
 
 Create/update требуют UUID `Idempotency-Key`. Envelope: `{ok:true,data}` либо
 `{ok:false,error:{code,message,fieldErrors?}}`. Страницы имеют `{items,nextCursor}`;
@@ -714,8 +716,8 @@ validation и revision конфликтов различимы; raw Payload docu
 Git binding содержит `repositoryId`, полный `commitSha` (40/64 hex),
 `purpose: platform-core|customer-project`, `source: manual`,
 `verification: unverified`. Он не вызывает Git-команды и не подтверждает
-существование коммита. Следующий Git observation adapter получает факты от
-существующего source-control owner; новый provider client внутри task domain
+существование коммита. Отдельный Git observation adapter из §13 получает факты
+от существующего source-control owner; новый provider client внутри task domain
 не создаётся. Releases и установленная версия читаются через их владельцев.
 
 ### 12.3. Приёмка Foundation
@@ -741,3 +743,246 @@ access и cutover из продуктового §15 остаются после
 fixture использует отдельный Next process/dist, сохраняет logs/screenshots в
 текущем TASK и удаляет только добавленные ею записи Next types из `tsconfig.json`.
 Рабочая БД установки этими командами не мигрируется.
+
+## 13. Ограниченное чтение Git-фактов (2026-10-12)
+
+Первый срез расширил Foundation живой read-only проекцией для ручных привязок
+задачи. Текущий live DTO дополнен CI точного SHA; долговечная фиксация того же
+наблюдения находится в §14. Эти ограниченные API не завершают поставку Git
+observation из продуктового §15.2: provider events и автономная сверка после
+сбоя остаются последующими шагами. Сохранённые `TaskGitBinding` продолжают иметь
+`source: manual`, `verification: unverified`; чтение не изменяет задачу,
+ревизию, audit или receipt.
+
+### 13.1. Владельцы и доступ
+
+`packages/payload-task-manager` владеет публичным DTO и task API, проверкой
+admission/project membership и соответствием результата текущей ревизии.
+Host передаёт модулю read-only port. Существующий integration runtime owner
+`@realize/payload-ai-control/server/integration-runtime` владеет подключением,
+credential vault и обращением к GitHub API. Task package не получает токен,
+не импортирует host и не создаёт самостоятельный provider client.
+
+Пилот читает только `purpose: platform-core` и repository slug, совпадающий с
+текущим настроенным GitHub repository. Для запроса коммита нужен полный 40 hex
+SHA. Foundation продолжает принимать 40/64 hex как ручной идентификатор;
+64 hex не объявляется поддержанным текущим GitHub adapter. Привязки
+`customer-project` и иной repository ID не разрешают чтение через credentials
+репозитория платформы: registry клиентских репозиториев и отдельные полномочия
+ещё не подключены.
+
+Task admission и membership проверяются до provider reads и повторно после
+них. Host admission перечитывает текущую запись того же пользователя через
+обычный Payload user access в независимом Local API request, без наследования
+caller transaction или request cache; `req.user` не подменяется. Старое
+`req.user.roles` не сохраняет отозванную роль. Удалённый actor или потерянное
+членство не получает ранее прочитанные
+факты. Provider owner также повторно сверяет состояние, репозиторий и ревизию
+подключения перед выдачей результата. Если за время
+чтения изменились ревизия или привязки задачи, API возвращает `409`. Интерфейс
+предлагает закрыть и снова открыть карточку, чтобы загрузить актуальную задачу
+перед новым запросом. Совпадение task key или ветки
+не заменяет эти проверки.
+
+Git observation facade требует request без внешней `transactionID`: чужой
+transaction snapshot не гарантирует актуальные ACL и revision после сети.
+Унаследованная транзакция даёт `503` до task/provider reads и остаётся во
+владении caller; task domain не завершает и не откатывает её. Отсутствие
+внешней транзакции проверяется также перед итоговым перечитыванием доступа.
+
+### 13.2. API и интерфейс
+
+`GET /api/task-manager/tasks/:id/git-observations` возвращает строгий публичный
+DTO в существующем envelope `{ok:true,data}`: `taskId`, `taskRevision`,
+`observedAt`, `complete`, `items`. Ответ относится к task ID и конкретной
+ревизии, содержит время наблюдения и результат чтения каждой
+обработанной сохранённой привязки. Foundation допускает до 50 ручных привязок;
+один запрос обрабатывает первые восемь, одновременно не более двух. Поле
+`complete` отражает покрытие привязок задачи; при превышении лимита оно равно
+`false`, а интерфейс показывает фактическое количество обработанных привязок.
+Credentials и сырые provider/Payload documents не выдаются. Ответ не кэшируется.
+
+Каждый `items` элемент содержит исходную `binding` и `status: observed` со строгими
+`repository`, `commit`, `pullRequests`, `pullRequestsComplete`, `ci` либо `unavailable`
+с reason `not_configured`, `repository_not_allowed`, `unsupported_sha`,
+`provider_unavailable` или `invalid_response`. `repository` содержит GitHub
+numeric ID как строку, `fullName` настроенного slug и безопасный canonical URL;
+привязка сопоставляется с `fullName`, а не с numeric ID. `commit` содержит точный
+SHA и безопасный URL; PR — `number`, URL, `state`, `draft`, `merged`. Ответ
+GitHub `404` означает недоступность чтения и не доказывает отсутствие repository
+или коммита. Ошибки и отсутствие настроенного подключения не повышают статус
+сохранённой привязки.
+
+GitHub сообщает сведения о репозитории, точном коммите и PR, связанных с этим
+коммитом через API associated pull requests. Проекция показывает только
+возвращённые этим запросом факты: первая страница до 20 PR. Следующая страница
+в provider `Link` делает `pullRequestsComplete: false`; это поле независимо от
+покрытия task bindings в `complete`. Даже `pullRequestsComplete: true` относится
+только к ответу API associated pull requests и не обещает полный перечень всех
+PR репозитория или восстановление связей после squash/rebase. Весь цикл чтения
+одной привязки ограничен десятью секундами, каждый provider body — 1 MB
+(1 000 000 bytes).
+Статус PR не означает приёмку задачи, прохождение CI, release либо deployment.
+
+`ci` содержит два независимых канала: `checkRuns` и `commitStatuses`.
+Каждый канал имеет `status: observed` с `items`, `totalCount`, `complete` либо
+`status: unavailable` с reason `provider_unavailable` или `invalid_response`.
+Недоступный CI-канал не выдаётся за пустую успешную проверку и не подменяет
+другой канал. Общая недоступность подключения или исчерпанный deadline по-прежнему
+может сделать всю привязку `unavailable`.
+
+Check Run содержит numeric ID как строку, `name`, точный `headSha`,
+`status: queued|in_progress|completed|waiting|requested|pending`, nullable
+`conclusion` и безопасный canonical GitHub URL. Заключения:
+`action_required`, `cancelled`, `failure`, `neutral`, `success`, `skipped`,
+`stale`, `timed_out`, `startup_failure`. Commit status содержит numeric ID
+как строку, `context`, `state: error|failure|pending|success`; канал также
+содержит `combinedState: failure|pending|success`, сообщённый GitHub.
+Descriptions, annotations, credentials и внешние `target_url`/`details_url`
+не входят в публичный DTO.
+
+CI запрашивается только для сохранённого полного SHA. Каждый Check Run
+сопоставляется по `head_sha`; combined status — по SHA и repository identity
+ответа. CI нового PR head, merge commit или результата squash/rebase не
+переносится на прежний SHA. `combinedState: success` не является доказательством
+наличия или прохождения обязательных checks конкретного workflow.
+
+Оба CI-канала показывают первую страницу до 20 записей. `complete` означает
+`totalCount === items.length` при отсутствии provider `Link next` в выбранной
+API-проекции; upstream Check Runs ограничен окном API и не обещает всю историю
+репозитория. Reference endpoint ограничивает окно последними 1000 check suites;
+подробности — [GitHub Check Runs](https://docs.github.com/en/rest/checks/runs#list-check-runs-for-a-git-reference).
+GitHub `combinedState` относится только к последним legacy status contexts —
+[GitHub Commit Statuses](https://docs.github.com/en/rest/commits/statuses#get-the-combined-status-for-a-specific-reference).
+Покрытие CI, PR и task bindings различается. Provider owner
+использует общий deadline 10 секунд для чтения одной привязки, включая оба
+CI-канала, потоки ответов и повторную проверку подключения.
+
+Рабочая карточка запрашивает факты по явному обновлению. UI связывает ответ с
+текущей задачей и ревизией; запоздавший ответ не подменяет другую карточку или
+новые привязки. Время чтения и граница текущей проекции видны пользователю.
+Ручная привязка остаётся непроверенной в сохранённом досье даже при успешном
+живом наблюдении.
+
+### 13.3. Приёмка и остающиеся шаги
+
+- Неавторизованный, неадминистратор и посторонний project actor не вызывают
+  provider и не получают факты; отзыв доступа во время чтения закрывает ответ.
+- Разрешённая ручная привязка сопоставляется с настроенным репозиторием и
+  точным SHA; provider не может подменить repository, commit или безопасный URL.
+- Изменение task revision во время запроса возвращает conflict; интерфейс
+  не показывает факты для другой ревизии и требует актуализировать
+  задачу перед явным повторным чтением.
+- Ошибки provider не выдают credentials или сырой ответ; лимит PR не выглядит
+  как доказательство полноты. Клиент отвергает ответ с лишними/raw полями.
+- Чтение не создаёт task events, не меняет `verification`, статус задачи,
+  схему или generated types и не выполняет Git commit/push.
+
+Долговечные observations/receipts и повтор polling-команды описаны в §14.
+Доставка provider events, автономная reconciliation после сбоя и связи с
+release manifest остаются следующими поставками у тех же владельцев.
+Done/приёмка, клиентские repositories и cutover локальных задач остаются открытыми.
+
+## 14. Долговечная синхронизация Git по запросу (2026-10-12)
+
+Это законченный ограниченный polling-срез: пользователь явно получает и
+сохраняет Git/PR/CI-наблюдение, а после потери ответа восстанавливает результат
+по тому же Idempotency-Key. Webhook ingestion, автономный background worker
+и периодический reconciler не входят в срез. GET из §13 сохраняет read-only
+семантику; запись выполняет отдельный POST.
+
+### 14.1. Команда, история и владельцы
+
+| Endpoint после host `/api`                      | Результат                                                            |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| POST `/task-manager/tasks/:id/git-syncs`        | Долговечный результат polling сохранённых привязок указанной ревизии |
+| GET `/task-manager/tasks/:id/git-syncs?after=…` | Страница сохранённых результатов доступной задачи, новые первыми     |
+
+POST принимает строгий `TaskGitSyncInput: {expectedRevision}` и UUID
+`Idempotency-Key`. Клиент не передаёт provider-факты, actor, привязки,
+receipt ID или статус проверки. Публичный `TaskGitSyncDto` включает весь
+`TaskGitObservationsDto` из §13 и поля `id`, `projectId`, `actorId`, `recordedAt`.
+`observedAt` относится к окончанию получения наблюдения, `recordedAt` —
+серверное время его записи. Это разные моменты, а не provider event timestamp.
+
+История использует существующий envelope/page DTO и opaque actor/query-bound
+`after` cursor; размер страницы — 50. Изменение текущей задачи не переписывает
+сохранённый результат прежней ревизии. Доступ к истории определяется текущими
+admission и membership, а не правами actor в момент записи.
+
+Task domain владеет immutable sync record и operation receipt. Provider owner
+по-прежнему владеет чтением GitHub и credentials; host передаёт тот же typed
+read-only port. Отдельная история синхронизации не меняет task audit events,
+статус, приёмку, task revision или `manual/unverified` в сохранённых привязках.
+
+Скрытая collection `realize-task-git-syncs` хранит отдельный snapshot с task,
+project, actor и task revision; прямой REST/GraphQL CRUD закрыт. Payload hooks
+и PostgreSQL trigger запрещают update/delete. Operation receipts переиспользуют
+существующую `realize-task-operations`. Source миграции —
+[`scripts/migrations/task-git-sync.mjs`](../../scripts/migrations/task-git-sync.mjs);
+официальный generator создаёт добавочную `20261011_215235_task_git_sync` из
+Foundation predecessor. Generated types/snapshot не правятся вручную.
+
+### 14.2. Атомарность, повторы и конфликты
+
+Перед polling проверяются независимый request, текущий actor/admission,
+project membership и ожидаемая task revision. Provider reads выполняются вне
+DB-транзакции и advisory locks. Перед фиксацией task domain повторно проверяет
+доступ, ревизию и принадлежность привязок; изменённый результат не записывается
+как факт новой ревизии. Унаследованная transactionID отклоняется без завершения
+caller transaction.
+
+Immutable sync record и actor/operation/command-bound receipt фиксируются
+атомарно. Ошибка записи оставляет оба отсутствующими. Повтор принятой команды
+с тем же ключом и payload после свежей проверки доступа возвращает первоначальный
+receipt без нового provider read или второй записи. Он остаётся историческим
+результатом исходной task revision, даже если текущая задача уже изменена.
+Повтор ключа с другим payload даёт `409`. Новое наблюдение требует нового ключа.
+
+Конкурирующие доставки одного ключа сохраняют один результат; read-only
+provider запросы до принятия receipt могут повториться. Контракт не обещает
+однократного HTTP polling. Потеря ответа или browser timeout не доказывают
+откат: открытая карточка сохраняет исходные payload/key и сначала повторяет
+ту же команду, включая изменение текущей task revision.
+Отозванный доступ закрывает replay и историю. Сбой до durable commit позволяет
+повторить ещё не принятую команду; процесс не возобновляет её автоматически.
+
+Provider errors сохраняются как явно недоступные результаты конкретной попытки.
+Следующая неудачная попытка не уничтожает более раннее успешное наблюдение и
+не изображает его свежим. Сохранённые SHA, PR и CI относятся к точной привязке
+и ревизии receipt; другая ревизия требует отдельного polling и не наследует
+старый CI success.
+
+### 14.3. Интерфейс и приёмка
+
+Карточка явно разделяет live проверку и долговечную синхронизацию. История
+переживает reload, закрытие карточки и restart Payload; показывает actor,
+время и ревизию результата. Сведения прежней ревизии обозначаются как
+исторические. Неизвестный исход записи удерживает исходную команду и ключ для
+повтора, пока карточка остаётся смонтированной. Ключ неподтверждённой команды
+не сохраняется в browser storage: после закрытия карточки или reload GET
+восстанавливает записанную историю, без автоматического нового POST.
+Server receipt остаётся доступным по исходному ключу для клиента, который
+сохранил эту команду; восстановление истории не объявляется восстановлением
+утраченного browser key. UI не объявляет неподдержанные, пустые или неполные CI данные
+прохождением обязательных проверок и не закрывает задачу.
+
+- POST/GET/replay сохраняют admission/membership и строгий DTO boundary;
+  внешняя транзакция не получает network polling или task domain writes.
+- Потерянный ответ, повтор после restart и конкурирующие одинаковые команды
+  дают один durable receipt; изменённый payload того же ключа — conflict.
+- Task revision, actor или доступ, изменившиеся за время network, не создают
+  запись для неверной задачи/ревизии; network не удерживает DB locks.
+- Fault injection при записи подтверждает полный rollback; sync/receipt нельзя
+  изменить или удалить через generic CRUD и прямую обычную DB mutation.
+- CI точного SHA сохраняет состояния `pending`, `failure`, `success`,
+  unavailable и неполное покрытие без подмены приёмкой или PR head checks.
+- PostgreSQL migration проходит fresh/full chain, restart durability и empty
+  down/up; populated down блокирует потерю записанных результатов.
+- Browser подтверждает сохранение истории после close/reopen/reload,
+  историческую ревизию, сохранность неудачных попыток и повтор unknown outcome
+  с прежним ключом; внешний page layout, keyboard/focus и темы сохраняются.
+
+Полная Git observation поставка §15.2 остаётся открытой: server-owned event
+ingestion, автономная сверка, расширенное покрытие истории/клиентских repository,
+release traceability и смена рабочего слоя здесь не реализуются.

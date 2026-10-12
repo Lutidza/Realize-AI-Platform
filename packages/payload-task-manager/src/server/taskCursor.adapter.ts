@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/taskCursor.adapter.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Шифрует bounded курсор, привязанный к текущему автору и области запроса.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -41,7 +41,8 @@ export function readTaskCursor(
 ): string | number | null {
   if (cursor === null) return null;
   try {
-    if (!/^[A-Za-z0-9_-]{40,256}$/.test(cursor))
+    // 12 bytes IV + 16 tag + JSON однозначного integer дают 39 base64url символов.
+    if (!/^[A-Za-z0-9_-]{39,256}$/.test(cursor))
       throw new Error("Invalid cursor");
     const encoded = Buffer.from(cursor, "base64url");
     const decipher = createDecipheriv(

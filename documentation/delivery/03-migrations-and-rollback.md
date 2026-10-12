@@ -1,7 +1,7 @@
 # Миграции и rollback
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 5 октября 2026 года (usage ledger и проверка восстановления)
+- **Дата сверки:** 12 октября 2026 года (схема Task Manager и Git-снимков)
 
 ## 1. Канонический порядок миграций
 
@@ -66,6 +66,10 @@
 28. `20261004_161914_ai_execution_context` — private nullable snapshots для CR/job.
 29. `20261004_210727_ai_usage_ledger` — пять закрытых таблиц учёта расходов,
     immutable events/prices и защищённый rollback.
+30. `20261011_162630_task_manager_foundation` — Project/List/Task, membership,
+    immutable task events и actor-bound operation receipts.
+31. `20261011_215235_task_git_sync` — immutable Git/PR/CI snapshots для точной
+    task revision; отдельный populated rollback guard.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -74,7 +78,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-В пустой PostgreSQL применяется вся последовательность из 29 миграций.
+В пустой PostgreSQL применяется вся последовательность из 31 миграции.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 
@@ -493,3 +497,29 @@ ledger блокирует новые модельные вызовы. Завис
 владелец после фактической остановки процесса; резерв остаётся до явной сверки.
 Операционная семантика и точный охват —
 [§25.7](../specifications/realize-ai-commerce/v1.0/04-commercial-and-operations/25-subscriptions-and-ai-billing.md#257-реализованный-локальный-контур-plat-04).
+
+### Task Manager: Foundation и Git-снимки
+
+Schema owners — коллекции `packages/payload-task-manager/src/taskCollections.config.ts`.
+Миграции генерируются штатным Payload/Drizzle через
+[`task-manager.mjs`](../../scripts/migrations/task-manager.mjs) и
+[`task-git-sync.mjs`](../../scripts/migrations/task-git-sync.mjs); generated TS/JSON,
+registry и Payload types вручную не исправляются.
+
+Foundation владеет общей `realize_task_history_immutable()`; Git migration
+использует её для запрета UPDATE/DELETE снимков. Порядок rollback обратный:
+Git-снимки, затем Foundation. Непустой `realize_task_git_syncs` блокирует down
+ошибкой `TASK_GIT_ROLLBACK_BLOCKED`; Foundation защищает свои таблицы через
+`TASK_ROLLBACK_BLOCKED`. Откат приложения сохраняет историю в расширенной схеме.
+
+`npm run check:tasks:postgres` создаёт собственную одноразовую loopback БД,
+применяет 31 миграцию, проверяет пустой down/up, immutable guards, атомарность
+sync/receipt, CAS, конкурентные повторы и восстановление после перезапуска.
+`npm run check:tasks:browser` использует отдельную browser БД с той же цепочкой.
+Обе fixture удаляются владельцем после проверки. Эти команды не применяют
+миграции к рабочей установке. Новая схема подготовлена и проверена на fixtures;
+применение к рабочей БД остаётся отдельным операционным действием с backup и
+проверкой восстановления по этому runbook.
+
+Контракт API и границы текущего polling —
+[Task Manager execution §14](../specifications/task-management-execution.md#14-долговечная-синхронизация-git-по-запросу-2026-10-12).

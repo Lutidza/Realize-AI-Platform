@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/taskManagerEndpoints.controller.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Адаптирует authenticated Task HTTP к серверному facade с безопасными envelopes.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -15,6 +15,7 @@ import { readTaskBody } from "./readTaskBody.adapter";
 
 const after = z.string().min(1).max(256).optional();
 const pageQuery = z.strictObject({ after });
+const emptyQuery = z.strictObject({});
 const listQuery = z.strictObject({ projectId: z.uuid(), after });
 const taskQuery = z.strictObject({
   projectId: z.uuid(),
@@ -113,5 +114,16 @@ export function createTaskEndpoints(
     endpoint("/tasks/:id/events", "get", (service, req) =>
       service.events(id(req), query(req, pageQuery).after ?? null),
     ),
+    endpoint("/tasks/:id/git-observations", "get", (service, req) => {
+      query(req, emptyQuery);
+      return service.gitObservations(id(req));
+    }),
+    endpoint("/tasks/:id/git-syncs", "get", (service, req) =>
+      service.gitSyncs(id(req), query(req, pageQuery).after ?? null),
+    ),
+    endpoint("/tasks/:id/git-syncs", "post", async (service, req) => {
+      query(req, emptyQuery);
+      return service.syncGit(id(req), await readTaskBody(req));
+    }),
   ];
 }

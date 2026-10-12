@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/source-headers/src/sourceHeaders.config.ts
- * @version 1.3.0
- * @date 2026-10-11
+ * @version 1.4.0
+ * @date 2026-10-12
  * @description Описывает поддерживаемые форматы и подтверждённые исключения проверки шапок.
  */
 
@@ -39,6 +39,8 @@ export const generatedHeaderExceptions: Readonly<Record<string, string>> = {
     "Payload migrate:create; автоматически создаваемый migration registry",
   "src/migrations/20261011_162630_task_manager_foundation.ts":
     "Payload migrate:create --file scripts/migrations/task-manager.mjs; источник — schema и template",
+  "src/migrations/20261011_215235_task_git_sync.ts":
+    "Payload migrate:create --file scripts/migrations/task-git-sync.mjs; источник — schema и template",
   "src/migrations/20261004_210727_ai_usage_ledger.ts":
     "Payload migrate:create --file scripts/migrations/ai-usage-ledger.mjs; источник — schema и template",
   "src/migrations/20261004_161914_ai_execution_context.ts":

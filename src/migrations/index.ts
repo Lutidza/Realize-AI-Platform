@@ -28,6 +28,7 @@ import * as migration_20260928_102009_search_observation_state from './20260928_
 import * as migration_20261004_161914_ai_execution_context from './20261004_161914_ai_execution_context';
 import * as migration_20261004_210727_ai_usage_ledger from './20261004_210727_ai_usage_ledger';
 import * as migration_20261011_162630_task_manager_foundation from './20261011_162630_task_manager_foundation';
+import * as migration_20261011_215235_task_git_sync from './20261011_215235_task_git_sync';
 
 export const migrations = [
   {
@@ -178,6 +179,11 @@ export const migrations = [
   {
     up: migration_20261011_162630_task_manager_foundation.up,
     down: migration_20261011_162630_task_manager_foundation.down,
-    name: '20261011_162630_task_manager_foundation'
+    name: '20261011_162630_task_manager_foundation',
+  },
+  {
+    up: migration_20261011_215235_task_git_sync.up,
+    down: migration_20261011_215235_task_git_sync.down,
+    name: '20261011_215235_task_git_sync'
   },
 ];

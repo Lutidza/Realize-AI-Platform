@@ -1,7 +1,7 @@
 /**
  * @file tests/int/task-manager-durable-client.int.spec.ts
- * @version 1.0.1
- * @date 2026-10-11
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Проверяет повторную доставку, конфликт draft и подавление устаревших ответов Task Manager.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -81,6 +81,15 @@ function transport(): TaskManagerTransport {
     participants: vi.fn().mockResolvedValue(page([actor])),
     tasks: vi.fn().mockResolvedValue(page([task])),
     task: vi.fn().mockResolvedValue(task),
+    gitObservations: vi.fn().mockResolvedValue({
+      taskId: task.id,
+      taskRevision: task.revision,
+      observedAt: timestamp,
+      items: [],
+      complete: true,
+    }),
+    gitSyncs: vi.fn().mockResolvedValue(page([])),
+    syncGit: vi.fn(),
     events: vi.fn().mockResolvedValue(page([])),
     createProject: vi.fn().mockResolvedValue(project),
     createTask: vi.fn().mockResolvedValue(task),

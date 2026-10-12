@@ -1,13 +1,14 @@
 /**
  * @file src/components/admin/task-manager/TaskDetail.component.tsx
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Показывает сохранённую ревизию задачи, ручные Git-привязки и настоящий audit.
  * @see documentation/specifications/task-management-execution.md
  */
 import { UiBadge, UiButton, UiSurface } from "@realize/ui-kit";
 import type { TaskDetailProps } from "./TaskManager.types";
 import { taskPriorityLabels, taskStatusLabels } from "./taskManager.constants";
+import { TaskGitObservations } from "./TaskGitObservations.component";
 import styles from "./TaskManagerWorkbench.module.css";
 
 export function TaskDetail({
@@ -78,6 +79,7 @@ export function TaskDetail({
           <p className={styles.muted}>Привязки не добавлены.</p>
         )}
       </section>
+      <TaskGitObservations task={task} participants={participants} />
       <section className={styles.stack} aria-label="История задачи">
         <h3>История</h3>
         {events.length ? (

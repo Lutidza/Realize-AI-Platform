@@ -1,12 +1,14 @@
 /**
  * @file src/components/admin/task-manager/TaskManagerApi.adapter.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Обменивается строгими DTO с авторизованным API Task Manager.
  * @see documentation/specifications/task-management-execution.md
  */
 import {
   taskEventSchema,
+  taskGitObservationsSchema,
+  taskGitSyncSchema,
   taskListSchema,
   taskProjectSchema,
   taskSchema,
@@ -15,6 +17,7 @@ import type {
   TaskCreateInput,
   TaskProjectCreateInput,
   TaskUpdateInput,
+  TaskGitSyncInput,
 } from "@realize/payload-task-manager/contracts";
 import { z } from "zod";
 import { TaskManagerClientError } from "./TaskManagerClient.error";
@@ -141,6 +144,32 @@ export class TaskManagerApi implements TaskManagerTransport {
     return this.request(`/tasks/${encodeURIComponent(id)}`, taskSchema, {
       signal,
     });
+  }
+  gitObservations(id: string, signal?: AbortSignal) {
+    return this.request(
+      `/tasks/${encodeURIComponent(id)}/git-observations`,
+      taskGitObservationsSchema,
+      { signal },
+    );
+  }
+  gitSyncs(id: string, after?: string | null, signal?: AbortSignal) {
+    return this.request(
+      this.query(`/tasks/${encodeURIComponent(id)}/git-syncs`, { after }),
+      pageSchema(taskGitSyncSchema),
+      { signal },
+    );
+  }
+  syncGit(
+    id: string,
+    input: TaskGitSyncInput,
+    key: string,
+    signal?: AbortSignal,
+  ) {
+    return this.request(
+      `/tasks/${encodeURIComponent(id)}/git-syncs`,
+      taskGitSyncSchema,
+      { ...this.mutation(input, key), signal },
+    );
   }
   events(id: string, after?: string | null, signal?: AbortSignal) {
     return this.request(

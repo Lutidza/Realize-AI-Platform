@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/withTaskTransaction.repository.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Сериализует replay и изменения проекта PostgreSQL locks в транзакции Payload.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -15,14 +15,14 @@ import {
 } from "payload";
 import { TaskManagerError } from "./TaskManager.error";
 
-/** Payload Local API откатывает внешнюю txn при ошибке; пилот требует независимый request. */
+/** Mutations не владеют caller txn; live Git reads требуют свежей ACL после network без чужого snapshot. */
 export async function assertIndependentTaskTransaction(
   req: PayloadRequest,
 ): Promise<void> {
   if ((await req.transactionID) != null)
     throw new TaskManagerError(
       "STORAGE_UNAVAILABLE",
-      "Сохранение задачи требует отдельного запроса без внешней транзакции.",
+      "Операция с задачей требует отдельного запроса без внешней транзакции.",
       503,
     );
 }

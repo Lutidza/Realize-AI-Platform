@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/taskCollections.config.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.1.0
+ * @date 2026-10-12
  * @description Регистрирует закрытые задачи, membership проектов и неизменяемую историю операций.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -13,6 +13,7 @@ import {
   TASK_OPERATIONS_SLUG,
   TASK_PROJECTS_SLUG,
   TASKS_SLUG,
+  TASK_GIT_SYNCS_SLUG,
 } from "./taskManager.constants";
 
 const text = (
@@ -86,6 +87,24 @@ export function createTaskCollections(
         text("actorId"),
         text("projectId", { index: true }),
         json("receipt"),
+      ],
+    },
+    {
+      slug: TASK_GIT_SYNCS_SLUG,
+      immutable: true,
+      fields: [
+        text("syncId", { unique: true }),
+        text("taskId", { index: true }),
+        text("projectId", { index: true }),
+        {
+          name: "taskRevision",
+          type: "number",
+          required: true,
+          min: 1,
+          index: true,
+        },
+        text("actorId", { index: true }),
+        json("record"),
       ],
     },
   ];

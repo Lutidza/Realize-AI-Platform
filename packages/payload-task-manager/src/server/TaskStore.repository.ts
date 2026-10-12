@@ -1,8 +1,8 @@
 /**
  * @file packages/payload-task-manager/src/server/TaskStore.repository.ts
- * @version 1.0.0
- * @date 2026-10-11
- * @description Выполняет scoped Payload запросы внутри общей task-транзакции.
+ * @version 1.1.0
+ * @date 2026-10-12
+ * @description Выполняет scoped Payload reads/writes и actor-bound пагинацию task storage.
  * @see documentation/specifications/task-management-execution.md
  */
 import type {
@@ -15,6 +15,7 @@ import type {
   TaskStorageRow,
   TaskStorageSlug,
   TaskOperationRow,
+  TaskPageDirection,
 } from "./TaskStorage.types";
 import { TASK_OPERATIONS_SLUG, TASK_PAGE_SIZE } from "../taskManager.constants";
 import { createTaskCursor, readTaskCursor } from "./taskCursor.adapter";
@@ -67,21 +68,39 @@ export class TaskStoreRepository {
     return (result.docs[0] as unknown as TaskStorageRow | undefined) ?? null;
   }
 
-  async page(collection: TaskStorageSlug, where: Where, after: string | null) {
+  async page(
+    collection: TaskStorageSlug,
+    where: Where,
+    after: string | null,
+    direction: TaskPageDirection = "asc",
+  ) {
     const scope = JSON.stringify([
       String(this.req.user?.id),
       collection,
       where,
+      ...(direction === "desc" ? ["desc"] : []),
     ]);
     const cursor = readTaskCursor(this.req.payload.secret, scope, after);
     const result = await this.req.payload.find({
       collection: collection as CollectionSlug,
       where: {
-        and: [where, ...(cursor ? [{ id: { greater_than: cursor } }] : [])],
+        and: [
+          where,
+          ...(cursor
+            ? [
+                {
+                  id:
+                    direction === "asc"
+                      ? { greater_than: cursor }
+                      : { less_than: cursor },
+                },
+              ]
+            : []),
+        ],
       },
       limit: TASK_PAGE_SIZE + 1,
       depth: 0,
-      sort: "id",
+      sort: direction === "asc" ? "id" : "-id",
       overrideAccess: true,
       req: this.req,
     });

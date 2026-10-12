@@ -1,11 +1,23 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/runtime/integrationRuntime.index.ts
- * @version 1.4.0
- * @date 2026-09-11
+ * @version 1.6.0
+ * @date 2026-10-12
  * @description Объявляет публичные серверные экспорты модуля разрешения интеграций.
  */
 
 export { GitHubConnectionService } from "./GitHubConnection.service";
+export { GitHubObservationService } from "./GitHubObservation.service";
+export type {
+  GitHubObservationCi,
+  GitHubObservationCheckRunDto,
+  GitHubObservationCheckRuns,
+  GitHubObservationCommitStatusDto,
+  GitHubObservationCommitStatuses,
+  GitHubObservationCiUnavailable,
+  GitHubObservationInput,
+  GitHubObservationOptions,
+  GitHubObservationResult,
+} from "./GitHubObservation.types";
 export { GitRepositoryConnectionService } from "./GitRepositoryConnection.service";
 export { GitCommitAuthorService } from "./GitCommitAuthor.service";
 export type {

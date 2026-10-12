@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/task-manager/TaskManager.types.ts
- * @version 1.1.0
- * @date 2026-10-11
+ * @version 1.3.0
+ * @date 2026-10-12
  * @description Описывает свойства рабочего интерфейса и клиентский транспорт постоянных задач.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -11,6 +11,9 @@ import type {
   TaskEditableFields,
   TaskEventDto,
   TaskGitBinding,
+  TaskGitObservationsDto,
+  TaskGitSyncDto,
+  TaskGitSyncInput,
   TaskListDto,
   TaskPageDto,
   TaskParticipantDto,
@@ -45,6 +48,21 @@ export type TaskManagerTransport = {
     signal?: AbortSignal,
   ) => Promise<TaskPageDto<TaskDto>>;
   task: (id: string, signal?: AbortSignal) => Promise<TaskDto>;
+  gitObservations: (
+    id: string,
+    signal?: AbortSignal,
+  ) => Promise<TaskGitObservationsDto>;
+  gitSyncs: (
+    id: string,
+    after?: string | null,
+    signal?: AbortSignal,
+  ) => Promise<TaskPageDto<TaskGitSyncDto>>;
+  syncGit: (
+    id: string,
+    input: TaskGitSyncInput,
+    key: string,
+    signal?: AbortSignal,
+  ) => Promise<TaskGitSyncDto>;
   events: (
     id: string,
     after?: string | null,

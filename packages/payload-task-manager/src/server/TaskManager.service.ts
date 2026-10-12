@@ -1,8 +1,8 @@
 /**
  * @file packages/payload-task-manager/src/server/TaskManager.service.ts
- * @version 1.0.1
- * @date 2026-10-11
- * @description Координирует membership, постоянные задачи и revision CAS без AI или Git provider исполнения.
+ * @version 1.2.0
+ * @date 2026-10-12
+ * @description Координирует membership, задачи, revision CAS, live Git observation и долговечные sync.
  * @see documentation/specifications/task-management-execution.md
  */
 import { randomUUID } from "node:crypto";
@@ -22,6 +22,8 @@ import {
   taskUpdateSchema,
 } from "../contracts/taskManager.schemas";
 import type { ResolvedTaskManagerOptions } from "../TaskManagerOptions.types";
+import type { TaskGitObservationsDto } from "../contracts/TaskGitObservation.types";
+import type { TaskGitSyncDto } from "../contracts/TaskGitSync.types";
 import {
   TASK_EVENTS_SLUG,
   TASK_FIELD_LABELS,
@@ -42,17 +44,27 @@ import {
 import { parseTaskCommand } from "./parseTaskCommand.validator";
 import { withTaskMutation } from "./withTaskMutation.service";
 import { assertIndependentTaskTransaction } from "./withTaskTransaction.repository";
+import { readTaskGitObservations } from "./readTaskGitObservations.service";
+import { TaskGitSyncService } from "./TaskGitSync.service";
 
 /** Все публичные методы авторизуют req.user; actorId не принимается от клиента. */
 export class TaskManagerService {
   private readonly repository: TaskStoreRepository;
   private readonly participantsRepository: TaskParticipantsRepository;
+  private readonly gitSyncService: TaskGitSyncService;
   constructor(
     private readonly req: PayloadRequest,
     private readonly options: ResolvedTaskManagerOptions,
   ) {
     this.repository = new TaskStoreRepository(req);
     this.participantsRepository = new TaskParticipantsRepository(req, options);
+    this.gitSyncService = new TaskGitSyncService({
+      req,
+      options,
+      authorize: () => this.authorize(),
+      readTask: async (taskId, actor) =>
+        (await this.ownedTask(taskId, actor)).task,
+    });
   }
 
   async authorize(): Promise<TaskActor> {
@@ -197,6 +209,51 @@ export class TaskManagerService {
   async task(taskId: string): Promise<TaskDto> {
     const actor = await this.authorize();
     return (await this.ownedTask(taskId, actor)).task;
+  }
+
+  /** Live facts читаются только для сохранённых связей; ACL и revision повторно проверяются после network. */
+  async gitObservations(taskId: string): Promise<TaskGitObservationsDto> {
+    // Внешний transaction snapshot не гарантирует свежую ACL/revision после network.
+    await assertIndependentTaskTransaction(this.req);
+    const actor = await this.authorize();
+    const initial = (await this.ownedTask(taskId, actor)).task;
+    const snapshot = await readTaskGitObservations(
+      this.req,
+      initial,
+      this.options.observeGitBinding,
+    );
+    await assertIndependentTaskTransaction(this.req);
+    const currentActor = await this.authorize();
+    if (currentActor.id !== actor.id)
+      throw new TaskManagerError(
+        "FORBIDDEN",
+        "Автор запроса изменился. Повторите запрос.",
+        403,
+      );
+    const current = (await this.ownedTask(taskId, currentActor)).task;
+    if (
+      current.revision !== initial.revision ||
+      JSON.stringify(current.gitBindings) !==
+        JSON.stringify(initial.gitBindings)
+    )
+      throw new TaskManagerError(
+        "REVISION_CONFLICT",
+        "Задача изменена во время чтения Git. Загрузите актуальную версию.",
+        409,
+      );
+    return snapshot;
+  }
+
+  /** Atomic immutable snapshot/receipt; network вне locks, повтор не читает provider. */
+  async syncGit(taskId: string, value: unknown): Promise<TaskGitSyncDto> {
+    return this.gitSyncService.sync(taskId, value);
+  }
+
+  async gitSyncs(
+    taskId: string,
+    after: string | null = null,
+  ): Promise<TaskPageDto<TaskGitSyncDto>> {
+    return this.gitSyncService.history(taskId, after);
   }
 
   async events(

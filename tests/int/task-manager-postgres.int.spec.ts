@@ -1,7 +1,7 @@
 /**
  * @file tests/int/task-manager-postgres.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.1.0
+ * @date 2026-10-12
  * @description Проверяет постоянные задачи, ACL, replay, CAS и защищённую историю на отдельной мигрированной PostgreSQL БД.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -20,12 +20,13 @@ import {
   type PayloadRequest,
   type RequiredDataFromCollectionSlug,
 } from "payload";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createTaskManagerService } from "@realize/payload-task-manager/server";
 import type {
   TaskDto,
   TaskEditableFields,
   TaskProjectDto,
+  TaskGitObservationProviderResult,
 } from "@realize/payload-task-manager/contracts";
 import {
   TASK_COLLECTION_SLUGS,
@@ -45,7 +46,12 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
     let member: NonNullable<PayloadRequest["user"]>;
     let stranger: NonNullable<PayloadRequest["user"]>;
     let customer: NonNullable<PayloadRequest["user"]>;
-    const foundation = migrations.at(-1)!;
+    const foundation = migrations.find((migration) =>
+      /_task_manager_foundation$/.test(migration.name),
+    )!;
+    const gitMigration = migrations.find((migration) =>
+      /_task_git_sync$/.test(migration.name),
+    )!;
 
     const migrate = async (operation: typeof foundation.up) => {
       const dialect = new PgDialect();
@@ -131,6 +137,7 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
       )
         throw new Error("ISOLATED_TASK_DATABASE_REQUIRED");
       expect(foundation.name).toMatch(/_task_manager_foundation$/);
+      expect(gitMigration.name).toMatch(/_task_git_sync$/);
       db = new Client({ connectionString: uri.href });
       await db.connect();
       expect(
@@ -141,8 +148,10 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
         ).rows[0].count,
       ).toBe(0);
       for (const migration of migrations) await migrate(migration.up);
+      await migrate(gitMigration.down);
       await migrate(foundation.down);
       await migrate(foundation.up);
+      await migrate(gitMigration.up);
       payload = await openMcpPayload();
       const user = async (role: "admin" | "customer", name: string) => ({
         ...(await payload.create({
@@ -623,6 +632,242 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
         (await service(member, key)).updateTask(task.id, command),
       ).rejects.toMatchObject({ status: 404 });
       expect((await (await service()).events(task.id)).items).toHaveLength(2);
+    });
+
+    const gitTask = async () => {
+      const scope = await create();
+      const task = await (
+        await service()
+      ).updateTask(scope.task.id, {
+        ...editable(scope.task),
+        expectedRevision: scope.task.revision,
+        gitBindings: [
+          {
+            repositoryId: "fixture/platform",
+            commitSha: "a".repeat(40),
+            purpose: "platform-core",
+            source: "manual",
+            verification: "unverified",
+          },
+        ],
+      });
+      return { ...scope, task };
+    };
+    const gitFact = (): TaskGitObservationProviderResult => ({
+      status: "observed",
+      repository: {
+        id: "123",
+        fullName: "fixture/platform",
+        url: "https://github.com/fixture/platform",
+      },
+      commit: {
+        sha: "a".repeat(40),
+        url: "https://github.com/fixture/platform/commit/" + "a".repeat(40),
+      },
+      pullRequests: [],
+      pullRequestsComplete: true,
+      ci: {
+        checkRuns: {
+          status: "observed",
+          items: [
+            {
+              id: "7",
+              name: "contract tests",
+              headSha: "a".repeat(40),
+              status: "completed",
+              conclusion: "success",
+              url: "https://github.com/fixture/platform/runs/7",
+            },
+          ],
+          totalCount: 1,
+          complete: true,
+        },
+        commitStatuses: {
+          status: "observed",
+          items: [],
+          totalCount: 0,
+          complete: true,
+          combinedState: "pending",
+        },
+      },
+    });
+
+    it("stores exact CI snapshots once across concurrent retries, restart and later task revision", async () => {
+      const { task } = await gitTask();
+      const observer = vi.fn(async () => gitFact());
+      const key = randomUUID();
+      const command = { expectedRevision: task.revision };
+      const syncService = async () =>
+        createTaskManagerService(await request(owner, key), {
+          ...taskManagerOptions,
+          observeGitBinding: observer,
+        });
+      const [first, second] = await Promise.all([
+        (await syncService()).syncGit(task.id, command),
+        (await syncService()).syncGit(task.id, command),
+      ]);
+      expect(second).toEqual(first);
+      expect((await (await service()).gitSyncs(task.id)).items).toEqual([
+        first,
+      ]);
+      expect(first.items[0]).toMatchObject({
+        status: "observed",
+        ci: {
+          checkRuns: { items: [{ headSha: task.gitBindings[0].commitSha }] },
+        },
+      });
+      expect(await (await service()).task(task.id)).toEqual(task);
+      expect((await (await service()).events(task.id)).items).toHaveLength(2);
+      const callsBeforeRestart = observer.mock.calls.length;
+      await payload.destroy();
+      payload = await openMcpPayload();
+      await (
+        await service()
+      ).updateTask(task.id, {
+        ...editable(task),
+        title: "Следующий результат",
+        expectedRevision: task.revision,
+      });
+      expect(await (await syncService()).syncGit(task.id, command)).toEqual(
+        first,
+      );
+      expect(observer).toHaveBeenCalledTimes(callsBeforeRestart);
+      await expect(
+        (await syncService()).syncGit(task.id, {
+          expectedRevision: task.revision + 1,
+        }),
+      ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+      expect(observer).toHaveBeenCalledTimes(callsBeforeRestart);
+      await expect(
+        db.query(
+          "UPDATE realize_task_git_syncs SET actor_id='forged' WHERE sync_id=$1",
+          [first.id],
+        ),
+      ).rejects.toThrow("TASK_HISTORY_IMMUTABLE");
+      await expect(
+        db.query("DELETE FROM realize_task_git_syncs WHERE sync_id=$1", [
+          first.id,
+        ]),
+      ).rejects.toThrow("TASK_HISTORY_IMMUTABLE");
+      await expect(migrate(gitMigration.down)).rejects.toThrow(
+        "TASK_GIT_ROLLBACK_BLOCKED",
+      );
+    });
+
+    it("rolls back observation and receipt together, then recovers with the same command", async () => {
+      const { task } = await gitTask();
+      const observer = vi.fn(async () => gitFact());
+      const key = randomUUID();
+      const command = { expectedRevision: task.revision };
+      const syncService = async () =>
+        createTaskManagerService(await request(owner, key), {
+          ...taskManagerOptions,
+          observeGitBinding: observer,
+        });
+      const before = await db.query(
+        "SELECT count(*)::int AS count FROM realize_task_operations WHERE project_id=$1",
+        [task.projectId],
+      );
+      await db.query(`CREATE FUNCTION realize_task_test_fail_git_receipt() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+        IF NEW.project_id = '${task.projectId}' THEN RAISE EXCEPTION 'TASK_TEST_GIT_RECEIPT_FAILURE'; END IF;
+        RETURN NEW; END $$;
+        CREATE TRIGGER realize_task_test_git_receipt_failure BEFORE INSERT ON realize_task_operations FOR EACH ROW EXECUTE FUNCTION realize_task_test_fail_git_receipt();`);
+      try {
+        await expect(
+          (await syncService()).syncGit(task.id, command),
+        ).rejects.toThrow();
+        expect((await (await service()).gitSyncs(task.id)).items).toEqual([]);
+        expect(
+          (
+            await db.query(
+              "SELECT count(*)::int AS count FROM realize_task_operations WHERE project_id=$1",
+              [task.projectId],
+            )
+          ).rows[0].count,
+        ).toBe(before.rows[0].count);
+      } finally {
+        await db.query(
+          "DROP TRIGGER realize_task_test_git_receipt_failure ON realize_task_operations; DROP FUNCTION realize_task_test_fail_git_receipt();",
+        );
+      }
+      const receipt = await (await syncService()).syncGit(task.id, command);
+      expect((await (await service()).gitSyncs(task.id)).items).toEqual([
+        receipt,
+      ]);
+      expect(
+        (
+          await db.query(
+            "SELECT count(*)::int AS count FROM realize_task_operations WHERE project_id=$1",
+            [task.projectId],
+          )
+        ).rows[0].count,
+      ).toBe(before.rows[0].count + 1);
+    });
+
+    it("performs provider reads outside locks and rejects a task changed during the read", async () => {
+      const { task } = await gitTask();
+      const observer = vi.fn(async ({ req }: { req: PayloadRequest }) => {
+        expect(await req.transactionID).toBeUndefined();
+        await (
+          await service(member)
+        ).updateTask(task.id, {
+          ...editable(task),
+          expectedRevision: task.revision,
+          title: "Изменено во время Git",
+        });
+        return gitFact();
+      });
+      const manager = createTaskManagerService(await request(), {
+        ...taskManagerOptions,
+        observeGitBinding: observer,
+      });
+      await expect(
+        manager.syncGit(task.id, { expectedRevision: task.revision }),
+      ).rejects.toMatchObject({ status: 409, code: "REVISION_CONFLICT" });
+      expect((await (await service()).gitSyncs(task.id)).items).toEqual([]);
+    });
+
+    it("keeps failed later polls as separate history and paginates newest snapshots by a scoped cursor", async () => {
+      const { task } = await gitTask();
+      const first = await createTaskManagerService(await request(), {
+        ...taskManagerOptions,
+        observeGitBinding: async () => gitFact(),
+      }).syncGit(task.id, { expectedRevision: task.revision });
+      const failed = await createTaskManagerService(await request(), {
+        ...taskManagerOptions,
+        observeGitBinding: async () => ({
+          status: "unavailable",
+          reason: "provider_unavailable",
+        }),
+      }).syncGit(task.id, { expectedRevision: task.revision });
+      expect((await (await service()).gitSyncs(task.id)).items).toEqual([
+        failed,
+        first,
+      ]);
+      // Вставляем собственную fixture историю, не изменяя immutable строки или рабочую БД.
+      await db.query(
+        `INSERT INTO realize_task_git_syncs (sync_id, task_id, project_id, task_revision, actor_id, record)
+        SELECT sync_id, $1, $2, $3, $4, jsonb_set($5::jsonb, '{id}', to_jsonb(sync_id)) FROM (SELECT gen_random_uuid()::text AS sync_id FROM generate_series(1, 50)) AS fixture`,
+        [
+          task.id,
+          task.projectId,
+          task.revision,
+          String(owner.id),
+          JSON.stringify(first),
+        ],
+      );
+      const page = await (await service()).gitSyncs(task.id);
+      expect(page.items).toHaveLength(50);
+      expect(page.nextCursor).toBeTruthy();
+      const tail = await (await service()).gitSyncs(task.id, page.nextCursor);
+      expect(tail.items).toEqual([failed, first]);
+      expect(tail.nextCursor).toBeNull();
+      await expect(
+        (await service(member)).gitSyncs(task.id, page.nextCursor),
+      ).rejects.toMatchObject({ status: 422 });
+      await expect(
+        (await service(stranger)).gitSyncs(task.id),
+      ).rejects.toMatchObject({ status: 404 });
     });
 
     it("protects append-only history in PostgreSQL and refuses rollback over existing tasks", async () => {

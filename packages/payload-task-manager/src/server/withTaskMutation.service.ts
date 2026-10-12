@@ -1,34 +1,22 @@
 /**
  * @file packages/payload-task-manager/src/server/withTaskMutation.service.ts
- * @version 1.0.1
- * @date 2026-10-11
+ * @version 1.0.2
+ * @date 2026-10-12
  * @description Сохраняет task mutation и actor-bound durable replay receipt в одной транзакции.
  * @see documentation/specifications/task-management-execution.md
  */
-import { createHash } from "node:crypto";
-import { taskPublicIdSchema } from "../contracts/taskManager.schemas";
 import { TASK_OPERATIONS_SLUG } from "../taskManager.constants";
-import { TaskManagerError } from "./TaskManager.error";
 import { TaskStoreRepository } from "./TaskStore.repository";
 import { withTaskTransaction } from "./withTaskTransaction.repository";
 import type { TaskMutationContext } from "./TaskMutation.types";
-
-const hash = (value: unknown) =>
-  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+import { createTaskMutationIdentity } from "./createTaskMutationIdentity.validator";
+import { readTaskMutationReceipt } from "./readTaskMutationReceipt.service";
 
 /** Проверка текущего ACL предшествует replay: receipt не восстанавливает отозванное право. */
 export async function withTaskMutation<T>(
   context: TaskMutationContext<T>,
 ): Promise<T> {
-  const key = context.req.headers.get("idempotency-key");
-  if (!key || !taskPublicIdSchema.safeParse(key).success)
-    throw new TaskManagerError(
-      "INVALID_REQUEST",
-      "Требуется корректный Idempotency-Key.",
-      422,
-    );
-  const replayKey = hash([context.actorId, context.operation, key]);
-  const requestHash = hash([context.projectId, context.command]);
+  const identity = createTaskMutationIdentity(context);
   const repository = new TaskStoreRepository(context.req);
   return withTaskTransaction(
     context.req,
@@ -36,20 +24,16 @@ export async function withTaskMutation<T>(
     context.projectId,
     async () => {
       await context.authorize();
-      const previous = await repository.replay(replayKey);
-      if (previous) {
-        if (previous.requestHash !== requestHash)
-          throw new TaskManagerError(
-            "CONFLICT",
-            "Idempotency-Key уже использован для другого запроса.",
-            409,
-          );
-        return context.readReceipt(previous.receipt);
-      }
+      const previous = await readTaskMutationReceipt({
+        req: context.req,
+        identity,
+        readReceipt: context.readReceipt,
+      });
+      if (previous.found) return previous.result;
       const { result, projectId } = await context.work();
       await repository.create(TASK_OPERATIONS_SLUG, {
-        replayKey,
-        requestHash,
+        replayKey: identity.replayKey,
+        requestHash: identity.requestHash,
         actorId: context.actorId,
         projectId,
         receipt: result,

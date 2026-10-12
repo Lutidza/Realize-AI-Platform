@@ -1,7 +1,7 @@
 # Контекст проекта: Realize
 
 - **Статус:** current implementation
-- **Дата сверки:** 11 октября 2026 года (Task Manager Foundation; прежние MCP и Мастерская сохранены)
+- **Дата сверки:** 12 октября 2026 года (Task Manager: Foundation, чтение Git-фактов и долговечный polling; прежние MCP и Мастерская сохранены)
 
 ## Цель проекта
 
@@ -51,9 +51,22 @@ content/data/schema/design/code/delivery от профильных commerce-мо
 Task Manager Foundation находится в `packages/payload-task-manager/**` и
 `/system/task-manager`: постоянные проекты/задачи, серверная авторизация,
 ревизии и транзакционная история. Это ограниченная первая поставка;
-Git-привязки пока ручные и непроверенные. Полный контракт и дальнейшие этапы —
+Git-привязки остаются ручными и непроверенными. Отдельный read-only endpoint
+`/api/task-manager/tasks/:id/git-observations` читает текущие GitHub repository,
+commit, associated PR и CI точного SHA для первых восьми привязок через существующий
+integration runtime owner. Поддержаны только `platform-core`, настроенный
+repository slug и 40 hex SHA; клиентские repositories ждут registry/permissions.
+Живой ответ относится к task revision и не меняет досье, историю, статус
+приёмки или release/deploy. Отдельные POST/GET
+`/api/task-manager/tasks/:id/git-syncs` сохраняют immutable polling results и
+actor-bound replay receipts. История и повтор команды переживают restart;
+server receipt возвращается по прежнему ключу. Browser pending key удерживается
+только в открытой карточке; после close/reload читается сохранённая история.
+Сведения прежней ревизии остаются историческими. Task revision/status и
+ручные привязки не меняются. Webhooks и автономная reconciliation ещё не поставлены.
+Полный контракт и дальнейшие этапы —
 [Task Manager](specifications/task-management.md#128-постоянный-foundation-2026-10-11)
-и [Foundation](specifications/task-management-execution.md#12-первая-постоянная-поставка-foundation).
+и [долговечный polling](specifications/task-management-execution.md#14-долговечная-синхронизация-git-по-запросу-2026-10-12).
 Локальные `.ai-workspace/tasks/**` сохраняют прежнюю роль до проверенного cutover.
 
 `src/RealizeCore/**` и `src/app/_realize/**` quarantined по ADR-0001. Пути

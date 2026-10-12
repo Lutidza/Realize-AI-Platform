@@ -85,6 +85,7 @@ export interface Config {
     'realize-tasks': RealizeTask;
     'realize-task-events': RealizeTaskEvent;
     'realize-task-operations': RealizeTaskOperation;
+    'realize-task-git-syncs': RealizeTaskGitSync;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -164,6 +165,7 @@ export interface Config {
     'realize-tasks': RealizeTasksSelect<false> | RealizeTasksSelect<true>;
     'realize-task-events': RealizeTaskEventsSelect<false> | RealizeTaskEventsSelect<true>;
     'realize-task-operations': RealizeTaskOperationsSelect<false> | RealizeTaskOperationsSelect<true>;
+    'realize-task-git-syncs': RealizeTaskGitSyncsSelect<false> | RealizeTaskGitSyncsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -1408,6 +1410,29 @@ export interface RealizeTaskOperation {
   actorId: string;
   projectId: string;
   receipt:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-git-syncs".
+ */
+export interface RealizeTaskGitSync {
+  id: number;
+  syncId: string;
+  taskId: string;
+  projectId: string;
+  taskRevision: number;
+  actorId: string;
+  record:
     | {
         [k: string]: unknown;
       }
@@ -3387,6 +3412,20 @@ export interface RealizeTaskOperationsSelect<T extends boolean = true> {
   actorId?: T;
   projectId?: T;
   receipt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-task-git-syncs_select".
+ */
+export interface RealizeTaskGitSyncsSelect<T extends boolean = true> {
+  syncId?: T;
+  taskId?: T;
+  projectId?: T;
+  taskRevision?: T;
+  actorId?: T;
+  record?: T;
   updatedAt?: T;
   createdAt?: T;
 }
