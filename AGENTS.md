@@ -36,19 +36,19 @@
 
 ## Навигация
 
-| Задача                                          | Источник                                                                                                               |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Настройка, запуск, сборка                       | [README](README.md)                                                                                                    |
-| Расположение кода и владельцы                   | [Структура проекта](documentation/architecture/project-structure.md)                                                   |
-| Разработка и зависимости                        | [Общие правила разработки](.ai/registry/rules/development/INDEX.md)                                                    |
-| Интерфейс, React, браузерные проверки           | [Frontend](.ai/registry/rules/development/frontend/INDEX.md)                                                           |
-| Payload, API, DTO, миграции, поиск              | [Backend](.ai/registry/rules/development/backend/INDEX.md)                                                             |
-| Документация и инструкции                       | [Правила](.ai/registry/rules/documentation/INDEX.md), [синхронизация](.codex/skills/skill-documentation-sync/SKILL.md) |
-| Область, перенос и удаление                     | [Scope control](.ai/registry/rules/scope-control/INDEX.md)                                                             |
-| Задачи, референсы и логи                        | [.ai-workspace](.ai-workspace/README.md)                                                                               |
-| Ответственность и специальные процессы          | [Роли](.ai/roles/role-groups.md), [workflows](.ai/workflows/INDEX.md)                                                  |
-| Codex и структура инструкций                    | [Адаптер](.codex/README.md), [карта .ai](.ai/STRUCTURE.md), [карта .codex](.codex/STRUCTURE.md)                        |
-| Git: чтение, управление, commit/fetch/pull/push | [Git workflow](.ai/workflows/delivery/git/commit-push/WORKFLOW.md)                                                     |
+| Задача                                                | Источник                                                                                                               |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Настройка, запуск, сборка                             | [README](README.md)                                                                                                    |
+| Расположение кода и владельцы                         | [Структура проекта](documentation/architecture/project-structure.md)                                                   |
+| Разработка и зависимости                              | [Общие правила разработки](.ai/registry/rules/development/INDEX.md)                                                    |
+| Интерфейс, React, браузерные проверки                 | [Frontend](.ai/registry/rules/development/frontend/INDEX.md)                                                           |
+| Payload, API, DTO, миграции, поиск                    | [Backend](.ai/registry/rules/development/backend/INDEX.md)                                                             |
+| Документация и инструкции                             | [Правила](.ai/registry/rules/documentation/INDEX.md), [синхронизация](.codex/skills/skill-documentation-sync/SKILL.md) |
+| Область, перенос и удаление                           | [Scope control](.ai/registry/rules/scope-control/INDEX.md)                                                             |
+| Задачи, референсы и логи                              | [.ai-workspace](.ai-workspace/README.md)                                                                               |
+| Ответственность и специальные процессы                | [Роли](.ai/roles/role-groups.md), [workflows](.ai/workflows/INDEX.md)                                                  |
+| Codex и структура инструкций                          | [Адаптер](.codex/README.md), [карта .ai](.ai/STRUCTURE.md), [карта .codex](.codex/STRUCTURE.md)                        |
+| Git: чтение, управление, commit/fetch/pull/push/merge | [Git workflow](.ai/workflows/delivery/git/commit-push/WORKFLOW.md)                                                     |
 
 ## Git-воркер
 
@@ -59,8 +59,9 @@
 [commit](.codex/prompts/workflows/delivery/git/commit.md),
 [push](.codex/prompts/workflows/delivery/git/push.md),
 [manage](.codex/prompts/workflows/delivery/git/manage.md),
-[fetch](.codex/prompts/workflows/delivery/git/fetch.md) или
-[pull](.codex/prompts/workflows/delivery/git/pull.md), без AGENTS и общих документов.
+[fetch](.codex/prompts/workflows/delivery/git/fetch.md),
+[pull](.codex/prompts/workflows/delivery/git/pull.md) или
+[merge](.codex/prompts/workflows/delivery/git/merge.md), без AGENTS и общих документов.
 Границы исключения определены [Git-правилом](.ai/rules/git/RULE-GIT-DELIVERY.md).
 
 ## Ограничения и конфликты

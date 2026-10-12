@@ -11,6 +11,7 @@ checks:
   - .ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md
   - .ai/checks/git/CHECK-GIT-MANAGEMENT-SCOPE.md
   - .ai/checks/git/CHECK-GIT-SYNC-READINESS.md
+  - .ai/checks/git/CHECK-GIT-APPROVED-TREE-MERGE.md
 codex_adapter:
   - .codex/skills/git-commit-push/SKILL.md
 ```
@@ -29,7 +30,7 @@ SourcePromotion, ReleaseCandidate и их полномочия этим прав
 ручными Git-командами не допускается. Идентификаторы моделей не угадываются.
 
 `inspect` и читающие операции `manage` требуют разрешённого анализа репозитория.
-Изменяющие операции `manage`, `fetch`, `pull`, commit, push и их область
+Изменяющие операции `manage`, `fetch`, `pull`, commit, push, merge и их область
 должны быть разрешены пользователем; завершение правки этого разрешения не
 даёт. Повторное согласование уже разрешённого действия не требуется.
 Полный состав включается только при явно разрешённом полном снимке изменений.
@@ -50,8 +51,9 @@ SourcePromotion, ReleaseCandidate и их полномочия этим прав
 [commit](../../../.codex/prompts/workflows/delivery/git/commit.md),
 [push](../../../.codex/prompts/workflows/delivery/git/push.md),
 [manage](../../../.codex/prompts/workflows/delivery/git/manage.md),
-[fetch](../../../.codex/prompts/workflows/delivery/git/fetch.md) или
-[pull](../../../.codex/prompts/workflows/delivery/git/pull.md) и команду.
+[fetch](../../../.codex/prompts/workflows/delivery/git/fetch.md),
+[pull](../../../.codex/prompts/workflows/delivery/git/pull.md) или
+[merge](../../../.codex/prompts/workflows/delivery/git/merge.md) и команду.
 Полные AGENTS, правила, workflow и навыки ей не передаются.
 Основной агент применяет Git-маршрут до запуска; механизм запуска и обработчик
 обеспечивают фиксированную рабочую копию, инструменты разрешённого действия
@@ -96,10 +98,14 @@ development-агента, включая inspect, сохраняют маршр�
 - Сохраняй чужие изменения и индекс. Случайные материалы, секреты и результаты
   сборки не включаются. Push покрывает весь публикуемый набор коммитов и явную
   ветку; `defaultBranch` не даёт права переключать её или публиковать в неё.
-- Этот маршрут не выполняет force push, stash/reset/rebase, PR, merge с новым
-  merge commit, deploy или попутное исправление кода. Pull допускает только
+- Этот маршрут не выполняет force push, stash/reset/rebase, PR, generic local
+  merge, deploy или попутное исправление кода. Pull допускает только
   фиксированный fast-forward через `--ff-only --no-edit`. Остальные действия
   требуют отдельной задачи и соответствующей реализации.
+- `merge` создаёт GitHub commit только из отдельно разрешённого и проверенного
+  candidate tree с двумя закреплёнными parents. Контракт `approved-tree` не
+  выбирает стратегию слияния и не разрешает конфликты; локальная актуализация
+  выполняется отдельно через `pull`.
 - Исправление прерванного commit допускается только через явно разрешённое
   восстановление прежнего requestId с актуальными проверками. Обработчик
   доказывает принадлежность индекса и сохраняет принятый снимок до staging;
@@ -131,12 +137,41 @@ GitHub rename, CAS интеграции и filesystem move принадлежа�
 Изменившиеся локальный источник, удалённая ветка или ревизия подключения
 блокируют продолжение. Автоматического stash, rebase или разрешения конфликтов нет.
 
+`merge` получает GitHub API credential у общего владельца интеграций. Контекст
+закрепляет repository ID/slug/revision, target/source refs и OID, target tree,
+candidate tree, точные `approvedChangedPaths` и descriptors `candidate.files`.
+Канонический `candidateSourceRoot` ограничен task-каталогом
+`<repositoryRoot>/.ai-workspace/tasks/<taskId>/tmp/**`. Полные recursive tree manifests
+должны быть без truncation; за пределами разрешённых конечных путей сохраняются
+type, mode и object SHA. Проверки вызывающей среды привязаны к fingerprint
+refs/tree, candidateSourceRoot и файловых metadata; текст задания или наличие дерева не заменяют
+проверку содержимого и сохранения принятой работы.
+
+До любого POST обработчик читает только approved bytes с `O_NOFOLLOW`,
+проверяет Git blob SHA, mode, пути и секреты. Полный target leaf set с accepted
+overlays должен вычислять назначенный candidate tree OID. Immutable blob POST
+и tree POST с `base_tree: target.treeOid` сверяются по assigned SHA, затем
+полный manifest candidate повторно проверяется. Model не получает raw blobs.
+Проверяющий исполнитель использует отдельный dependency/build cache вне
+approved paths; проверка не расширяет публикуемый состав.
+
+Journal до первого POST закрепляет два ordered parents, identity, message,
+UTC date и expected commit. Pending object сохраняется до каждого upload;
+unknown object сначала сверяется GET. Подтверждённый object не создаётся повторно,
+его отсутствие блокирует запись; могут продолжаться только ещё не начатые uploads.
+Перед обновлением target ref сверяются обе refs, PATCH использует `force: false`,
+после него проверяется target ref. GitHub обеспечивает fast-forward guard;
+endpoint не принимает expected old OID, поэтому это не unconditional CAS.
+Merge не меняет локальные refs, рабочие файлы или индекс. Неопределённый исход
+сначала сверяется; новый requestId не разрешает слепую запись.
+
 Изменяющие операции используют общий Git lock и атомарный журнал до побочного
 эффекта. Повтор сохраняет исходный контекст и сверяет фактическое состояние;
 неизвестный исход или расхождение не разрешают новую запись. Параметры операций,
 лимиты и реализованные границы описаны в README обработчика, критерии — в
 [management check](../../checks/git/CHECK-GIT-MANAGEMENT-SCOPE.md) и
-[sync check](../../checks/git/CHECK-GIT-SYNC-READINESS.md).
+[sync check](../../checks/git/CHECK-GIT-SYNC-READINESS.md) и
+[merge check](../../checks/git/CHECK-GIT-APPROVED-TREE-MERGE.md).
 
 ## Достаточность проверок
 

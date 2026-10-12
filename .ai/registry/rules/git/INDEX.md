@@ -24,6 +24,7 @@ entries:
         .ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md,
         .ai/checks/git/CHECK-GIT-MANAGEMENT-SCOPE.md,
         .ai/checks/git/CHECK-GIT-SYNC-READINESS.md,
+        .ai/checks/git/CHECK-GIT-APPROVED-TREE-MERGE.md,
       ]
     related_workflows: [.ai/workflows/delivery/git/commit-push/WORKFLOW.md]
     related_codex_artifacts:
@@ -41,6 +42,8 @@ entries:
         .codex/prompts/workflows/delivery/git/fetch.md,
         .codex/agents/delivery/git/pull.json,
         .codex/prompts/workflows/delivery/git/pull.md,
+        .codex/agents/delivery/git/merge.json,
+        .codex/prompts/workflows/delivery/git/merge.md,
       ]
     related_tools: [git, ssh, github]
     routing_tags:
@@ -54,11 +57,13 @@ entries:
         manage,
         fetch,
         pull,
+        merge,
+        approved-tree,
         remote,
         worktree,
         branch,
         https,
         ssh,
       ]
-    trigger: "Чтение Git, управление remote/worktrees/ветками, staging, commit, fetch, pull или push рабочего слоя."
+    trigger: "Чтение Git, управление remote/worktrees/ветками, staging, commit, fetch, pull, push или GitHub merge проверенного дерева рабочего слоя."
 ```

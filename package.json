@@ -32,6 +32,7 @@
     "git:fetch": "npm run --silent git:worker -- fetch",
     "git:pull": "npm run --silent git:worker -- pull",
     "git:manage": "npm run --silent git:worker -- manage",
+    "git:merge": "npm run --silent git:worker -- merge",
     "format:check": "prettier --check \"packages/**/*.{ts,tsx,js,mjs,css,json}\" \"services/**/*.{ts,tsx,js,mjs,json}\" \"scripts/{migrations,release,runtime,security}/**/*.{js,mjs}\" \"scripts/release/**/*.{ts,json}\" \"tests/**/*.{ts,tsx}\" \"src/app/\\(app\\)/api/health/**/*.ts\" \"src/payload.config.ts\" \"src/plugins/index.ts\" \"{eslint,next,playwright}.config.{ts,mjs}\" \"{package,tsconfig}.json\" \"compose*.yaml\" \".github/workflows/*.{yml,yaml}\" \"scripts/runtime/evaluation/**/*.ts\" \".ai/tools/quality/*.ts\"",
     "lint": "cross-env NODE_OPTIONS=--no-deprecation eslint .",
     "lint:fix": "cross-env NODE_OPTIONS=--no-deprecation eslint . --fix",

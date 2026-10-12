@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/gitWorkerActions.constants.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-10-13
  * @description Задаёт подключённые действия и имена ограниченных инструментов Git-воркеров.
  */
 
@@ -12,6 +12,7 @@ export const GIT_WORKER_ACTIONS = [
   "manage",
   "fetch",
   "pull",
+  "merge",
 ] as const;
 
 export const GIT_ASSIGNED_OPERATION_TOOLS = {
@@ -29,5 +30,10 @@ export const GIT_ASSIGNED_OPERATION_TOOLS = {
     name: "git_pull",
     description:
       "Обновляет назначенную чистую ветку только fast-forward до проверенного commit. Аргументы не требуются.",
+  },
+  merge: {
+    name: "git_merge",
+    description:
+      "Публикует один назначенный approved-tree merge commit с двумя parents. Аргументы не требуются.",
   },
 } as const;

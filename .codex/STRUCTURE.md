@@ -17,12 +17,12 @@ runtime_sources:
 ├── STRUCTURE.md
 ├── config.toml
 ├── agents/
-│   ├── delivery/git/{inspect,commit,push,manage,fetch,pull}.json
+│   ├── delivery/git/{inspect,commit,push,manage,fetch,pull,merge}.json
 │   └── frontend/next-react/guardrail/{INDEX.md,agent.toml}
 ├── prompts/
 │   ├── search-acceptance.md
 │   └── workflows/
-│       ├── delivery/git/{inspect,commit,push,manage,fetch,pull}.md
+│       ├── delivery/git/{inspect,commit,push,manage,fetch,pull,merge}.md
 │       └── frontend/next-react/guardrail.md
 └── skills/README.md
 ```
@@ -32,7 +32,7 @@ runtime_sources:
 В `skills/` находятся каталог и отдельные `SKILL.md`; в схеме показаны
 основные входы, полный список навыков ведётся в `skills/README.md`.
 
-`agents/delivery/git/{inspect,commit,push,manage,fetch,pull}.json` — профили запуска Git-воркеров.
+`agents/delivery/git/{inspect,commit,push,manage,fetch,pull,merge}.json` — профили запуска Git-воркеров.
 Их читает `.ai/tools/git-delivery`; это не встроенный формат Codex agent.
 Вход и доступные действия описаны в [Git-навыке](skills/git-commit-push/SKILL.md).
 

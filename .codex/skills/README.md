@@ -19,7 +19,7 @@
 - `feature-decomposition-guard` — структура кода и разделение ответственности.
 - `frontend-guardrail-audit` - read-only audit of frontend guardrails.
 - `frontend-runtime-evidence` - choose static/build/browser evidence tier.
-- `git-commit-push` — inspect/manage, commit/fetch/pull/push через отдельного воркера, HTTPS/SSH.
+- `git-commit-push` — inspect/manage, commit/fetch/pull/push и GitHub merge проверенного дерева через отдельного воркера.
 - `reference-to-implementation` - reference/screenshot/current-page parity.
 - `skill-documentation-sync` - sync `.ai`, `.codex` and docs artifacts.
 

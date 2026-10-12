@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorker.types.ts
- * @version 1.4.0
- * @date 2026-10-12
+ * @version 1.5.0
+ * @date 2026-10-13
  * @description Определяет контракты Git-воркеров, транспорта и подтверждённого отчёта.
  */
 
@@ -14,13 +14,21 @@ import type {
 } from "../manage/GitManage.types.ts";
 import type { GitSyncContext, GitSyncResult } from "../sync/GitSync.types.ts";
 import type { GIT_WORKER_ACTIONS } from "./gitWorkerActions.constants.ts";
+import type {
+  GitMergeContext,
+  GitMergeResult,
+} from "../merge/GitMerge.types.ts";
 
 export type GitWorkerAction = (typeof GIT_WORKER_ACTIONS)[number];
 export type GitWorkerCommand = { action: GitWorkerAction; message?: string };
 export type GitWorkerContext =
-  Context | GitPushContext | GitManageContext | GitSyncContext;
+  | Context
+  | GitPushContext
+  | GitManageContext
+  | GitSyncContext
+  | GitMergeContext;
 export type GitWorkerResult =
-  Result | GitPushResult | GitManageResult | GitSyncResult;
+  Result | GitPushResult | GitManageResult | GitSyncResult | GitMergeResult;
 
 export type GitWorkerSettings = {
   model: string;

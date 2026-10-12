@@ -81,7 +81,7 @@ runtime_sources:
 - `tools/quality/` проверяет metadata и связи активного слоя для CI;
   поведенческие evals используют продуктовый adapter через `scripts/runtime/evaluation/`.
 - `tools/git-delivery/src/worker/` запускает Git-воркера для inspect, commit, push,
-  manage, fetch и pull; настройки
+  manage, fetch, pull и GitHub merge проверенного дерева; настройки
   находятся в `.codex/`, общий транспорт — в `packages/codex-adapter/`.
 - `worker-profiles/` предназначен для необязательных повторно используемых
   профилей делегирования. Сейчас содержит только индекс, готовых профилей нет.

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.controller.ts
- * @version 1.3.0
- * @date 2026-10-12
+ * @version 1.3.1
+ * @date 2026-10-13
  * @description Принимает Git-действие и передаёт его воркеру с контекстом вызывающей среды.
  */
 
@@ -27,7 +27,7 @@ async function main(): Promise<void> {
   ) {
     throw new PolicyError(
       "worker_action_unavailable",
-      "Использование: npm run git:worker -- inspect | commit [message] | push | manage | fetch | pull",
+      "Использование: npm run git:worker -- inspect | commit [message] | push | manage | fetch | pull | merge",
     );
   }
   const command = parseGitWorkerCommand({

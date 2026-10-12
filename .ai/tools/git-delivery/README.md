@@ -2,8 +2,10 @@
 
 Программная часть [ADR-0016](../../../documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md).
 Через отдельного Git-воркера выполняются `inspect`, локальный `commit`, `push`,
-`manage`, `fetch` и `pull`. Сетевые действия получают подключение из БД интеграций
-и используют HTTPS-токен либо SSH-профиль; pull допускает только fast-forward.
+`manage`, `fetch`, `pull` и GitHub `merge` проверенного дерева. Git transport
+получает подключение из БД интеграций и использует HTTPS-токен либо SSH-профиль;
+pull допускает только fast-forward. Merge использует отдельный REST credential
+того же владельца интеграций.
 Объединённый `commit_push` пока недоступен. Прямой локальный CLI сохраняет только
 `inspect`/`commit`; сетевое действие подключено через вход воркера.
 
@@ -51,16 +53,17 @@ placeholder; оператор заменяет его на существующ�
 [commit](../../../.codex/agents/delivery/git/commit.json),
 [push](../../../.codex/agents/delivery/git/push.json),
 [manage](../../../.codex/agents/delivery/git/manage.json),
-[fetch](../../../.codex/agents/delivery/git/fetch.json) и
-[pull](../../../.codex/agents/delivery/git/pull.json) задают модель,
+[fetch](../../../.codex/agents/delivery/git/fetch.json),
+[pull](../../../.codex/agents/delivery/git/pull.json) и
+[merge](../../../.codex/agents/delivery/git/merge.json) задают модель,
 уровень рассуждения и время ожидания; это конфигурация проектного механизма
 запуска, а не встроенный формат агента Codex.
 
-Вход принимает `inspect`, `commit [message]`, `push`, `manage`, `fetch` или `pull`;
+Вход принимает `inspect`, `commit [message]`, `push`, `manage`, `fetch`, `pull` или `merge`;
 сообщение допустимо только для commit.
 Корень определяется по размещению инструмента. Обычный `inspect` получает
 контекст чтения всей рабочей копии в памяти. Для адресного чтения и разрешённого
-commit/push/manage/fetch/pull вызывающая среда передаёт отдельный контекст, описанный ниже.
+commit/push/manage/fetch/pull/merge вызывающая среда передаёт отдельный контекст, описанный ниже.
 
 Механизм запуска создаёт новую ephemeral-сессию Codex App Server и предоставляет
 инструменты выбранного действия. Модель остаётся в режиме чтения файлов;
@@ -72,8 +75,9 @@ Shell, web, MCP, приложения, плагины и делегирован�
 [commit](../../../.codex/prompts/workflows/delivery/git/commit.md),
 [push](../../../.codex/prompts/workflows/delivery/git/push.md),
 [manage](../../../.codex/prompts/workflows/delivery/git/manage.md),
-[fetch](../../../.codex/prompts/workflows/delivery/git/fetch.md)
-или [pull](../../../.codex/prompts/workflows/delivery/git/pull.md) и команду;
+[fetch](../../../.codex/prompts/workflows/delivery/git/fetch.md),
+[pull](../../../.codex/prompts/workflows/delivery/git/pull.md)
+или [merge](../../../.codex/prompts/workflows/delivery/git/merge.md) и команду;
 AGENTS, правила, workflow, навыки и история не загружаются.
 Это исключение ограниченных воркеров из
 [Git-правила](../../rules/git/RULE-GIT-DELIVERY.md), которое основной агент
@@ -89,12 +93,12 @@ AGENTS, правила, workflow, навыки и история не загру
 `1` — ошибка. Сырые сообщения Codex и stderr не выдаются.
 При недоступной модели или несоответствии конфигурации автоматической замены нет.
 
-Лимит сессии модели: 60 секунд для inspect/commit, 120 секунд для push/manage/fetch/pull.
+Лимит сессии модели: 60 секунд для inspect/commit, 120 секунд для push/manage/fetch/pull/merge.
 Процесс закрывается в любом
 исходе; уже начавшаяся операция завершается по собственным лимитам обработчика,
 поэтому общее время может превышать таймаут модели. При обрыве воркера его статус
 не становится успешным даже при отдельно полученном `result` операции.
-Commit, push, fetch, pull и изменяющий manage используют общий файловый журнал
+Commit, push, fetch, pull, merge и изменяющий manage используют общий файловый журнал
 с разными схемами; inspect и читающий manage его не создают.
 Дополнительные БД, сессия для продолжения и Markdown-отчёт на каждый вызов не нужны.
 
@@ -222,6 +226,157 @@ gitlinks, сохраняя запрет на вложенный checkout. Пос
 `trackingRef`, `syncStatus` и безопасную `diagnostic`, когда она доступна.
 `partial` означает возможную выполненную часть; `unknown` требует сверки состояния.
 Сценарий настройки и получения исходного remoteOid не заменяет разрешение pull.
+
+## Контекст merge
+
+Назначь `REALIZE_GIT_CONTEXT_FILE` и передай `npm run --silent git:worker -- merge`.
+Модель получает только `git_merge({})`; CLI message для этой action недопустим.
+[GitMergeContext](src/merge/GitMerge.types.ts) разрешает одно действие `merge`
+с `scope: { "mode": "approved-tree" }`. Подготовка и review candidate tree,
+разрешение конфликтов и выбор точных изменённых путей принадлежат вызывающей
+среде до запуска; обработчик не выполняет generic local merge.
+
+```json
+{
+  "version": 1,
+  "requestId": "merge-1",
+  "projectId": "realize-ai-platform",
+  "taskId": "search-merge",
+  "repositoryRoot": "/absolute/checkout",
+  "candidateSourceRoot": "/absolute/checkout/.ai-workspace/tasks/search-merge/tmp/candidate",
+  "authorization": {
+    "actions": ["merge"],
+    "scope": { "mode": "approved-tree" }
+  },
+  "target": {
+    "connectionKey": "github:primary",
+    "connectionRevision": 1,
+    "repositorySlug": "example/project",
+    "repositoryID": 1234567,
+    "ref": "refs/heads/main",
+    "oid": "1111111111111111111111111111111111111111",
+    "treeOid": "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+  },
+  "source": {
+    "ref": "refs/heads/task/search",
+    "oid": "2222222222222222222222222222222222222222"
+  },
+  "candidate": {
+    "treeOid": "cfaad775d4966e12054e28c35f7c820606e019bd",
+    "approvedChangedPaths": ["documentation/search.md"],
+    "files": [
+      {
+        "path": "documentation/search.md",
+        "mode": "100644",
+        "blobOid": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+      }
+    ]
+  },
+  "identity": { "name": "Project Owner", "email": "owner@example.com" },
+  "message": "merge: принять проверенный search contract",
+  "verification": {
+    "requiredChecks": ["candidate-review"],
+    "results": [
+      {
+        "id": "candidate-review",
+        "status": "passed",
+        "fingerprint": "b97f7eb7cff99c9d973aaa193e2cf0c8d56dcfedaa26eec410f27db2cbfe349f"
+      }
+    ]
+  }
+}
+```
+
+Репозиторий и commit OID в примере условные. Target tree — пустое Git tree;
+candidate добавляет пустой `documentation/search.md`, blob/tree SHA соответствуют
+этим bytes. Запись `passed` не является evidence выполненной проверки.
+Target/source — разные точные `refs/heads/*`
+и разные ненулевые 40-hex commit OID; treeOid также GitHub SHA-1. Revision и
+repository ID — положительные safe integers. `approvedChangedPaths` задаёт
+точные относительные конечные пути без дублей; validator канонизирует сортировку.
+Пустой список разрешён, если candidate полностью сохраняет target tree.
+`candidate.files` ровно покрывает approvedChangedPaths descriptors `{ path,
+mode, blobOid }`; новый файл имеет mode `100644` либо `100755` и ненулевой
+blobOid, удаление — только `mode: null, blobOid: null`. Symlink/gitlink uploads
+не принимаются; удаляемый файл должен отсутствовать в candidate source.
+Канонический absolute candidateSourceRoot ограничен
+`<repositoryRoot>/.ai-workspace/tasks/<taskId>/tmp/**`; это источник только
+assigned approved bytes, а не путь к произвольному checkout или файловой системе.
+Identity обязательна, message — строка 1–4096 символов; неизвестные поля и
+дополнительные действия отклоняются.
+
+Вызывающая среда проверяет candidate bytes, сохранение принятой работы и
+применимые проверки по изменению. Все requiredChecks должны иметь `passed`
+и fingerprint из [hashGitMergeCandidate](src/merge/hashGitMergeCandidate.util.ts):
+SHA-256 канонических target/source/candidate metadata, включая
+candidateSourceRoot и file/blob descriptors. Смена parent, target tree,
+candidate tree, источника bytes, назначения, mode/blobOid или списка путей
+отменяет evidence. Dependency/build cache проверяющего исполнителя находится
+вне approved paths; результаты сборки не становятся дополнительными overlays.
+Обработчик не запускает тесты приложения вместо исполнителя и не передаёт
+raw blobs модели, в журнал или отчёт.
+
+Общий resolver возвращает GitHub API credential; transport/SSH profile не
+передаются в merge context. Проверяются текущие integration revision/slug,
+repository ID и refs. Target commit должен ссылаться на назначенный target tree.
+GET recursive trees возвращает полный target manifest: неверный SHA,
+`truncated: true`, некорректные entries или более 50 000 entries блокируют запись.
+Target leaf entries и accepted overlays должны вычислять ровно candidate tree
+OID. До любого POST обработчик безопасно читает только назначенные файлы из
+candidateSourceRoot с `O_NOFOLLOW`, проверяет path/mode, Git blob SHA и секреты.
+Отказ проверки bytes, source boundary или tree SHA блокирует любые uploads.
+Пределы чтения: 16 MiB на файл и 64 MiB на весь approved состав. Остальные
+snapshot-файлы, dependencies, build cache и env обработчик не читает.
+
+После сохранения journal создаются только assigned immutable blobs; возвращённый
+SHA сверяется с blobOid. Tree POST получает `base_tree: target.treeOid` и ровно
+approved entries; возвращённый SHA должен совпасть с candidate.treeOid. Затем
+GET recursive candidate tree подтверждает полный manifest и точный scope diff:
+набор изменённых конечных paths равен approvedChangedPaths, все прочие type,
+mode и object SHA сохраняются. Дерево и blobs могут быть новыми; uploads
+не меняют ref. Ошибка после upload может оставить immutable объекты, которые
+не означают завершённое слияние.
+[GitHub Create a blob](https://docs.github.com/en/rest/git/blobs#create-a-blob),
+[Create a tree](https://docs.github.com/en/rest/git/trees#create-a-tree),
+[GitHub Get a tree](https://docs.github.com/en/rest/git/trees#get-a-tree).
+
+Под общим lock журнал замораживает body с candidate tree, ordered parents
+`[target.oid, source.oid]`, identity для author/committer, message и единой UTC
+date до первого POST, включая uploads. Детерминированный unsigned commit OID позволяет сверить unknown
+create без второго POST. Созданный объект проверяется по OID, tree, обоим parents,
+message, identity и dates.
+[GitHub Create a commit](https://docs.github.com/en/rest/git/commits#create-a-commit).
+
+Перед PATCH обе refs должны точно совпадать с назначением. Обновляется только
+target ref, с `force: false`; после запроса remote ref подтверждает созданный
+commit. Это fast-forward guard с точными pre/post сверками, а не unconditional
+CAS: endpoint не принимает expected old OID. Сдвиг ref и правила защиты ветки
+могут блокировать запись; контракт не обходит branch protection.
+[GitHub Update a reference](https://docs.github.com/en/rest/git/refs#update-a-reference).
+
+Journal phases: `prepared/uploading/uploaded/creating/created/updating/completed/unknown`.
+До первого POST сохраняются frozen body/date/expectedCommit и `uploadedBlobs`.
+Перед каждым object POST записывается `pendingObject: { kind, oid }`; kind
+равен `blob` либо `tree`. Unknown сохраняет `uncertainStage`
+(`uploading`, `creating`, `updating`). Повтор сохраняет requestId, context и
+dates, сверяет deterministic objects и refs. Неизвестный blob/tree сначала
+проверяется GET: подтверждённый object позволяет продолжить только оставшиеся
+не начатые uploads без повторного POST; отсутствие блокирует запись. Новое
+задание, другая дата или слепая запись не заменяют разбор состояния.
+REST limits: 90 секунд на операцию, 10 секунд на запрос, 8 MiB response;
+recovery blob GET допускает до 24 MiB. Лимит модели остаётся 120 секунд.
+Результат сохраняет безопасные
+базовые поля и добавляет `mergedTree`, `remoteCommit`, `mergeStatus`
+(`not_attempted`, `succeeded`, `unknown`). Созданный объект без подтверждённого
+target ref не означает завершённое слияние.
+
+Merge не меняет локальные refs, индекс, worktree или hooks и не запускает
+commit/push/pull автоматически. Для локальной актуализации используй отдельно
+разрешённый `pull` с закреплённым remoteOid созданного commit. PR, force,
+deployment и product SourcePromotion authority в действие не входят.
+Изолированная приёмка расширения merge подтверждена 30 профильными и полным
+набором 588 Git regression tests. Реальная GitHub publication через модель
+требует отдельной эксплуатационной проверки; состояние отражено в ADR-0016.
 
 ## Контекст локального commit
 
@@ -552,16 +707,17 @@ Commit без изменений также сохраняет результа�
 `packages/codex-adapter/src/JsonLineRpcClient.adapter.ts`; его прежний
 потребитель `OpenAICodexAdapter` сохраняет свой API.
 
-| Файл                                                                                                                                           | Ответственность                                                             |
-| ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [runGitDelivery.controller.ts](src/runGitDelivery.controller.ts), [contracts.ts](src/contracts.ts)                                             | Разделение входов, валидация, JSON-ответ                                    |
-| [handler.ts](src/handler.ts)                                                                                                                   | Порядок операции и восстановление                                           |
-| [repository.ts](src/repository.ts)                                                                                                             | Ограниченный снимок состояния и файлов                                      |
-| [Git.adapter.ts](src/Git.adapter.ts)                                                                                                           | Исполнитель Git, пределы, байты и UTF-8                                     |
-| [safety.ts](src/safety.ts), [commit/](src/commit/)                                                                                             | Совместимые экспорты, проверки и восстановление локального commit           |
-| [manage/](src/manage/)                                                                                                                         | Контекст, локальное управление remote/worktrees/ветками и безопасное чтение |
-| [sync/](src/sync/)                                                                                                                             | Закреплённые fetch/pull, fast-forward и восстановление этапов               |
-| [state.ts](src/state.ts), [GitJournal.repository.ts](src/GitJournal.repository.ts), [acquireGitLock.adapter.ts](src/acquireGitLock.adapter.ts) | Журнал и отдельная блокировка                                               |
+| Файл                                                                                                                                           | Ответственность                                                               |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [runGitDelivery.controller.ts](src/runGitDelivery.controller.ts), [contracts.ts](src/contracts.ts)                                             | Разделение входов, валидация, JSON-ответ                                      |
+| [handler.ts](src/handler.ts)                                                                                                                   | Порядок операции и восстановление                                             |
+| [repository.ts](src/repository.ts)                                                                                                             | Ограниченный снимок состояния и файлов                                        |
+| [Git.adapter.ts](src/Git.adapter.ts)                                                                                                           | Исполнитель Git, пределы, байты и UTF-8                                       |
+| [safety.ts](src/safety.ts), [commit/](src/commit/)                                                                                             | Совместимые экспорты, проверки и восстановление локального commit             |
+| [manage/](src/manage/)                                                                                                                         | Контекст, локальное управление remote/worktrees/ветками и безопасное чтение   |
+| [sync/](src/sync/)                                                                                                                             | Закреплённые fetch/pull, fast-forward и восстановление этапов                 |
+| [merge/](src/merge/)                                                                                                                           | GitHub approved-tree commit, точная область дерева и подтверждение target ref |
+| [state.ts](src/state.ts), [GitJournal.repository.ts](src/GitJournal.repository.ts), [acquireGitLock.adapter.ts](src/acquireGitLock.adapter.ts) | Журнал и отдельная блокировка                                                 |
 
 Старые публичные входы `contracts.ts`, `safety.ts`, `state.ts` и `repository.ts`
 сохраняют совместимость; типы, ошибка, блокировка и проверки commit имеют
@@ -569,7 +725,7 @@ Commit без изменений также сохраняет результа�
 
 Сетевую операцию координирует `src/push/`, авторизацию и Git-протокол —
 `src/network/`. Общие ресурсы БД находятся в `src/integrations/`; их используют
-push, fetch, pull и загрузчик автора для commit без явной `identity`.
+push, fetch, pull, merge и загрузчик автора для commit без явной `identity`.
 
 Проверки запускаются из корня проекта:
 

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorkerCapability.service.ts
- * @version 1.3.0
- * @date 2026-10-12
+ * @version 1.4.0
+ * @date 2026-10-13
  * @description Ограничивает инструменты Git-воркера назначенной операцией и сохраняет фактические результаты обработчика.
  */
 
@@ -78,7 +78,12 @@ export class GitWorkerCapabilityService {
   /** Определения не открывают модели контекст вызывающей среды или выбор действия Git. */
   get tools() {
     const action = this.effectiveCommand.action;
-    if (action === "manage" || action === "fetch" || action === "pull") {
+    if (
+      action === "manage" ||
+      action === "fetch" ||
+      action === "pull" ||
+      action === "merge"
+    ) {
       const assigned = GIT_ASSIGNED_OPERATION_TOOLS[action];
       return [tool(assigned.name, assigned.description)];
     }
@@ -130,7 +135,10 @@ export class GitWorkerCapabilityService {
     let operation: Promise<GitWorkerResult>;
     const action = this.effectiveCommand.action;
     if (
-      (action === "manage" || action === "fetch" || action === "pull") &&
+      (action === "manage" ||
+        action === "fetch" ||
+        action === "pull" ||
+        action === "merge") &&
       params.tool === GIT_ASSIGNED_OPERATION_TOOLS[action].name
     ) {
       if (Object.keys(fields).length !== 0) this.deny();

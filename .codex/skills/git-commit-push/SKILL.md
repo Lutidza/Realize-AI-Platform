@@ -2,7 +2,8 @@
 name: git-commit-push
 description: >-
   Передаёт Git-операции отдельному воркеру: чтение, управление remote/worktrees/ветками,
-  разрешённые commit, fetch, pull и push через HTTPS/SSH. Используй для Git рабочего слоя.
+  разрешённые commit, fetch, pull, push через HTTPS/SSH и GitHub merge проверенного дерева.
+  Используй для Git рабочего слоя.
 ---
 
 # Git через воркера
@@ -57,8 +58,20 @@ description: >-
   и выполни `npm run --silent git:worker -- fetch` либо `npm run --silent git:worker -- pull`.
   Назначение закрепляется ожидаемыми хешами и ревизией подключения. Pull требует
   чистой рабочей копии и допускает только fast-forward; отказ не разрешает stash/rebase.
-- Передай `action` (`inspect`, `commit`, `push`, `manage`, `fetch`, `pull`) и необязательный
-  `message` для действия с commit. Заданный текст сохраняй; при его отсутствии
+- Для разрешённого GitHub `merge` назначь `REALIZE_GIT_CONTEXT_FILE` по
+  [контракту approved-tree](../../../.ai/tools/git-delivery/README.md#контекст-merge)
+  и выполни `npm run --silent git:worker -- merge`. Вызывающая среда задаёт
+  закреплённые target/source refs, candidate tree, точный approvedChangedPaths,
+  bounded candidateSourceRoot и file/blob descriptors,
+  identity, message и привязанные к candidate результаты проверок.
+  Модель вызывает только `git_merge({})`. До upload обработчик проверяет
+  approved bytes, mode, blob/tree SHA и секреты; создаёт только assigned
+  immutable blobs/tree и проверяет manifest. Dependency/build cache для
+  проверок находится вне approved paths. Обработчик создаёт commit с двумя
+  ordered parents и обновляет target ref с `force: false`; локальная актуализация
+  выполняется отдельно разрешённым `pull`.
+- Передай `action` (`inspect`, `commit`, `push`, `manage`, `fetch`, `pull`, `merge`) и необязательный
+  `message` только для локального commit. Заданный текст сохраняй; при его отсутствии
   воркер составляет краткое сообщение Conventional Commits по изменениям.
 - Доверенный контекст передаётся механизмом запуска, отдельно от текста задания:
   рабочая копия, разрешённая область и действия, сведения о проверках. Не включай
@@ -71,27 +84,38 @@ description: >-
 
 ## Доступность
 
-`inspect`, локальный `commit`, отдельный `push`, `manage`, `fetch` и `pull` используют
+`inspect`, локальный `commit`, отдельный `push`, `manage`, `fetch`, `pull` и `merge` используют
 отдельные профили. Профили
 [чтения](../../agents/delivery/git/inspect.json),
 [коммита](../../agents/delivery/git/commit.json) и
 [отправки](../../agents/delivery/git/push.json),
 [управления](../../agents/delivery/git/manage.json),
-[fetch](../../agents/delivery/git/fetch.json) и
-[pull](../../agents/delivery/git/pull.json) задают модель и предел времени;
+[fetch](../../agents/delivery/git/fetch.json),
+[pull](../../agents/delivery/git/pull.json) и
+[merge](../../agents/delivery/git/merge.json) задают модель и предел времени;
 инструкции — [inspect](../../prompts/workflows/delivery/git/inspect.md),
 [commit](../../prompts/workflows/delivery/git/commit.md) и
 [push](../../prompts/workflows/delivery/git/push.md),
 [manage](../../prompts/workflows/delivery/git/manage.md),
-[fetch](../../prompts/workflows/delivery/git/fetch.md) и
-[pull](../../prompts/workflows/delivery/git/pull.md).
+[fetch](../../prompts/workflows/delivery/git/fetch.md),
+[pull](../../prompts/workflows/delivery/git/pull.md) и
+[merge](../../prompts/workflows/delivery/git/merge.md).
 Запуск возвращает фактический `result`, эффективную `command` и сведения о воркере.
 Успех требует `status: succeeded`; наличие текста модели его не доказывает.
 Для повтора commit сохраняй исходный контекст, requestId и сообщение из `command`.
 
-Для повтора `manage`, `fetch` или `pull` сохраняй requestId и точный контекст.
+Для повтора `manage`, `fetch`, `pull` или `merge` сохраняй requestId и точный контекст.
 Обработчик сверяет журнал и состояние; неизвестный исход или расхождение
 не разрешают другую запись. Успешный повтор может вернуть `result.status: noop`.
+
+Для merge журнал сохраняет tree, два ordered parents, identity, message и UTC
+date до любого POST, pending object — до его upload. Unknown object сначала
+сверяется GET: найденный позволяет продолжить ещё не начатые uploads без
+дублирования, отсутствие блокирует запись. Создание commit не доказывает обновление target ref. GitHub
+`force: false` обеспечивает fast-forward guard со сверками refs до/после,
+но не unconditional CAS по expected old OID. Не выбирай новую дату, дерево или
+requestId для обхода unknown; локальные Git merge и conflict resolution в эту
+action не входят. Статус изолированной приёмки расширения указан в ADR-0016.
 
 Для разрешённого исправления прерванного commit используй
 [восстановление локального commit](../../../.ai/tools/git-delivery/README.md#восстановление-локального-commit):

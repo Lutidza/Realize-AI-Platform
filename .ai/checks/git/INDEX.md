@@ -1,4 +1,4 @@
-# Проверки управления и синхронизации Git
+# Проверки управления, синхронизации и слияния Git
 
 ```yaml
 artifact_id: ai-checks-git-index
@@ -7,6 +7,7 @@ owner_layer: .ai/checks/git/
 checks:
   - .ai/checks/git/CHECK-GIT-MANAGEMENT-SCOPE.md
   - .ai/checks/git/CHECK-GIT-SYNC-READINESS.md
+  - .ai/checks/git/CHECK-GIT-APPROVED-TREE-MERGE.md
 ```
 
 Подключаются по выбранному действию

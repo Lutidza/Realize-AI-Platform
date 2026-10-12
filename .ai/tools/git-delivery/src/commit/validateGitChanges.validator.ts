@@ -1,11 +1,35 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/validateGitChanges.validator.ts
- * @version 1.1.0
- * @date 2026-10-11
+ * @version 1.1.1
+ * @date 2026-10-13
  * @description Проверяет разрешённые пути и статусы перед подготовкой commit.
  */
 import { PolicyError } from "../Policy.error.ts";
 import type { Snapshot } from "../GitSnapshot.types.ts";
+
+/** Общий путь commit/approved-tree merge исключает секреты и локальные generated артефакты. */
+export function assertAllowedGitChangedPaths(paths: string[]): void {
+  if (paths.length > 2048)
+    throw new PolicyError("scope_limit", "Состав превышает 2048 файлов.");
+  for (const path of paths) {
+    if (
+      /(^|\/)(?:node_modules|\.next|dist|coverage)(\/|$)/i.test(path) ||
+      /^\.ai-workspace\/tasks\//.test(path) ||
+      /^\.ai\/tools\/agent-runtime\/runtime\/(?!INDEX\.md$|schemas\/)/.test(
+        path,
+      ) ||
+      (/(^|\/)\.env(?:\.|$)/i.test(path) &&
+        !/(^|\/)\.env\.example$/.test(path)) ||
+      /(^|\/)(?:id_rsa|id_ed25519|credentials\.json)$|\.(?:pem|p12|pfx|key)$/i.test(
+        path,
+      )
+    )
+      throw new PolicyError(
+        "protected_path",
+        "В состав попал секрет или локальный артефакт; уточните область.",
+      );
+  }
+}
 
 /** Полный рабочий снимок допускает частичный индекс только по отдельному разрешению контекста. */
 export function validateChanges(
@@ -41,23 +65,7 @@ export function validateChanges(
         "Частично подготовленный файл требует отдельного решения.",
       );
     }
-    if (
-      /(^|\/)(?:node_modules|\.next|dist|coverage)(\/|$)/i.test(path) ||
-      /^\.ai-workspace\/tasks\//.test(path) ||
-      /^\.ai\/tools\/agent-runtime\/runtime\/(?!INDEX\.md$|schemas\/)/.test(
-        path,
-      ) ||
-      (/(^|\/)\.env(?:\.|$)/i.test(path) &&
-        !/(^|\/)\.env\.example$/.test(path)) ||
-      /(^|\/)(?:id_rsa|id_ed25519|credentials\.json)$|\.(?:pem|p12|pfx|key)$/i.test(
-        path,
-      )
-    ) {
-      throw new PolicyError(
-        "protected_path",
-        "В состав попал секрет или локальный артефакт; уточните область.",
-      );
-    }
+    assertAllowedGitChangedPaths([path]);
   }
   return paths;
 }

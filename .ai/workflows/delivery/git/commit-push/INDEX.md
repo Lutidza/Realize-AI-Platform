@@ -12,6 +12,7 @@ runtime_sources:
   - .ai/checks/pre-push/CHECK-DELIVERY-PUSH-READINESS.md
   - .ai/checks/git/CHECK-GIT-MANAGEMENT-SCOPE.md
   - .ai/checks/git/CHECK-GIT-SYNC-READINESS.md
+  - .ai/checks/git/CHECK-GIT-APPROVED-TREE-MERGE.md
 codex_adapter:
   - .codex/skills/git-commit-push/SKILL.md
 ```
@@ -19,5 +20,5 @@ codex_adapter:
 ## Назначение
 
 Чтение состояния, управление remote/worktrees/ветками и разрешённые
-commit/fetch/pull/push через отдельного Git-воркера.
+commit/fetch/pull/push и GitHub merge проверенного дерева через отдельного Git-воркера.
 Порядок и выбор проверок — [WORKFLOW.md](WORKFLOW.md).

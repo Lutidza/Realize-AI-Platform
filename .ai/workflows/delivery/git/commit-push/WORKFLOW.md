@@ -16,6 +16,8 @@ checks:
     - .ai/checks/git/CHECK-GIT-MANAGEMENT-SCOPE.md
   sync:
     - .ai/checks/git/CHECK-GIT-SYNC-READINESS.md
+  merge:
+    - .ai/checks/git/CHECK-GIT-APPROVED-TREE-MERGE.md
 codex_adapter:
   - .codex/skills/git-commit-push/SKILL.md
 related_workflows:
@@ -29,7 +31,7 @@ Git-правилу и ADR-0017. Этот workflow по-прежнему опис
 Git-воркера; machine port не заменяет его inspect и не предоставляет delivery.
 
 Прочитай [правило Git](../../../../rules/git/RULE-GIT-DELIVERY.md).
-Используй `inspect`, `commit`, `push`, `manage`, `fetch` или `pull`; `commit_push`
+Используй `inspect`, `commit`, `push`, `manage`, `fetch`, `pull` или `merge`; `commit_push`
 остаётся целевым действием. Подключай только
 проверки выбранного действия. Передача задания и текущая доступность вызова —
 в [навыке Codex](../../../../../.codex/skills/git-commit-push/SKILL.md).
@@ -71,6 +73,27 @@ Pull дополнительно проверяет чистое состояни
 до fast-forward и повторно сверяет ветку после обновления. Никакая из этих
 операций не запускает commit/push, тесты приложения или исправление конфликта.
 
+Для `merge` вызывающая среда заранее готовит и проверяет candidate tree, точный
+список разрешённых изменённых путей и сохранение принятой работы. Отдельный
+контекст `approved-tree` закрепляет target/source refs и OID, исходный target
+tree, candidate tree, bounded candidateSourceRoot, file/blob descriptors,
+identity, message и результаты проверок, привязанные к
+`hashGitMergeCandidate(context)`. Обработчик по
+[merge check](../../../../checks/git/CHECK-GIT-APPROVED-TREE-MERGE.md) сверяет
+полный target manifest и approved bytes: safe paths, mode, Git blob SHA,
+секреты и вычисленный candidate tree. Проверки и их dependency/build cache
+выполняются отдельно от публикуемых approved paths. До upload сохраняется
+journal с frozen body, двумя ordered parents и UTC date; immutable blobs и tree
+с target base создаются только по assigned OID, pending object сохраняется
+до каждого POST. Полный candidate manifest повторно сверяется, создаётся
+и проверяется GitHub commit. Unknown object сверяется GET; найденный объект
+позволяет продолжить ещё не начатые uploads, отсутствующий блокирует запись.
+Обработчик повторно сверяет обе refs, обновляет
+только target с `force: false` и подтверждает результат. Этот REST guard
+допускает fast-forward; он не является unconditional expected-old CAS.
+Локальная копия обновляется отдельным разрешённым `pull`; автоматического
+слияния файлов, conflict resolution или использования product authority нет.
+
 ## Сбой и результат
 
 После сбоя сохраняй выполненную часть. Повтор с тем же идентификатором сверяет
@@ -99,7 +122,7 @@ Native-воркер использует механизм завершения �
 
 ## Подключённый запуск
 
-`inspect`, `commit`, `push`, `manage`, `fetch` и `pull` используют вход из Git-навыка: новая ephemeral-сессия
+`inspect`, `commit`, `push`, `manage`, `fetch`, `pull` и `merge` используют вход из Git-навыка: новая ephemeral-сессия
 Codex App Server и настроенная модель. Механизм запуска
 загружает только конфигурацию и краткую инструкцию из `.codex`, согласно
 исключению Git-правила. Основной агент не составляет пересказ документов.
@@ -128,6 +151,13 @@ Push не меняет индекс и не запускает тесты. Бе�
 повтор неизвестного результата только устанавливает исход: подтверждённый хеш
 означает успех, иначе запись блокируется. Разрешённая новая попытка сохраняет
 исходное назначение, проверяет прежнюю удалённую версию и расходует номер до записи.
+
+Для `merge` модель вызывает единственный `git_merge({})`. Все параметры,
+авторство, message и evidence задаёт вызывающая среда; сообщение через CLI
+для этой action не передаётся. Повтор сохраняет точный контекст, requestId и
+замороженную журналом date. Созданный объект при неподтверждённом target ref
+остаётся частичным либо неизвестным результатом. Расхождение refs или unknown
+не разрешают сменить дерево, создать новое задание или слепо повторить PATCH.
 
 Отчёт возвращает эффективную команду. Для повтора сохраняй её сообщение,
 контекст и requestId; другой текст не является повтором прежней операции.
