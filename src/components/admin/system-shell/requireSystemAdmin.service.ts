@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/requireSystemAdmin.service.ts
- * @version 1.2.0
- * @date 2026-10-11
+ * @version 1.2.1
+ * @date 2026-10-12
  * @description Проверяет сессию Payload и роль администратора перед выдачей безопасного UI-контекста.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -21,8 +21,10 @@ import type { SystemAdminContext } from "./systemAdmin.types";
 export async function requireSystemAdmin(
   returnTo: string,
 ): Promise<SystemAdminContext> {
+  // Next должен определить request-bound render до инициализации подключения к БД.
+  const requestHeaders = await headers();
   const payload = await getPayload({ config: configPromise });
-  const { user } = await payload.auth({ headers: await headers() });
+  const { user } = await payload.auth({ headers: requestHeaders });
   const adminRoute = payload.config.routes.admin;
   if (!user) {
     const loginRoute = formatAdminURL({

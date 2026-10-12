@@ -1,7 +1,7 @@
 # Локальный запуск и чат в Payload Admin
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 5 октября 2026 года (аналитика расходов ИИ)
+- **Дата сверки:** 12 октября 2026 года (локальная активация Task Manager)
 
 Этот runbook описывает существующий e-commerce baseline. Capability/config
 foundation, hidden Payload persistence и aggregate Config API уже реализованы.
@@ -463,6 +463,47 @@ UI обеих ролей проверен отдельно на fixture; авт�
 в серверном allowlist указан account `1`, перезапущен только web. Доступ
 владельца и отсутствие этого доступа у другого admin проверены.
 
+12 октября 2026 года локальный web переключён на bundle
+`.next/task-manager-runtime-b9f6`, BUILD_ID `nI4hr4968GPA0XV6tm-Sv`.
+Постоянный Task Manager открывается по `/system/task-manager` после входа
+администратора. Override `80-task-manager-activation.conf` меняет только
+launcher; прежний `70-ai-analytics-dashboard.conf` и analytics bundle сохранены.
+Штатный production build выполнен на source snapshot без fixture API и DB
+credentials: typegen, TypeScript и Next build прошли, полные source manifests
+до/после совпали. Shared auth gate считывает request headers до getPayload,
+чтобы защищённые страницы определялись как request-bound до подключения к БД.
+
+Новый bundle сначала проверен на отдельном loopback-порту с рабочей БД,
+затем включён на `:3000`. Live/readiness вернули `200`; Task projects/tasks,
+Git observations/history без сессии — `401 UNAUTHENTICATED`, экран — `307`
+на login с адресом возврата; `/api/search-acceptance` отсутствует (`404`).
+Actual health подтвердил BUILD_ID и source hash, после чего штатный
+`activateInstalledSearchBinding` создал active pointer. Новый web, control plane,
+execution и оба MCP listeners работают с `NRestarts=0`; canary остановлен.
+PostgreSQL и Media сохранили прежние процессы и каталоги.
+
+Перед сборкой подтверждён свежий idle worker без текущего задания. Две старые
+execution-записи `validating` от 15 сентября и release `queued` от 17 сентября
+сохранены; их состояния после переключения совпали с baseline. Новый worker
+имеет свежий idle heartbeat. Readiness не является доказательством отсутствия
+in-memory runs control plane.
+
+Адресно применены только две Task migrations; итог — 29 receipts с сохранением
+прежних 27. Backup рабочей БД не создавался по прямому указанию пользователя;
+проверка восстановления этой БД не заявляется. Workshop `design_preview` и
+`workshop_mcp` остаются pending. Подробности —
+[Task Manager migrations](03-migrations-and-rollback.md#task-manager-foundation-и-git-снимки).
+Девять auth contract tests и browser acceptance прошли на fixtures. На рабочей
+установке браузер подтвердил штатную страницу входа; авторизованная приёмка
+рабочего Task Manager пока не выполнена. GitHub check runs для текущего
+fine-grained PAT возвращают `403`; credentials этим этапом не изменялись.
+
+Для отката приложения остановите связанные службы, удалите только новый
+`80-task-manager-activation.conf`, выполните `daemon-reload` и запустите прежний
+launcher вместе с control plane/execution/MCP. Task schema и история сохраняются.
+Installed search binding требует актуальных source/build checks; прежний bundle
+с другим source hash нельзя объявлять текущей установленной версией.
+
 Проверка настоящего чата обнаружила несовместимость active overlay v4
 с system `1.1.0`. Через штатные draft, validation, release и CAS activation
 опубликован `installation-config-v5`; содержимое всех 27 artifacts сохранено.
@@ -546,13 +587,13 @@ bootstrap MCP и другая preview-служба не перезапускал
 новых событий и повтор после потерянного ответа. Реальный CLI автоматически
 доставляет события; рабочая история вручную не очищалась.
 
-На этом хосте web сейчас использует `.next/search-standalone/server.js` через
+При переключении 28 сентября web использовал `.next/search-standalone/server.js` через
 `~/.config/systemd/user/realize-web.service.d/50-search-observability-release.conf`.
 Drop-in заменяет только ExecStart, сохраняя штатный preload и окружение.
 Отдельный bundle позволяет сохранить `.next/standalone`, который также использует
 другой локальный процесс на `:3227`. Public media подключена к прежнему каталогу.
-Материалы проверки и точный scope:
-[задача обновления](../../.ai-workspace/tasks/2026-09-26-search-observability-b42e/TASK.md).
+Контракт наблюдений поиска и эксплуатация:
+[поиск по репозиторию](../architecture/repository-search.md).
 
 30 сентября локальная web-служба обновлена для аналитики поиска: график времени,
 полноты выполнения и объёма чтения, среднее/p95 и сравнение до/после выбранной даты.
