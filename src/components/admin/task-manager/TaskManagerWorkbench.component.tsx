@@ -1,22 +1,21 @@
 /**
  * @file src/components/admin/task-manager/TaskManagerWorkbench.component.tsx
- * @version 1.0.0
- * @date 2026-10-11
- * @description Подключает постоянные проекты и задачи к существующей системной оболочке.
+ * @version 1.1.0
+ * @date 2026-10-12
+ * @description Подключает постоянные проекты и задачи к нейтральному template host.
  * @see documentation/specifications/task-management-execution.md
  * @see documentation/architecture/system-admin-shell.md
  */
 "use client";
 import { Plus } from "lucide-react";
 import {
-  SystemAdminBreadcrumbs,
-  SystemAdminShell,
   UiBadge,
   UiButton,
   UiNotice,
   UiSelect,
   UiSurface,
 } from "@realize/ui-kit";
+import { SystemAdminTemplateHost } from "../system-shell/SystemAdminTemplateHost.component";
 import { getSystemAdminNavigation } from "../system-shell/systemAdmin.navigation";
 import { useSystemAdminNavigationPreferences } from "../system-shell/useSystemAdminNavigationPreferences.hook";
 import { useSystemAdminLocale } from "../system-shell/useSystemAdminLocale.hook";
@@ -122,9 +121,10 @@ export function TaskManagerWorkbench(props: TaskManagerWorkbenchProps) {
   );
   return (
     <>
-      <SystemAdminShell
-        theme={manager.theme}
-        onThemeChange={manager.setTheme}
+      <SystemAdminTemplateHost
+        screen="workspace"
+        mode={manager.theme}
+        onModeChange={manager.setTheme}
         locale={locale}
         {...preferences}
         navigation={getSystemAdminNavigation({
@@ -133,51 +133,54 @@ export function TaskManagerWorkbench(props: TaskManagerWorkbenchProps) {
         })}
         activeNavigationId="tasks"
         secondaryNavigation={navigation}
-        headerActions={<span>{props.currentActor.name}</span>}
-        breadcrumbs={
-          <SystemAdminBreadcrumbs
-            items={[
-              {
-                id: "tasks",
-                label: "Задачи",
-                onSelect: () => manager.setSelectedId(null),
-              },
-              ...(manager.project
-                ? [
-                    {
-                      id: manager.project.id,
-                      label: manager.project.title,
-                      onSelect: () => manager.setSelectedId(null),
-                    },
-                  ]
-                : []),
-              ...(manager.list
-                ? [
-                    {
-                      id: manager.list.id,
-                      label: manager.list.title,
-                      onSelect: () => manager.setSelectedId(null),
-                    },
-                  ]
-                : []),
-            ]}
-          />
-        }
-        contentActions={
-          <UiButton
-            disabled={
+        capabilities={{
+          account: {
+            user: {
+              name: props.currentActor.name,
+              initials: props.currentActor.name.slice(0, 2).toUpperCase(),
+            },
+            profileActions: [],
+          },
+        }}
+        breadcrumbs={[
+          {
+            id: "tasks",
+            label: "Задачи",
+            onSelect: () => manager.setSelectedId(null),
+          },
+          ...(manager.project
+            ? [
+                {
+                  id: manager.project.id,
+                  label: manager.project.title,
+                  onSelect: () => manager.setSelectedId(null),
+                },
+              ]
+            : []),
+          ...(manager.list
+            ? [
+                {
+                  id: manager.list.id,
+                  label: manager.list.title,
+                  onSelect: () => manager.setSelectedId(null),
+                },
+              ]
+            : []),
+        ]}
+        pageActions={[
+          {
+            id: "create-task",
+            label: "Создать задачу",
+            icon: <Plus size={16} aria-hidden="true" />,
+            disabled:
               !manager.canWrite ||
               !manager.listId ||
               manager.loading ||
               manager.listsLoading ||
-              manager.tasksLoading
-            }
-            onClick={() => manager.setEditing(null)}
-          >
-            <Plus size={16} aria-hidden="true" />
-            Создать задачу
-          </UiButton>
-        }
+              manager.tasksLoading,
+            onSelect: () => manager.setEditing(null),
+          },
+        ]}
         footer={
           <span className={styles.muted} role="status" aria-live="polite">
             {manager.notice}
@@ -302,7 +305,7 @@ export function TaskManagerWorkbench(props: TaskManagerWorkbenchProps) {
             </>
           )}
         </div>
-      </SystemAdminShell>
+      </SystemAdminTemplateHost>
       {manager.projectOpen && (
         <TaskProjectComposer
           theme={manager.theme}

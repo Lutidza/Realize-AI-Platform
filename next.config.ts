@@ -1,7 +1,7 @@
 /**
  * @file next.config.ts
- * @version 1.2.4
- * @date 2026-09-30
+ * @version 1.5.1
+ * @date 2026-10-12
  * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
@@ -17,8 +17,14 @@ const nextConfig: NextConfig = {
     : {}),
   agentRules: false,
   output: "standalone",
-  // Payload загружает ESM entry sharp, который tracing может пропустить в standalone.
-  outputFileTracingIncludes: { "/*": ["./node_modules/sharp/**/*"] },
+  // Sharp требует ESM assets; getDependencies Payload разрешает entry перед чтением installed metadata.
+  outputFileTracingIncludes: {
+    "/*": [
+      "./node_modules/sharp/**/*",
+      "./node_modules/payload/package.json",
+      "./node_modules/payload/dist/index.js",
+    ],
+  },
   experimental: {
     // Next считает page-data/static workers через os.cpus(), независимо от affinity процесса.
     cpus: process.env.REALIZE_BUILD_LOW_MEMORY === "true" ? 1 : 2,
@@ -45,6 +51,9 @@ const nextConfig: NextConfig = {
     "@realize/codex-adapter",
     "@realize/payload-ai-control",
     "@realize/ui-kit",
+    "@realize/template-contracts",
+    "@realize/template-realize",
+    "@realize/payload-extension-manager",
   ],
 };
 

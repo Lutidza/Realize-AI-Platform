@@ -1,17 +1,17 @@
 /**
  * @file tests/int/system-admin-navigation-preferences.int.spec.ts
- * @version 1.3.0
- * @date 2026-09-18
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Проверяет независимость избранного от компоновки меню и нормализацию текущего каталога.
  * @see documentation/architecture/system-admin-shell.md
  */
 
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { normalizeSystemAdminNavigationPreferences as normalize } from "../../packages/ui-kit/src/system-admin-shell/systemAdminNavigationPreferences.util";
-import { useNavigationPreferences } from "../../packages/ui-kit/src/system-admin-shell/useNavigationPreferences.hook";
-import type { SystemAdminNavigationItem } from "../../packages/ui-kit/src/system-admin-shell/SystemAdminShell.types";
-import type { SystemAdminNavigationPreferences } from "../../packages/ui-kit/src/system-admin-shell/systemAdminNavigationPreferences.types";
+import { normalizeSystemAdminNavigationPreferences as normalize } from "../../packages/template-realize/src/layouts/admin/systemAdminNavigationPreferences.util";
+import { useNavigationPreferences } from "../../packages/template-realize/src/layouts/admin/useNavigationPreferences.hook";
+import type { SystemAdminNavigationItem } from "../../packages/template-realize/src/layouts/admin/SystemAdminShell.types";
+import type { SystemAdminNavigationPreferences } from "../../packages/template-realize/src/layouts/admin/systemAdminNavigationPreferences.types";
 
 const navigation: SystemAdminNavigationItem[] = [
   { id: "home", label: "Главная", icon: null },

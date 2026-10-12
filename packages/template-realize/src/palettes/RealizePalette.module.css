@@ -1,0 +1,60 @@
+/**
+ * @file packages/template-realize/src/palettes/RealizePalette.module.css
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Владеет палитрой и прокруткой навигации Realize поверх объявленного default foundation.
+ * @see documentation/architecture/ui-kit.md
+ */
+.palette {
+  --ui-color-navigation: #151020;
+  --ui-color-navigation-text: #dfd5f2;
+  --ui-color-navigation-accent: #b68aff;
+  --ui-gradient-navigation: linear-gradient(
+    180deg,
+    #281740,
+    #171023 55%,
+    #100d1b
+  );
+}
+
+/* Геометрия scrollbar навигации принадлежит пакету; рабочий контент её не наследует. */
+.palette
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  ) {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--ui-color-muted) 45%, transparent)
+    transparent;
+}
+.palette
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  )::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.palette
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  )::-webkit-scrollbar-track {
+  background: transparent;
+}
+.palette
+  :where(
+    [data-navigation-body],
+    [data-navigation-list],
+    [data-navigation-scroll],
+    [data-navigation-item-menu]
+  )::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ui-color-muted) 45%, transparent);
+}

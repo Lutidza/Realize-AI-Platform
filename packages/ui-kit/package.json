@@ -1,6 +1,6 @@
 {
   "name": "@realize/ui-kit",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -9,6 +9,9 @@
   "sideEffects": [
     "**/*.css"
   ],
+  "dependencies": {
+    "@realize/template-contracts": "0.1.0"
+  },
   "peerDependencies": {
     "@radix-ui/react-dialog": "^1.1.19",
     "@radix-ui/react-dropdown-menu": "^2.1.24",

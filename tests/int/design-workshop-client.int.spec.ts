@@ -1,7 +1,7 @@
 /**
  * @file tests/int/design-workshop-client.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Проверяет повтор потерянного ответа, конфликты и сохранение исторического снимка новой версией.
  * @see documentation/specifications/design-workshop.md
  */
@@ -25,7 +25,7 @@ import { DesignWorkshopApi } from "../../packages/payload-ai-plugin/src/admin/de
 import { useWorkshopProject } from "../../packages/payload-ai-plugin/src/admin/design-workshop/useWorkshopProject.hook";
 import { workshopDraftCommand } from "../../packages/payload-ai-plugin/src/admin/design-workshop/workshopDraft.util";
 import { getSystemAdminNavigation } from "../../src/components/admin/system-shell/systemAdmin.navigation";
-import { normalizeSystemAdminNavigationPreferences } from "../../packages/ui-kit/src/system-admin-shell/systemAdminNavigationPreferences.util";
+import { normalizeSystemAdminNavigationPreferences } from "../../packages/template-realize/src/layouts/admin/systemAdminNavigationPreferences.util";
 import { designProjectFixture } from "./designWorkshop.fixture";
 import { WorkshopHistory } from "../../packages/payload-ai-plugin/src/admin/design-workshop/WorkshopHistory.component";
 

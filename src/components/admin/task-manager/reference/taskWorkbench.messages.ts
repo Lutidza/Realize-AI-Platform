@@ -1,11 +1,11 @@
 /**
  * @file src/components/admin/task-manager/reference/taskWorkbench.messages.ts
- * @version 1.1.0
- * @date 2026-09-19
+ * @version 1.1.1
+ * @date 2026-10-12
  * @description Переводит подписи верхней панели и страницы задач, сохраняя исходные имена объектов.
  * @see documentation/architecture/system-admin-shell.md
  */
-import type { SystemAdminLocale } from "@realize/ui-kit";
+import type { SystemAdminLocale } from "@realize/template-realize/ui";
 
 const ru = {
   user: "Пользователь",

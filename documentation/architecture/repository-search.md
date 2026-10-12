@@ -168,8 +168,13 @@ SQLite буфер установки: durable enqueue предшествует a
 Штатная typegen → tsc → build создаёт `.next/realize-search-build.json` только
 при неизменных sources. Consumers добавляют installedBuildID лишь при совпадении
 source hash и настоящего BUILD_ID. Manifest переносится build owner-ом в
-actual standalone .next; `/api/health/live` возвращает safe searchBuild из
-работающего bundle. Full preflight сверяет этот ответ с исходниками и build receipt.
+actual standalone build directory из bounded `required-server-files.json`:
+`standalone/<relativeAppDir>/<config.distDir>` (по умолчанию `.next`), включая
+изолированный custom distDir. Relative paths проверяются на traversal и выход
+через symlink до чтения runtime BUILD_ID; source и standalone BUILD_ID обязаны
+совпасть до записи receipts. `/api/health/live` возвращает safe searchBuild из
+работающего bundle. Успешная source-сборка и её receipts не активируют web:
+full preflight отдельно сверяет actual runtime с исходниками и build receipt.
 Если web установлен в отдельном каталоге внутри `.next`, install owner вызывает
 `activateInstalledSearchBinding` после совпадения actual health, текущего source hash
 и compiled receipt. Функция атомарно создаёт generated

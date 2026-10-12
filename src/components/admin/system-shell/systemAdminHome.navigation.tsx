@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdminHome.navigation.tsx
- * @version 1.1.3
- * @date 2026-09-18
+ * @version 1.1.5
+ * @date 2026-10-12
  * @description Собирает навигацию Главной и быстрые ссылки существующего reference.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -18,7 +18,7 @@ import {
   Settings2,
   Star,
 } from "lucide-react";
-import type { SystemAdminNavigationItem } from "@realize/ui-kit";
+import type { TemplateNavigationItem as SystemAdminNavigationItem } from "@realize/template-contracts/react";
 
 const iconProps = { size: 20, strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -29,7 +29,7 @@ export function getSystemAdminHomeNavigation(): SystemAdminNavigationItem {
     label: "Главная",
     icon: <House {...iconProps} size={22} />,
     description: "Ваш рабочий день, важные события и быстрый доступ.",
-    href: "/admin",
+    href: "/system",
     groups: [
       {
         id: "home-workspace",
@@ -41,7 +41,7 @@ export function getSystemAdminHomeNavigation(): SystemAdminNavigationItem {
             label: "Обзор",
             icon: <LayoutDashboard {...iconProps} />,
             description: "Сводка рабочей среды, задачи и важные события.",
-            href: "/admin",
+            href: "/system",
           },
           {
             id: "home-my-day",

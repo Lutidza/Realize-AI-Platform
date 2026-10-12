@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-navigation-storage.int.spec.ts
- * @version 1.2.0
- * @date 2026-09-18
+ * @version 1.2.1
+ * @date 2026-10-12
  * @description Проверяет сохранение, синхронизацию вкладок, отказ storage и hydration настроек меню.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -16,7 +16,7 @@ import {
   SYSTEM_ADMIN_NAVIGATION_PREFERENCES_STORAGE_KEY as key,
 } from "../../src/components/admin/system-shell/systemAdminNavigationPreferences.store";
 import { useSystemAdminNavigationPreferences } from "../../src/components/admin/system-shell/useSystemAdminNavigationPreferences.hook";
-import type { SystemAdminNavigationPreferences } from "../../packages/ui-kit/src/system-admin-shell/systemAdminNavigationPreferences.types";
+import type { SystemAdminNavigationPreferences } from "../../packages/template-realize/src/layouts/admin/systemAdminNavigationPreferences.types";
 
 const saved = { order: ["tasks", "home", "planner"], hidden: ["planner"] };
 const serialized = (preferences: SystemAdminNavigationPreferences = saved) =>

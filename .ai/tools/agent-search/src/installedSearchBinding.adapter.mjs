@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/src/installedSearchBinding.adapter.mjs
- * @version 1.2.0
- * @date 2026-09-30
+ * @version 1.2.1
+ * @date 2026-10-12
  * @description Связывает прошедшую штатную сборку с bounded search source hash и фактическим Next BUILD_ID.
  * @see documentation/architecture/repository-search.md
  */
@@ -58,6 +58,20 @@ const activeDirectoryIsValid = (directory) =>
   !directory
     .split("/")
     .some((segment) => segment === "." || segment === ".." || !segment);
+// Generated metadata задаёт canonical relative пути; пустой relativeAppDir допустим при tracing root = app root.
+const standaloneDirectoryIsValid = (directory, allowEmpty = false) =>
+  typeof directory === "string" &&
+  Buffer.byteLength(directory) <= 512 &&
+  (allowEmpty && directory === ""
+    ? true
+    : directory.length > 0 &&
+      !isAbsolute(directory) &&
+      !/^[a-zA-Z]:/.test(directory) &&
+      !directory.includes("\\") &&
+      !directory.includes("\0") &&
+      !directory
+        .split("/")
+        .some((segment) => segment === "." || segment === ".." || !segment));
 /** Только штатный build owner вызывает writer после typegen/tsc/build и проверки неизменности sources. */
 export async function writeInstalledSearchBinding(
   root,
@@ -75,7 +89,7 @@ export async function writeInstalledSearchBinding(
     builtAt: new Date().toISOString(),
   });
   const directories = [directory];
-  // Next standalone имеет собственную .next; health читает receipt именно работающего bundle.
+  // Next standalone сохраняет config.distDir; health читает receipt именно работающего bundle.
   const requiredPath = join(directory, "required-server-files.json");
   let required;
   try {
@@ -83,25 +97,32 @@ export async function writeInstalledSearchBinding(
   } catch (error) {
     if (error?.code !== "ENOENT") throw error;
   }
-  if (required) {
+  if (required !== undefined) {
+    if (!required || typeof required !== "object" || Array.isArray(required))
+      throw Error("search_build_standalone_invalid");
     const relative = required.relativeAppDir;
+    const config = required.config;
+    // Старые bounded fixtures без config описывают штатную .next; объявленное malformed значение не получает fallback.
+    const runtimeDistDir =
+      config?.distDir === undefined ? ".next" : config.distDir;
     if (
-      typeof relative !== "string" ||
-      isAbsolute(relative) ||
-      relative.split(/[\\/]/).includes("..")
+      (config !== undefined &&
+        (!config || typeof config !== "object" || Array.isArray(config))) ||
+      !standaloneDirectoryIsValid(relative, true) ||
+      !standaloneDirectoryIsValid(runtimeDistDir)
     )
       throw Error("search_build_standalone_invalid");
     const runtimeDirectory = await realpath(
-      join(directory, "standalone", relative, ".next"),
+      join(directory, "standalone", relative, runtimeDistDir),
     );
+    const standalone = await realpath(join(directory, "standalone"));
+    if (!runtimeDirectory.startsWith(standalone + "/"))
+      throw Error("search_build_standalone_invalid");
     if (
       (await boundedRead(join(runtimeDirectory, "BUILD_ID"), 256)).trim() !==
       installedBuildID
     )
       throw Error("search_build_standalone_mismatch");
-    const standalone = await realpath(join(directory, "standalone"));
-    if (!runtimeDirectory.startsWith(standalone + "/"))
-      throw Error("search_build_standalone_invalid");
     directories.unshift(runtimeDirectory);
   }
   for (const target of directories) {

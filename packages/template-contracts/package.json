@@ -1,0 +1,17 @@
+{
+  "name": "@realize/template-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/templateContracts.index.ts",
+    "./react": "./src/templateContracts.react.index.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "peerDependencies": {
+    "react": "^19.2.8"
+  },
+  "sideEffects": false
+}

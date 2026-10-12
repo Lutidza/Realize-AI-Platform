@@ -1,7 +1,7 @@
 /**
  * @file src/payload.config.ts
- * @version 1.3.0
- * @date 2026-09-25
+ * @version 1.4.0
+ * @date 2026-10-12
  * @description Настраивает Payload, обработку Media и переходы к самостоятельным системным разделам.
  * @see documentation/specifications/media-management.md
  * @see documentation/specifications/task-management.md
@@ -36,6 +36,7 @@ import { Users } from "@/collections/Users";
 import { Footer } from "@/globals/Footer";
 import { Header } from "@/globals/Header";
 import { plugins } from "./plugins";
+import { nativeAdminAuthRoutes } from "@/components/admin/system-shell/adminShellAvailability.config";
 
 // Команды миграций и генерации типов запускаются из корня исходников проекта.
 const sourceRoot = path.resolve(process.cwd(), "src");
@@ -53,7 +54,14 @@ const shouldPushDevelopmentSchema =
 export default buildConfig({
   admin: {
     user: Users.slug,
+    routes: nativeAdminAuthRoutes,
     components: {
+      views: {
+        dashboard: {
+          Component:
+            "/src/components/admin/system-shell/SystemAdminDashboard.view#SystemAdminDashboard",
+        },
+      },
       beforeNavLinks: [
         "/src/components/admin/system-shell/SystemAdminPayloadEntry.component#SystemAdminPayloadEntry",
       ],

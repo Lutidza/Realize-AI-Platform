@@ -1,6 +1,6 @@
 /**
  * @file src/components/admin/task-manager/TaskManager.types.ts
- * @version 1.3.0
+ * @version 1.4.0
  * @date 2026-10-12
  * @description Описывает свойства рабочего интерфейса и клиентский транспорт постоянных задач.
  * @see documentation/specifications/task-management-execution.md
@@ -24,7 +24,7 @@ import type {
 import type { SystemAdminContext } from "../system-shell/systemAdmin.types";
 
 /** Host передаёт безопасную сессию; право записи повторно проверяет API. */
-export type TaskManagerWorkbenchProps = SystemAdminContext;
+export type TaskManagerWorkbenchProps = Omit<SystemAdminContext, "appearance">;
 
 /** Клиент получает только публичные DTO; mutations всегда имеют ключ повторной доставки. */
 export type TaskManagerTransport = {

@@ -1,18 +1,18 @@
 /**
  * @file packages/ui-kit/src/input/UiInput.component.tsx
- * @version 1.0.0
- * @date 2026-09-09
- * @description Отображает native-поле ввода с общими состояниями UI-кита.
+ * @version 1.1.0
+ * @date 2026-10-12
+ * @description Разрешает Input активного template adapter с сохранением native API.
  */
+"use client";
 
 import type { UiInputProps } from "./UiInput.types";
-import styles from "./UiInput.module.css";
+import { UiInputPrimitive } from "./UiInputPrimitive.component";
+import { useUiTemplateRuntime } from "../template-runtime/useUiTemplateRuntime.hook";
 
-/** Использует aria-invalid для оформления ошибки; label и подсказки задаёт потребитель. */
-export const UiInput = ({ className, ...props }: UiInputProps) => (
-  <input
-    {...props}
-    className={[styles.input, className].filter(Boolean).join(" ")}
-    data-ui="input"
-  />
-);
+/** Label/ACL принадлежат consumer, размещение и оформление — выбранному Input. */
+export function UiInput(props: UiInputProps) {
+  const runtime = useUiTemplateRuntime();
+  const Input = runtime?.ui.Input ?? UiInputPrimitive;
+  return <Input {...props} />;
+}

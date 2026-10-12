@@ -1,12 +1,12 @@
 /**
  * @file src/components/admin/system-shell/systemAdminNavigationPreferences.store.ts
- * @version 1.2.0
- * @date 2026-09-18
+ * @version 1.2.1
+ * @date 2026-10-12
  * @description Сохраняет настройки меню в браузере и синхронизирует единый снимок между вкладками.
  * @see documentation/architecture/system-admin-shell.md
  */
 
-import type { SystemAdminNavigationPreferences } from "@realize/ui-kit";
+import type { TemplateNavigationPreferences as SystemAdminNavigationPreferences } from "@realize/template-contracts/react";
 import type {
   NavigationPreferencesStorage,
   SystemAdminNavigationPreferencesStore,

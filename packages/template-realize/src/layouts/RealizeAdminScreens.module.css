@@ -1,0 +1,47 @@
+/**
+ * @file packages/template-realize/src/layouts/RealizeAdminScreens.module.css
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Задаёт собственную композицию auth/status screens без Payload document styles.
+ */
+.screen {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 100dvh;
+  padding: var(--ui-space-6);
+  background: var(--ui-color-bg);
+}
+.card {
+  display: grid;
+  gap: var(--ui-space-6);
+  width: min(100%, 520px);
+  padding: var(--ui-space-8);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-surface);
+}
+.card h1 {
+  font-size: 24px;
+  font-weight: 650;
+}
+.brand,
+.content {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.actions {
+  display: flex;
+  gap: var(--ui-layout-gap);
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .screen {
+    align-content: start;
+    padding: var(--ui-space-4);
+  }
+  .card {
+    padding: var(--ui-space-5);
+  }
+}

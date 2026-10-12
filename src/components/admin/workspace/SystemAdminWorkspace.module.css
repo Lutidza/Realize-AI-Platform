@@ -1,0 +1,41 @@
+/**
+ * @file src/components/admin/workspace/SystemAdminWorkspace.module.css
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Размещает входы рабочей области на общих tokens выбранного пакета.
+ */
+.content {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.content h1 {
+  margin: 0;
+  font-size: 24px;
+}
+.content p {
+  color: var(--ui-color-muted);
+  line-height: 1.6;
+}
+.modules {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+}
+.module {
+  padding: var(--ui-space-4);
+  min-width: 0;
+}
+.module h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.module a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.module a:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 4px;
+}

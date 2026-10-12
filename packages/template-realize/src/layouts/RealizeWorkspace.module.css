@@ -1,0 +1,16 @@
+/**
+ * @file packages/template-realize/src/layouts/RealizeWorkspace.module.css
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Размещает заголовок и semantic groups без дублирования navigation renderer.
+ */
+.navigation {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.heading {
+  font-size: 14px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}

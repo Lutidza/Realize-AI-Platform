@@ -1,7 +1,7 @@
 /**
  * @file src/app/(system-admin)/system/workshop/[projectId]/page.tsx
- * @version 1.0.0
- * @date 2026-09-25
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Открывает Мастерскую только после серверной проверки администратора.
  * @see documentation/specifications/design-workshop.md
  */
@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { designWorkshopCommands } from "@realize/ai-contracts";
 import { requireSystemAdmin } from "@/components/admin/system-shell/requireSystemAdmin.service";
+import { SystemAdminTemplateProvider } from "@/components/admin/system-shell/SystemAdminTemplateProvider.component";
 import { systemWorkshopProjectRoute } from "@/components/admin/system-shell/systemAdmin.routes";
 import { DesignWorkshopHost } from "@/components/admin/design-workshop/DesignWorkshopHost.component";
 
@@ -30,9 +31,15 @@ export default async function DesignWorkshopProjectPage({
   if (!designWorkshopCommands.identifier.safeParse(projectId).success)
     notFound();
   return (
-    <DesignWorkshopHost
-      projectId={projectId}
-      initialTheme={context.initialTheme}
-    />
+    <SystemAdminTemplateProvider
+      selection={context.appearance.selection}
+      settings={context.appearance.settings}
+      initialMode={context.initialTheme}
+    >
+      <DesignWorkshopHost
+        projectId={projectId}
+        initialTheme={context.initialTheme}
+      />
+    </SystemAdminTemplateProvider>
   );
 }

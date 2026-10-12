@@ -1,0 +1,193 @@
+/**
+ * @file packages/template-realize/src/layouts/admin/SystemAdminFavorites.module.css
+ * @version 1.3.1
+ * @date 2026-10-12
+ * @description Оформляет общую строку навигации, её hover-кнопку и меню действий через токены темы.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+
+.toggle {
+  flex: 0 0 28px;
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  height: 28px;
+  padding: 6px;
+  color: var(--ui-color-muted);
+  transition:
+    opacity var(--ui-duration) ease,
+    background-color var(--ui-duration) ease;
+}
+
+.toggle[data-state="open"] {
+  color: var(--ui-color-primary);
+  background: var(--ui-color-surface-raised);
+}
+
+/* Строка объединяет фон независимых контролов, не обрезая вложенное меню и focus ring. */
+:global([data-navigation-item="row"]):has(> .toggle) {
+  padding-inline-end: 4px;
+  border-radius: var(--ui-radius-sm);
+  transition: background-color var(--ui-duration) ease;
+}
+
+:global([data-navigation-item="row"]):has(> .toggle):is(:hover, :focus-within),
+:global([data-navigation-item="row"]):has(> .toggle[data-state="open"]) {
+  background: var(--ui-color-surface-raised);
+}
+
+:global([data-navigation-item="row"]):has(> .toggle):has(
+    > :global([data-navigation-item-select][aria-pressed="true"])
+  ) {
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 12%,
+    var(--ui-color-surface)
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--ui-color-primary) 25%, transparent);
+}
+
+:global([data-navigation-item="row"]):has(> .toggle)
+  > :global([data-navigation-item-select]) {
+  background: transparent;
+}
+
+:global([data-navigation-item="row"]):has(> .toggle)
+  > :global([data-navigation-item-select]:not(:focus-visible)) {
+  box-shadow: none;
+}
+
+:global([data-navigation-item="row"]) > .toggle {
+  align-self: center;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .toggle {
+    opacity: 0;
+    pointer-events: none;
+  }
+  :global([data-navigation-item]):is(:hover, :focus-within) > .toggle,
+  .toggle:focus-visible,
+  .toggle[data-always-visible="true"],
+  .toggle[data-state="open"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (any-pointer: coarse) {
+  .toggle {
+    flex-basis: 44px;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    height: 44px;
+    opacity: 1;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+.menu {
+  z-index: 900;
+  box-sizing: border-box;
+  width: 238px;
+  max-width: min(
+    calc(100vw - 16px),
+    var(--radix-dropdown-menu-content-available-width)
+  );
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  box-shadow: var(--ui-shadow-surface);
+}
+
+/* Прокрутка вложенного блока оставляет позиционируемую Radix стрелку вне обрезания. */
+.menuBody {
+  box-sizing: border-box;
+  max-height: calc(var(--radix-dropdown-menu-content-available-height) - 2px);
+  overflow-y: auto;
+  padding: 5px;
+  border-radius: inherit;
+}
+
+.menu:focus {
+  outline: none;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 36px;
+  padding: 8px 9px;
+  border-radius: var(--ui-radius-sm);
+  color: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+}
+
+.menuItem[data-highlighted] {
+  background: var(--ui-color-surface-raised);
+}
+
+.menuItem[data-disabled] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.menuItem[data-danger],
+.menuItem[data-danger] > svg {
+  color: var(--ui-color-danger);
+}
+.menuSeparator {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--ui-color-border);
+}
+
+.menuItem > svg {
+  flex-shrink: 0;
+  color: var(--ui-color-muted);
+}
+
+.menuStatus {
+  margin: 0;
+  padding: 8px 9px;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 18px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.menuStatus[data-error="true"] {
+  color: var(--ui-color-danger);
+}
+
+@media (any-pointer: coarse) {
+  .menuItem {
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle,
+  :global([data-navigation-item="row"]):has(> .toggle) {
+    transition: none;
+  }
+}
+
+.empty {
+  margin: 0;
+  padding: 8px 10px 12px;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  line-height: 18px;
+}

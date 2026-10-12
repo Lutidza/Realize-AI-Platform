@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdminAI.navigation.tsx
- * @version 1.3.0
- * @date 2026-10-05
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Задаёт группы AI, существующие переходы и планируемые подпункты системного reference.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -23,7 +23,7 @@ import {
   Settings2,
   ShieldCheck,
 } from "lucide-react";
-import type { SystemAdminNavigationGroup } from "@realize/ui-kit";
+import type { TemplateNavigationGroup as SystemAdminNavigationGroup } from "@realize/template-contracts/react";
 
 const iconProps = { size: 20, strokeWidth: 1.75, "aria-hidden": true } as const;
 const planned = { disabled: true } as const;

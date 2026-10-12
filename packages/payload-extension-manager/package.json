@@ -1,0 +1,20 @@
+{
+  "name": "@realize/payload-extension-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/extensionManager.plugin.ts",
+    "./contracts": "./src/extensionManagerContracts.index.ts",
+    "./server": "./src/extensionManager.server.index.ts"
+  },
+  "dependencies": {
+    "@realize/template-contracts": "0.1.0",
+    "zod": "4.6.5"
+  },
+  "peerDependencies": {
+    "@payloadcms/db-postgres": "^3.88.0",
+    "payload": "^3.88.0"
+  },
+  "sideEffects": false
+}

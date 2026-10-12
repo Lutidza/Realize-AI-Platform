@@ -1,15 +1,98 @@
 # Системный шаблон админки Realize
 
-Версия: 0.40, 2026-10-12. Потребители — Task Manager Foundation, reference и Мастерская.
+Версия: 0.46, 2026-10-12. Потребители — Task Manager Foundation, reference и Мастерская.
 
 ## Ответственность и границы
 
-`packages/ui-kit/src/system-admin-shell/` владеет общей компоновкой: глобальная
+`packages/template-realize/src/layouts/admin/` владеет компоновкой Realize: глобальная
 панель модулей, дополнительная навигация раздела, шапка/действия, рабочая область,
 footer, адаптивная навигация, тема и типографический baseline. Компонент использует
 React и общие primitives; он не импортирует Next, Payload, коллекции или API.
 Модули передают навигационные элементы, содержимое и callbacks через props.
-Общий dialog/portal и варианты tabs принадлежат тому же UI-kit.
+Общий dialog/portal и варианты tabs принадлежат UI-kit. Базовые компоненты
+сохраняют самостоятельное использование; в template host Button/Input разрешаются
+через выбранный adapter, без зависимости UI-kit от конкретного Realize package.
+
+## Штатный и пакетный интерфейсы Admin
+
+Действующая настройка Admin выбирает штатный интерфейс Payload либо пакетный
+интерфейс Realize. Другие совместимые шаблоны расширят этот каталог. Для первой пары Payload ↔ Realize второй
+собственный пакет не нужен. Payload UI поддерживается поставщиком CMS и обновляется
+с согласованными Payload-зависимостями; копии его layout/styles в template package нет.
+
+Host определяет доступность вариантов для конкретного клиента и основной вход.
+Native Admin может не использоваться; это не отменяет Payload backend, API и ACL.
+Неактивный или запрещённый host policy вариант не служит неявным обходом выбора
+или прав доступа. Возврат в native допускается только при разрешённой доступности.
+
+Выбор оболочки отделён от custom template/palette/settings и light/dark. Native
+использует собственные RootLayout/providers/styles, Realize — независимый root.
+SDK-контракт применяется к пакетным renderers; host-адаптер штатной оболочки не
+имитирует совместимость через фиктивный template manifest. Переход между roots
+должен сохранять custom assignment для возврата и защищать drafts/pending команды.
+
+Реализованы и внедрены отдельный persisted shell lifecycle и основной вход: native
+dashboard `/admin` после auth возвращает штатный `DefaultDashboard` или переводит
+в независимый `/system`. Workspace имеет реальные переходы к Task Manager,
+Мастерской и `/system/appearance`; настройки содержат shell picker, отдельные
+prepare/preview/apply/recover и историю. Это не вложение Realize в native layout
+и не автоматический перенос остальных редакторов Payload. Shell state/ledger
+имеет отдельный scope; `ExtensionAssignment` описывает только пакетное назначение.
+Основной runtime использует проверенный bundle `_HmknEVf1nCPefAPVruPV`; раздел
+`/system/appearance#appearance-installed` показывает Payload `3.88.0` и Realize
+`0.1.0` с подтверждёнными версиями, defaults и effective активностью.
+Native вход, настройки/preview, фактическое переключение и возврат проверены
+[live приёмкой текущего среза](../specifications/extension-management.md#раздел-установленных-шаблонов).
+Host availability также фильтрует native ссылки в Realize; session
+и роль проверяются каждым protected page и API. [Контракт defaults и policy](../specifications/extension-management.md#контракт-первого-переключателя-оболочек). Realize пока использует native login/unauthorized: полное отключение
+штатного UI требует самостоятельных auth/status страниц и проверки backend auth.
+Reference всегда остаётся на фиксированном Realize preset независимо от выбора Admin.
+
+## Единый контракт и пакетная граница
+
+`@realize/template-contracts` владеет строгим manifest API, совместимостью и
+точным выбором template/palette/mode; `/react` — общим presentation contract,
+необязательными capabilities и native props заменяемых Button/Input.
+Один контракт содержит различимые Admin workspace/auth/status и frontend page.
+Первый `@realize/template-realize@0.1.0` объявляет только Admin; готового frontend
+renderer пока нет. Его `/admin` экспортирует compiled definition, `/manifest` —
+serializable паспорт без CSS, `/ui` — детали фиксированного Realize reference.
+
+`SystemAdminTemplateProvider` выбирает известную definition из compiled registry,
+проверяет compatibility и settings и передаёт UI context также dialogs вне shell.
+Защищённые страницы Task Manager и Мастерской инициализируют page-level provider
+проверенным `context.initialTheme` до первого render. Provider охватывает controller
+и sibling dialogs; root provider служит общим fallback. Callback смены mode
+обновляет provider и доменный controller без перемонтирования страницы.
+`SystemAdminTemplateHost` передаёт semantic navigation/capabilities/breadcrumbs/actions
+выбранному Renderer. Working Task Manager и Workshop не импортируют concrete
+renderer. Reference сохраняет явный Realize preset и прежние взаимодействия.
+
+Полный layout, toolbar, navigation, private components, palette и settings
+находятся в template package. UIKit хранит общий baseline и объявленно наследуемые
+default UI/tokens; Realize navigation tokens/scrollbar принадлежат его palette.
+`UiTheme` получает palette identity/class/style через React context, включая
+portals, и сохраняет явно переданный mode. Реальные settings `density` и
+`panelWidth` проверяются strict schema; JSON Schema генерируется из того же source.
+Default comfortable/280 сохраняет референсную геометрию.
+
+Шаблоны — React components, совместимые с Next App Router, SSR и client hydration.
+Права, cookies и бизнес-команды остаются у host/модуля. Выбор compiled шаблона читается сервером из appearance storage менеджера расширений;
+при отсутствии source migration используется исходный config без записи в БД.
+Экран `/system/appearance` имеет навигацию к оболочке Admin, установленным шаблонам,
+назначению и истории;
+готовит план, открывает actor-bound предпросмотр
+`/system/appearance/preview/[planId]`, применяет назначение с CAS и сохраняет
+immutable receipt. Admin/frontend имеют отдельные revisions; frontend renderer
+ещё не зарегистрирован. Установка нового кода и Workshop package release требуют
+отдельного проверенного delivery adapter и этим этапом не реализованы.
+Режим из валидной пользовательской cookie имеет приоритет над режимом назначения.
+Сохранение назначения не заменяет renderer в открытой странице: новое оформление
+загружается при следующем переходе. Reference route использует фиксированный
+preset и не читает рабочее назначение.
+Обычная смена mode сохраняет controller state. Для смены типа renderer с drafts
+Workshop ещё нужен guard либо выделенный controller; готовая hot activation
+с сохранением всех состояний не заявляется.
 
 `secondaryNavigation` принимает готовое содержимое или функцию
 `(onNavigate) => ReactNode`. Модуль вызывает callback после выбора проекта,
@@ -28,7 +111,7 @@ React и общие primitives; он не импортирует Next, Payload, 
 
 ## Общая панель разделов
 
-Глобальная навигация принадлежит `SystemAdminNavigation` в UI-kit и не зависит
+Глобальная навигация принадлежит `SystemAdminNavigation` в пакете Realize и не зависит
 от task manager. Host registry `src/components/admin/system-shell/systemAdmin.navigation.tsx`
 задаёт порядок, полные названия, Lucide-иконки и известные переходы.
 Панель предназначена для замены основной навигации Payload при постепенном
@@ -44,8 +127,11 @@ React и общие primitives; он не импортирует Next, Payload, 
 [спецификации Мастерской](../specifications/design-workshop.md).
 Её host использует общий shell, groups, preferences, контекстную строку и тему;
 переносимый клиент Payload AI plugin владеет своим workflow и HTTP state.
-`SystemAdminPayloadEntry` связывает Payload «Рабочая область» с Мастерской и
-прототипом задач; доступ к каждой странице проверяется сервером.
+`SystemAdminPayloadEntry` связывает Payload «Рабочая область» с Мастерской,
+референсом, рабочими задачами и экраном «Темы и шаблоны»; доступ к каждой странице проверяется сервером.
+«Темы и шаблоны» открывает `/system/appearance` в выбранном standalone шаблоне.
+Контракт операций и ограничения установки описаны в
+[менеджере расширений](../specifications/extension-management.md).
 Подпункты Главной, AI и Задач описаны ниже; остальные разделы пока
 сохраняют краткое описание и существующие переходы.
 
@@ -147,7 +233,8 @@ taskLocationAppearance; одна и та же картинка видна в к�
 
 ### Верхняя панель
 
-`toolbar` — optional slot SystemAdminShell. При его наличии он заменяет прежние
+У concrete Realize shell для фиксированного reference `toolbar` — optional slot
+SystemAdminShell, а не обязательный API общего SDK. При его наличии он заменяет прежние
 headerActions и отдельную кнопку темы. `SystemAdminToolbar` получает context,
 searchEntries, createActions, notifications, onReadAll, user, profileActions,
 optional billingActions, signOutAction, onCreate, onAssistant, theme/onThemeChange и locale/onLocaleChange.
@@ -493,10 +580,13 @@ Next определяет зависимость защищённого экра
 prerender защищённых страниц; сессия и роль проверяются при реальном запросе.
 `/reference/task-manager` остаётся публичной демонстрацией вымышленных данных.
 
-Admin entry «Задачи» ведёт на `/system/task-manager`; reference доступен
-отдельной явно подписанной ссылкой в Мастерской. Ранее введённый
-`/admin/task-manager/reference` перестаёт владеть UI: его registration/view
-удаляются после перевода ссылки. Это не постоянная двойная оболочка.
+Admin entry отдельно показывает «Референс задач» (`/system/task-manager/reference`)
+и «Рабочий Task Manager» (`/system/task-manager`), сохраняя доступ к эталону
+при появлении постоянного хранилища. Ссылка рабочего экрана не считается
+выбранной на вложенном reference URL. Прежний
+`/admin/task-manager/reference` сохраняется как явный redirect к защищённому
+эталону, без собственного renderer/fixtures. Владелец URL — тонкий Next route;
+единственный UI owner находится на `/system/task-manager/reference`.
 Существующие `/admin` экраны и сессии сохраняют своих владельцев.
 
 Отделение CSS и разметки защищает новый UI от визуальных изменений Payload.
@@ -513,9 +603,10 @@ Admin entry «Задачи» ведёт на `/system/task-manager`; reference �
    их существующие providers, permissions и события не заменяются заглушками.
 4. Нативные редакторы Payload остаются доступными до отдельных решений по ним.
 
-Миграция не вводит новые auth cookies, обход ACL, дублирующую БД, fork Payload
-или пакет-установщик. Публикация shell как npm package — отдельный этап;
-сейчас он экспортируется существующим workspace UI-kit.
+Миграция не вводит новые auth cookies, обход ACL, дублирующую БД или fork Payload.
+Shell поставляется самостоятельным workspace package Realize. Универсальный
+installer и выпуск из Мастерской развиваются по одному lifecycle в
+[спецификации расширений](../specifications/extension-management.md).
 
 ## Приёмка
 

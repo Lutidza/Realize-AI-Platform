@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/theme/UiTheme.module.css
- * @version 1.4.0
- * @date 2026-09-18
+ * @version 1.4.1
+ * @date 2026-10-12
  * @description Задаёт общие цвета, размеры и эффекты светлой и тёмной темы.
  */
 
@@ -17,15 +17,6 @@
   --ui-color-primary: #7544de;
   --ui-color-secondary: #078d9c;
   --ui-color-on-accent: #ffffff;
-  --ui-color-navigation: #151020;
-  --ui-color-navigation-text: #dfd5f2;
-  --ui-color-navigation-accent: #b68aff;
-  --ui-gradient-navigation: linear-gradient(
-    180deg,
-    #281740,
-    #171023 55%,
-    #100d1b
-  );
   --ui-color-success: #16815b;
   --ui-color-info: #315fc3;
   --ui-color-warning: #895800;
@@ -118,49 +109,4 @@
 }
 :where(.baseline) :where(code, pre, kbd) {
   font-family: var(--ui-font-monospace);
-}
-
-/* Единый тонкий scrollbar для панелей навигации, не затрагивающий рабочий контент. */
-.theme
-  :where(
-    [data-navigation-body],
-    [data-navigation-list],
-    [data-navigation-scroll],
-    [data-navigation-item-menu]
-  ) {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--ui-color-muted) 45%, transparent)
-    transparent;
-}
-
-.theme
-  :where(
-    [data-navigation-body],
-    [data-navigation-list],
-    [data-navigation-scroll],
-    [data-navigation-item-menu]
-  )::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-.theme
-  :where(
-    [data-navigation-body],
-    [data-navigation-list],
-    [data-navigation-scroll],
-    [data-navigation-item-menu]
-  )::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.theme
-  :where(
-    [data-navigation-body],
-    [data-navigation-list],
-    [data-navigation-scroll],
-    [data-navigation-item-menu]
-  )::-webkit-scrollbar-thumb {
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--ui-color-muted) 45%, transparent);
 }

@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskWorkbenchToolbar.types.ts
- * @version 1.2.0
- * @date 2026-09-19
+ * @version 1.2.1
+ * @date 2026-10-12
  * @description Задаёт доменные входы верхней панели и доступные записи поисковой проекции.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -10,7 +10,7 @@ import type {
   PrototypeDispatch,
   TaskLocation,
 } from "./taskManager.types";
-import type { SystemAdminLocale } from "@realize/ui-kit";
+import type { SystemAdminLocale } from "@realize/template-realize/ui";
 import type { useTaskWorkbench } from "./useTaskWorkbench.hook";
 import type { useWorkspaceManager } from "./useWorkspaceManager.hook";
 

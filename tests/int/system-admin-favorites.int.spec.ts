@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-favorites.int.spec.ts
- * @version 1.4.0
- * @date 2026-09-18
+ * @version 1.4.1
+ * @date 2026-10-12
  * @description Проверяет закрепление, действия со ссылкой и жизненный цикл меню системной навигации.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -16,14 +16,14 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SystemAdminNavigation } from "../../packages/ui-kit/src/system-admin-shell/SystemAdminNavigation.component";
-import { SystemAdminItemMenu } from "../../packages/ui-kit/src/system-admin-shell/SystemAdminItemMenu.component";
+import { SystemAdminNavigation } from "../../packages/template-realize/src/layouts/admin/SystemAdminNavigation.component";
+import { SystemAdminItemMenu } from "../../packages/template-realize/src/layouts/admin/SystemAdminItemMenu.component";
 import type {
   SystemAdminNavigationItem,
   SystemAdminNavigationLink,
-} from "../../packages/ui-kit/src/system-admin-shell/SystemAdminShell.types";
-import type { SystemAdminNavigationPreferences } from "../../packages/ui-kit/src/system-admin-shell/systemAdminNavigationPreferences.types";
-import { getSystemAdminFavoriteTargets } from "../../packages/ui-kit/src/system-admin-shell/systemAdminFavorites.util";
+} from "../../packages/template-realize/src/layouts/admin/SystemAdminShell.types";
+import type { SystemAdminNavigationPreferences } from "../../packages/template-realize/src/layouts/admin/systemAdminNavigationPreferences.types";
+import { getSystemAdminFavoriteTargets } from "../../packages/template-realize/src/layouts/admin/systemAdminFavorites.util";
 
 const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
   HTMLElement.prototype,

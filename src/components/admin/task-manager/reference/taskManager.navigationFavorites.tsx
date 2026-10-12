@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/task-manager/reference/taskManager.navigationFavorites.tsx
- * @version 2.1.0
- * @date 2026-09-18
+ * @version 2.1.1
+ * @date 2026-10-12
  * @description Формирует актуальный каталог контейнеров и представлений задач для общего избранного оболочки.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -14,7 +14,7 @@ import {
   LayoutDashboard,
   List,
 } from "lucide-react";
-import type { SystemAdminNavigationLink } from "@realize/ui-kit";
+import type { SystemAdminNavigationLink } from "@realize/template-realize/ui";
 import {
   getLocationWorkspace,
   getWorkspaceAccess,

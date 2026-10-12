@@ -646,7 +646,8 @@ Git-команды, push и внешние записи не выполняют�
 
 **Системный шаблон.** Task manager — первый потребитель
 [SystemAdminShell](../architecture/system-admin-shell.md). Общая оболочка
-принадлежит UI-kit, отдельный `/system/task-manager/reference` использует
+принадлежит самостоятельному `@realize/template-realize`; рабочие модули
+подключаются через единый SDK и neutral host. Отдельный `/system/task-manager/reference` использует
 серверную авторизацию Payload без его CSS/DefaultTemplate. Публичный
 `/reference/task-manager` показывает те же fixtures в том же шаблоне.
 Остальные экраны переносятся постепенно отдельными заданиями. UI независим

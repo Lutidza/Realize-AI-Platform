@@ -1,19 +1,18 @@
 /**
  * @file src/components/admin/task-manager/reference/WorkspaceSwitcher.component.tsx
- * @version 1.3.0
- * @date 2026-09-18
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Переключает активную среду и открывает каталог, создание и её настройки.
  * @see documentation/architecture/system-admin-shell.md
  */
 
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { Check, LayoutGrid, Plus, Settings2 } from "lucide-react";
+import { UiButton, UiSearchInput } from "@realize/ui-kit";
 import {
-  UiButton,
-  UiSearchInput,
   SystemAdminMenuContent,
   SystemAdminDisclosureIcon,
-} from "@realize/ui-kit";
+} from "@realize/template-realize/ui";
 import { workspaceIcons } from "./taskWorkspace.constants";
 import { useWorkspaceSwitcher } from "./useWorkspaceSwitcher.hook";
 import { taskWorkbenchMessages } from "./taskWorkbench.messages";

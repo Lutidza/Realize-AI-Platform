@@ -1,12 +1,12 @@
 /**
  * @file src/components/admin/system-shell/systemAdminNavigationPreferences.types.ts
- * @version 1.0.0
- * @date 2026-09-17
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Описывает browser storage и подписку на персональные настройки навигации.
  * @see documentation/architecture/system-admin-shell.md
  */
 
-import type { SystemAdminNavigationPreferences } from "@realize/ui-kit";
+import type { TemplateNavigationPreferences as SystemAdminNavigationPreferences } from "@realize/template-contracts/react";
 
 export type SystemAdminNavigationPreferencesBinding = {
   navigationPreferences: SystemAdminNavigationPreferences | undefined;

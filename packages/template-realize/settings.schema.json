@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "density": {
+      "default": "comfortable",
+      "title": "Плотность интерфейса",
+      "x-enumLabels": { "comfortable": "Просторно", "compact": "Компактно" },
+      "type": "string",
+      "enum": ["comfortable", "compact"]
+    },
+    "panelWidth": {
+      "default": 280,
+      "title": "Ширина боковой панели",
+      "description": "Ширина внутренней навигации на широком экране, в пикселях.",
+      "type": "integer",
+      "minimum": 220,
+      "maximum": 400
+    }
+  },
+  "additionalProperties": false,
+  "$id": "urn:realize:template-realize:settings:1.0.0"
+}

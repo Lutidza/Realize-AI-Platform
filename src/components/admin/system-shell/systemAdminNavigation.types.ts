@@ -1,15 +1,15 @@
 /**
  * @file src/components/admin/system-shell/systemAdminNavigation.types.ts
- * @version 1.3.0
- * @date 2026-09-18
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Определяет действия host для общего каталога разделов системной админки.
  * @see documentation/architecture/system-admin-shell.md
  */
 
 import type {
-  SystemAdminNavigationItem,
-  SystemAdminNavigationLink,
-} from "@realize/ui-kit";
+  TemplateNavigationItem as SystemAdminNavigationItem,
+  TemplateNavigationLink as SystemAdminNavigationLink,
+} from "@realize/template-contracts/react";
 
 /** Раздел задач открывается действием текущего host без вымышленного общего маршрута. */
 export type SystemAdminNavigationOptions = {

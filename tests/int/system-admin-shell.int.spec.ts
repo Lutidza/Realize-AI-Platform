@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-shell.int.spec.ts
- * @version 1.2.0
- * @date 2026-10-11
+ * @version 1.4.0
+ * @date 2026-10-12
  * @description Проверяет отказ в доступе и безопасный контекст самостоятельной системной админки.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -16,6 +16,8 @@ const mocks = vi.hoisted(() => ({
   headers: vi.fn(),
   cookies: vi.fn(),
   cookieGet: vi.fn(),
+  runtimeAssignment: vi.fn(),
+  shellRuntime: vi.fn(),
   redirect: vi.fn((url: string): never => {
     throw new Error(`redirect:${url}`);
   }),
@@ -29,9 +31,37 @@ vi.mock("next/headers", () => ({
   cookies: mocks.cookies,
 }));
 vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+vi.mock("@realize/payload-extension-manager/server", () => ({
+  readExtensionRuntimeAssignment: mocks.runtimeAssignment,
+  readAdminShellRuntime: mocks.shellRuntime,
+}));
+vi.mock("@/plugins/extensionManager.config", () => ({
+  extensionManagerOptions: {
+    userCollection: "users",
+    scopeKey: "fixture:appearance",
+  },
+}));
 
 import { requireSystemAdmin } from "../../src/components/admin/system-shell/requireSystemAdmin.service";
 import { SYSTEM_TASK_MANAGER_REFERENCE_ROUTE } from "../../src/components/admin/system-shell/systemAdmin.routes";
+import { systemAdminReferenceAppearance } from "../../src/components/admin/system-shell/systemAdminReferenceAppearance.config";
+
+/** Runtime adapter mock проверяет SSR boundary, а не SQL/readiness установленного приложения. */
+const appearance = {
+  selection: {
+    templateId: "realize",
+    templateVersion: "0.1.0",
+    target: "admin",
+    paletteId: "realize",
+    paletteVersion: "0.1.0",
+    mode: "dark",
+  },
+  settings: { density: "compact", panelWidth: 320 },
+  revision: 4,
+  persisted: true,
+  storageReady: true,
+  requiresRecovery: false,
+};
 
 describe("Проверка доступа системной админки", () => {
   beforeEach(() => {
@@ -40,6 +70,25 @@ describe("Проверка доступа системной админки", ()
     mocks.headers.mockResolvedValue(new Headers());
     mocks.cookieGet.mockReturnValue(undefined);
     mocks.cookies.mockResolvedValue({ get: mocks.cookieGet });
+    mocks.shellRuntime.mockResolvedValue({
+      effectiveMode: "template",
+      requiresRecovery: false,
+      policy: {
+        enabled: { native: true, template: true },
+        nativeRoute: "/admin",
+      },
+    });
+    mocks.runtimeAssignment.mockResolvedValue({
+      assignment: {
+        selection: appearance.selection,
+        settings: appearance.settings,
+        manifestHash: "a".repeat(64),
+      },
+      revision: appearance.revision,
+      persisted: appearance.persisted,
+      storageReady: appearance.storageReady,
+      requiresRecovery: appearance.requiresRecovery,
+    });
     mocks.getPayload.mockResolvedValue({
       auth: mocks.auth,
       config: {
@@ -57,6 +106,7 @@ describe("Проверка доступа системной админки", ()
       `redirect:/admin/login?redirect=${encodeURIComponent(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE)}`,
     );
     expect(mocks.cookies).not.toHaveBeenCalled();
+    expect(mocks.runtimeAssignment).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -69,6 +119,7 @@ describe("Проверка доступа системной админки", ()
       requireSystemAdmin(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE),
     ).rejects.toThrow("redirect:/admin/unauthorized");
     expect(mocks.cookies).not.toHaveBeenCalled();
+    expect(mocks.runtimeAssignment).not.toHaveBeenCalled();
   });
 
   it("передаёт клиенту безопасного участника и тему после проверки текущих заголовков", async () => {
@@ -92,10 +143,21 @@ describe("Проверка доступа системной админки", ()
       initialTheme: "light",
       themeCookieName: "payload-theme",
       currentActor: { id: "1", name: "Участник" },
+      adminShell: {
+        mode: "template",
+        nativeEnabled: true,
+        requiresRecovery: false,
+      },
+      appearance,
     });
     expect(mocks.auth).toHaveBeenCalledWith({ headers: requestHeaders });
     expect(mocks.cookieGet).toHaveBeenCalledWith("payload-theme");
     expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.runtimeAssignment).toHaveBeenCalledWith(
+      await mocks.getPayload.mock.results[0].value,
+      { userCollection: "users", scopeKey: "fixture:appearance" },
+      "admin",
+    );
   });
 
   it("повторно проверяет роль при следующем обращении", async () => {
@@ -108,6 +170,12 @@ describe("Проверка доступа системной админки", ()
       initialTheme: "dark",
       themeCookieName: "payload-theme",
       currentActor: { id: "1", name: "Администратор" },
+      adminShell: {
+        mode: "template",
+        nativeEnabled: true,
+        requiresRecovery: false,
+      },
+      appearance,
     });
     mocks.auth.mockResolvedValueOnce({
       user: { collection: "users", roles: ["customer"] },
@@ -116,6 +184,7 @@ describe("Проверка доступа системной админки", ()
       requireSystemAdmin(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE),
     ).rejects.toThrow("redirect:/admin/unauthorized");
     expect(mocks.auth).toHaveBeenCalledTimes(2);
+    expect(mocks.runtimeAssignment).toHaveBeenCalledTimes(1);
   });
 
   it("передаёт имя theme cookie из конфигурации host", async () => {
@@ -144,6 +213,7 @@ describe("Проверка доступа системной админки", ()
     ).rejects.toThrow("Auth unavailable");
     expect(mocks.cookies).not.toHaveBeenCalled();
     expect(mocks.redirect).not.toHaveBeenCalled();
+    expect(mocks.runtimeAssignment).not.toHaveBeenCalled();
   });
 
   it("использует настройки host для адреса входа", async () => {
@@ -160,5 +230,60 @@ describe("Проверка доступа системной админки", ()
     ).rejects.toThrow(
       `redirect:/cms/sign-in?redirect=${encodeURIComponent(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE)}`,
     );
+  });
+
+  it.each([
+    [undefined, "light"],
+    ["invalid", "light"],
+    ["dark", "dark"],
+    ["light", "light"],
+  ])(
+    "предпочитает валидный cookie сохранённому mode, иначе использует selection.mode: %s",
+    async (cookie, expected) => {
+      mocks.auth.mockResolvedValue({
+        user: { id: 1, collection: "users", roles: ["admin"] },
+      });
+      mocks.runtimeAssignment.mockResolvedValue({
+        assignment: {
+          selection: { ...appearance.selection, mode: "light" },
+          settings: appearance.settings,
+          manifestHash: "a".repeat(64),
+        },
+        revision: appearance.revision,
+        persisted: true,
+        storageReady: true,
+        requiresRecovery: false,
+      });
+      mocks.cookieGet.mockReturnValue(
+        cookie === undefined ? undefined : { value: cookie },
+      );
+      const context = await requireSystemAdmin("/system/task-manager");
+      expect(context.initialTheme).toBe(expected);
+      expect(context.appearance.selection.mode).toBe("light");
+      expect(context.appearance.settings).toEqual(appearance.settings);
+    },
+  );
+
+  it("фиксирует reference preset и не читает рабочее назначение даже при storage error", async () => {
+    mocks.auth.mockResolvedValue({
+      user: { id: 1, collection: "users", roles: ["admin"] },
+    });
+    mocks.runtimeAssignment.mockRejectedValue(
+      new Error("must not read appearance"),
+    );
+    const context = await requireSystemAdmin(
+      SYSTEM_TASK_MANAGER_REFERENCE_ROUTE,
+      { appearance: "reference" },
+    );
+    expect(context.appearance).toEqual({
+      ...systemAdminReferenceAppearance,
+      revision: 0,
+      persisted: false,
+      storageReady: false,
+      requiresRecovery: false,
+    });
+    expect(context.initialTheme).toBe("dark");
+    expect(mocks.runtimeAssignment).not.toHaveBeenCalled();
+    expect(mocks.shellRuntime).not.toHaveBeenCalled();
   });
 });

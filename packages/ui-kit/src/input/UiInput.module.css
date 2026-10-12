@@ -1,11 +1,12 @@
 /**
  * @file packages/ui-kit/src/input/UiInput.module.css
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.2.0
+ * @date 2026-10-12
  * @description Оформляет поля ввода, фокус, ошибки и недоступность через токены UI-кита.
  */
 
-.input {
+/* Foundation уступает custom class; focus/error/disabled имеют явный приоритет ниже. */
+:where(.input) {
   box-sizing: border-box;
   display: block;
   width: 100%;

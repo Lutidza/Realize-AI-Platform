@@ -1,13 +1,13 @@
 /**
  * @file src/components/admin/task-manager/reference/WorkspaceViews.types.ts
- * @version 1.3.0
- * @date 2026-09-19
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Определяет контракты экранов и форм управления рабочими средами.
  * @see documentation/specifications/task-management.md
  */
 
 import type { TaskCreationFrameProps } from "./TaskCreation.types";
-import type { SystemAdminLocale } from "@realize/ui-kit";
+import type { SystemAdminLocale } from "@realize/template-realize/ui";
 import type {
   CommandResult,
   PrototypeActor,

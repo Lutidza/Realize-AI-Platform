@@ -1,12 +1,12 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskCreation.types.ts
- * @version 1.0.0
- * @date 2026-09-19
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Задаёт общий frame существующих форм и контекст единого создания.
  * @see documentation/specifications/task-management.md
  */
 import type { ReactNode } from "react";
-import type { SystemAdminLocale } from "@realize/ui-kit";
+import type { SystemAdminLocale } from "@realize/template-realize/ui";
 import type {
   HierarchyCreation,
   PrototypeDispatch,

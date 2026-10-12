@@ -1,11 +1,11 @@
 /**
  * @file src/components/admin/task-manager/reference/taskHierarchyManagement.types.ts
- * @version 1.1.0
- * @date 2026-09-18
+ * @version 1.1.1
+ * @date 2026-10-12
  * @description Определяет команды и UI-контракт настроек и удаления контейнеров reference.
  * @see documentation/specifications/task-management.md
  */
-import type { SystemAdminNavigationPreferences } from "@realize/ui-kit";
+import type { SystemAdminNavigationPreferences } from "@realize/template-realize/ui";
 import type {
   PrototypeDispatch,
   PrototypeState,

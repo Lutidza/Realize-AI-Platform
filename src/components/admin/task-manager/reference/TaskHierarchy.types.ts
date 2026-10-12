@@ -1,13 +1,14 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskHierarchy.types.ts
- * @version 3.1.0
- * @date 2026-09-18
+ * @version 3.1.1
+ * @date 2026-10-12
  * @description Определяет контракты одноуровневой навигации по проектам, папкам и спискам.
  * @see documentation/specifications/task-management-execution.md
  */
 
 import type { RefObject } from "react";
-import type { SystemAdminLocale, UiEntityMarkProps } from "@realize/ui-kit";
+import type { UiEntityMarkProps } from "@realize/ui-kit";
+import type { SystemAdminLocale } from "@realize/template-realize/ui";
 import type { getTaskLocationAppearance } from "./taskLocationAppearance";
 import type {
   HierarchyCreation,

@@ -86,6 +86,8 @@ export interface Config {
     'realize-task-events': RealizeTaskEvent;
     'realize-task-operations': RealizeTaskOperation;
     'realize-task-git-syncs': RealizeTaskGitSync;
+    'realize-extension-manager-state': RealizeExtensionManagerState;
+    'realize-extension-manager-receipts': RealizeExtensionManagerReceipt;
     forms: Form;
     'form-submissions': FormSubmission;
     addresses: Address;
@@ -166,6 +168,8 @@ export interface Config {
     'realize-task-events': RealizeTaskEventsSelect<false> | RealizeTaskEventsSelect<true>;
     'realize-task-operations': RealizeTaskOperationsSelect<false> | RealizeTaskOperationsSelect<true>;
     'realize-task-git-syncs': RealizeTaskGitSyncsSelect<false> | RealizeTaskGitSyncsSelect<true>;
+    'realize-extension-manager-state': RealizeExtensionManagerStateSelect<false> | RealizeExtensionManagerStateSelect<true>;
+    'realize-extension-manager-receipts': RealizeExtensionManagerReceiptsSelect<false> | RealizeExtensionManagerReceiptsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     addresses: AddressesSelect<false> | AddressesSelect<true>;
@@ -1432,6 +1436,46 @@ export interface RealizeTaskGitSync {
   projectId: string;
   taskRevision: number;
   actorId: string;
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-extension-manager-state".
+ */
+export interface RealizeExtensionManagerState {
+  id: number;
+  scopeKey: string;
+  state:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-extension-manager-receipts".
+ */
+export interface RealizeExtensionManagerReceipt {
+  id: number;
+  replayKey: string;
+  scopeKey: string;
+  kind: 'prepare' | 'apply';
   record:
     | {
         [k: string]: unknown;
@@ -3425,6 +3469,28 @@ export interface RealizeTaskGitSyncsSelect<T extends boolean = true> {
   projectId?: T;
   taskRevision?: T;
   actorId?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-extension-manager-state_select".
+ */
+export interface RealizeExtensionManagerStateSelect<T extends boolean = true> {
+  scopeKey?: T;
+  state?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "realize-extension-manager-receipts_select".
+ */
+export interface RealizeExtensionManagerReceiptsSelect<T extends boolean = true> {
+  replayKey?: T;
+  scopeKey?: T;
+  kind?: T;
   record?: T;
   updatedAt?: T;
   createdAt?: T;

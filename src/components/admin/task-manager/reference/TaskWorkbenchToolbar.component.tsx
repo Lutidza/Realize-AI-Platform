@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskWorkbenchToolbar.component.tsx
- * @version 1.2.0
- * @date 2026-09-19
+ * @version 1.2.1
+ * @date 2026-10-12
  * @description Подключает данные и действующие команды task reference к общей верхней панели.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -20,7 +20,7 @@ import {
   UserRoundPen,
   Wallet,
 } from "lucide-react";
-import { SystemAdminToolbar } from "@realize/ui-kit";
+import { SystemAdminToolbar } from "@realize/template-realize/ui";
 import { TaskCreationHub } from "./TaskCreationHub.component";
 import { TaskAccountAvailabilityDialog } from "./TaskAccountAvailabilityDialog.component";
 import type { TaskCreationKind } from "./TaskCreation.types";

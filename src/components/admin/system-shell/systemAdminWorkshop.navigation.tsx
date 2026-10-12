@@ -1,13 +1,13 @@
 /**
  * @file src/components/admin/system-shell/systemAdminWorkshop.navigation.tsx
- * @version 1.1.0
- * @date 2026-10-11
+ * @version 1.1.1
+ * @date 2026-10-12
  * @description Задаёт единые ссылки раздела Мастерской для общей навигации.
  * @see documentation/specifications/design-workshop.md
  */
 
 import { FolderOpen, ListTodo } from "lucide-react";
-import type { SystemAdminNavigationGroup } from "@realize/ui-kit";
+import type { TemplateNavigationGroup as SystemAdminNavigationGroup } from "@realize/template-contracts/react";
 import {
   SYSTEM_TASK_MANAGER_ROUTE,
   SYSTEM_TASK_MANAGER_REFERENCE_ROUTE,

@@ -1,7 +1,7 @@
 # Миграции и rollback
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 12 октября 2026 года (схема Task Manager и Git-снимков)
+- **Дата сверки:** 12 октября 2026 года (Task Manager и source appearance state/replay schema)
 
 ## 1. Канонический порядок миграций
 
@@ -70,6 +70,9 @@
     immutable task events и actor-bound operation receipts.
 31. `20261011_215235_task_git_sync` — immutable Git/PR/CI snapshots для точной
     task revision; отдельный populated rollback guard.
+32. `20261012_094626_extension_manager_state` — appearance target state и
+    immutable prepare/apply receipt ledger; source migration, к основной
+    установке не применена.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -78,7 +81,7 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-В пустой PostgreSQL применяется вся последовательность из 31 миграции.
+В пустой PostgreSQL source registry содержит последовательность из 32 миграций.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
 
@@ -532,3 +535,47 @@ trigger function и три immutable triggers. Все шесть попыток 
 
 Контракт API и границы текущего polling —
 [Task Manager execution §14](../specifications/task-management-execution.md#14-долговечная-синхронизация-git-по-запросу-2026-10-12).
+
+### Менеджер расширений: appearance state и replay ledger
+
+Schema owner —
+[`extensionManagerCollections.config.ts`](../../packages/payload-extension-manager/src/extensionManagerCollections.config.ts),
+генератор —
+[`extension-manager-state.mjs`](../../scripts/migrations/extension-manager-state.mjs).
+Штатный Payload/Drizzle создал source TS/JSON
+[`20261012_094626_extension_manager_state`](../../src/migrations/20261012_094626_extension_manager_state.ts):
+две таблицы `realize_extension_manager_state`/`realize_extension_manager_receipts`,
+enum kind и unique scope/replay indexes. Generated files и types вручную не
+редактируются; source generation не выполняет main apply.
+
+State JSON содержит независимые Admin/frontend revisions и pending plans;
+`receipts: []` не является очередью или очищаемым журналом. UUID receipt
+сохраняется отдельно на срок жизни ledger. SQL function
+`realize_extension_receipts_immutable()` отклоняет UPDATE/DELETE receipts;
+Payload hooks защищают тот же контракт даже при Local API overrideAccess.
+`down` под ACCESS EXCLUSIVE lock проверяет обе таблицы и отказывает при любых
+rows с `EXTENSION_ROLLBACK_BLOCKED`. Удалять state/историю ради обхода guard нельзя.
+Application rollback сохраняет расширенную схему; recover назначения выполняется
+через prepare/preview/apply, а не через migration down.
+
+[`verifyExtensionManager.controller.mjs`](../../scripts/runtime/verifyExtensionManager.controller.mjs)
+создаёт собственную loopback `realize_extension_fixture_*` БД через служебную
+`/postgres`, запускает
+[`extension-appearance-postgres.int.spec.ts`](../../tests/int/extension-appearance-postgres.int.spec.ts)
+и удаляет только созданную fixture в `finally`. Проверено 13 tests: exact
+source up/down/up, real Payload transactions/Local API, concurrent CAS/replay,
+258 durable receipts, bounded history32, callback/SQL failure rollback, immutable
+hooks/SQL и populated down refusal. После проверки fixture databases: 0.
+Расширение shell lifecycle использует те же таблицы с scope `${scopeKey}:admin-shell`
+и собственным строгим codec. Legacy appearance JSON и ledger не мигрируются.
+Generic kernel дополнительно проверен на атомарной dependency/CAS, replay без
+чтения повреждённого appearance и независимом native выборе: 17 tests прошли.
+Это проверка source migration и persistence, не production acceptance.
+
+Миграция к рабочей БД не применена; main migration receipts и deployment
+не менялись. До разрешённого применения source API показывает `requires_schema`
+и блокирует запись с `SCHEMA_REQUIRED`, а System Admin SSR использует проверенное
+начальное compiled назначение. Иные SQL ошибки и повреждённый JSON завершаются
+безопасным отказом. Schema push, автоматический apply из HTTP и операция
+установки нового package этим этапом не предоставлены. Контракт —
+[менеджер расширений](../specifications/extension-management.md#state-immutable-ledger-и-атомарность).

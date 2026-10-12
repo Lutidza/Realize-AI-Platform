@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskManagerWorkbench.component.tsx
- * @version 3.4.0
- * @date 2026-09-19
+ * @version 3.4.1
+ * @date 2026-10-12
  * @description Собирает реактивный референс задач в независимой системной оболочке Realize.
  * @see documentation/specifications/task-management.md
  * @see documentation/architecture/system-admin-shell.md
@@ -18,12 +18,11 @@ import { WorkspaceSettings } from "./WorkspaceSettings.component";
 import { WorkspaceCreateDialog } from "./WorkspaceCreateDialog.component";
 import { WorkspaceManagerDialogs } from "./WorkspaceManagerDialogs.component";
 import { useWorkspaceManager } from "./useWorkspaceManager.hook";
+import { UiButton, UiTabs } from "@realize/ui-kit";
 import {
   SystemAdminShell,
   SystemAdminBreadcrumbs,
-  UiButton,
-  UiTabs,
-} from "@realize/ui-kit";
+} from "@realize/template-realize/ui";
 import { TaskWorkbenchToolbar } from "./TaskWorkbenchToolbar.component";
 import { TaskWorkbenchBreadcrumbs } from "./TaskWorkbenchBreadcrumbs.component";
 import { prototypeActors } from "./taskManager.fixtures";

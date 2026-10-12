@@ -1,0 +1,56 @@
+/**
+ * @file packages/template-realize/src/layouts/admin/SystemAdminPopover.module.css
+ * @version 1.1.1
+ * @date 2026-10-12
+ * @description Владеет геометрией указателя и анимацией меню системной навигации.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+.arrow {
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  fill: var(--ui-color-surface);
+  stroke: var(--ui-color-border);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+.inlineArrow {
+  position: absolute;
+  left: -11px;
+  transform: translateY(-50%);
+}
+.animated {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin);
+}
+.animated[data-state="open"] {
+  animation: menuEnter 160ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animated[data-state="closed"] {
+  animation: menuLeave 110ms ease-in both;
+  pointer-events: none;
+}
+@keyframes menuEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes menuLeave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .animated[data-state] {
+    animation: none;
+  }
+}

@@ -1,0 +1,318 @@
+/**
+ * @file packages/template-realize/src/layouts/admin/SystemAdminToolbar.module.css
+ * @version 1.0.1
+ * @date 2026-10-12
+ * @description Оформляет верхнюю панель, палитру поиска и уведомления общими токенами темы.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+.toolbar {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--ui-layout-gap);
+  flex: 1;
+  min-width: 0;
+}
+.context {
+  min-width: 0;
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.toolbar .iconButton,
+.toolbar .assistantButton {
+  position: relative;
+  width: 34px;
+  min-height: 34px;
+  padding: 7px;
+  border-radius: 9px;
+  color: var(--ui-color-muted);
+}
+.toolbar .iconButton:hover,
+.toolbar .iconButton[data-state="open"] {
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface-raised);
+}
+.toolbar .assistantButton {
+  width: auto;
+  gap: 7px;
+  padding-inline: 10px;
+  color: var(--ui-color-primary);
+  background: color-mix(in srgb, var(--ui-color-primary) 7%, transparent);
+  font-size: 12px;
+  font-weight: 600;
+}
+.toolbar .assistantButton:hover {
+  background: color-mix(in srgb, var(--ui-color-primary) 14%, transparent);
+}
+.toolbar .searchTrigger {
+  justify-self: center;
+  display: flex;
+  width: 100%;
+  max-width: 520px;
+  min-width: 0;
+  min-height: 34px;
+  padding: 5px 11px;
+  justify-content: flex-start;
+  gap: 9px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 9px;
+  background: var(--ui-color-bg);
+  color: var(--ui-color-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+.searchTrigger > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.searchTrigger kbd {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 10px;
+  line-height: 20px;
+  padding-inline: 5px;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 5px;
+  background: var(--ui-color-surface);
+}
+.divider {
+  height: 18px;
+  width: 1px;
+  background: var(--ui-color-border);
+  margin-inline: 4px;
+}
+.avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ui-color-primary);
+  background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 13%,
+    var(--ui-color-surface)
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--ui-color-primary) 16%, transparent);
+}
+.unreadBadge {
+  position: absolute;
+  top: 0;
+  right: -1px;
+  min-width: 15px;
+  height: 15px;
+  padding-inline: 3px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--ui-color-surface);
+  border-radius: 10px;
+  background: var(--ui-gradient-accent);
+  color: var(--ui-color-on-accent);
+  font-size: 8px;
+  line-height: 11px;
+  font-weight: 650;
+}
+.menuHeading {
+  padding: 10px 10px 12px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+.menuHeading small {
+  display: block;
+  margin-top: 3px;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.notificationsMenu {
+  width: 360px;
+}
+.notification {
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 10px;
+}
+.notification[data-unread="true"] {
+  background: color-mix(in srgb, var(--ui-color-primary) 5%, transparent);
+}
+.notification + .notification {
+  margin-top: 3px;
+}
+.notificationIcon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  color: var(--ui-color-primary);
+  background: var(--ui-color-surface-raised);
+}
+.notificationText {
+  flex: 1;
+  min-width: 0;
+}
+.notificationText strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 550;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.notificationText small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ui-color-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.unreadDot {
+  width: 6px;
+  height: 6px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--ui-color-primary);
+  flex-shrink: 0;
+}
+.searchResults {
+  max-height: min(380px, 48dvh);
+  overflow-y: auto;
+  margin-top: var(--ui-layout-gap);
+  display: grid;
+  gap: 4px;
+}
+.searchResult {
+  text-align: left;
+  justify-content: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: var(--ui-radius-sm);
+  color: var(--ui-color-text);
+  cursor: pointer;
+}
+.searchResult:is(:hover, [aria-selected="true"]) {
+  background: var(--ui-color-surface-raised);
+}
+.searchResult[aria-selected="true"] {
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--ui-color-primary) 25%, var(--ui-color-border));
+}
+.resultIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--ui-color-bg);
+  color: var(--ui-color-primary);
+}
+.resultText {
+  flex: 1;
+  min-width: 0;
+}
+.resultText strong,
+.resultText small {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.resultText strong {
+  font-size: 13px;
+  font-weight: 550;
+}
+.resultText small {
+  margin-top: 3px;
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.resultGroup {
+  font-size: 10px;
+  color: var(--ui-color-muted);
+}
+.searchHint {
+  font-size: 11px;
+  color: var(--ui-color-muted);
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  text-align: center;
+  padding: 32px 16px;
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}
+.empty strong {
+  color: var(--ui-color-text);
+  font-size: 13px;
+}
+.empty p {
+  margin: 0;
+  line-height: 1.5;
+}
+@media (max-width: 1100px) {
+  .toolbar {
+    grid-template-columns: 210px minmax(0, 1fr) auto;
+  }
+  .assistantButton > span {
+    display: none;
+  }
+}
+@media (max-width: 900px) {
+  .toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .context {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .toolbar {
+    gap: 4px;
+  }
+  .actions {
+    gap: 2px;
+  }
+  .divider,
+  .searchTrigger > span,
+  .searchTrigger kbd,
+  .resultGroup {
+    display: none;
+  }
+  .toolbar .searchTrigger {
+    justify-content: center;
+    padding: 7px;
+    background: transparent;
+    border-color: transparent;
+  }
+  .toolbar .assistantButton {
+    padding: 7px;
+  }
+}
+@media (pointer: coarse) {
+  .toolbar .iconButton,
+  .toolbar .assistantButton,
+  .toolbar .searchTrigger {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .toolbar .iconButton {
+    width: 44px;
+  }
+}

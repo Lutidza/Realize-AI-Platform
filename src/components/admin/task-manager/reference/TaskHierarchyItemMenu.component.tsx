@@ -1,12 +1,12 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskHierarchyItemMenu.component.tsx
- * @version 1.0.0
- * @date 2026-09-18
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Передаёт действия контейнера в общее меню навигации UI-kit.
  * @see documentation/architecture/system-admin-shell.md
  */
 import { ArrowUpRight, Eye, EyeOff, Settings2, Trash2 } from "lucide-react";
-import { SystemAdminItemMenu } from "@realize/ui-kit";
+import { SystemAdminItemMenu } from "@realize/template-realize/ui";
 import { taskLocationNavigationId } from "./taskHierarchyManagement.selectors";
 import type { TaskHierarchyItemMenuProps } from "./TaskHierarchy.types";
 

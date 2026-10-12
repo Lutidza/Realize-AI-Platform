@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-navigation.int.spec.ts
- * @version 1.9.1
- * @date 2026-09-18
+ * @version 1.9.2
+ * @date 2026-10-12
  * @description Проверяет группы подпунктов, hover, клавиатурную и мобильную навигацию системного меню.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -17,9 +17,9 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { SystemAdminNavigation } from "../../packages/ui-kit/src/system-admin-shell/SystemAdminNavigation.component";
-import type { SystemAdminNavigationItem } from "../../packages/ui-kit/src/system-admin-shell/SystemAdminShell.types";
-import type { SystemAdminNavigationPreferences } from "../../packages/ui-kit/src/system-admin-shell/systemAdminNavigationPreferences.types";
+import { SystemAdminNavigation } from "../../packages/template-realize/src/layouts/admin/SystemAdminNavigation.component";
+import type { SystemAdminNavigationItem } from "../../packages/template-realize/src/layouts/admin/SystemAdminShell.types";
+import type { SystemAdminNavigationPreferences } from "../../packages/template-realize/src/layouts/admin/systemAdminNavigationPreferences.types";
 
 const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
   HTMLElement.prototype,

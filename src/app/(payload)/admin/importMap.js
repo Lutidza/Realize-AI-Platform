@@ -28,6 +28,7 @@ import { HorizontalRuleFeatureClient as HorizontalRuleFeatureClient_e70f5e05f09f
 import { SystemAdminPayloadEntry as SystemAdminPayloadEntry_2f228005d3696cc431fd29be62a3f2b8 } from '../../../../src/components/admin/system-shell/SystemAdminPayloadEntry.component'
 import { RealizeAINavLink as RealizeAINavLink_c0de6dd10a76d905b2d0d9d1e483910e } from '@realize/payload-ai-control/client'
 import { RealizeAIProvider as RealizeAIProvider_f78fda7deadf19d3f93d8152a70184c7 } from '@realize/payload-ai-control/provider'
+import { SystemAdminDashboard as SystemAdminDashboard_b796be4a4ae07193d2b4d60dd8b2d30f } from '../../../../src/components/admin/system-shell/SystemAdminDashboard.view'
 import { UsageView as UsageView_bd99634588fb2e7b0f005da4a078a5ea } from '@realize/payload-ai-control/usage-rsc'
 import { SearchObservationsView as SearchObservationsView_b6516fa8e959af46026fe787185c526a } from '@realize/payload-ai-control/search-observations-rsc'
 import { McpServersView as McpServersView_a7f74655d457601767cebe4e14c65e91 } from '@realize/payload-ai-control/mcp-servers-rsc'
@@ -69,6 +70,7 @@ export const importMap = {
   "/src/components/admin/system-shell/SystemAdminPayloadEntry.component#SystemAdminPayloadEntry": SystemAdminPayloadEntry_2f228005d3696cc431fd29be62a3f2b8,
   "@realize/payload-ai-control/client#RealizeAINavLink": RealizeAINavLink_c0de6dd10a76d905b2d0d9d1e483910e,
   "@realize/payload-ai-control/provider#RealizeAIProvider": RealizeAIProvider_f78fda7deadf19d3f93d8152a70184c7,
+  "/src/components/admin/system-shell/SystemAdminDashboard.view#SystemAdminDashboard": SystemAdminDashboard_b796be4a4ae07193d2b4d60dd8b2d30f,
   "@realize/payload-ai-control/usage-rsc#UsageView": UsageView_bd99634588fb2e7b0f005da4a078a5ea,
   "@realize/payload-ai-control/search-observations-rsc#SearchObservationsView": SearchObservationsView_b6516fa8e959af46026fe787185c526a,
   "@realize/payload-ai-control/mcp-servers-rsc#McpServersView": McpServersView_a7f74655d457601767cebe4e14c65e91,

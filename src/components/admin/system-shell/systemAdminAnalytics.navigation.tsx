@@ -1,11 +1,11 @@
 /**
  * @file src/components/admin/system-shell/systemAdminAnalytics.navigation.tsx
- * @version 1.0.0
- * @date 2026-10-05
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Подключает настоящую аналитику расходов к системной навигации; права проверяет сервер view.
  */
 import { ChartNoAxesCombined } from "lucide-react";
-import type { SystemAdminNavigationGroup } from "@realize/ui-kit";
+import type { TemplateNavigationGroup as SystemAdminNavigationGroup } from "@realize/template-contracts/react";
 import { SYSTEM_AI_ANALYTICS_ROUTE } from "./systemAdmin.routes";
 
 export const SYSTEM_ADMIN_ANALYTICS_NAVIGATION: SystemAdminNavigationGroup[] = [

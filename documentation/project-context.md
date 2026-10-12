@@ -1,7 +1,7 @@
 # Контекст проекта: Realize
 
 - **Статус:** current implementation
-- **Дата сверки:** 12 октября 2026 года (Task Manager: Foundation, чтение Git-фактов и долговечный polling; прежние MCP и Мастерская сохранены)
+- **Дата сверки:** 12 октября 2026 года (Task Manager: Git/polling; установленные template packages, appearance и Payload ↔ Realize; прежние MCP и Мастерская сохранены)
 
 ## Цель проекта
 
@@ -456,6 +456,58 @@ Capability/check metadata не расширяют полномочия и сам
 Payload Admin и Config API не редактируют системные `.ai/**`, `.codex/**`,
 license/security policy или executable registry.
 
+## Шаблонные пакеты и установленный Admin
+
+Реализован и внедрён единый `@realize/template-contracts@0.1.0`:
+strict manifest/compatibility/selection и React API Admin/frontend.
+`@realize/template-realize@0.1.0` содержит первую Admin definition,
+workspace/auth/status, palette и собственные Button/Input. Общий UI-kit
+получил runtime adapter/context; его версия 0.2.0 отражает смену public owner.
+60 файлов concrete shell перенесены в пакет, активные импорты обновлены.
+Рабочие Task Manager/Workshop подключаются через neutral template host.
+Reference использует отдельный фиксированный preset, независимый от рабочего
+appearance config. `density/panelWidth` действуют через проверенные настройки.
+
+Первый срез расширен `@realize/payload-extension-manager@0.1.0`: независимый от AI
+compiled каталог, host ACL, immutable prepare/preview/apply/recover планы,
+target revisions и PostgreSQL CAS/replay. `/system/appearance` и отдельный
+`/system/appearance/preview/[planId]` используют общий neutral host; смена
+назначения действует при следующем открытии страницы. Открытые controllers
+сохраняют свои drafts и pending UUID, автоматического live switch нет.
+
+Две hidden collections хранят state с `receipts: []` и отдельный immutable
+lifetime ledger. UUID привязан к scope/actor/kind; даже удалённый pending plan
+не освобождает ключ для другой команды. UI читает последние 32 apply receipts,
+не ограничивая число операций. Source migration
+`20261012_094626_extension_manager_state` проверена на собственной одноразовой
+PostgreSQL БД: 13 tests с real Payload transactions/Local API, up/down/up,
+конкуренцией, rollback и SQL immutability; fixture удалена. При отсутствующей
+schema SSR читает built-in fallback, каталог отмечает `requires_schema`, а запись
+блокируется до разрешённого применения миграции.
+
+Четвёртый этап установлен в существующий `realize-web.service`: сборка
+`_HmknEVf1nCPefAPVruPV`, адресно применена только M32, прежние 29 migration receipts
+сохранены. Две несвязанные pending migrations не применены. Раздел
+`/system/appearance#appearance-installed` показывает подтверждённые Payload Admin
+`3.88.0` и Realize `0.1.0`, selected/active/default и действия editor/selection.
+14 live checks проверили native session/roles, карточки, drafts, responsive/mode,
+appearance preview без apply и actual shell apply/recover/replay. Временные
+тестовые пользователи удалены; состояние Realize восстановлено.
+Delivery adapter нового кода отсутствует: install отклоняется без очереди.
+Штатный Payload Admin остаётся встроенным вариантом host и обновляется
+с CMS; его доступность для клиента настраивается отдельно. Выбор Payload ↔ Realize
+не требует второго собственного template package. Третьим этапом добавлены
+отдельный persisted shell choice, policy/defaults, CAS/replay, picker и routing
+между штатным `/admin` и самостоятельным `/system`. Native использует установленную
+версию CMS, собственный package не создаётся. Для клиентов без native UI также нужно
+заменить текущие native login/unauthorized зависимости. Workshop-to-package
+producer/release, перенос нужных экранов в Realize, frontend renderer и live switch
+с сохранением Workshop drafts остаются следующими
+этапами. Контракт —
+[менеджер расширений](specifications/extension-management.md#текущий-этап-реализации).
+Контракт — [System Admin](architecture/system-admin-shell.md),
+решение — [ADR-0018](architecture/decisions/ADR-0018-self-contained-template-packages.md).
+
 ## Мастерская дизайна: хранилище версий и целевой runtime
 
 В `.ai` добавлены роль Workshop Director, workflow Мастерской, шаблон брифа
@@ -499,12 +551,15 @@ PNG 390/768/1440 × 900 с source pin, entryPath и версиями toolchain.
 проверка прав, отмена, ограниченные retries и TTL управляют процессом и artifacts;
 хранилище временных файлов разделено по установкам.
 Native migration `20260925_170325_design_preview` применена только в disposable
-БД. Основной bundle/worker ещё не обновлены. UI preview, MCP writes,
+БД; в основной установке она остаётся pending. Обновление bundle/worker для
+переключателя шаблонов не является live приёмкой W1b. UI preview, MCP writes,
 Admin chat adapter, интерактивный inspector и дизайн-presets остаются следующими поставками.
 
 Первый UI над W1a реализован в `packages/payload-ai-plugin/src/admin/design-workshop/`
 через публичный export `@realize/payload-ai-control/workshop-client`.
-Host `src/components/admin/design-workshop/` подключает `@realize/ui-kit` shell,
+Host `src/components/admin/design-workshop/` подключает neutral template host и
+compiled пакет Realize, включённые в активную сборку. Отдельная live приёмка
+новых возможностей W1b не выполнялась;
 а страницы `/system/workshop` и `/system/workshop/[projectId]` проверяют Admin
 на сервере. Доступны личный каталог, создание, бриф/материалы/виртуальные файлы,
 просмотр candidate перед apply, история и восстановление снимка новой версией.

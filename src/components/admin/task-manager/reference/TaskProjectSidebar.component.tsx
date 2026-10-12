@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskProjectSidebar.component.tsx
- * @version 3.3.0
- * @date 2026-09-18
+ * @version 3.3.1
+ * @date 2026-10-12
  * @description Собирает контекст рабочей среды, общие группы и одноуровневый навигатор проектов.
  * @see documentation/specifications/task-management-execution.md
  * @see documentation/architecture/system-admin-shell.md
@@ -19,13 +19,12 @@ import {
   Plus,
   RotateCcw,
 } from "lucide-react";
+import { UiButton, UiSearchInput } from "@realize/ui-kit";
 import {
   SystemAdminItemMenu,
   SystemAdminNavigationGroups,
   SystemAdminNavigationSection,
-  UiButton,
-  UiSearchInput,
-} from "@realize/ui-kit";
+} from "@realize/template-realize/ui";
 import { TaskHierarchyTree } from "./TaskHierarchyTree.component";
 import { TaskHierarchyToolbar } from "./TaskHierarchyToolbar.component";
 import { useTaskHierarchy } from "./useTaskHierarchy.hook";

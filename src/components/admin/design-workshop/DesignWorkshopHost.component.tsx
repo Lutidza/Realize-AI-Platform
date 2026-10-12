@@ -1,8 +1,8 @@
 /**
  * @file src/components/admin/design-workshop/DesignWorkshopHost.component.tsx
- * @version 1.0.0
- * @date 2026-09-25
- * @description Подключает переносимый редактор Мастерской к системной оболочке Realize.
+ * @version 1.1.0
+ * @date 2026-10-12
+ * @description Подключает переносимый редактор Мастерской к нейтральному template host.
  * @see documentation/specifications/design-workshop.md
  */
 
@@ -10,13 +10,8 @@
 import { useState } from "react";
 import { WandSparkles } from "lucide-react";
 import { DesignWorkshopClient } from "@realize/payload-ai-control/workshop-client";
-import {
-  SystemAdminBreadcrumbs,
-  SystemAdminNavigationGroups,
-  SystemAdminShell,
-} from "@realize/ui-kit";
+import { SystemAdminTemplateHost } from "../system-shell/SystemAdminTemplateHost.component";
 import { getSystemAdminNavigation } from "../system-shell/systemAdmin.navigation";
-import { SYSTEM_ADMIN_WORKSHOP_NAVIGATION } from "../system-shell/systemAdminWorkshop.navigation";
 import {
   SYSTEM_TASK_MANAGER_REFERENCE_ROUTE,
   SYSTEM_WORKSHOP_ROUTE,
@@ -35,20 +30,33 @@ export function DesignWorkshopHost({
   const preferences = useSystemAdminNavigationPreferences();
   const { locale } = useSystemAdminLocale();
   return (
-    <SystemAdminShell
-      theme={theme}
-      onThemeChange={setTheme}
+    <SystemAdminTemplateHost
+      screen="workspace"
+      mode={theme}
+      onModeChange={setTheme}
       locale={locale}
       navigation={getSystemAdminNavigation({
         onTasks: () =>
           window.location.assign(SYSTEM_TASK_MANAGER_REFERENCE_ROUTE),
-      })}
+      }).map((item) =>
+        item.id === "workshop"
+          ? {
+              ...item,
+              groups: item.groups?.map((group) => ({
+                ...group,
+                items: group.items.map((link) => ({
+                  ...link,
+                  active: !projectId && link.id === "workshop-library",
+                })),
+              })),
+            }
+          : item,
+      )}
       activeNavigationId="workshop"
       {...preferences}
       breadcrumbs={
-        projectId ? (
-          <SystemAdminBreadcrumbs
-            items={[
+        projectId
+          ? [
               {
                 id: "workshop",
                 label: "Мастерская",
@@ -59,9 +67,8 @@ export function DesignWorkshopHost({
                 label: "Дизайн-проект",
                 onSelect: () => undefined,
               },
-            ]}
-          />
-        ) : undefined
+            ]
+          : undefined
       }
       backAction={
         projectId
@@ -71,46 +78,18 @@ export function DesignWorkshopHost({
             }
           : undefined
       }
-      headerActions={
+      context={
         <span className={styles.context}>
           <WandSparkles size={16} />
           Мастерская дизайна
         </span>
       }
-      secondaryNavigation={(onNavigate) => (
-        <div className={styles.sidebar}>
-          <div className={styles.heading}>
-            <span className={styles.mark}>
-              <WandSparkles size={22} />
-            </span>
-            <h2>Мастерская</h2>
-            <p>Идеи. Дизайн. Итерации.</p>
-          </div>
-          <SystemAdminNavigationGroups
-            groups={SYSTEM_ADMIN_WORKSHOP_NAVIGATION.map((group) => ({
-              ...group,
-              items: group.items.map((item) => ({
-                ...item,
-                active: !projectId && item.id === "workshop-library",
-              })),
-            }))}
-            onNavigate={onNavigate}
-          />
-          <div className={styles.note}>
-            <strong>Контекст проекта</strong>
-            <p>
-              Бриф, материалы и сохранённые версии помогают продолжать работу с
-              того же места.
-            </p>
-          </div>
-        </div>
-      )}
     >
       <DesignWorkshopClient
         projectId={projectId}
         baseHref={SYSTEM_WORKSHOP_ROUTE}
         theme={theme}
       />
-    </SystemAdminShell>
+    </SystemAdminTemplateHost>
   );
 }

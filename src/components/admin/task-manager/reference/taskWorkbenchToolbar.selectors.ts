@@ -1,12 +1,12 @@
 /**
  * @file src/components/admin/task-manager/reference/taskWorkbenchToolbar.selectors.ts
- * @version 1.1.0
- * @date 2026-09-18
+ * @version 1.1.1
+ * @date 2026-10-12
  * @description Вычисляет доступные поисковые записи и поводы для уведомлений из единого demo store.
  * @see documentation/architecture/system-admin-shell.md
  */
 import { getLocationPath } from "./taskManager.hierarchy";
-import type { SystemAdminLocale } from "@realize/ui-kit";
+import type { SystemAdminLocale } from "@realize/template-realize/ui";
 import { taskWorkbenchMessages } from "./taskWorkbench.messages";
 import {
   getLocationWorkspace,

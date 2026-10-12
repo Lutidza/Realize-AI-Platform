@@ -1,0 +1,35 @@
+{
+  "name": "@realize/template-realize",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/realizeTemplateManifest.index.ts",
+    "./admin": "./src/realizeTemplate.index.ts",
+    "./manifest": "./src/realizeTemplateManifest.index.ts",
+    "./manifest.json": "./realize-template.manifest.json",
+    "./settings.schema.json": "./settings.schema.json",
+    "./settings": "./src/realizeTemplateSettings.index.ts",
+    "./ui": "./src/realizeTemplateUi.index.ts"
+  },
+  "scripts": {
+    "generate:settings-schema": "node scripts/generateSettingsSchema.controller.mjs"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "dependencies": {
+    "@realize/template-contracts": "0.1.0",
+    "@realize/ui-kit": "0.2.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  },
+  "peerDependencies": {
+    "@radix-ui/react-dialog": "1.1.23",
+    "@radix-ui/react-dropdown-menu": "2.1.24",
+    "lucide-react": "1.31.0",
+    "react": "19.2.8"
+  }
+}

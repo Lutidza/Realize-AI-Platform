@@ -1,0 +1,185 @@
+/**
+ * @file src/components/admin/extensions/ExtensionManager.module.css
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Размещает содержимое модуля оформления через общие UI tokens без собственного shell.
+ */
+.workbench {
+  display: grid;
+  gap: var(--ui-layout-gap);
+  min-width: 0;
+}
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.heading {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.35;
+}
+.intro,
+.muted {
+  color: var(--ui-color-muted);
+}
+.intro {
+  margin: 6px 0 0;
+  max-width: 760px;
+  line-height: 1.55;
+}
+.muted {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.surface {
+  padding: var(--ui-space-4);
+  min-width: 0;
+}
+.surface h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.catalog {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 16px;
+}
+.card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 16px;
+  min-width: 0;
+}
+.card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+.packageName,
+.code {
+  overflow-wrap: anywhere;
+  font-family: var(--ui-font-monospace);
+  font-size: 12px;
+}
+.stack {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.formGrid,
+.settingsFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.field {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.switchField {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--ui-control-height);
+  font-size: 13px;
+}
+.switchField > span:first-child {
+  flex: 1;
+}
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.settingsPreview {
+  margin: 0;
+  padding: 12px;
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-surface-raised);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-top: 1px solid var(--ui-color-border);
+  padding-top: 12px;
+}
+.historyItem:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.error {
+  outline: none;
+}
+.error:focus-visible {
+  box-shadow: var(--ui-focus-ring);
+}
+.previewTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.previewTable th,
+.previewTable td {
+  padding: 12px;
+  border-bottom: 1px solid var(--ui-color-border);
+}
+.previewTable th {
+  color: var(--ui-color-muted);
+  font-weight: 500;
+}
+@media (max-width: 700px) {
+  .formGrid,
+  .settingsFields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .historyItem {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .heading {
+    font-size: 20px;
+  }
+}

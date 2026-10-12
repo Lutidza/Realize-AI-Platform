@@ -1,0 +1,10 @@
+/**
+ * @file packages/template-realize/src/primitives/RealizePrimitives.module.css
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Закрепляет package-owned классы без изменения reference геометрии примитивов.
+ */
+.button,
+.input {
+  font-family: var(--ui-font-family);
+}

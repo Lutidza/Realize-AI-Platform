@@ -1,10 +1,80 @@
 # UI-кит Realize
 
-Общий владелец визуальных примитивов — `packages/ui-kit` (`@realize/ui-kit`).
-Он используется в чате Admin, каталоге интеграций и настройках GitHub и Codex. Подключение остальных
-экранов Admin и storefront выполняется последовательно при их доработке.
+Версия документа: **0.3**, 2026-10-12. Первый срез Template SDK, Realize package
+и host внедрён в основную локальную установку. Уже включённые шаблоны и оболочки
+выбираются из Admin; installer нового кода и Workshop package pipeline остаются
+целевыми. Границы внедрения — [менеджер расширений](../specifications/extension-management.md#раздел-установленных-шаблонов).
+
+`packages/ui-kit` (`@realize/ui-kit`) владеет общими primitives, UI adapter runtime
+и fallback. Он используется в чате Admin, каталоге интеграций и настройках
+GitHub/Codex. Конкретные шаблоны могут предоставить свои реализации тех же
+публичных slots; модули получают их через активный adapter. Подключение остальных
+Admin screens и storefront выполняется адресно.
+
+## Шаблонные пакеты и границы
+
+[ADR-0018](decisions/ADR-0018-self-contained-template-packages.md) и
+[§11 Мастерской](../specifications/design-workshop.md#111-единый-контракт-самодостаточного-шаблона)
+задают одну семью manifest/presentation/UI contracts для Admin/frontend.
+Независимый от Payload/AI `@realize/template-contracts` предоставляет общий SDK;
+его React presentation API имеет отдельный публичный entry `/react`.
+`@realize/template-realize` — первая самостоятельная реализация, первоначально
+только для Admin. Поддержка frontend target в SDK не означает наличие storefront
+renderer или установленного управления выбором.
+
+Действующий Admin renderer и его 60 связанных файлов перенесены одним владельцем
+в `packages/template-realize/src/layouts/admin/`; копий в UI-kit нет.
+Публичный `@realize/template-realize/admin` предоставляет renderer entry,
+`@realize/template-realize/ui` — составные SystemAdmin components и их contracts.
+Прямые потребители обновлены; обратного re-export из UI-kit нет.
+Import graph односторонний:
+UI-kit → Template SDK; Realize template → UI-kit/SDK; host → эти публичные exports.
+Ни UI-kit, ни SDK не импортируют конкретный template или `@/` host alias.
+
+Realize rail, flyout geometry, toolbar composition и breakpoints принадлежат
+template package. Общие primitives/behavior не требуют его CSS. Пакет содержит
+settings, palettes/assets и собственные primitive implementations; внутреннее
+дерево другого поставщика свободно. Module body, запросы, DTO, команды и права
+остаются у feature/host. Template renderer не хранит Task/Git-sync state.
+
+Активный UI provider разрешает primitive slots по общему props/ref/events/
+accessibility контракту. В первом срезе заменяются Button/Input; остальные
+действующие controls используют **явно объявленное** наследование default UI.
+Это ограниченный adapter, а не заявление о полной замене всех controls.
+Default Button/Input foundation использует `:where(...)` для обычных базовых
+и размерных правил: template/module classes сохраняют геометрию независимо
+от порядка production CSS chunks. Focus/error/disabled и интерактивные состояния
+остаются явными selectors; снижение приоритета base не отменяет эти состояния.
+Default Tailwind/Payload resets имеют собственные layers, а standalone Admin
+не импортирует их CSS.
+При расширении контракта обязательные slots проверяются до activation.
+Модуль не импортирует concrete template, и наличие своего Button в пакете
+не считается интеграцией без перевода реальных consumers на adapter.
+
+Package `0.1.0`, manifest protocol `1.0` и settings schema `1.0.0` обозначают
+разные версии. Palette/mode/settings preset не является новым кодовым пакетом.
+Appearance selection и settings revision принадлежат host; общий SDK проверяет
+совместимость, UI runtime не читает cookies/БД и не запускает install/API.
+Для нового compiled React-кода требуется штатный build/delivery; выбор между
+совместимыми пакетами в текущей сборке может не требовать нового build.
+
+React/Next SSR сохраняются: server snapshot сериализуем, callbacks строит client
+host, данные/состояние/настройки обновляют Client Components реактивно.
+Module controllers выше выбираемого renderer сохраняют drafts, frozen input/
+revision и pending UUID/outcome. До обеспечения этого switch при dirty/pending
+блокируется. Effective adapter/palette/mode должны доходить до portals;
+смена mode сама по себе не меняет renderer.
+
+Мастерская выпускает пакет по принятой revision, общий
+[менеджер расширений](../specifications/extension-management.md) устанавливает
+его. SDK/provider в исходниках не доказывают package export из Workshop,
+каталог, install/update/replace, persistent activation и readiness рабочей сборки.
 
 ## Контракт
+
+Ниже описаны общие компоненты и встроенное default оформление. Совместимый
+template package может заменить их объявленные UI slots и палитру; фиксированный
+фиолетовый/бирюзовый стиль не является обязательным для другого шаблона.
 
 - Компоненты используют React/Radix и CSS Modules; внутри пакета нет Payload,
   Next, бизнес-данных, запросов или зависимости от CSS приложения.
@@ -17,8 +87,9 @@
   Контролы, подписи и табличные ячейки используют собственные интервалы
   внутри блока. UiTabs и страницы системной оболочки используют общий шаг
   без локальных значений, отличающихся между экранами и темами.
-- Адаптер Admin передаёт тему Payload. Будущий адаптер storefront использует
-  тот же контракт; глобальные resets и CSS одного приложения не подключаются в другое.
+- Payload bridge `AdminUiTheme` передаёт режим из Payload. Самостоятельный Admin
+  host разрешает package/palette/mode отдельно; storefront использует свой target.
+  Глобальные resets и CSS одного document не подключаются в другой.
 - `UiButton`, `UiInput`, `UiTextarea`, `UiBadge`, `UiSurface`, `UiSwitch`, `UiNotice`, `UiTabs` владеют повторяемым оформлением
   и доступными состояниями. Вариант `UiSurface` `raised` выделяет вложенные
   логотипы и иконки; они сохраняют семантику содержимого, не становясь кнопками.
@@ -57,8 +128,9 @@
   Декоративное свечение не несёт смысла и не мешает чтению и focus.
   При hover интерактивная поверхность усиливает свечение и тень, сохраняя
   положение и размеры; текст и иконки действия также не смещаются.
-- Новые общие варианты добавляются в UI-кит по реальным потребителям. Внутри
-  страницы не создаются альтернативные кнопки, поля или визуальные токены.
+- Новые общие варианты добавляются в UI-кит по реальным потребителям. Страница
+  не создаёт локальный UI stack; собственные primitive implementations шаблона
+  имеют package owner и подключаются через объявленный adapter contract.
 
 ## Расширение
 
@@ -78,14 +150,15 @@ alertdialog, focus trap, начальный фокус на отмене, Escape
 Обычные формы сохраняют прежнюю компоновку. Использование компактного варианта
 само по себе не меняет lifecycle или разрешения действия.
 
-[Системный шаблон админки](system-admin-shell.md) использует UI-kit как
-владельца оболочки, dialog/portal и согласованных вкладок. Task manager —
-первый потребитель; host-specific авторизация и маршрутизация остаются за
-пределами пакета. Portal получает тему отдельным wrapper, ширина UiTheme
+[Системный шаблон админки](system-admin-shell.md) переносит concrete shell в
+Realize template package; UI-kit сохраняет dialog/portal и общие primitives.
+Task manager — первый потребитель; host-specific авторизация и маршрутизация
+остаются за пределами пакета. Portal получает effective adapter и тему,
+ширина UiTheme
 не определяет ширину диалогового Content. Состояния normal/hover/focus
 сохраняют внутренние отступы и геометрию текстовых действий.
 
-`SystemAdminToolbar` и `SystemAdminBreadcrumbs` принадлежат тому же shell owner.
+`SystemAdminToolbar` и `SystemAdminBreadcrumbs` принадлежат Realize Admin template owner.
 Toolbar объединяет поиск/команды, меню создания, ИИ-вход, уведомления и профиль;
 доступные данные и callbacks передаёт host. Generic action-menu использует текущие
 Radix content/стрелку/стили и согласует закрытие меню с открытием следующего dialog.
@@ -104,7 +177,7 @@ Optional toolbar.onCreate открывает полную форму host вме
 картинкой и fallback. Его палитра соответствует `UiBadge.accent`.
 Подробный контракт — в [системном шаблоне](system-admin-shell.md).
 
-`SystemAdminNavigation` экспортируется отдельно от полной оболочки: общий rail
+`SystemAdminNavigation` экспортируется из template package отдельно от полной оболочки: Realize rail
 с Lucide-иконками, отложенным hover, боковым меню, клавиатурой и мобильным
 представлением. Семантические navigation-токены `UiTheme` задают отдельный
 тёмный фон и неоновый акцент панели в обеих темах, не меняя цвета остальных

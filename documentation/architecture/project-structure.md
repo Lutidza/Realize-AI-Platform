@@ -1,7 +1,7 @@
 # Структура проекта (источник для AI-layer)
 
 - **Статус:** current implementation
-- **Дата сверки:** 11 октября 2026 года (добавлен Task Manager Foundation)
+- **Дата сверки:** 12 октября 2026 года (Task Manager, установленные template packages, appearance и Admin shell inventory)
 
 ## Активный продуктовый контур
 
@@ -9,8 +9,9 @@
   API routes.
 - `src/app/(payload)/**` — generated Payload Admin/API bridge; generated
   page/layout вручную не редактируются.
-- `src/app/(system-admin)/**` — authenticated System Admin shell, Мастерская
-  и постоянный Task Manager `/system/task-manager`; reference остаётся отдельным маршрутом.
+- `src/app/(system-admin)/**` — authenticated System Admin shell, Мастерская,
+  постоянный Task Manager `/system/task-manager` и `/system/appearance` с
+  actor-bound `/system/appearance/preview/[planId]`; reference остаётся отдельным маршрутом.
 - `src/payload.config.ts` — root Payload config и migration owner.
 - `src/plugins/index.ts` — единая точка регистрации Payload plugins.
 - `src/collections/**`, `src/globals/**`, `src/blocks/**` — активная Payload
@@ -23,6 +24,13 @@
   hidden collections, membership ACL, transactional mutations/replay/history,
   endpoints и узкий server facade. Host policy — `src/plugins/taskManager.config.ts`;
   operational UI — `src/components/admin/task-manager/**` вне `reference/`.
+- `packages/payload-extension-manager/**` — независимый от AI compiled каталог,
+  отдельный `admin-shell/` lifecycle host choice и общий strict-codec persistence kernel,
+  browser-safe contracts, pure appearance plans и server facade. Две hidden
+  state/receipt collections и `src/persistence/` владеют PostgreSQL CAS/UUID replay;
+  host registry/scope/ACL — `src/plugins/extensionManager.config.ts`, UI/controller —
+  `src/components/admin/extensions/`. Source migration —
+  `src/migrations/20261012_094626_extension_manager_state.*`; main apply не выполнен.
 
 ADR-0001 фиксирует этот contour как active. `src/RealizeCore/**` и
 `src/app/_realize/**` остаются quarantined experimental/legacy contour и не
@@ -275,3 +283,24 @@ AI-layer audit от 2026-08-17 сохранён как historical evidence в
 `packages/payload-ai-plugin/src/admin/AdminUiTheme.component.tsx` связывает
 его с темой Payload. Чат, каталог интеграций и настройки GitHub и Codex используют
 общие компоненты. Контракт и границы миграции — [UI-кит](ui-kit.md).
+
+`packages/template-contracts` — единый serializable manifest/selection API и
+публичные React contracts шаблонов; зависимости на Payload/Next/AI отсутствуют.
+`packages/template-realize` — самостоятельный первый Admin template package:
+manifest, настройки, palette, Button/Input, workspace/auth/status и полный
+renderer в `src/layouts/admin/`. UI-kit не импортирует этот пакет.
+`src/components/admin/system-shell/` — compiled registry, разрешение оформления,
+template provider/host, маршруты и session/ACL. Server reader потребляет public
+`@realize/payload-extension-manager/server` после авторизации. Host-owned policy и
+dashboard/Proxy adapters выбирают native либо независимый `/system`, где
+`src/components/admin/workspace/` содержит входы доступных модулей. При отсутствующей
+appearance schema использует built-in fallback, не запускает миграции.
+Рабочие модули передают semantic
+props; фиксированный reference может использовать пакетные `/ui` детали напрямую.
+Persisted назначение обновляется при следующем открытии страницы, не меняя
+открытые module controllers. SDK/UI-kit не импортируют concrete template;
+extension manager зависит от SDK/Payload/PostgreSQL, а host связывает его с
+Realize через public exports. Installer нового кода, Workshop package release
+и frontend renderer — следующие этапы. Контракт —
+[менеджер расширений](../specifications/extension-management.md#текущий-этап-реализации),
+решение — [ADR-0018](decisions/ADR-0018-self-contained-template-packages.md).

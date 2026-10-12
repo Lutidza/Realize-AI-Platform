@@ -1,12 +1,13 @@
 /**
  * @file src/components/admin/task-manager/reference/TaskWorkbenchBreadcrumbs.component.tsx
- * @version 1.0.0
- * @date 2026-09-18
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Связывает контекстный заголовок с соседними контейнерами, аватарками и guarded settings.
  * @see documentation/architecture/system-admin-shell.md
  */
 import { Archive, Settings2 } from "lucide-react";
-import { SystemAdminBreadcrumbs, UiBadge, UiEntityMark } from "@realize/ui-kit";
+import { UiBadge, UiEntityMark } from "@realize/ui-kit";
+import { SystemAdminBreadcrumbs } from "@realize/template-realize/ui";
 import { getLocationPath } from "./taskManager.hierarchy";
 import { getTaskLocationSiblings } from "./taskBreadcrumbs.selectors";
 import { getTaskLocationAppearance } from "./taskLocationAppearance";

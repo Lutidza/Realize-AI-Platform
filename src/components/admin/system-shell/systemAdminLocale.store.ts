@@ -1,11 +1,11 @@
 /**
  * @file src/components/admin/system-shell/systemAdminLocale.store.ts
- * @version 1.0.0
- * @date 2026-09-18
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Сохраняет язык каркаса в браузере и синхронизирует его между экземплярами и вкладками.
  * @see documentation/architecture/system-admin-shell.md
  */
-import type { SystemAdminLocale } from "@realize/ui-kit";
+import type { TemplateLocale as SystemAdminLocale } from "@realize/template-contracts/react";
 
 const storageKey = "realize.system-admin.locale";
 const changeEvent = "realize:system-admin-locale";

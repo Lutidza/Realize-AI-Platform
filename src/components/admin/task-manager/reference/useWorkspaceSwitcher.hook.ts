@@ -1,13 +1,13 @@
 /**
  * @file src/components/admin/task-manager/reference/useWorkspaceSwitcher.hook.ts
- * @version 1.2.0
- * @date 2026-09-18
+ * @version 1.2.1
+ * @date 2026-10-12
  * @description Фильтрует доступные активные среды и закрывает переключатель после выбора.
  * @see documentation/specifications/task-management.md
  */
 
 import { useEffect, useRef, useState } from "react";
-import { useSystemAdminActionMenu } from "@realize/ui-kit";
+import { useSystemAdminActionMenu } from "@realize/template-realize/ui";
 import type { KeyboardEvent } from "react";
 import { getWorkspaceAccess } from "./taskWorkspace.access";
 import type { PrototypeState } from "./taskManager.types";

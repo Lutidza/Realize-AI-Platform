@@ -1,0 +1,419 @@
+/**
+ * @file packages/template-realize/src/layouts/admin/SystemAdminNavigation.module.css
+ * @version 1.4.7
+ * @date 2026-10-12
+ * @description Оформляет компактную неоновую панель иконок и доступное боковое меню разделов.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+
+.navigation {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px;
+  overflow: clip;
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-navigation-text);
+  background: var(--ui-color-navigation) var(--ui-gradient-navigation);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--ui-color-navigation-accent) 24%, transparent);
+}
+
+.modules {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+/* Полоса прокрутки не отнимает место у кнопок узкой панели. */
+.modules::-webkit-scrollbar {
+  display: none;
+}
+
+.moduleDivider {
+  align-self: center;
+  flex-shrink: 0;
+  width: calc(100% - 12px);
+  height: 1px;
+  background: color-mix(
+    in srgb,
+    var(--ui-color-navigation-accent) 32%,
+    transparent
+  );
+}
+
+/* Закрепление панели доступно отдельно от прокручиваемого списка разделов и «Ещё». */
+.panelToggleFooter {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.navigation .module {
+  display: flex;
+  justify-content: center;
+  gap: 0;
+  flex-shrink: 0;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ui-color-navigation-text);
+  line-height: 1.2;
+  white-space: normal;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.navigation .module:hover:not(:disabled),
+.navigation .module[data-open="true"] {
+  border-color: color-mix(
+    in srgb,
+    var(--ui-color-navigation-accent) 32%,
+    transparent
+  );
+  background: color-mix(
+    in srgb,
+    var(--ui-color-navigation-accent) 14%,
+    transparent
+  );
+  color: var(--ui-color-on-accent);
+}
+
+.navigation .module[aria-current="page"],
+.navigation .module[data-pinned="true"] {
+  border-color: color-mix(
+    in srgb,
+    var(--ui-color-navigation-accent) 55%,
+    transparent
+  );
+  background: color-mix(
+    in srgb,
+    var(--ui-color-navigation-accent) 20%,
+    transparent
+  );
+  color: var(--ui-color-navigation-accent);
+  box-shadow: inset 0 0 12px
+    color-mix(in srgb, var(--ui-color-navigation-accent) 12%, transparent);
+}
+
+.navigation .module[data-pinned="true"]:hover:not(:disabled) {
+  border-color: color-mix(
+    in srgb,
+    var(--ui-color-navigation-accent) 70%,
+    transparent
+  );
+  background: color-mix(
+    in srgb,
+    var(--ui-color-navigation-accent) 26%,
+    transparent
+  );
+  color: var(--ui-color-navigation-accent);
+}
+
+.navigation .module:focus-visible {
+  outline: 2px solid var(--ui-color-navigation-accent);
+  outline-offset: -3px;
+  box-shadow: none;
+}
+
+.moduleIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.moduleIcon > svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 1.75;
+}
+
+.module[aria-current="page"] .moduleIcon,
+.module[data-open="true"] .moduleIcon,
+.module[data-pinned="true"] .moduleIcon {
+  filter: drop-shadow(
+    0 0 5px
+      color-mix(in srgb, var(--ui-color-navigation-accent) 40%, transparent)
+  );
+}
+
+.popupPortal {
+  position: relative;
+  z-index: 700;
+}
+
+.flyout {
+  position: fixed;
+  max-height: 100dvh;
+  box-shadow: 0 12px 40px
+    color-mix(in srgb, var(--ui-color-text) 12%, transparent);
+}
+
+.flyout:focus {
+  outline: none;
+}
+
+.flyout[data-compact="true"] {
+  width: 320px;
+  height: auto;
+}
+
+.flyout[data-compact="true"] .flyoutBody {
+  flex: 0 1 auto;
+}
+
+.flyout[data-customizing="true"] {
+  width: 360px;
+}
+
+.flyoutHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ui-color-border);
+}
+
+.flyoutHeader > svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  color: var(--ui-color-primary);
+  stroke-width: 1.75;
+}
+
+.flyoutHeader > button {
+  width: 28px;
+  min-height: 28px;
+  padding: 4px;
+}
+
+.flyoutTitle {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.flyoutTitle:focus-visible {
+  outline: 2px solid var(--ui-color-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.flyoutDescription {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.flyoutBody {
+  display: grid;
+  flex: 1;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Scrollbar перекрывает правый border панели, сохраняя геометрию header/footer. */
+.flyout:not([data-inline="true"]) .flyoutBody {
+  margin-inline-end: -1px;
+}
+
+.flyout:not([data-inline="true"]) .flyoutBody:last-child {
+  border-end-end-radius: 13px;
+}
+
+.flyoutFooter {
+  flex-shrink: 0;
+  min-width: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--ui-color-border);
+}
+
+.flyoutFooter .footerAction {
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.footerActionIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+}
+
+.footerActionIcon > svg {
+  width: 17px;
+  height: 17px;
+}
+
+.empty {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.flyout .openSection {
+  width: 100%;
+  min-width: 0;
+  white-space: normal;
+}
+
+.navigation[data-mobile="true"] {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 0;
+  color: var(--ui-color-text);
+  background: none;
+  box-shadow: none;
+}
+
+.navigation[data-mobile="true"] .modules {
+  gap: 4px;
+  padding: 12px max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  scrollbar-width: thin;
+}
+
+.navigation[data-mobile="true"] .modules::-webkit-scrollbar {
+  display: block;
+}
+
+.modules[hidden] {
+  display: none;
+}
+
+.navigation[data-mobile="true"] .module {
+  justify-content: flex-start;
+  gap: 12px;
+  height: auto;
+  min-height: 48px;
+  padding: 10px 12px;
+  border-color: transparent;
+  color: var(--ui-color-text);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.navigation[data-mobile="true"] .module:is(:hover, [aria-current="page"]) {
+  color: var(--ui-color-primary);
+  background: color-mix(in srgb, var(--ui-color-primary) 9%, transparent);
+  box-shadow: none;
+}
+
+.moduleLabel {
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+.navigation[data-mobile="true"] .moduleDivider {
+  margin-block: 4px;
+  background: var(--ui-color-border);
+}
+
+.flyout[data-inline="true"] {
+  position: static;
+  flex: 1;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.flyout[data-inline="true"] .flyoutHeader {
+  padding: 6px 12px;
+}
+
+.flyout[data-inline="true"] .flyoutHeader > button {
+  width: 44px;
+  min-height: 44px;
+}
+
+.flyout[data-inline="true"] .flyoutBody {
+  flex: 1;
+  padding: 12px max(12px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+}
+
+.flyout[data-inline="true"] .flyoutFooter {
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+
+.flyout[data-inline="true"]
+  :global([data-navigation-item="row"])
+  > :global([data-navigation-item-select]) {
+  min-height: 44px;
+}
+
+.flyout[data-inline="true"]
+  :global([data-navigation-item])
+  > :global(button:not([data-navigation-item-select])) {
+  flex-shrink: 0;
+  width: 44px;
+  min-height: 44px;
+}
+
+.flyout[data-inline="true"] .arrow {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .navigation .module {
+    transition: none;
+  }
+}

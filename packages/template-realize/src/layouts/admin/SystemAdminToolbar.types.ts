@@ -1,0 +1,85 @@
+/**
+ * @file packages/template-realize/src/layouts/admin/SystemAdminToolbar.types.ts
+ * @version 1.3.0
+ * @date 2026-10-12
+ * @description Определяет независимые от приложения действия, поиск и уведомления верхней панели.
+ * @see documentation/architecture/system-admin-shell.md
+ */
+import type { ReactNode } from "react";
+import type { SystemAdminLocale } from "./systemAdminLocale.types";
+
+/** Host передаёт только разрешённые действия и сам проверяет переход/изменение данных. */
+export type SystemAdminToolbarAction = {
+  id: string;
+  label: string;
+  icon?: ReactNode;
+  disabled?: boolean;
+  onSelect: () => void;
+};
+export type SystemAdminSearchEntry = SystemAdminToolbarAction & {
+  group: string;
+  description?: string;
+  keywords?: string;
+};
+export type SystemAdminNotification = SystemAdminToolbarAction & {
+  description: string;
+  unread: boolean;
+};
+export type SystemAdminActionMenuProps = {
+  label: string;
+  trigger: ReactNode;
+  actions: SystemAdminToolbarAction[];
+  heading?: ReactNode;
+  className?: string;
+  align?: "start" | "center" | "end";
+};
+export type SystemAdminSearchProps = {
+  entries: SystemAdminSearchEntry[];
+  theme: "light" | "dark";
+  locale?: SystemAdminLocale;
+};
+export type SystemAdminNotificationsProps = {
+  items: SystemAdminNotification[];
+  onReadAll: () => void;
+  locale?: SystemAdminLocale;
+};
+export type SystemAdminToolbarProps = {
+  context: ReactNode;
+  theme: "light" | "dark";
+  onThemeChange?: (theme: "light" | "dark") => void;
+  /** undefined скрывает группу; переданный пустой массив сохраняет доступный поиск. */
+  searchEntries?: SystemAdminSearchEntry[];
+  createActions?: SystemAdminToolbarAction[];
+  /** Уведомления выводятся вместе с разрешённым callback чтения. */
+  notifications?: SystemAdminNotification[];
+  onReadAll?: () => void;
+  onAssistant?: () => void;
+  /** Профиль выводится только при наличии пользователя и каталога его действий. */
+  user?: { name: string; initials: string; description?: string };
+  profileActions?: SystemAdminToolbarAction[];
+  billingActions?: SystemAdminToolbarAction[];
+  signOutAction?: SystemAdminToolbarAction;
+  /** Полная форма host; без обработчика остаётся меню createActions. */
+  onCreate?: () => void;
+  locale?: SystemAdminLocale;
+  onLocaleChange?: (locale: SystemAdminLocale) => void;
+};
+
+export type SystemAdminProfileMenuProps = Pick<
+  SystemAdminToolbarProps,
+  | "billingActions"
+  | "signOutAction"
+  | "theme"
+  | "onThemeChange"
+  | "locale"
+  | "onLocaleChange"
+> & {
+  user: NonNullable<SystemAdminToolbarProps["user"]>;
+  profileActions: SystemAdminToolbarAction[];
+};
+export type SystemAdminShortcutHelpProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  theme: "light" | "dark";
+  locale: SystemAdminLocale;
+};

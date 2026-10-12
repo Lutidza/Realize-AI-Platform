@@ -19,8 +19,9 @@
 15. [ADR-0015 — Protected system AI layer and installation overlay](ADR-0015-protected-system-ai-layer-and-installation-overlay.md)
 16. [ADR-0016 — Обработчик Git-операций рабочего слоя ИИ-агентов](ADR-0016-development-git-delivery-handler.md)
 17. [ADR-0017 — Внутренний MCP и управление экземплярами серверов](ADR-0017-internal-mcp-and-server-management.md)
+18. [ADR-0018 — Самодостаточные шаблонные пакеты и единый lifecycle](ADR-0018-self-contained-template-packages.md)
 
 ADR-0001, 0005, 0006, 0007, 0009–0013 имеют статус `accepted`.
-ADR-0002–0004, 0008, 0014–0017 имеют статус `accepted-as-target`.
+ADR-0002–0004, 0008, 0014–0018 имеют статус `accepted-as-target`.
 Исторические ADR не переписываются: изменение решения оформляется новым ADR с
 явной связью `supersedes/superseded by`.
