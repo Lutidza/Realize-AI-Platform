@@ -1,7 +1,7 @@
 # Gruns Reference Analysis and Payload Technical Specification
 
 Дата: 2026-07-14.
-Проект: Realize E-Commerce.
+Проект: Realize — AI Platform.
 Референс: https://gruns.co/.
 
 ## Назначение документа
@@ -60,7 +60,7 @@ Shopify-реализации, а в продуктовой архитектур�
 - Reusable block system: Gruns heavily reuses section-level blocks across home,
   PDP and campaign pages.
 
-Для Realize E-Commerce нужно реализовать аналогичную архитектуру через Payload:
+Для Realize — AI Platform нужно реализовать аналогичную архитектуру через Payload:
 контентные блоки, commerce collections, product attributes, payment/shipping
 adapters and storefront components. Stripe из шаблона Payload нельзя считать
 целевой платежной системой для РФ: нужна adapter architecture под YooKassa,

@@ -1,6 +1,6 @@
 # @file compose.yaml
-# @version 1.0.0
-# @date 2026-09-15
+# @version 1.0.1
+# @date 2026-10-12
 # @description Запускает PostgreSQL, приложение и Media worker с постоянным хранилищем.
 
 name: realize-e-commerce
@@ -25,7 +25,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
   web:
-    image: ${REALIZE_IMAGE:-realize-e-commerce:local}
+    image: ${REALIZE_IMAGE:-realize-ai-platform:local}
     build:
       context: .
       target: runtime
@@ -50,7 +50,7 @@ services:
       REALIZE_AI_RUNTIME_MODE: ${REALIZE_AI_RUNTIME_MODE:-central-control-plane}
       REALIZE_INTEGRATIONS_ENCRYPTION_KEY: ${REALIZE_INTEGRATIONS_ENCRYPTION_KEY:-}
       RELEASE_ID: ${RELEASE_ID:-development}
-      SITE_NAME: ${SITE_NAME:-Realize E-Commerce}
+      SITE_NAME: ${SITE_NAME:-Realize — AI Platform}
       COMPANY_NAME: ${COMPANY_NAME:-Realize}
     healthcheck:
       test:
@@ -74,7 +74,7 @@ services:
       - media-private-data:/app/.data/media
 
   media-worker:
-    image: ${REALIZE_IMAGE:-realize-e-commerce:local}
+    image: ${REALIZE_IMAGE:-realize-ai-platform:local}
     build:
       context: .
       target: runtime

@@ -62,12 +62,14 @@ npm --prefix .ai/tools/agent-runtime run runtime -- monitor-service-start --mode
 npm --prefix .ai/tools/agent-runtime run runtime -- worker-launch-preflight --session-id=<worker-session-id> --group-id=<group-id> --json
 npm --prefix .ai/tools/agent-runtime run runtime -- retention-cleanup --actor-role=dialog_assistant --dry-run=true --closed-before=2026-05-01T00:00:00Z
 npm --prefix .ai/tools/agent-runtime run runtime -- maintenance-report-write --actor-role=dialog_assistant --policy-trigger=changed_runtime_artifacts --mode=audit_only --decision=passed --dry-run-summary-json='{}' --active-rows-report-json='{}'
-npm --prefix .ai/tools/agent-runtime run runtime -- process-upsert --process-id=proc-worker-a --session-id=worker-a --backend=codex_exec --cwd=/home/tom/Server/Realize/Realize-E-Commerce --status=running
+npm --prefix .ai/tools/agent-runtime run runtime -- process-upsert --process-id=proc-worker-a --session-id=worker-a --backend=codex_exec --cwd='<repo-root>' --status=running
 npm --prefix .ai/tools/agent-runtime run runtime -- stream-append --process-id=proc-worker-a --stream=stdout --content-text="Worker safe summary"
 npm --prefix .ai/tools/agent-runtime run runtime -- projection-export --database=.ai/tools/agent-runtime/runtime/runtime.sqlite --output-root=/tmp/agent-runtime-export
 ```
 
 Options use `--key=value`. JSON options must contain valid JSON text.
+В примере `process-upsert` замени `<repo-root>` абсолютным путём к текущему
+корню репозитория.
 
 Peer/job/stage сообщения не должны полагаться на defaults `message-send`. Пока
 нет writer-level enforcement для отдельного `job_id`, каждое job-related

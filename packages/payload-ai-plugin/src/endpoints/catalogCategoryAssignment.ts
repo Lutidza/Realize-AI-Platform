@@ -1,8 +1,9 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/catalogCategoryAssignment.ts
- * @version 2026-08-28
- * @description Dry-runs, applies and verifies one access-controlled category assignment.
- * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Проверяет, применяет и подтверждает назначение категории с контролем доступа.
+ * @docref Realize — AI Platform v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 

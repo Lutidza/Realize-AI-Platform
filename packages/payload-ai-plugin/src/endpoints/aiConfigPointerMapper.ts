@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/aiConfigPointerMapper.ts
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Проецирует append-only pointer и проверяет bounded mutation replay snapshot.
- * @docref Realize AI Commerce v1.0 — AI plugin data model
+ * @docref Realize — AI Platform v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
  */
 

@@ -1,6 +1,6 @@
 # Скилы Codex
 
-`.codex/skills/` хранит исполняемые скилы Codex для проекта `Realize-E-Commerce`.
+`.codex/skills/` хранит исполняемые скилы Codex для проекта `Realize — AI Platform`.
 
 ## Границы
 

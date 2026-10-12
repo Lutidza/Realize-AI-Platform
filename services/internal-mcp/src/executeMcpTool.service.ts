@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/executeMcpTool.service.ts
- * @version 1.4.1
- * @date 2026-09-30
+ * @version 1.4.2
+ * @date 2026-10-12
  * @description Направляет разрешённые read tools владельцам контекста, репозитория, Git и Pages.
  */
 import {
@@ -107,7 +107,7 @@ export async function executeMcpTool(
       }
     }
     return {
-      project: { name: "Realize — AI CMS", version: "1.0.0" },
+      project: { name: "Realize — AI Platform", version: "1.0.0" },
       server: {
         name: "realize-internal-mcp",
         version: MCP_SERVER_VERSION,

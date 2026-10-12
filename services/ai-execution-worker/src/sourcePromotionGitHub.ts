@@ -1,6 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/sourcePromotionGitHub.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-10-12
  * @docref ADR-0013
  * @see documentation/architecture/decisions/ADR-0013-github-pull-request-source-promotion.md
  * @description Идемпотентно создаёт draft Pull Request через bounded GitHub REST boundary.
@@ -64,7 +65,7 @@ const requestJSON = async (input: {
         Accept: "application/vnd.github+json",
         Authorization: `Bearer ${input.token}`,
         "Content-Type": "application/json",
-        "User-Agent": "realize-e-commerce-source-promotion",
+        "User-Agent": "realize-ai-platform-source-promotion",
         "X-GitHub-Api-Version": GITHUB_API_VERSION,
       },
       method: input.method,

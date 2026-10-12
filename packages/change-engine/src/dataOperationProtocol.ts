@@ -1,9 +1,9 @@
 /**
  * @file packages/change-engine/src/dataOperationProtocol.ts
- * @version 1.3.0
- * @date 2026-09-13
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Владеет assistant protocol для декларативного Payload Data Lane.
- * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
+ * @docref Realize — AI Platform v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 

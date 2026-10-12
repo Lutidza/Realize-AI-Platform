@@ -1,8 +1,9 @@
 /**
  * @file packages/change-engine/src/aiConfigurationRelease.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-10-12
  * @description Создаёт и проверяет immutable installation AI configuration releases.
- * @docref Realize AI Commerce v1.0 — AI plugin data model
+ * @docref Realize — AI Platform v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
  */
 

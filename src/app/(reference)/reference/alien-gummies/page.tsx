@@ -1,3 +1,10 @@
+/**
+ * @file src/app/(reference)/reference/alien-gummies/page.tsx
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Отображает референс витрины Alien Gummies для проекта Realize — AI Platform.
+ */
+
 import {
   ArrowRight,
   ShoppingBag,
@@ -493,7 +500,7 @@ export default function AlienGummiesReferencePage() {
 
       <footer className={styles.footer}>
         <span>Cosmo Gummy</span>
-        <span>Концепт витрины для Realize E-Commerce</span>
+        <span>Концепт витрины для Realize — AI Platform</span>
         <span>Адаптация для розницы в РФ</span>
       </footer>
     </main>

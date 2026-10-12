@@ -1,14 +1,14 @@
 ---
 name: next-react-frontend-architecture
 description: >-
-  Используй для frontend задач проекта Realize-E-Commerce: Next.js App Router,
+  Используй для frontend задач проекта Realize — AI Platform: Next.js App Router,
   React Server/Client Components, Tailwind/shadcn/Radix UI, route helpers,
   browser evidence and shared UI boundaries.
 ---
 
 # Next/React frontend architecture
 
-Используй skill для application frontend задач в `Realize-E-Commerce`.
+Используй skill для application frontend задач в `Realize — AI Platform`.
 
 ## Что открыть
 

@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationRollback.ts
- * @version 1.3.0
- * @date 2026-09-14
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Атомарно откатывает подтверждённую операцию данных с проверкой снимка.
- * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
+ * @docref Realize — AI Platform v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 

@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-ai-plugin/src/collections/aiConfigEvents.ts
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Хранит append-only audit и durable idempotency config mutations.
- * @docref Realize AI Commerce v1.0 — AI plugin data model
+ * @docref Realize — AI Platform v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
  */
 

@@ -1,7 +1,7 @@
 ---
 name: frontend-guardrail-audit
 description: >-
-  Используй для отдельного read-only аудита frontend-долга Realize-E-Commerce:
+  Используй для отдельного read-only аудита frontend-долга Realize — AI Platform:
   duplicated React UI, hidden local visual contracts, route/component drift,
   client boundary issues and missing browser evidence.
 ---

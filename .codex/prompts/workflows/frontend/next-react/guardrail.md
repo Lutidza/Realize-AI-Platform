@@ -1,6 +1,6 @@
 # Prompt: Next/React frontend guardrail
 
-Ты выполняешь read-only проверку указанного frontend diff в Realize-E-Commerce.
+Ты выполняешь read-only проверку указанного frontend diff в Realize — AI Platform.
 Код и инструкции проекта не изменяй. Сохранять можно только материалы проверки
 по `.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md`, если они нужны.
 Прямой запрет пользователя на любые записи относится и к материалам проверки.

@@ -1,8 +1,9 @@
 /**
  * @file packages/ai-contracts/src/workflowInputValidation.ts
- * @version 2026-09-01
+ * @version 1.0.0
+ * @date 2026-10-12
  * @description Строго разбирает declarative workflow без executable expressions.
- * @docref Realize AI Commerce v1.0 — Интеграция системного и installation AI-layer
+ * @docref Realize — AI Platform v1.0 — Интеграция системного и installation AI-layer
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
 

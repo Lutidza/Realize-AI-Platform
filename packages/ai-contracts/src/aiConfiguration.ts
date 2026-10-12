@@ -1,9 +1,9 @@
 /**
  * @file packages/ai-contracts/src/aiConfiguration.ts
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Задаёт versioned draft, release, pointer и installation artifact contracts.
- * @docref Realize AI Commerce v1.0 — AI plugin data model
+ * @docref Realize — AI Platform v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
  */
 

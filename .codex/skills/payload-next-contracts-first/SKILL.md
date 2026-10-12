@@ -1,7 +1,7 @@
 ---
 name: payload-next-contracts-first
 description: >-
-  Используй для Payload/Next backend работы в Realize-E-Commerce: Payload config,
+  Используй для Payload/Next backend работы в Realize — AI Platform: Payload config,
   collections, hooks, access, migrations, Next API routes, data resolvers,
   Search Profile, Elasticsearch indexing and UI data contracts.
 ---

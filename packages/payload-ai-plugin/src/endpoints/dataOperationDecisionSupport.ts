@@ -1,8 +1,9 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/dataOperationDecisionSupport.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-10-12
  * @description Проверяет actor roles и идемпотентный replay решений DataOperation.
- * @docref Realize AI Commerce v1.0 — Data/Config Pipeline
+ * @docref Realize — AI Platform v1.0 — Data/Config Pipeline
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
 

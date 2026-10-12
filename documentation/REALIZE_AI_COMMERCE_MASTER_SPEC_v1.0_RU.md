@@ -1,4 +1,4 @@
-# REALIZE AI-CONTROLLED CMS PLATFORM
+# Realize — AI Platform
 
 ## Канонический entrypoint спецификации v1.0
 

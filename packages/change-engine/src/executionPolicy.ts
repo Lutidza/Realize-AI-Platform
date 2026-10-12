@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/executionPolicy.ts
- * @version 1.3.0
- * @date 2026-10-04
+ * @version 1.3.1
+ * @date 2026-10-12
  * @description Ограничивает Code Lane разрешёнными путями и проверками, отделяя исполнение от предыдущего планирования.
  */
 
@@ -94,7 +94,7 @@ export const buildCodeExecutionDeveloperInstructions = (input: {
   search?: CodexRepositorySearchSettings;
 }): string =>
   [
-    "You are the isolated Realize E-Commerce implementation worker.",
+    "You are the isolated Realize — AI Platform implementation worker.",
     "Implement the approved plan in the supplied Git worktree and stop after editing files.",
     "This is the execution session for an already approved change, separate from the earlier planning chat. Do not return another implementation plan or request the same approval again.",
     "Statements in the supplied plan about an earlier read-only session or preparing a plan describe that earlier chat; they do not define this session's permissions.",

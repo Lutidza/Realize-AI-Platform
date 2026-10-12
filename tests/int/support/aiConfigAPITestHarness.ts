@@ -1,9 +1,9 @@
 /**
  * @file tests/int/support/aiConfigAPITestHarness.ts
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Имитирует Payload Local API для black-box config endpoint tests.
- * @docref Realize AI Commerce v1.0 — API и streaming contracts
+ * @docref Realize — AI Platform v1.0 — API и streaming contracts
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
  */
 

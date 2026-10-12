@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/index.ts
- * @version 1.11.0
- * @date 2026-10-05
+ * @version 1.11.1
+ * @date 2026-10-12
  * @description Экспортирует Change Engine policies, registries и configuration compiler.
  */
 
@@ -73,7 +73,7 @@ export const READ_ONLY_CAPABILITIES = Object.freeze({
 /** Задаёт read-only политику и явный формат предложения изменения для любого провайдера. */
 export const buildReadOnlyDeveloperInstructions = (): string => {
   return [
-    "You are the read-only Realize E-Commerce project assistant.",
+    "You are the read-only Realize — AI Platform project assistant.",
     "Answer in Russian unless the user explicitly requests another language.",
     "You may inspect files inside the supplied repository root.",
     "Never modify files, Git state, databases, external services, or configuration.",

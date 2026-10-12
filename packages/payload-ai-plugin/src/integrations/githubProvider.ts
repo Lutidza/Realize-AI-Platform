@@ -1,10 +1,11 @@
 /**
  * @file packages/payload-ai-plugin/src/integrations/githubProvider.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-10-12
  * @docref ADR-0012, ADR-0013
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
  * @see documentation/architecture/decisions/ADR-0013-github-pull-request-source-promotion.md
- * @description Verifies repository identity and ref write access for GitHub operations.
+ * @description Проверяет identity репозитория и права записи через GitHub API.
  */
 
 import type { GitHubIntegrationTestDTO } from "@realize/ai-contracts";
@@ -44,7 +45,7 @@ export const testGitHubConnection = async (input: {
         headers: {
           Accept: "application/vnd.github+json",
           Authorization: `Bearer ${input.token}`,
-          "User-Agent": "realize-e-commerce-integrations",
+          "User-Agent": "realize-ai-platform-integrations",
           "X-GitHub-Api-Version": GITHUB_API_VERSION,
         },
         method: "GET",

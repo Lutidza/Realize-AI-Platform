@@ -1,9 +1,9 @@
 /**
  * @file tests/int/ai-configuration-foundation.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-04
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Проверяет capability registry и immutable installation AI config foundation.
- * @docref Realize AI Commerce v1.0 — AI plugin data model
+ * @docref Realize — AI Platform v1.0 — AI plugin data model
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/21-ai-plugin-data-model.md
  */
 

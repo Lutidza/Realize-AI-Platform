@@ -1,3 +1,10 @@
+/**
+ * @file scripts/seed.ts
+ * @version 1.0.0
+ * @date 2026-10-12
+ * @description Заполняет категории, товары и навигацию текущего e-commerce-профиля.
+ */
+
 import 'dotenv/config'
 
 import configPromise from '@payload-config'
@@ -346,7 +353,7 @@ const seedHeader = async (payload: Payload) => {
 const main = async () => {
   const payload = await getPayload({ config: configPromise })
 
-  payload.logger.info('Seeding Realize ecommerce categories, products, and header...')
+  payload.logger.info('Seeding categories, products, and header for Realize — AI Platform...')
   const categoryIDsBySlug = await seedCategories(payload)
   await seedProducts(payload, categoryIDsBySlug)
   await seedHeader(payload)

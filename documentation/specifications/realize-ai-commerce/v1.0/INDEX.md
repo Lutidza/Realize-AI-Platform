@@ -1,4 +1,4 @@
-# Realize AI-Controlled CMS Platform v1.0
+# Realize — AI Platform v1.0
 
 - **Статус:** target specification
 - **Модель продукта:** универсальное CMS-ядро и подключаемые профили сайтов

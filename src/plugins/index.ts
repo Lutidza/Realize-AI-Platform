@@ -1,6 +1,6 @@
 /**
  * @file src/plugins/index.ts
- * @version 1.11.0
+ * @version 1.11.1
  * @date 2026-10-12
  * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
@@ -100,8 +100,8 @@ const realizeAI = realizeAIPlugin({
 
 const generateTitle: GenerateTitle<Product | Page> = ({ doc }) => {
   return doc?.title
-    ? `${doc.title} | Realize E-Commerce`
-    : "Realize E-Commerce";
+    ? `${doc.title} | Realize — AI Platform`
+    : "Realize — AI Platform";
 };
 
 const generateURL: GenerateURL<Product | Page> = ({ doc }) => {

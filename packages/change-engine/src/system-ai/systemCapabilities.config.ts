@@ -1,9 +1,9 @@
 /**
  * @file packages/change-engine/src/system-ai/systemCapabilities.config.ts
- * @version 1.0.0
- * @date 2026-10-04
+ * @version 1.0.1
+ * @date 2026-10-12
  * @description Регистрирует текущие system capabilities и stable check IDs.
- * @docref Realize AI Commerce v1.0 — Change Engine
+ * @docref Realize — AI Platform v1.0 — Change Engine
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/11-change-engine.md
  */
 
