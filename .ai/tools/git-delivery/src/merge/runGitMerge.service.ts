@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/runGitMerge.service.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-13
  * @description Создаёт verified approved-tree commit с двумя parents и продвигает только назначенный GitHub ref.
  * @see documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md
@@ -40,7 +40,8 @@ function assertCommit(
     commit.sha !== journal.expectedCommit ||
     commit.treeOid !== body.tree ||
     JSON.stringify(commit.parents) !== JSON.stringify(body.parents) ||
-    commit.message !== body.message ||
+    (commit.message !== body.message &&
+      commit.message + "\n" !== body.message) ||
     ["author", "committer"].some((key) => {
       const selected = key as "author" | "committer";
       return (

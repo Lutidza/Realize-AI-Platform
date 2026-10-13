@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/git-delivery/test/gitMerge.service.test.ts
- * @version 1.0.1
+ * @version 1.0.2
  * @date 2026-10-13
  * @description Проверяет approved-tree merge, неизменность checkout и recovery без повторных API mutations во временных fixtures.
  */
@@ -151,7 +151,7 @@ async function fixture(t: TestContext) {
     blobs = 0,
     trees = 0;
   const hooks = { create: "ok", update: "ok", blob: "ok", tree: "ok" };
-  const flags = { candidateAvailable: true };
+  const flags = { candidateAvailable: true, stripMessageLF: false };
   const knownBlobs = new Set(targetTree.tree.map((entry) => entry.sha));
   const remote: GitMergeRemote = {
     readRepository: async () => ({ id: 13, fullName: "Owner/Repo" }),
@@ -189,7 +189,9 @@ async function fixture(t: TestContext) {
         sha: hashGitMergeCommit(body),
         treeOid: body.tree,
         parents: body.parents,
-        message: body.message,
+        message: flags.stripMessageLF
+          ? body.message.slice(0, -1)
+          : body.message,
         author: body.author,
         committer: body.committer,
       };
@@ -268,6 +270,77 @@ test("approved-tree merge оставляет HEAD/index/files; replay не со�
   assert.equal(f.updates, 1);
   assert.equal(JSON.stringify(result).includes("fixture-credential"), false);
 });
+
+test("GitHub DTO без одного terminal LF принимается при exact commit OID и metadata", async (t) => {
+  const f = await fixture(t);
+  f.flags.stripMessageLF = true;
+  const result = await runGitMerge(f.context, f.dependencies);
+  assert.equal(result.status, "succeeded", JSON.stringify(result));
+  const journal = JSON.parse(await readFile(f.journalFile, "utf8"));
+  assert.equal(
+    f.objects.get(journal.expectedCommit)!.message + "\n",
+    journal.body.message,
+  );
+  assert.equal(result.commit, journal.expectedCommit);
+  assert.equal(f.creates, 1);
+  assert.equal(f.updates, 1);
+  assert.equal((await runGitMerge(f.context, f.dependencies)).status, "noop");
+  assert.equal(f.creates, 1);
+  assert.equal(f.updates, 1);
+});
+
+test("unknown creating восстанавливает тот же existing DTO без LF без второго POST", async (t) => {
+  const f = await fixture(t);
+  f.flags.stripMessageLF = true;
+  f.hooks.create = "fail-after";
+  const first = await runGitMerge(f.context, f.dependencies);
+  assert.equal(first.status, "partial", JSON.stringify(first));
+  const before = JSON.parse(await readFile(f.journalFile, "utf8"));
+  assert.equal(before.phase, "unknown");
+  assert.equal(before.uncertainStage, "creating");
+  assert.equal(f.updates, 0);
+  f.hooks.create = "ok";
+  const second = await runGitMerge(f.context, f.dependencies);
+  assert.equal(second.status, "succeeded", JSON.stringify(second));
+  const after = JSON.parse(await readFile(f.journalFile, "utf8"));
+  assert.deepEqual(after.body, before.body);
+  assert.equal(after.expectedCommit, before.expectedCommit);
+  assert.equal(second.commit, before.expectedCommit);
+  assert.equal(f.creates, 1);
+  assert.equal(f.updates, 1);
+});
+
+for (const variant of [
+  "space",
+  "extra-LF",
+  "removed-content",
+  "wrong-oid",
+] as const)
+  test(`${variant}: DTO message допуск не ослабляет whitespace или commit OID`, async (t) => {
+    const f = await fixture(t);
+    const create = f.remote.createCommit;
+    f.remote.createCommit = async (body) => {
+      const commit = await create(body);
+      if (variant === "wrong-oid") return { ...commit, sha: "f".repeat(40) };
+      return {
+        ...commit,
+        message:
+          variant === "space"
+            ? commit.message.slice(0, -1) + " \n"
+            : variant === "extra-LF"
+              ? commit.message + "\n"
+              : commit.message.slice(0, -2),
+      };
+    };
+    const result = await runGitMerge(f.context, f.dependencies);
+    assert.equal(result.status, "partial", JSON.stringify(result));
+    assert.equal(result.errorCode, "merge_commit_mismatch");
+    assert.equal(f.creates, 1);
+    assert.equal(f.updates, 0);
+    const journal = JSON.parse(await readFile(f.journalFile, "utf8"));
+    assert.equal(journal.phase, "unknown");
+    assert.equal(journal.uncertainStage, "creating");
+  });
 
 for (const failure of [
   "create-before",

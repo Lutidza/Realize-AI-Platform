@@ -345,7 +345,9 @@ GET отсутствующего tree допускает только точны
 `[target.oid, source.oid]`, identity для author/committer, message и единой UTC
 date до первого POST, включая uploads. Детерминированный unsigned commit OID позволяет сверить unknown
 create без второго POST. Созданный объект проверяется по OID, tree, обоим parents,
-message, identity и dates.
+message, identity и dates. GitHub API может убрать одну завершающую LF из
+JSON message; допускается только это точное отличие при совпадении commit SHA
+и остальных frozen metadata. Body и raw Git hash не нормализуются.
 [GitHub Create a commit](https://docs.github.com/en/rest/git/commits#create-a-commit).
 
 Перед PATCH обе refs должны точно совпадать с назначением. Обновляется только
