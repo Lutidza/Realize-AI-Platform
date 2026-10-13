@@ -9,6 +9,8 @@ runtime_sources:
   - .ai/system/state-machine.md
   - .ai/roles/role-groups.md
   - .ai/workflows/core/worker-session/WORKFLOW.md
+  - .ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md
+  - .ai/tools/task-workspace/README.md
 checks:
 ```
 
@@ -39,7 +41,10 @@ intake
   распространяется также на TASK, logs и прочие рабочие материалы.
 - `work_task`: до правки выбрать источник, владельца, create/edit/delete scope
   и проверки. Простой шаг выполняется напрямую; продолжительная задача получает
-  краткий TASK в `.ai-workspace` и план, который уточняется внутри задания.
+  локальное досье через `npm run task:workspace -- create` по
+  [шаблону TASK](../../../templates/task-workspace/TEMPLATE-TASK.md) и план,
+  который уточняется внутри задания. Существующий legacy TASK принимается
+  командой `adopt` только с явным состоянием; его body сохраняется.
 
 Дополнительные маршруты подключаются только при соответствующем действии:
 worker-session — для фактически запущенных workers; Git workflow — для inspect
@@ -100,6 +105,34 @@ workflow не делает её обязательной. Сначала под�
 разработки не является разрешением на доставку.
 
 ## Передача результата (`handoff`)
+
+Владелец этапа регистрирует создаваемые материалы в `artifact-manifest.json`
+через CLI, завершает producer командой `settle` после прекращения записи и сдаёт result manifest
+в `logs/results/` с hashes, checks и оставшимися ограничениями. Это явные шаги
+workflow; старые build/test scripts не получают lifecycle автоматически.
+
+Перед завершением продолжительной задачи:
+
+1. Проверь фактическое завершение либо согласованную передачу исполнителей;
+   сохрани execution refs и итог, не подменяя остановку сменой task status.
+2. Сохрани результаты и проверки командой `result` по актуальной revision.
+   Переведи задачу в `done` или, после обязательной приёмки/delivery, в `closed`.
+   Отмена сохраняет причину и outcome `cancelled`, а не успешную приёмку.
+3. Для разрешённой очистки disposable `tmp` получи `plan-cleanup`, проверь
+   удержания, producers, exact revisions и hashes; затем примени именно
+   reviewed plan через `cleanup --plan <file> --apply`. Evidence сохраняется
+   до purge; новые или изменившиеся материалы требуют нового плана.
+4. При архивировании используй `archive` только для `closed` и quiescent
+   досье с сохранёнными результатами. Закрытие не перемещает папку автоматически;
+   `reopen` сохраняет результаты и прежние metadata в recovery journal,
+   не перезапуская runtime.
+
+Входы сложных команд передавай через `--input <JSON-file>`; мутации versioned
+досье используют `--expected-revision`. Подробные guards принадлежат
+[правилу рабочей области](../../../rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md),
+точные flags — [CLI owner](../../../tools/task-workspace/README.md).
+Запрет записи или очистки распространяется и на эти команды; обязательные
+разрешения не выводятся из самого факта сдачи результата.
 
 Сообщи результат, выполненные проверки, существенные пропуски и ограничения.
 Все свои worker-процессы должны быть завершены либо явно переданы владельцу

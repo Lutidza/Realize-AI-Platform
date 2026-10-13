@@ -1,8 +1,9 @@
 # Task manager — контракт исполнения и интеграции с AI
 
-Версия: **0.12**, 2026-10-12. Статус: **проект технической части ТЗ**.
-Читается вместе с [продуктовым ТЗ](task-management.md). Все новые сущности,
-команды и состояния ниже — целевой контракт, а не описание готовых API.
+Версия: **0.13**, 2026-10-13. Статус: **проект технической части ТЗ**.
+Читается вместе с [продуктовым ТЗ](task-management.md). Новые сущности,
+команды и состояния ниже — целевой контракт, кроме явно обозначенных
+реализованных срезов §8.1 и §12–14; локальный CLI из §8.1 не расширяет Task API.
 Этот документ не меняет действующие AI rules и не разрешает запуск/публикацию кода.
 
 Подтверждённое направление постоянного Task Manager, commit/release связей и
@@ -458,17 +459,17 @@ Retention удалённого текста соблюдается: ссылка
 
 ## 8. Артефакты, TASK.md и источники истины
 
-| Данные                                                                                                      | Источник истины                                                                   |
-| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Проекты, задачи, назначения/handoff, task relations/conversation links, декларативный план, доступ, приёмка | Payload task domain и версии сущностей                                            |
-| Диалоги, сообщения и исходные message/run relationships                                                     | Существующий conversation owner; task хранит ссылки и разрешённый контекст        |
-| Переходы workflow, fan-out/join, текущий этап                                                               | Единственный workflow engine; task UI читает проекцию                             |
-| Конфигурация AI                                                                                             | Существующий AI-layer release/compiler                                            |
-| Фактический run/job/checkpoint/effect                                                                       | Исходный runtime owner; task хранит refs и восстанавливаемые projections          |
-| Метаданные файлов, revisions, hashes и права                                                                | Task artifact catalog                                                             |
-| Бинарное содержимое                                                                                         | Закрытый storage adapter с контролируемой выдачей                                 |
-| Локальный workspace                                                                                         | Рабочая материализация/явно импортируемый источник, не вторая управляющая БД      |
-| Native agent session/SQLite registry                                                                        | Собственный runtime инструментов; в task dossier только разрешённые ссылки/сводки |
+| Данные                                                                                                      | Источник истины                                                                              |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Проекты, задачи, назначения/handoff, task relations/conversation links, декларативный план, доступ, приёмка | Payload task domain и версии сущностей                                                       |
+| Диалоги, сообщения и исходные message/run relationships                                                     | Существующий conversation owner; task хранит ссылки и разрешённый контекст                   |
+| Переходы workflow, fan-out/join, текущий этап                                                               | Единственный workflow engine; task UI читает проекцию                                        |
+| Конфигурация AI                                                                                             | Существующий AI-layer release/compiler                                                       |
+| Фактический run/job/checkpoint/effect                                                                       | Исходный runtime owner; task хранит refs и восстанавливаемые projections                     |
+| Метаданные файлов, revisions, hashes и права                                                                | Task artifact catalog                                                                        |
+| Бинарное содержимое                                                                                         | Закрытый storage adapter с контролируемой выдачей                                            |
+| Локальный workspace                                                                                         | До cutover — локальный TASK.md по §8.1; после — рабочая проекция/явно импортируемый источник |
+| Native agent session/SQLite registry                                                                        | Собственный runtime инструментов; в task dossier только разрешённые ссылки/сводки            |
 
 Artifact metadata: ID/revision, category, filename, MIME, bytes, content hash,
 storage key, author, task/execution/stage/attempt, createdAt, provenance,
@@ -480,8 +481,11 @@ URL/скачивание проверяют ACL; private files не попада
 Публикация результатов проходит через artifact API с expectedRevision и
 idempotency. Большие файлы загружаются потоково/частями по контракту storage.
 
-TASK.md — читаемая проекция ревизии задания, критериев, результатов и handoff.
-Статус меняется командой task API; правка markdown сама по себе его не меняет.
+После подтверждённого cutover TASK.md становится читаемой проекцией ревизии
+задания, критериев, результатов и handoff. Статус тогда меняется командой task
+API; правка markdown сама по себе его не меняет. До cutover локальное досье
+имеет один источник состояния — frontmatter `TASK.md` под управлением §8.1.
+Это явная локальная область, не второй writer серверной задачи.
 Существующие локальные TASK.md не перезаписываются автосинхронизацией.
 Импорт папки — явная операция с preview, hash manifest, сопоставлением
 категорий и исторических участников. Импорт материалов не возобновляет старый run.
@@ -498,6 +502,72 @@ queued, running, paused, recovery_required и остальных незавер�
 GC повторно проверяет ссылки перед удалением. Внешняя очистка storage выявляется
 как недоступный материал, без подмены файла. Локальное правило «30 дней —
 кандидат на очистку» не является автоматическим удалением продуктового досье.
+
+### 8.1. Реализованный локальный lifecycle (2026-10-13)
+
+Owner CLI — `.ai/tools/task-workspace`, вход — `npm run task:workspace --`.
+Публичные schemas принадлежат export
+`@realize/payload-task-manager/workspace-contracts`; текущий серверный Foundation
+из §12 продолжает использовать `backlog/in_progress/review`. Категории
+локального досье `open/active/done/closed`, приёмка, outcome, archive и execution
+projection не добавляют серверные поля, routes или CRUD-команды.
+
+CLI явно выполняет `create`, `adopt`, `inspect`, `status`, `result`, `register`, `settle`,
+`plan-cleanup`, `cleanup`, `archive`, `reopen`. Мутация versioned досье
+требует `--expected-revision`; сложный вход передаётся как JSON через `--input`.
+`create` принимает `--task`, `--title`, `--body-file`, повторяемый
+`--required-check` и optional `--acceptance-required`/`--delivery-required`.
+Существующие legacy TASK не преобразуются автоматически: `adopt` требует
+явного состояния и сохраняет поясняющий body.
+Его CLI требует `--category open|active`; `settle` завершает выбранные
+`artifactIds` через JSON input. `plan-cleanup` принимает optional
+`{paths: string[]}` и `--output logs/<file>.json`; `cleanup --plan` без
+`--apply` показывает сохранённый план и не выполняет purge.
+Локальный filesystem adapter требует Linux и GNU `mv` с атомарным переносом
+без overwrite/copy-delete; это не заявление о переносимости CLI на все hosts.
+
+`TASK.md` версии `schemaVersion: 1` содержит UUID `localDossierId`, стабильный
+`localKey`, revision/даты, `status: {id, category}`, отдельные execution
+`state/runtimeRef/stageId/attemptId`, acceptance, delivery, outcome и
+`archivedAt`. Состояние задачи не выдаётся за состояние процесса. Регистрация
+в `artifact-manifest.json` фиксирует artifact IDs/revisions/hashes и retention;
+result manifests сохраняются в `logs/results/`. До cutover эти локальные
+источники не синхронизируются с API.
+Локальный `criteriaHash` фиксирует body `TASK.md` целиком; его изменение требует
+нового result manifest и актуальной обязательной приёмки.
+Переход в локальный Done требует `passed` обязательных checks; evidence
+принадлежит registered retained artifact, включённому в result refs.
+Физические hashes/bytes и quiescence producers сверяются повторно.
+
+Cleanup работает только с зарегистрированными временными артефактами внутри
+task `tmp/`. Retain/pinned/referenced материалы, открытый producer и активное
+execution удерживают файлы. `plan-cleanup` предшествует
+`cleanup --plan <file> --apply`; применяются exact reviewed revisions/hashes,
+evidence сохраняется до purge. Артефакты вне области, включая `.next`, корневой
+`node_modules`, пользовательские данные и runtime stores, не затрагиваются.
+Producer PID связывается с identity (`bootId`, `startTicks`), чтобы не принять
+другой процесс с тем же PID за владельца записи; завершение producer выполняет
+явный `settle`. Symlink ancestors и корень artifact tree закрыты;
+terminal symlink внутри зарегистрированного tree допускает сверку самой ссылки
+и unlink без обхода её target.
+Source references и process refs имеют bounded coverage; process metadata
+ограничены доступными same-UID `cwd/exe/fd/pathname argv`, без чтения environment.
+Внешние service consumers требуют отдельной сверки владельцем очистки.
+
+Archive переносит только closed/quiescent досье с сохранённым evidence в
+`.ai-workspace/history/<localKey>/`. Перемещение не означает `accepted`;
+cancelled требует отдельного outcome и причины. Reopen сохраняет прежние
+result manifests, а прошлые metadata/решения — в приватном local recovery
+journal инструмента; серверный acceptance audit этим срезом не реализован.
+Reopen не перезапускает runtime. CLI не запускает, не ставит в очередь
+и не восстанавливает агентов; producer-каталог может иметь привязку к attempt,
+но lifecycle исполняется явными командами владельца этапа. Автоматический
+interceptor всех существующих build/test scripts не реализован.
+
+Точный command contract и проверки находятся в
+[CLI README](../../.ai/tools/task-workspace/README.md), поведение рабочего
+агента — в [правиле рабочей области](../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md),
+вход создания — в [шаблоне TASK](../../.ai/templates/task-workspace/TEMPLATE-TASK.md).
 
 ## 9. Нефункциональные требования и миграции
 

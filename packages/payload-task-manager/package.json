@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/taskManager.plugin.ts",
     "./contracts": "./src/contracts/taskManagerContracts.index.ts",
+    "./workspace-contracts": "./src/contracts/workspace/workspaceContracts.index.ts",
     "./server": "./src/server/taskManager.server.index.ts"
   },
   "dependencies": {

@@ -46,6 +46,16 @@ Codex собирает цепочку `AGENTS.md` при старте. Для п
 роль и процесс `.ai` с действующим frontend workflow. Skill не добавляет
 инструменты записи в ChatGPT или предустановленные профили в БД Admin.
 
+## Локальное досье задачи
+
+Для продолжительной работы используй
+[шаблон TASK](../.ai/templates/task-workspace/TEMPLATE-TASK.md) и
+[task-workspace CLI](../.ai/tools/task-workspace/README.md) по
+[каноническому правилу](../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
+Lifecycle и cleanup принадлежат `.ai`; отдельного состояния задачи в `.codex`
+нет. Команды вызываются явно, старые TASK не переписываются автоматически,
+runtime не запускается самим изменением локального досье.
+
 ## Git
 
 [Git-навык](skills/git-commit-push/SKILL.md) передаёт `inspect`, `commit`, `push`,

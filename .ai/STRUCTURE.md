@@ -51,6 +51,7 @@ runtime_sources:
 │       ├── next-react/guardrail/WORKFLOW.md
 │       └── design-workshop/WORKFLOW.md
 ├── templates/
+│   └── task-workspace/TEMPLATE-TASK.md
 ├── tools/
 │   ├── agent-runtime/
 │   │   ├── README.md
@@ -59,6 +60,7 @@ runtime_sources:
 │   ├── agent-search/README.md
 │   ├── git-delivery/README.md
 │   ├── quality/README.md
+│   ├── task-workspace/README.md
 │   └── source-headers/README.md
 ├── worker-profiles/
 │   └── INDEX.md
@@ -102,6 +104,10 @@ runtime_sources:
 в соседнем каталоге [.ai-workspace/](../.ai-workspace/README.md), сгруппированными
 по задачам. Его правила принадлежат
 [операционному слою](rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
+Вход — [шаблон TASK](templates/task-workspace/TEMPLATE-TASK.md), исполнение
+локальных lifecycle-команд — [task-workspace](tools/task-workspace/README.md).
+Закрытые quiescent досье сохраняются в `.ai-workspace/history/<localKey>/`;
+runtime stores инструментов остаются у собственных владельцев.
 
 ## Локальное состояние инструментов
 
@@ -110,6 +116,10 @@ runtime_sources:
 данные — SQLite, реестр и история сеансов, сообщения, входные данные и
 результаты внешних агентов, снимки обслуживания — исключаются по
 [правилам `.gitignore`](tools/agent-runtime/.gitignore).
+
+`.ai/tools/task-workspace/runtime/` содержит locks и recovery-журналы операций
+локального досье. Это состояние инструмента, а не второй источник task status;
+оно не переносится вместе с результатами задачи и не сохраняется в Git.
 
 ## Связанные документы
 

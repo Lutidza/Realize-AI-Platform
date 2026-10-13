@@ -36,6 +36,13 @@ runtime_sources:
 находится в [system/INDEX.md](system/INDEX.md), а порядок выполнения задачи — в
 [основном процессе](workflows/core/main-delivery/WORKFLOW.md).
 
+Локальное досье задачи управляется через
+[task-workspace CLI](tools/task-workspace/README.md). Входной
+[шаблон TASK](templates/task-workspace/TEMPLATE-TASK.md) ссылается на
+[правило рабочей области](rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md);
+машинные schemas принадлежат `@realize/payload-task-manager/workspace-contracts`.
+Этот CLI не запускает runtime и не синхронизирует server Task API.
+
 ## Выбор инструкций
 
 Через [реестр правил](registry/rules/INDEX.md) выбери общие и профильные
@@ -83,9 +90,11 @@ contracts. Правка `.ai`, `.codex` или `AGENTS.md` сама по себ�
 
 Код приложения, его миграции, данные и интерфейсы не размещаются в `.ai/`.
 Исходники собственных инструментов агентов принадлежат `.ai/tools/`.
-Автоматически создаваемое состояние хранится в `.ai/tools/agent-runtime/runtime/`
-и не является проектной инструкцией. В Git из этого каталога сохраняются только
-индексы и схемы; журналы сеансов, SQLite, снимки и дампы исключаются.
+Создаваемое состояние хранится у соответствующего инструмента:
+`.ai/tools/agent-runtime/runtime/` — SQLite и сеансы,
+`.ai/tools/task-workspace/runtime/` — locks и журналы локальных операций.
+Это не проектные инструкции. В Git сохраняются исходники, индексы и схемы;
+рабочие данные, журналы, снимки и дампы исключаются.
 
 ## Изменение слоя
 

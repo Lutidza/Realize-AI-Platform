@@ -36,6 +36,12 @@ runtime_sources:
 Их читает `.ai/tools/git-delivery`; это не встроенный формат Codex agent.
 Вход и доступные действия описаны в [Git-навыке](skills/git-commit-push/SKILL.md).
 
+Локальное досье задачи не хранится в `.codex`: вход —
+[шаблон TASK](../.ai/templates/task-workspace/TEMPLATE-TASK.md), CLI owner —
+[task-workspace](../.ai/tools/task-workspace/README.md), материалы —
+[.ai-workspace](../.ai-workspace/README.md). Адаптер следует существующему
+[правилу lifecycle](../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
+
 ## Project-specific MCP
 
 `.codex/config.toml` объявляет:
