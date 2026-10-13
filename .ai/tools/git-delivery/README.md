@@ -336,6 +336,7 @@ GET recursive candidate tree подтверждает полный manifest и �
 mode и object SHA сохраняются. Дерево и blobs могут быть новыми; uploads
 не меняют ref. Ошибка после upload может оставить immutable объекты, которые
 не означают завершённое слияние.
+GET отсутствующего tree допускает только точный `422 Invalid object requested` ответ до 4 KiB; прочие HTTP ошибки блокируются.
 [GitHub Create a blob](https://docs.github.com/en/rest/git/blobs#create-a-blob),
 [Create a tree](https://docs.github.com/en/rest/git/trees#create-a-tree),
 [GitHub Get a tree](https://docs.github.com/en/rest/git/trees#get-a-tree).

@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/GitMergeGitHub.adapter.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-13
  * @description Исполняет только фиксированные GitHub object/ref операции approved-tree merge с deadline и лимитом ответа.
  */
@@ -134,15 +134,22 @@ export class GitMergeGitHubAdapter implements GitMergeRemote {
       void response.body?.cancel().catch(() => {});
       return null;
     }
-    if (!response.ok || response.redirected) {
+    const missingTree =
+      missing &&
+      method === "GET" &&
+      response.status === 422 &&
+      !response.redirected &&
+      /^\/git\/trees\/[a-f0-9]{40}\?recursive=1$/.test(path);
+    if ((!response.ok && !missingTree) || response.redirected) {
       void response.body?.cancel().catch(() => {});
       throw new PolicyError(
         "merge_remote_request_failed",
         "GitHub отклонил назначенную object/ref операцию.",
       );
     }
+    const responseLimit = missingTree ? 4096 : maxResponseBytes;
     const declared = response.headers.get("content-length");
-    if (declared && Number(declared) > maxResponseBytes) {
+    if (declared && Number(declared) > responseLimit) {
       void response.body?.cancel().catch(() => {});
       invalid();
     }
@@ -155,11 +162,12 @@ export class GitMergeGitHubAdapter implements GitMergeRemote {
         const next = await this.wait(reader.read(), signal);
         if (next.done) break;
         total += next.value.length;
-        if (total > maxResponseBytes) invalid();
+        if (total > responseLimit) invalid();
         chunks.push(next.value);
       }
+      let value: unknown;
       try {
-        return JSON.parse(
+        value = JSON.parse(
           new TextDecoder("utf-8", { fatal: true }).decode(
             Buffer.concat(chunks),
           ),
@@ -167,6 +175,18 @@ export class GitMergeGitHubAdapter implements GitMergeRemote {
       } catch {
         invalid();
       }
+      if (missingTree) {
+        if (
+          object(value).message !==
+          "Invalid object requested. SHA must identify a commit or a tree."
+        )
+          throw new PolicyError(
+            "merge_remote_request_failed",
+            "GitHub отклонил назначенную object/ref операцию.",
+          );
+        return null;
+      }
+      return value;
     } finally {
       void reader.cancel().catch(() => {});
       reader.releaseLock();
