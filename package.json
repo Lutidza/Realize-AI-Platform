@@ -69,7 +69,7 @@
     "@modelcontextprotocol/client": "2.0.0",
     "@modelcontextprotocol/node": "2.0.0",
     "@modelcontextprotocol/server": "2.0.0",
-    "@next/env": "16.3.1",
+    "@next/env": "16.4.0",
     "@payloadcms/admin-bar": "^3.88.0",
     "@payloadcms/db-postgres": "^3.88.0",
     "@payloadcms/live-preview-react": "^3.88.0",
@@ -111,7 +111,7 @@
     "gsap": "^3.15.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.24.0",
-    "next": "^16.3.1",
+    "next": "^16.4.0",
     "next-themes": "^0.4.6",
     "patch-package": "8.0.1",
     "payload": "^3.88.0",
@@ -122,7 +122,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-hook-form": "^7.81.0",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.5",
     "sonner": "^2.0.7",
     "stripe": "^22.3.1",
     "tailwind-merge": "^3.6.0",
@@ -131,7 +131,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",
-    "@next/eslint-plugin-next": "^16.3.1",
+    "@next/eslint-plugin-next": "^16.4.0",
     "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4.3.2",
     "@tailwindcss/typography": "^0.5.20",
@@ -142,7 +142,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.1",
+    "eslint-config-next": "^16.4.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -156,5 +156,8 @@
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.10",
     "yaml": "2.9.1"
+  },
+  "overrides": {
+    "undici": "7.30.0"
   }
 }

@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/admin-integrations.e2e.spec.ts
- * @version 1.0.1
- * @date 2026-09-09
+ * @version 1.0.2
+ * @date 2026-09-30
  * @docref ADR-0012
  * @see documentation/architecture/decisions/ADR-0012-admin-integration-registry.md
  * @description Проверяет каталог интеграций, навигацию к настройкам и write-only сохранение token.
@@ -295,7 +295,17 @@ test("configures GitHub in the scalable Admin integrations section", async ({
       .getByLabel("Ссылка на репозиторий")
       .fill("https://github.com/realize/example-store");
     await page.getByLabel("Personal access token").fill(token);
+    const firstSave = page.waitForResponse(
+      (response) =>
+        response.request().method() === "PUT" &&
+        response.url().endsWith("/api/realize-ai/integrations/github"),
+    );
     await page.getByRole("button", { name: "Сохранить" }).click();
+    const savedResponse = await firstSave;
+    expect(
+      savedResponse.status(),
+      (await savedResponse.text()).replaceAll(token, "[redacted]"),
+    ).toBe(200);
     await expect(page.getByText("Настройки сохранены")).toBeVisible();
     await expect(page.getByLabel("Personal access token")).toHaveValue("");
     await expect(
