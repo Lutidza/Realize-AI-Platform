@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/task-workspace/src/registerWorkspaceArtifact.service.mjs
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-10-13
  * @description Регистрирует явно выбранные артефакты и retention по фактическому bounded filesystem snapshot.
  * @see documentation/specifications/task-management-execution.md
@@ -28,6 +28,26 @@ const prefixes = {
   result: "logs/results/",
   temporary: "tmp/",
 };
+/** Общий path/availability preflight нужен producer group до создания tree внутри чужого registered output. */
+export function validateWorkspaceArtifactPath(item, manifest) {
+  safeRelative(item.path);
+  if (
+    !prefixes[item.category] ||
+    !item.path.startsWith(prefixes[item.category]) ||
+    /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key|sqlite|sqlite3|dump)$/.test(item.path)
+  )
+    fail("protected_artifact_path");
+  if (
+    manifest?.artifacts.some(
+      (artifact) =>
+        artifact.state === "ready" &&
+        (artifact.path === item.path ||
+          artifact.path.startsWith(item.path + "/") ||
+          item.path.startsWith(artifact.path + "/")),
+    )
+  )
+    fail("artifact_already_registered");
+}
 export function registerWorkspaceArtifacts(
   storage,
   key,
@@ -71,25 +91,7 @@ export function registerWorkspaceArtifacts(
         )
       )
         fail("invalid_producer_input");
-      safeRelative(item.path);
-      if (
-        !prefixes[item.category] ||
-        !item.path.startsWith(prefixes[item.category]) ||
-        /(?:^|\/)\.env(?:\.|$)|\.(?:pem|key|sqlite|sqlite3|dump)$/.test(
-          item.path,
-        )
-      )
-        fail("protected_artifact_path");
-      if (
-        manifest.artifacts.some(
-          (a) =>
-            a.state === "ready" &&
-            (a.path === item.path ||
-              a.path.startsWith(item.path + "/") ||
-              item.path.startsWith(a.path + "/")),
-        )
-      )
-        fail("artifact_already_registered");
+      validateWorkspaceArtifactPath(item, manifest);
       const snapshot = snapshotTree(storage, `${dossier.base}/${item.path}`);
       if (snapshot.entries[0].kind === "link") fail("symlink_root");
       const producer = {

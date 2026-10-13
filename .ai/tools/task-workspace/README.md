@@ -108,6 +108,29 @@ category допускает retention `temporary`; остальные удерж
 Корень artifact tree не может быть symlink. Конечные ссылки внутри дерева
 хэшируются как текст `readlink`; их targets не открываются и не удаляются.
 
+### Группа одного producer этапа
+
+Для подключённых scripts owner экспортирует
+`beginWorkspaceProducerGroup(storage, localKey, { stageId, attemptId, artifacts })`
+и `finalizeWorkspaceProducerGroup(storage, group, { quiescent, cleanupTemporary })`
+из `src/workspaceProducerGroup.service.mjs`. `attemptId`, если указан, — UUID.
+Begin требует существующее managed досье, создаёт новые пустые artifact trees
+без overwrite и регистрирует их как unsettled. Finalize принимает тот же
+оригинальный handle в том же процессе: JSON-копия не подтверждает владение.
+
+У группы `pid: null`: она представляет запись, которой управляет caller,
+а не притворяется завершившимся процессом script. Caller сначала подтверждает
+остановку своих children и flush streams, затем передаёт `quiescent: true`.
+`false` сохраняет unsettled outputs. Finalize выполняет штатный settle,
+сверяет metadata и может применить cleanup только exact temporary paths группы
+с существующими retention, reference, hash и execution guards. Unknown outcome
+и частичные I/O ошибки требуют сверки владельцем; они не означают успешную очистку.
+
+Первый consumer — Task Manager browser fixture; её logs/screenshots/result
+остаются в назначенном досье, а собственный Next tmp убирается после quiescence.
+Группа не меняет status/result/archive родительской задачи. Другие scripts
+подключаются отдельно, автоматического interceptor нет.
+
 ## Результат и gates
 
 Вход `result` содержит `summary`, `artifacts: [{id, revision, hash}]` и
@@ -181,3 +204,5 @@ Runtime locks/journals игнорируются Git и остаются у ин�
 на изолированных `/tmp` fixtures, включая recovery и filesystem guards.
 Fixtures удаляют только собственные временные деревья; рабочие досье,
 PostgreSQL и production services не используются.
+`npm run check:task-fixture` проверяет process ownership/redaction и producer
+цикл Task Manager fixture на isolated filesystem/process fixtures без рабочей БД.

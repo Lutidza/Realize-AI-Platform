@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/task-manager.spec.ts
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.3.0
+ * @date 2026-10-13
  * @description Проверяет реальные постоянные задачи, сохранение черновика при конфликте и мобильный интерфейс в отдельной fixture.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -80,7 +80,8 @@ test.describe("durable Task Manager browser acceptance", () => {
         name: "Создать первый проект",
         exact: true,
       });
-      await expect(begin).toBeVisible();
+      // Cold isolated Next должен успеть hydrate UI и получить project list.
+      await expect(begin).toBeVisible({ timeout: 20000 });
       await begin.focus();
       await begin.press("Enter");
       const dialog = page.getByRole("dialog", {
@@ -555,7 +556,16 @@ test.describe("durable Task Manager browser acceptance", () => {
     });
     await test.step("shared shell switches and restores both themes", async () => {
       await page.setViewportSize({ width: 1440, height: 1000 });
-      await page.getByRole("button", { name: "Светлая", exact: true }).click();
+      await page
+        .getByRole("button", {
+          name: "Профиль: Task owner fixture",
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("menuitemradio", { name: "Светлая", exact: true })
+        .click();
+      await page.keyboard.press("Escape");
       await expect(
         page.locator('[data-ui-theme="light"]').first(),
       ).toBeVisible();
@@ -570,7 +580,16 @@ test.describe("durable Task Manager browser acceptance", () => {
         path: resolve(directory, "task-manager-light.png"),
         fullPage: true,
       });
-      await page.getByRole("button", { name: "Тёмная", exact: true }).click();
+      await page
+        .getByRole("button", {
+          name: "Профиль: Task owner fixture",
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole("menuitemradio", { name: "Тёмная", exact: true })
+        .click();
+      await page.keyboard.press("Escape");
       await expect(
         page.locator('[data-ui-theme="dark"]').first(),
       ).toBeVisible();

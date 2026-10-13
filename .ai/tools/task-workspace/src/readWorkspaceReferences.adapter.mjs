@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/task-workspace/src/readWorkspaceReferences.adapter.mjs
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-10-13
  * @description Находит bounded source consumers и внешние ссылки досье без чтения runtime, секретов и собственных материалов.
  * @see documentation/specifications/task-management-execution.md
@@ -23,6 +23,7 @@ const roots = [
   "AGENTS.md",
   "package.json",
   "tsconfig.json",
+  "next-env.d.ts",
   "next.config.ts",
   "playwright.config.ts",
 ];

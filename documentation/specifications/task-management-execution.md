@@ -569,6 +569,50 @@ interceptor всех существующих build/test scripts не реали
 агента — в [правиле рабочей области](../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md),
 вход создания — в [шаблоне TASK](../../.ai/templates/task-workspace/TEMPLATE-TASK.md).
 
+### 8.2. Producer lifecycle Task Manager browser fixture (2026-10-13)
+
+Первый подключённый consumer — `tests/e2e/support/runTaskManagerAcceptance.fixture.ts`.
+Fixture требует `TASK_BROWSER_TASK=.ai-workspace/tasks/<localKey>` существующего
+managed open/active/done досье: историческая Foundation-задача не подставляется,
+legacy не принимается без явного adopt. Короткий случайный run ID именует
+каталоги, отдельный UUID связывает artifacts с attempt.
+
+До запуска ресурсов owner `.ai/tools/task-workspace` создаёт и регистрирует
+unsettled группу `logs/task-browser-<runId>`, `screenshots/task-browser-<runId>`
+и `tmp/task-browser-<runId>`. После browser success, failure или interruption
+fixture завершает собственные process groups, закрывает streams и временную БД,
+повторно подтверждает quiescence после закрытия всех sibling/DB ресурсов,
+затем восстанавливает только добавленные ею Next includes и собственный generated
+`next-env.d.ts` pointer через штатный Next generator, сохраняя чужие изменения.
+Outcome и resource cleanup сохраняются в `fixture-result.json` внутри logs.
+
+Подтверждённая quiescence разрешает settle и exact cleanup только собственного
+temporary tree через existing guards. Logs/screenshots и отдельный lifecycle
+receipt удерживаются; статус, result и archive родительской задачи не меняются.
+Неоднозначное владение процессом, незакрытый ресурс или конфликт generated
+inputs сохраняют tmp и blocked outcome. Новые посторонние same-UID процессы
+могут консервативно удержать cleanup; fixture не отправляет им сигналы.
+Root `next-env.d.ts` учитывается как source consumer временных Next types.
+Нестандартный исходный generated файл отклоняется до запуска Next;
+query-переопределения PostgreSQL host/hostaddr не проходят loopback admission.
+
+Для отдельного supervised запуска `TASK_BROWSER_SUPERVISOR_UNIT` может указать
+свой dedicated transient user-systemd unit `realize-fixture-task-browser-*.service`.
+Опциональный transport проверяет реальную cgroup, `Transient=yes`, `Delegate=no`
+и identity/ancestry MainPID до запуска и перед действиями. После закрытия children
+и БД он завершает оставшиеся writers только внутри подтверждённой cgroup,
+исключая fixture и цепочку её wrapper ancestors, затем повторяет quiescence.
+Новые процессы вне этой области не получают сигналов и не считаются её writers.
+Недоступная или изменившаяся принадлежность удерживает artifacts; без explicit
+unit остаётся консервативный same-UID baseline. Это transport тестового job,
+а не launcher Task API или замена статуса родительской задачи.
+
+Программа producer group работает в одном процессе с оригинальным handle;
+она не заменяет durable process ownership и не перехватывает остальные scripts.
+Contracts/owner tests — `npm run check:task-workspace`, orchestration и реальные
+process guards — `npm run check:task-fixture`. Синхронизация с Task API остаётся
+отдельным последующим шагом.
+
 ## 9. Нефункциональные требования и миграции
 
 - Все mutation paths имеют validation, ACL, revision/idempotency и audit.
@@ -807,12 +851,15 @@ Git binding содержит `repositoryId`, полный `commitSha` (40/64 hex
 Срез не разрешает удаление локальных задач: import, artifact storage, agent
 access и cutover из продуктового §15 остаются последующими поставками.
 
-Проверки PostgreSQL и браузера запускаются через `npm run check:tasks:postgres`
-и `npm run check:tasks:browser`. Обе создают и удаляют собственную временную БД
-на loopback PostgreSQL, отключают schema push и фоновые AI workers. Browser
-fixture использует отдельный Next process/dist, сохраняет logs/screenshots в
-текущем TASK и удаляет только добавленные ею записи Next types из `tsconfig.json`.
-Рабочая БД установки этими командами не мигрируется.
+Проверка PostgreSQL запускается через `npm run check:tasks:postgres`, браузер —
+через `TASK_BROWSER_TASK=.ai-workspace/tasks/<localKey> npm run check:tasks:browser`.
+Для браузера предварительно создаётся managed досье командой `task:workspace create`
+либо явно принимается существующее legacy через `adopt` (§8.1).
+Обе проверки создают собственную временную БД на loopback PostgreSQL, отключают
+schema push и фоновые AI workers; рабочая БД установки не мигрируется.
+Browser fixture использует отдельный Next process/dist и producer lifecycle
+из §8.2: logs/screenshots остаются в выбранном досье, собственный tmp очищается
+после подтверждённой остановки ресурсов и восстановления Next inputs.
 
 ## 13. Ограниченное чтение Git-фактов (2026-10-12)
 
