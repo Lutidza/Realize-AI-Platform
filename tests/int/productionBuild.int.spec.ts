@@ -1,7 +1,7 @@
 /**
  * @file tests/int/productionBuild.int.spec.ts
- * @version 1.2.0
- * @date 2026-09-30
+ * @version 1.2.1
+ * @date 2026-10-18
  * @description Проверяет последовательность production-сборки, обязательность TypeScript и остановку этапов.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -93,6 +93,7 @@ describe("managed production build", () => {
       NODE_ENV: "development",
       [VERIFIED_TYPES_ENVIRONMENT_NAME]: "1",
       FIXTURE_VALUE: "preserved",
+      NEXT_PRIVATE_OUTPUT_TRACE_ROOT: "/",
     };
     const result = runProductionBuild(
       process.cwd(),
@@ -126,7 +127,12 @@ describe("managed production build", () => {
         cwd: process.cwd(),
         detached: false,
         stdio: "inherit",
-        env: { NODE_ENV: "production", FIXTURE_VALUE: "preserved" },
+        env: {
+          NODE_ENV: "production",
+          FIXTURE_VALUE: "preserved",
+          NEXT_PRIVATE_OUTPUT_TRACE_ROOT: process.cwd(),
+          REALIZE_BUILD_TRACING_ROOT: process.cwd(),
+        },
       });
       expect(options.env[VERIFIED_TYPES_ENVIRONMENT_NAME]).toBe(
         index === 2 ? "1" : undefined,
@@ -134,6 +140,7 @@ describe("managed production build", () => {
     }
     expect(environment.NODE_ENV).toBe("development");
     expect(environment[VERIFIED_TYPES_ENVIRONMENT_NAME]).toBe("1");
+    expect(environment.NEXT_PRIVATE_OUTPUT_TRACE_ROOT).toBe("/");
   });
 
   it.each([0, 1, 2])(

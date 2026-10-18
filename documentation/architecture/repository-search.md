@@ -461,12 +461,25 @@ Database adapter создаёт native PostgreSQL на Linux под обычны
 loopback service `realize_ci`; изменения разрешены только в БД, созданных этим run.
 
 Browser запускается на отдельном порту из source snapshot без `.env`, upload-данных
-и runtime. Workspace exports `@realize/*` ведут в пакеты этой копии. Сторонние
+и runtime-данных. Состав копирования принадлежит
+[`createSearchAcceptanceSnapshot`](../../.ai/tools/agent-search/acceptance/createSearchAcceptanceSnapshot.adapter.mjs):
+он включает точечные транзитивные imports из `scripts/release` и `.ai/tools/quality`,
+необходимые для TypeScript-проверки копируемых `scripts/runtime/evaluation`.
+Комплектность проверяется разрешением локальных imports в созданном снимке;
+generated `.next/types` создаёт штатный `next typegen`. Evaluation harness,
+проверяющий полный агентский слой, запускается из исходного checkout.
+Workspace exports `@realize/*` ведут в пакеты этой копии. Сторонние
 dependencies используются из существующей установки; второй набор исходников
 checkout не добавляется в TypeScript/Next graph.
-Next генерирует файлы внутри
-собственного `/tmp` snapshot. Tracing root охватывает источник dependencies,
-а все копии standalone остаются внутри snapshot. Случайный readiness marker подтверждает принадлежность HTTP listener-а
+Next генерирует файлы внутри собственного snapshot в `tmp/browser-*`
+каталога текущей приёмки. Он находится внутри checkout, поэтому
+`REALIZE_BUILD_TRACING_ROOT` ограничивается корнем этого проекта и охватывает
+общие dependencies без расширения до `/`. Граница проверяется
+[владельцем production-сборки](../delivery/01-local-admin-ai.md);
+Browser-приёмка использует общий упаковщик `scripts/runtime/standalone`: новый
+bundle содержит static/public assets и внутренние относительные ссылки на
+traced dependencies. Raw standalone сохраняется внутри snapshot, а пакет —
+рядом с ним в том же временном каталоге. Случайный readiness marker подтверждает принадлежность HTTP listener-а
 данному snapshot. Снимок, БД и процессы убираются в cleanup; рабочий сервер
 и очередь поиска не перезапускаются. Неперехватываемый SIGKILL/авария ОС требуют
 адресной очистки оставшейся fixture инфраструктуры по её каталогу/PID.

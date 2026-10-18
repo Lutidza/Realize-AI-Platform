@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/acceptance/createSearchAcceptanceSnapshot.adapter.mjs
- * @version 1.3.0
- * @date 2026-09-30
+ * @version 1.3.1
+ * @date 2026-10-18
  * @description Создаёт disposable source snapshot для Next: генерация и cache не затрагивают рабочий checkout.
  * @see documentation/architecture/repository-search.md
  */
@@ -17,7 +17,7 @@ import {
 import { basename, dirname, join, relative } from "node:path";
 import { randomBytes } from "node:crypto";
 
-/** Включены только исходники и необходимые статические assets; .env, runtime, uploads и установленные зависимости не копируются. */
+/** Включены исходники и необходимые assets; .env, runtime-данные, uploads и установленные зависимости не копируются. */
 export async function createSearchAcceptanceSnapshot(
   root,
   directory,
@@ -38,6 +38,14 @@ export async function createSearchAcceptanceSnapshot(
     "packages",
     "services",
     "scripts/runtime",
+    // Транзитивные imports скриптов evaluation входят в проверку TypeScript снимка.
+    "scripts/release/readReleaseSourceFiles.adapter.ts",
+    "scripts/release/PlatformSourceInventory.types.ts",
+    ".ai/tools/quality/checkInstructionGraph.service.ts",
+    ".ai/tools/quality/instructionQuality.config.ts",
+    ".ai/tools/quality/parseInstructionMetadata.mapper.ts",
+    ".ai/tools/quality/readMarkdownLinks.util.ts",
+    ".ai/tools/quality/InstructionQuality.types.ts",
     ".ai/tools/agent-search/src",
     ".ai/tools/agent-search/bin",
     ".ai/tools/agent-search/package-lock.json",

@@ -26,10 +26,12 @@ entries:
         .codex/skills/frontend-runtime-evidence/SKILL.md,
         .codex/skills/frontend-guardrail-audit/SKILL.md,
         .codex/skills/reference-to-implementation/SKILL.md,
+        .codex/skills/git-commit-push/SKILL.md,
       ]
-    related_tools: [.ai/tools/task-workspace/README.md]
+    related_tools:
+      [.ai/tools/task-workspace/README.md, .ai/tools/git-delivery/README.md]
     routing_tags: [scope-control, task, workspace, artifacts]
-    trigger: "Локальное досье TASK: create/adopt, revision/state, artifact/result manifests, producer settle, cleanup, archive/reopen; создание, сохранение и чтение материалов задачи."
+    trigger: "Выбор короткой операции, продолжения задачи или досье; локальный TASK, его lifecycle и восстановление незавершённой операции (recover); создание, сохранение, чтение и очистка материалов, включая операционный Git-контекст без TASK."
   - entry_id: artifact-disposition
     entry_type: active_rule
     status: active

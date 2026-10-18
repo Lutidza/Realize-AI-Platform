@@ -503,17 +503,30 @@ GC повторно проверяет ссылки перед удаление�
 как недоступный материал, без подмены файла. Локальное правило «30 дней —
 кандидат на очистку» не является автоматическим удалением продуктового досье.
 
-### 8.1. Реализованный локальный lifecycle (2026-10-13)
+### 8.1. Реализованный локальный lifecycle (2026-10-15)
 
 Owner CLI — `.ai/tools/task-workspace`, вход — `npm run task:workspace --`.
+Внутренние владельцы разделены на `cli`, `dossier`, `artifacts`, `producer-group`,
+`cleanup`, `recovery`, `filesystem` и `consumers`; их границы и команды проверок описаны в
+[README инструмента](../../.ai/tools/task-workspace/README.md#структура-инструмента).
+Публичный вход producer-группы — `src/producer-group/workspaceProducerGroup.index.mjs`
+относительно этого owner.
 Публичные schemas принадлежат export
 `@realize/payload-task-manager/workspace-contracts`; текущий серверный Foundation
 из §12 продолжает использовать `backlog/in_progress/review`. Категории
 локального досье `open/active/done/closed`, приёмка, outcome, archive и execution
 projection не добавляют серверные поля, routes или CRUD-команды.
 
+Этот lifecycle относится к управляемому досье. Короткая самостоятельная операция
+может иметь только необходимые служебные файлы, без TASK, artifact-manifest
+и result; выбор маршрута принадлежит
+[правилу материалов](../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md#выбор-рабочего-контекста).
+В частности, обычный add/commit/push сохраняет обязательный Git-воркер и журнал
+операции, но не требует отдельного управляемого досье или его закрытия/архива.
+Наличие `tasks/<taskId>/` у инструмента само по себе не включает этот lifecycle.
+
 CLI явно выполняет `create`, `adopt`, `inspect`, `status`, `result`, `register`, `settle`,
-`plan-cleanup`, `cleanup`, `archive`, `reopen`. Мутация versioned досье
+`plan-cleanup`, `cleanup`, `archive`, `reopen`, `recover`. Мутация versioned досье
 требует `--expected-revision`; сложный вход передаётся как JSON через `--input`.
 `create` принимает `--task`, `--title`, `--body-file`, повторяемый
 `--required-check` и optional `--acceptance-required`/`--delivery-required`.
@@ -535,9 +548,25 @@ result manifests сохраняются в `logs/results/`. До cutover эти 
 источники не синхронизируются с API.
 Локальный `criteriaHash` фиксирует body `TASK.md` целиком; его изменение требует
 нового result manifest и актуальной обязательной приёмки.
+Причина отмены допустима только с `outcome: cancelled`; окончательное body,
+включая причину, проверяется до записи и ограничено 512 KiB UTF-8.
+Managed manifest обязателен: его отсутствие, повреждение или чужой владелец
+не трактуются как отсутствие артефактов. Начальная пара создаётся отдельной
+инициализацией create/adopt без перезаписи частично существующего состояния.
 Переход в локальный Done требует `passed` обязательных checks; evidence
 принадлежит registered retained artifact, включённому в result refs.
-Физические hashes/bytes и quiescence producers сверяются повторно.
+Физические hashes/bytes и quiescence producers сверяются повторно. Несколько
+checks и refs одного дерева используют один снимок только внутри одной
+синхронной неизменной фазы проверки evidence. Контекст закрывается до записи;
+следующая фаза и разрушительные действия получают свежую проверку.
+
+CLI принимает файловый JSON либо один JSON через `--input -` с пределом 1 MiB.
+Отдельный `--compact` возвращает краткий ответ с известной ревизией, исходом,
+ошибкой и ссылками результата/восстановления, без дополнительных чтений;
+неизвестные значения обозначены явно. Полный ответ остаётся по умолчанию,
+`--output` сохраняет назначение пути плана. Обычная сдача отчёта и доказательств
+без конфликта использует два дерева, три мутации register → settle → result
+и необходимые inspect; отдельные входные JSON-файлы при stdin не создаются.
 
 Cleanup работает только с зарегистрированными временными артефактами внутри
 task `tmp/`. Retain/pinned/referenced материалы, открытый producer и активное
@@ -553,6 +582,33 @@ terminal symlink внутри зарегистрированного tree доп
 Source references и process refs имеют bounded coverage; process metadata
 ограничены доступными same-UID `cwd/exe/fd/pathname argv`, без чтения environment.
 Внешние service consumers требуют отдельной сверки владельцем очистки.
+Поиск исходников включает `tests/`, различает точный путь/потомка и соседнее имя;
+превышение бюджета файлов или размера поддержанного файла блокирует проверку.
+При move собственные относительные Markdown-ссылки оцениваются из назначения:
+переносимая ссылка разрешена, оставшаяся в старом source — удерживает досье.
+
+Служебные result, cleanup plan и receipt проверяют пересечение с registered
+ready trees в обоих направлениях. Прямые сервисы применяют guard до записи
+и разрушительного действия; разрешены непересекающиеся соседние файлы.
+Собственный producer пишет выделенные outputs между begin и settle, без общего
+разрешения служебным операциям изменять чужие unsettled trees. Browser fixture
+заранее регистрирует отдельную группу квитанции и перед записью проверяет
+владение её открытым деревом (§8.2).
+
+Все локальные мутации используют один контекст и durable prepared journal
+до первого эффекта. Pending по ключу блокирует другие мутации и новый план;
+`recover --task <key> --operation <id>` продолжает сохранённые входы и достижимые
+фазы. TASK/manifest записываются по точным before/after с курсором; чужая правка
+не считается допустимым промежуточным состоянием. Завершённый ID возвращает
+сохранённый результат; смена параметров под тем же ID отклоняется. Журнал
+завершения сохраняется до снятия pending. `inspect` показывает ссылки и фазу,
+не содержимое журнала, и доступен при частичной инициализации.
+
+Прежние журналы индексируются с возобновляемой стадией building → ready,
+сохраняя пути и формат. В штатной работе читаются только данные своего ключа.
+Старый cleanup без planPath требует явного оригинального `cleanup --plan … --apply`
+с проверкой requestId/hash/identity. Ограничения, порядок блокировок, fsync и
+переход со старых writers описаны в [протоколе owner](../../.ai/tools/task-workspace/README.md#план-очистки-и-восстановление).
 
 Archive переносит только closed/quiescent досье с сохранённым evidence в
 `.ai-workspace/history/<localKey>/`. Перемещение не означает `accepted`;
@@ -569,7 +625,7 @@ interceptor всех существующих build/test scripts не реали
 агента — в [правиле рабочей области](../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md),
 вход создания — в [шаблоне TASK](../../.ai/templates/task-workspace/TEMPLATE-TASK.md).
 
-### 8.2. Producer lifecycle Task Manager browser fixture (2026-10-13)
+### 8.2. Producer lifecycle Task Manager browser fixture (2026-10-15)
 
 Первый подключённый consumer — `tests/e2e/support/runTaskManagerAcceptance.fixture.ts`.
 Fixture требует `TASK_BROWSER_TASK=.ai-workspace/tasks/<localKey>` существующего
@@ -577,14 +633,26 @@ managed open/active/done досье: историческая Foundation-зад�
 legacy не принимается без явного adopt. Короткий случайный run ID именует
 каталоги, отдельный UUID связывает artifacts с attempt.
 
-До запуска ресурсов owner `.ai/tools/task-workspace` создаёт и регистрирует
-unsettled группу `logs/task-browser-<runId>`, `screenshots/task-browser-<runId>`
-и `tmp/task-browser-<runId>`. После browser success, failure или interruption
+До запуска ресурсов owner `.ai/tools/task-workspace` сначала создаёт и регистрирует
+retained+pinned unsettled группу `logs/task-browser-<runId>-lifecycle/`, затем
+основную unsettled группу `logs/task-browser-<runId>`, `screenshots/task-browser-<runId>`
+и `tmp/task-browser-<runId>`. Только после обеих регистраций разрешён запуск БД,
+browser и остальных ресурсов. После browser success, failure или interruption
 fixture завершает собственные process groups, закрывает streams и временную БД,
 повторно подтверждает quiescence после закрытия всех sibling/DB ресурсов,
 затем восстанавливает только добавленные ею Next includes и собственный generated
 `next-env.d.ts` pointer через штатный Next generator, сохраняя чужие изменения.
 Outcome и resource cleanup сохраняются в `fixture-result.json` внутри logs.
+
+После финализации основной группы квитанция записывается в
+`logs/task-browser-<runId>-lifecycle/receipt.json`, пока её собственная группа
+открыта; затем группа квитанции завершается без temporary cleanup. Лимит manifest
+остаётся 1024: при 1021 прежней записи основная группа получает ранний отказ
+до ресурсов, при 1020 помещаются все четыре артефакта. Конкурентная регистрация
+также может вызвать ранний отказ основной группы, но место квитанции уже занято.
+Файл квитанции сохраняет состояние до её собственного settle; после settle его
+bytes не меняются. Возвращаемый результат отдельно показывает итог квитанции
+completed/open/unwritten/unknown, подтверждение записи, writers и settlement.
 
 Подтверждённая quiescence разрешает settle и exact cleanup только собственного
 temporary tree через existing guards. Logs/screenshots и отдельный lifecycle
@@ -606,6 +674,38 @@ query-переопределения PostgreSQL host/hostaddr не проход�
 Недоступная или изменившаяся принадлежность удерживает artifacts; без explicit
 unit остаётся консервативный same-UID baseline. Это transport тестового job,
 а не launcher Task API или замена статуса родительской задачи.
+
+Begin и finalize входят в тот же протокол мутаций. Подготовленный finalize
+содержит settle, точный файл плана и cleanup; blocked возвращает ссылку исходной
+операции, повтор не создаёт другой план. Recovery не восстанавливает process-local
+handle: после потери процесса требуется явное завершение по проверенным artifact IDs.
+Если mkdir успел создать каталог, но процесс не сохранил его inode, исход остаётся
+`producer_directory_outcome_unknown`: каталог сохраняется для разбора, а не
+присваивается повторному вызову. Pending не разрешает новый register/settle;
+допустима лишь диагностика владельца внутри уже открытого собственного producer.
+Квитанция при этом остаётся retained+pinned+unsettled, TASK/manifest не меняются.
+Отказ основной группы без pending допускает завершение отдельной квитанции при
+подтверждённой остановке её собственных writers; blocked основной группы сохраняется,
+даже если квитанция описывает неудачную остановку основных ресурсов. Если writers
+самой квитанции не подтверждены, запись и завершение откладываются явно.
+Её назначенный writer — синхронный координатор; путь квитанции не передаётся
+дочерним ресурсам. Найденные ссылки процесса на каталог блокируют запись;
+недоступные посторонние `/proc`-записи учитываются как ограничение покрытия,
+а не как найденный writer. `writerCoverage` в квитанции и возвращаемом результате
+сохраняет область проверки, число ссылок и недоступных записей.
+
+Привязка handle охватывает identity досье и собственные artifact IDs/записи,
+а не глобальные ревизии на время жизни группы. Изменения другой группы не
+инвалидируют её; собственные записи сверяются под lock. После settle привязка
+обновляется только по подтверждённому сохранённому переходу. При частичной операции
+сначала проверяется её исходный journal, чтобы не принять собственный settle за
+чужую правку. Неподтверждённое состояние не обновляет привязку.
+
+Результат `WorkspaceProducerGroupFinalization` — явное объединение completed/blocked.
+Completed cleanup требует `WorkspaceCleanupReceipt` с requestId, status, paths,
+estimatedAllocatedBytes и completedAt. Blocked содержит reason, settlement, phase
+и nullable operation; неизвестное состояние обозначается явно как unknown.
+Сохранённая квитанция и результат fixture используют конкретные типы.
 
 Программа producer group работает в одном процессе с оригинальным handle;
 она не заменяет durable process ownership и не перехватывает остальные scripts.

@@ -1,7 +1,7 @@
 /**
  * @file scripts/runtime/runProductionBuild.service.mjs
- * @version 1.2.0
- * @date 2026-09-30
+ * @version 1.2.1
+ * @date 2026-10-18
  * @description Последовательно генерирует типы, проверяет TypeScript и собирает Next.js отдельными процессами.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -11,6 +11,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { readSearchSourceVersion } from "../../.ai/tools/agent-search/src/searchSourceBinding.adapter.mjs";
 import { writeInstalledSearchBinding } from "../../.ai/tools/agent-search/src/installedSearchBinding.adapter.mjs";
+import { readProductionTracingRoot } from "./readProductionTracingRoot.config.mjs";
 
 export const VERIFIED_TYPES_ENVIRONMENT_NAME = "REALIZE_BUILD_TYPES_VERIFIED";
 
@@ -59,12 +60,16 @@ export const runProductionBuild = async (
   environment = process.env,
 ) => {
   if (signal.aborted) return 1;
+  const tracingRoot = readProductionTracingRoot(cwd, environment);
   const sourceVersion = await readSearchSourceVersion(cwd);
   const require = createRequire(resolve(cwd, "package.json"));
   const nextCLI = require.resolve("next/dist/bin/next");
   const typeScriptCLI = require.resolve("typescript/bin/tsc");
   const cleanEnvironment = { ...environment, NODE_ENV: "production" };
   delete cleanEnvironment[VERIFIED_TYPES_ENVIRONMENT_NAME];
+  // Next использует private env также для repoRoot; чужое значение '/' не наследуется.
+  cleanEnvironment.NEXT_PRIVATE_OUTPUT_TRACE_ROOT = tracingRoot;
+  cleanEnvironment.REALIZE_BUILD_TRACING_ROOT = tracingRoot;
 
   const stages = [
     { label: "Генерация типов маршрутов", args: [nextCLI, "typegen"] },

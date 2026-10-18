@@ -1,22 +1,28 @@
 /**
  * @file tests/e2e/support/taskManagerAcceptance/runTaskManagerFixture.service.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.3
+ * @date 2026-10-15
  * @description Координирует browser этап, остановку ресурсов, сохранение evidence и точную producer cleanup.
  * @see documentation/specifications/task-management-execution.md
  */
 import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
-import { WorkspaceFs } from "../../../../.ai/tools/task-workspace/src/WorkspaceFs.adapter.mjs";
+import { WorkspaceFs } from "../../../../.ai/tools/task-workspace/src/filesystem/WorkspaceFs.adapter.mjs";
+import { withWorkspaceFileLock } from "../../../../.ai/tools/task-workspace/src/filesystem/withWorkspaceFileLock.adapter.mjs";
 import {
   beginWorkspaceProducerGroup,
   finalizeWorkspaceProducerGroup,
-} from "../../../../.ai/tools/task-workspace/src/workspaceProducerGroup.service.mjs";
+} from "../../../../.ai/tools/task-workspace/src/producer-group/workspaceProducerGroup.index.mjs";
+import type { WorkspaceOperationReference } from "../../../../.ai/tools/task-workspace/src/recovery/WorkspaceOperation.types";
+import type {
+  WorkspaceProducerGroup,
+  WorkspaceProducerGroupFinalization,
+} from "../../../../.ai/tools/task-workspace/src/producer-group/WorkspaceProducerGroup.types";
 import {
-  readDossier,
-  requireManaged,
-} from "../../../../.ai/tools/task-workspace/src/Dossier.repository.mjs";
-import { registerWorkspaceArtifacts } from "../../../../.ai/tools/task-workspace/src/registerWorkspaceArtifact.service.mjs";
+  createFixtureReceiptCoordinator,
+  readFixturePendingOperation,
+} from "./createFixtureReceiptCoordinator.service";
+import { fixtureFailureReason } from "./fixtureFailureReason.util";
 import { createFixtureDatabase } from "./createFixtureDatabase.adapter";
 import { startFixtureProcess } from "./FixtureProcess.adapter";
 import { createFixtureIncludesGuard } from "./createFixtureIncludesGuard.adapter";
@@ -32,6 +38,8 @@ import type {
   TaskManagerFixtureOutcome,
   TaskManagerFixtureResult,
   FixtureDatabaseSession,
+  FixtureCleanupResult,
+  TaskManagerFixtureLifecycle,
 } from "./TaskManagerAcceptance.types";
 import type { TaskManagerFixtureRuntime } from "./TaskManagerFixtureRuntime.types";
 const defaults: TaskManagerFixtureRuntime = {
@@ -50,10 +58,6 @@ const managedEnvironment = [
   "REALIZE_PLATFORM_OWNER_USER_IDS",
   "TASK_BROWSER_PASSWORD",
 ];
-function safeReason(error: unknown) {
-  const code = error instanceof Error ? error.message : "";
-  return /^[A-Z0-9_]{1,96}$/.test(code) ? code : "TASK_BROWSER_FIXTURE_FAILED";
-}
 /** Родительское TASK состояние остаётся у агента; fixture фиксирует только своё исполнение и artifacts. */
 export async function runTaskManagerFixture(
   options: TaskManagerFixtureOptions,
@@ -61,44 +65,119 @@ export async function runTaskManagerFixture(
   runtime: TaskManagerFixtureRuntime = defaults,
 ): Promise<TaskManagerFixtureResult> {
   const storage = new WorkspaceFs(options.root);
-  let group: ReturnType<typeof beginWorkspaceProducerGroup> | undefined;
+  const receiptPath = options.paths.lifecycle;
+  const localKey = options.localKey;
+  const producers = runtime.producerGroups ?? {
+    begin: beginWorkspaceProducerGroup,
+    finalize: finalizeWorkspaceProducerGroup,
+  };
   try {
-    group = beginWorkspaceProducerGroup(storage, options.localKey, {
-      stageId: "task-manager-browser",
-      attemptId: options.attemptId,
-      artifacts: [
-        {
-          path: options.paths.logs,
-          category: "log",
-          retention: {
-            mode: "retain",
-            pinned: true,
-            keepReason: "Доказательства браузерной проверки",
-            referencedBy: [],
+    const receipt = createFixtureReceiptCoordinator(
+      storage,
+      options,
+      producers,
+    );
+    const finish = (
+      outcome: TaskManagerFixtureOutcome,
+      reason: string | null,
+      resourceCleanup: FixtureCleanupResult,
+      lifecycle: TaskManagerFixtureLifecycle,
+    ): TaskManagerFixtureResult => {
+      const receiptLifecycle = receipt.finish({
+        outcome,
+        reason,
+        resourceCleanup,
+        main: lifecycle,
+      });
+      const lifecycleStatus =
+        lifecycle.status === "completed" &&
+        receiptLifecycle.status === "completed"
+          ? "completed"
+          : "blocked";
+      const exitCode =
+        outcome === "cancelled"
+          ? 130
+          : outcome === "passed" && lifecycleStatus === "completed"
+            ? 0
+            : 1;
+      console.log(
+        `Task Manager fixture: ${outcome}; lifecycle ${lifecycleStatus}; receipt ${receiptLifecycle.status}`,
+      );
+      return {
+        outcome,
+        exitCode,
+        lifecycleStatus,
+        lifecycle,
+        receiptLifecycle,
+        receiptPath,
+        resourceCleanup,
+      };
+    };
+    let group: WorkspaceProducerGroup;
+    try {
+      group = producers.begin(storage, localKey, {
+        stageId: "task-manager-browser",
+        attemptId: options.attemptId,
+        artifacts: [
+          {
+            path: options.paths.logs,
+            category: "log",
+            retention: {
+              mode: "retain",
+              pinned: true,
+              keepReason: "Доказательства браузерной проверки",
+              referencedBy: [],
+            },
           },
-        },
-        {
-          path: options.paths.screenshots,
-          category: "screenshot",
-          retention: {
-            mode: "retain",
-            pinned: true,
-            keepReason: "Скриншоты браузерной проверки",
-            referencedBy: [],
+          {
+            path: options.paths.screenshots,
+            category: "screenshot",
+            retention: {
+              mode: "retain",
+              pinned: true,
+              keepReason: "Скриншоты браузерной проверки",
+              referencedBy: [],
+            },
           },
-        },
-        {
-          path: options.paths.temporary,
-          category: "temporary",
-          retention: {
-            mode: "temporary",
-            pinned: false,
-            keepReason: null,
-            referencedBy: [],
+          {
+            path: options.paths.temporary,
+            category: "temporary",
+            retention: {
+              mode: "temporary",
+              pinned: false,
+              keepReason: null,
+              referencedBy: [],
+            },
           },
+        ],
+      });
+    } catch (error) {
+      let operation: WorkspaceOperationReference | null = null;
+      let settlement: "unknown" | "not_started" = "unknown";
+      try {
+        operation = withWorkspaceFileLock(storage, localKey, () =>
+          readFixturePendingOperation(storage, localKey),
+        );
+        if (!operation) settlement = "not_started";
+      } catch {
+        /* Отказ чтения не доказывает отсутствие незавершённой операции. */
+      }
+      const reason = fixtureFailureReason(error);
+      return finish(
+        "failed",
+        reason,
+        { quiescent: true, errors: [] },
+        {
+          stage: "begin",
+          status: "blocked",
+          reason,
+          operation,
+          settlement,
         },
-      ],
-    });
+      );
+    }
+    // После begin fixture владеет незавершёнными logs/screenshots/tmp: процессы и
+    // fixture-result пишут только в них до остановки writers и последующего settle.
     console.log(
       `Task Manager browser evidence: ${resolve(options.root, options.task, options.paths.logs)}`,
     );
@@ -230,7 +309,9 @@ export async function runTaskManagerFixture(
       if (code !== 0) reason = "TASK_BROWSER_TEST_FAILED";
     } catch (error) {
       outcome = signal.aborted ? "cancelled" : "failed";
-      reason = signal.aborted ? "TASK_BROWSER_CANCELLED" : safeReason(error);
+      reason = signal.aborted
+        ? "TASK_BROWSER_CANCELLED"
+        : fixtureFailureReason(error);
       console.error(reason);
     } finally {
       signal.removeEventListener("abort", abortProcesses);
@@ -287,76 +368,77 @@ export async function runTaskManagerFixture(
       reason ??= "TASK_BROWSER_RESOURCE_CLEANUP_FAILED";
     }
     const resourceCleanup = { quiescent: errors.length === 0, errors };
-    storage.writeJson(
-      `${options.task}/${options.paths.logs}/fixture-result.json`,
-      {
-        database: database?.name ?? null,
-        port,
-        distDir: options.paths.distDir,
-        migrationCount: migrations.length,
-        outcome,
-        reason,
-        resourceCleanup,
-        lifecycleReceipt: options.paths.lifecycle,
-      },
-    );
-    const lifecycle = finalizeWorkspaceProducerGroup(storage, group, {
-      quiescent: resourceCleanup.quiescent,
-      cleanupTemporary: true,
-    });
-    storage.writeJson(
-      `${options.task}/${options.paths.lifecycle}`,
-      {
-        schemaVersion: 1,
-        attemptId: options.attemptId,
-        outcome,
-        resourceCleanup,
-        ...lifecycle,
-      },
-      true,
-    );
-    const current = readDossier(storage, options.localKey);
-    registerWorkspaceArtifacts(
-      storage,
-      options.localKey,
-      requireManaged(current).revision,
-      {
-        artifacts: [
+    let lifecycle: WorkspaceProducerGroupFinalization;
+    try {
+      // При pending bytes разрешены только отдельной заранее зарегистрированной квитанции.
+      const operation = withWorkspaceFileLock(storage, localKey, () => {
+        const pending = readFixturePendingOperation(storage, localKey);
+        if (pending) return pending;
+        storage.writeJson(
+          `${options.task}/${options.paths.logs}/fixture-result.json`,
           {
-            path: options.paths.lifecycle,
-            category: "log",
-            stageId: "task-manager-browser",
-            attemptId: options.attemptId,
-            producer: {
-              id: `task-browser-receipt-${options.runId}`,
-              pid: null,
-              settled: true,
-            },
-            retention: {
-              mode: "retain",
-              pinned: true,
-              keepReason: "Итог producer этапа",
-              referencedBy: [],
-            },
+            database: database?.name ?? null,
+            port,
+            distDir: options.paths.distDir,
+            migrationCount: migrations.length,
+            outcome,
+            reason,
+            resourceCleanup,
+            lifecycleReceipt: receiptPath,
           },
-        ],
-      },
-    );
-    const exitCode =
-      outcome === "cancelled"
-        ? 130
-        : outcome === "passed" && lifecycle.status === "completed"
-          ? 0
-          : 1;
-    console.log(
-      `Task Manager fixture: ${outcome}; lifecycle ${lifecycle.status}`,
-    );
-    return {
-      outcome,
-      exitCode,
-      lifecycleStatus: lifecycle.status,
-      resourceCleanup,
-    };
+        );
+        return null;
+      });
+      if (operation) {
+        lifecycle = {
+          status: "blocked",
+          artifactIds: group.artifactIds,
+          reason: "operation_recovery_required",
+          settlement: "unknown",
+          phase: "preflight",
+          operation,
+          cleanup: {
+            status: "blocked",
+            paths: [options.paths.temporary],
+            reason: "operation_recovery_required",
+            planPath: null,
+          },
+        };
+      } else {
+        lifecycle = producers.finalize(storage, group, {
+          quiescent: resourceCleanup.quiescent,
+          cleanupTemporary: true,
+        });
+      }
+    } catch (error) {
+      let failedOperation: WorkspaceOperationReference | null = null;
+      try {
+        failedOperation = withWorkspaceFileLock(storage, localKey, () =>
+          readFixturePendingOperation(storage, localKey),
+        );
+      } catch {
+        /* Unknown phase сохраняет неопределённость, отдельная квитанция проверит свои guards. */
+      }
+      const failedReason = fixtureFailureReason(error);
+      lifecycle = {
+        status: "blocked",
+        artifactIds: group.artifactIds,
+        reason: failedReason,
+        settlement: "unknown",
+        phase: "unknown",
+        operation: failedOperation,
+        cleanup: {
+          status: "blocked",
+          paths: [options.paths.temporary],
+          reason: failedReason,
+          planPath: null,
+        },
+      };
+    }
+    return finish(outcome, reason, resourceCleanup, {
+      stage: "finalize",
+      ...lifecycle,
+    });
   } finally {
     storage.close();
   }

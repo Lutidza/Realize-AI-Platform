@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/support/taskManagerAcceptance/createTaskManagerFixtureOptions.config.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-15
  * @description Выбирает явно назначенное локальное досье и уникальные каталоги одного browser запуска.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -44,7 +44,8 @@ export function createTaskManagerFixtureOptions(
       screenshots: `screenshots/${attempt}`,
       temporary: `tmp/${attempt}`,
       distDir: `${task}/tmp/${attempt}/next`,
-      lifecycle: `logs/${attempt}-lifecycle.json`,
+      lifecycleDirectory: `logs/${attempt}-lifecycle`,
+      lifecycle: `logs/${attempt}-lifecycle/receipt.json`,
     },
   };
 }

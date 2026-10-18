@@ -1,12 +1,21 @@
+/**
+ * @file src/components/layout/search/Categories.tsx
+ * @version 1.0.0
+ * @date 2026-10-18
+ * @description Загружает категории витрины после запроса при сборке без БД и отображает список с Suspense.
+ * @see documentation/delivery/01-local-admin-ai.md
+ */
 import configPromise from '@payload-config'
 import { getPayload } from 'payload'
 import clsx from 'clsx'
+import { connection } from 'next/server'
 import React, { Suspense } from 'react'
 
-import { FilterList } from './filter'
 import { CategoryItem } from './Categories.client'
 
 async function CategoryList() {
+  // Сегмент /shop может начать prerender независимо от ожидания в корневом layout.
+  if (process.env.REALIZE_BUILD_WITHOUT_DATABASE === 'true') await connection()
   const payload = await getPayload({ config: configPromise })
 
   const categories = await payload.find({

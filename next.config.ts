@@ -1,7 +1,7 @@
 /**
  * @file next.config.ts
- * @version 1.5.1
- * @date 2026-10-12
+ * @version 1.5.2
+ * @date 2026-10-18
  * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
@@ -9,6 +9,7 @@ import { withPayload } from "@payloadcms/next/withPayload";
 
 import type { NextConfig } from "next";
 import { VERIFIED_TYPES_ENVIRONMENT_NAME } from "./scripts/runtime/runProductionBuild.service.mjs";
+import { readProductionTracingRoot } from "./scripts/runtime/readProductionTracingRoot.config.mjs";
 
 const nextConfig: NextConfig = {
   // Отдельный cache для одноразовой browser-проверки, без конфликта с запущенным приложением.
@@ -17,6 +18,7 @@ const nextConfig: NextConfig = {
     : {}),
   agentRules: false,
   output: "standalone",
+  outputFileTracingRoot: readProductionTracingRoot(process.cwd()),
   // Sharp требует ESM assets; getDependencies Payload разрешает entry перед чтением installed metadata.
   outputFileTracingIncludes: {
     "/*": [

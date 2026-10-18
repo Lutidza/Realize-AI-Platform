@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/test/GitJournal.repository.test.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-15
  * @description Проверки границ файлового журнала в изолированных временных каталогах.
  */
 import assert from "node:assert/strict";
+import childProcess from "node:child_process";
 import {
   access,
   chmod,
@@ -20,12 +21,17 @@ import {
   writeFile,
 } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
-import { PolicyError } from "../src/contracts.ts";
+import { parseContext, PolicyError } from "../src/contracts.ts";
+import type { Context } from "../src/contracts.ts";
 import { GitJournalRepository } from "../src/GitJournal.repository.ts";
+import { loadGitContext } from "../src/loadGitContext.adapter.ts";
+import type { GitPushJournal } from "../src/push/GitPush.types.ts";
+import { validateGitPushJournal } from "../src/push/validateGitPushJournal.validator.ts";
 
 async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), "realize-git-journal-"));
@@ -42,6 +48,166 @@ async function fixture(t: TestContext) {
 function policyCode(code: string): (error: unknown) => boolean {
   return (error) => error instanceof PolicyError && error.code === code;
 }
+
+test("контекст без TASK сохраняет requestId и журнал неизвестного исхода после повторного открытия и утраты context", async (t) => {
+  const f = await fixture(t);
+  const launches = (
+    [
+      "exec",
+      "execFile",
+      "execFileSync",
+      "execSync",
+      "fork",
+      "spawn",
+      "spawnSync",
+    ] as const
+  ).map((method) =>
+    t.mock.method(childProcess, method, () => {
+      throw new Error(
+        "Сценарий не должен запускать Git, task-workspace или воркеры.",
+      );
+    }),
+  );
+  syncBuiltinESMExports();
+  t.after(() => {
+    t.mock.restoreAll();
+    syncBuiltinESMExports();
+  });
+
+  assert.deepEqual(await readdir(f.root), []);
+  const input: Context = {
+    version: 1,
+    requestId: "fixture-request",
+    projectId: "fixture-project",
+    taskId: "fixture-task",
+    repositoryRoot: f.root,
+    authorization: {
+      actions: ["push"],
+      scope: { mode: "paths", paths: ["README.md"] },
+    },
+  };
+  const operationDirectory = join(f.root, ".ai-workspace/tasks", input.taskId);
+  const contextDirectory = join(
+    operationDirectory,
+    "tmp/git-delivery",
+    input.requestId,
+  );
+  const contextPath = join(contextDirectory, "context.json");
+  const siblingPath = join(contextDirectory, "preserved.json");
+  await mkdir(contextDirectory, { recursive: true, mode: 0o700 });
+  await writeFile(contextPath, JSON.stringify(input), { mode: 0o600 });
+  await writeFile(siblingPath, '{"preserved":true}\n', { mode: 0o600 });
+
+  await assert.rejects(
+    loadGitContext("context.json"),
+    policyCode("context_required"),
+  );
+  await chmod(contextPath, 0o640);
+  await assert.rejects(
+    loadGitContext(contextPath),
+    policyCode("context_unsafe"),
+  );
+  await chmod(contextPath, 0o600);
+  const contextLink = join(contextDirectory, "context-link.json");
+  await symlink(contextPath, contextLink);
+  await assert.rejects(loadGitContext(contextLink), { code: "ELOOP" });
+  await rm(contextLink);
+
+  const rawContext = await loadGitContext(contextPath);
+  const context = parseContext(rawContext);
+  assert.deepEqual(context, input);
+  assert.equal((await stat(contextPath)).mode & 0o777, 0o600);
+  assert.equal((await stat(contextPath)).uid, process.getuid?.());
+  for (const key of ["taskId", "requestId"] as const) {
+    assert.throws(
+      () => parseContext({ ...context, [key]: "../outside" }),
+      policyCode("invalid_identifier"),
+    );
+  }
+  for (const path of ["../outside.md", ".git/config"]) {
+    assert.throws(
+      () =>
+        parseContext({
+          ...context,
+          authorization: {
+            ...context.authorization,
+            scope: { mode: "paths", paths: [path] },
+          },
+        }),
+      policyCode("invalid_path"),
+    );
+  }
+
+  const repository = new GitJournalRepository(context);
+  assert.equal(repository.relativePath, f.repository.relativePath);
+  assert.equal(await repository.load(), null);
+  assert.deepEqual(await readdir(operationDirectory), ["tmp"]);
+  // Проверяем файловую границу и настоящую схему журнала, без выполнения push.
+  const journal: GitPushJournal = {
+    version: 1,
+    kind: "push",
+    binding: "a".repeat(64),
+    target: {
+      connectionKey: "github:primary",
+      connectionRevision: 1,
+      repositorySlug: "fixture/repository",
+      transport: "https",
+      branch: "main",
+      sourceOid: "b".repeat(40),
+      remoteOid: "c".repeat(40),
+    },
+    commits: ["b".repeat(40)],
+    phase: "unknown",
+    diagnostic: {
+      stage: "push",
+      category: "transport_failure",
+      exitCode: null,
+    },
+    recoveryAttempts: 0,
+  };
+  await repository.save(validateGitPushJournal(journal, journal));
+  const reopenedContext = parseContext(await loadGitContext(contextPath));
+  assert.equal(reopenedContext.requestId, input.requestId);
+  const reopened = new GitJournalRepository(reopenedContext);
+  assert.equal(reopened.relativePath, repository.relativePath);
+  const restored = validateGitPushJournal(await reopened.load(), journal);
+  assert.deepEqual(restored, journal);
+  assert.equal(restored.phase, "unknown");
+  assert.throws(
+    () =>
+      validateGitPushJournal(restored, {
+        ...journal,
+        target: { ...journal.target, branch: "other" },
+      }),
+    policyCode("request_conflict"),
+  );
+  assert.equal((await stat(f.path)).mode & 0o777, 0o600);
+  assert.equal((await stat(f.path)).uid, process.getuid?.());
+
+  // Имитируем утрату собственного context: при unknown штатная очистка запрещена.
+  const journalBytes = await readFile(f.path);
+  await rm(contextPath);
+  await assert.rejects(loadGitContext(contextPath), { code: "ENOENT" });
+  const afterContextLoss = new GitJournalRepository(reopenedContext);
+  assert.deepEqual(
+    validateGitPushJournal(await afterContextLoss.load(), journal),
+    journal,
+  );
+  assert.deepEqual(await readFile(f.path), journalBytes);
+  assert.equal(await readFile(siblingPath, "utf8"), '{"preserved":true}\n');
+  assert.deepEqual(await readdir(f.parent), [`${input.requestId}.json`]);
+  assert.deepEqual((await readdir(operationDirectory)).sort(), ["logs", "tmp"]);
+  for (const path of [
+    join(f.root, ".git"),
+    join(operationDirectory, "TASK.md"),
+    join(operationDirectory, "artifact-manifest.json"),
+    join(operationDirectory, "logs/results"),
+    join(f.root, ".ai-workspace/history"),
+  ]) {
+    await assert.rejects(access(path), { code: "ENOENT" });
+  }
+  for (const launch of launches) assert.equal(launch.mock.callCount(), 0);
+});
 
 test("отсутствующий журнал возвращает null без создания каталогов", async (t) => {
   const f = await fixture(t);

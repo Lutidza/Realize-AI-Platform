@@ -1,14 +1,16 @@
 /**
  * @file packages/change-engine/src/system-ai/systemAIRelease.registry.ts
- * @version 1.1.1
- * @date 2026-10-11
+ * @version 1.1.2
+ * @date 2026-10-16
  * @description Разрешает только встроенные владельцем exact system AI releases.
+ * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
 import type {
   SystemAIRelease,
   SystemAIReleaseReference,
 } from "@realize/ai-contracts";
-import published from "./releases/realize-system-1.1.1.generated.json";
+import published from "./releases/realize-system-1.1.2.generated.json";
+import retainedPatch from "./releases/realize-system-1.1.1.generated.json";
 import retainedUsage from "./releases/realize-system-1.1.0.generated.json";
 import retained from "./releases/realize-system-1.0.0.generated.json";
 import { hashCanonicalJSON } from "../canonicalJson";
@@ -30,7 +32,12 @@ const verify = (artifact: unknown): SystemAIRelease => {
   return freeze(release);
 };
 // Историческая policy явно сохраняется владельцем; текущий runtime продолжает применять metering.
-const releases = [verify(published), verify(retainedUsage), verify(retained)];
+const releases = [
+  verify(published),
+  verify(retainedPatch),
+  verify(retainedUsage),
+  verify(retained),
+];
 
 /** Trust root — этот owner-controlled module, а не hash, URL или клиентский файл. */
 export const SYSTEM_AI_RELEASE = releases[0];

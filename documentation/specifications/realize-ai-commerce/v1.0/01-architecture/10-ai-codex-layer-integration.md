@@ -308,13 +308,13 @@ release, сохраняя существующий compiler и формат over
 Activate/rollback сохраняют прежние транзакции, optimistic lock, replay и audit.
 Новый system release требует явной регистрации; отсутствие или несовпадение
 reference останавливает новый turn/continuation/execution без latest fallback.
-С PLAT-04 registry использовал `realize-system-1.1.0`. С 11 октября 2026 года
-текущий выпуск — `realize-system-1.1.1`: patch обновляет provenance hashes после
-изменений usage/schema, сохраняя policy и capability/check contracts. Registry
-сохраняет неизменные `realize-system-1.1.0` и `realize-system-1.0.0` для
+С 16 октября 2026 года текущий выпуск — `realize-system-1.1.2`: patch обновляет
+provenance hashes текущих исполняемых источников, сохраняя опубликованные
+инструкции, capabilities, check IDs и execution policy выпуска 1.1.1. Registry
+сохраняет неизменные `realize-system-1.1.1`, `realize-system-1.1.0` и `realize-system-1.0.0` для
 исторических bindings. Все зарегистрированные artifacts проходят
 проверку целостности; ID и hash должны совпасть с одним зарегистрированным выпуском.
-Новые runs используют 1.1.1. Исторические инструкции не заменяются новыми, но
+Новые runs используют 1.1.2. Исторические инструкции не заменяются новыми, но
 текущий runtime применяет metering и admission ко всем calls. Это сохранение
 policy, а не эмуляция прежнего бинарного кода. Owner provenance 1.1.0 включает
 финансовые contracts, нормализацию usage, runtime admission и consumers.

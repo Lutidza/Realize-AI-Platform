@@ -1,13 +1,14 @@
 /**
  * @file tests/e2e/support/runTaskManagerAcceptance.fixture.ts
- * @version 2.0.0
- * @date 2026-10-13
+ * @version 2.0.1
+ * @date 2026-10-15
  * @description Запускает Task Manager browser этап в явно назначенном TASK с producer lifecycle и cleanup.
  * @see documentation/specifications/task-management-execution.md
  */
 import nextEnv from "@next/env";
 import { createTaskManagerFixtureOptions } from "./taskManagerAcceptance/createTaskManagerFixtureOptions.config";
 import { runTaskManagerFixture } from "./taskManagerAcceptance/runTaskManagerFixture.service";
+import { fixtureFailureReason } from "./taskManagerAcceptance/fixtureFailureReason.util";
 nextEnv.loadEnvConfig(process.cwd(), false, { info() {}, error() {} });
 const stopping = new AbortController();
 const stop = () => stopping.abort();
@@ -18,10 +19,7 @@ try {
   const result = await runTaskManagerFixture(options, stopping.signal);
   process.exitCode = result.exitCode;
 } catch (error) {
-  const code =
-    error instanceof Error && /^[A-Z0-9_]{1,96}$/.test(error.message)
-      ? error.message
-      : "TASK_BROWSER_FIXTURE_FAILED";
+  const code = fixtureFailureReason(error);
   console.error(code);
   if (code === "TASK_BROWSER_TASK_REQUIRED")
     console.error(

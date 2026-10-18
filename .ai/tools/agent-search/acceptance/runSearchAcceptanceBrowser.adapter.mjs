@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/agent-search/acceptance/runSearchAcceptanceBrowser.adapter.mjs
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.1.2
+ * @date 2026-10-18
  * @description Запускает и закрывает отдельный Next для browser приёмки, подтверждая identity source snapshot.
  * @see documentation/architecture/repository-search.md
  */
-import { cp, readFile, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { isAbsolute, join, parse } from "node:path";
-import { tmpdir } from "node:os";
+import { readFile, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { prepareStandaloneBundle } from "../../../../scripts/runtime/standalone/prepareStandaloneBundle.adapter.mjs";
 import { createSearchAcceptanceSnapshot } from "./createSearchAcceptanceSnapshot.adapter.mjs";
 import { reserveAcceptancePort } from "./createSearchAcceptanceDatabase.adapter.mjs";
 import { SEARCH_ACCEPTANCE_LIMITS as limits } from "./searchAcceptance.config.mjs";
@@ -18,7 +18,7 @@ export async function runSearchAcceptanceBrowser(
   artifacts,
   fixtureEnv,
 ) {
-  const temporary = await mkdtemp(join(tmpdir(), "realize-search-browser-"));
+  const temporary = await mkdtemp(join(artifacts, "tmp", "browser-"));
   try {
     console.log("Подготовка browser: отдельная копия приложения и Next");
     const { site, identity } = await createSearchAcceptanceSnapshot(
@@ -33,8 +33,8 @@ export async function runSearchAcceptanceBrowser(
       NODE_OPTIONS: `--no-deprecation --max-old-space-size=${limits.nextHeapMiB}`,
       NEXT_WEBPACK_PARALLELISM: "1",
       REALIZE_BUILD_LOW_MEMORY: "true",
-      // Dependency symlinks snapshot ведут к реальной установке: общий tracing root удерживает copy внутри standalone.
-      NEXT_PRIVATE_OUTPUT_TRACE_ROOT: parse(site).root,
+      // Снимок и shared dependencies находятся внутри одного ограниченного checkout.
+      REALIZE_BUILD_TRACING_ROOT: root,
       PAYLOAD_PUBLIC_SERVER_URL: origin,
       NEXT_PUBLIC_SERVER_URL: origin,
     };
@@ -49,21 +49,10 @@ export async function runSearchAcceptanceBrowser(
       join(artifacts, "reports/browser-build.json"),
       await readFile(join(site, ".next/realize-search-build.json")),
     );
-    // Next сохраняет путь приложения внутри standalone относительно tracing root.
-    const { relativeAppDir } = JSON.parse(
-      await readFile(join(site, ".next/required-server-files.json"), "utf8"),
+    const { appDirectory: runtimeSite } = await prepareStandaloneBundle(
+      site,
+      join(temporary, "bundle"),
     );
-    if (
-      typeof relativeAppDir !== "string" ||
-      isAbsolute(relativeAppDir) ||
-      relativeAppDir.split(/[\\/]/).includes("..")
-    )
-      throw new Error("Fixture standalone path выходит за границы сборки.");
-    const runtimeSite = join(site, ".next/standalone", relativeAppDir);
-    for (const asset of ["public", ".next/static"])
-      await cp(join(site, asset), join(runtimeSite, asset), {
-        recursive: true,
-      });
     const startWeb = (name) =>
       processes.start(
         name,

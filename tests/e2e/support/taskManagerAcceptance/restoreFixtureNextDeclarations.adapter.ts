@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/support/taskManagerAcceptance/restoreFixtureNextDeclarations.adapter.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-15
  * @description Восстанавливает свой generated Next types pointer штатным генератором, сохраняя чужие изменения.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -9,7 +9,7 @@ import { readFile, mkdtemp, rm, lstat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { writeAppTypeDeclarations } from "next/dist/lib/typescript/writeAppTypeDeclarations";
-import { safeRelative } from "../../../../.ai/tools/task-workspace/src/WorkspaceFs.adapter.mjs";
+import { safeRelative } from "../../../../.ai/tools/task-workspace/src/filesystem/safeRelative.validator.mjs";
 /** Возвращает restore только для recognized SDK output, переданный снимок не записывается вручную. */
 export async function prepareFixtureNextDeclarations(
   root: string,

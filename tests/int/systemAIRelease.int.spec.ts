@@ -1,8 +1,9 @@
 /**
  * @file tests/int/systemAIRelease.int.spec.ts
- * @version 1.1.1
- * @date 2026-10-11
+ * @version 1.1.2
+ * @date 2026-10-16
  * @description Проверяет происхождение release, runtime ceiling, связанный executor и защищённые пути.
+ * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
@@ -21,6 +22,8 @@ import { tmpdir } from "node:os";
 import { promisify } from "node:util";
 import {
   assertRuntimeAIConfiguration,
+  compileAgentConfiguration,
+  createAIExecutionContext,
   assessExecutionScope,
   pathMatchesExecutionScope,
   hashCanonicalJSON,
@@ -41,6 +44,7 @@ import {
   createRuntimeConfigurationFixture,
   createExecutionContextFixture,
 } from "./fixtures/systemAIRelease.fixture";
+import { createAIConfigReleaseFixture } from "./fixtures/aiConfiguration";
 import { buildExecutionInstructions } from "../../services/ai-execution-worker/src/buildExecutionInstructions.service";
 import type { ClaimedExecutionJob } from "../../services/ai-execution-worker/src/types";
 
@@ -98,7 +102,7 @@ describe("trusted system AI release", () => {
     expect(Object.isFrozen(SYSTEM_AI_RELEASE.capabilities[0])).toBe(true);
   });
 
-  it.each(["1.0.0", "1.1.0"])(
+  it.each(["1.0.0", "1.1.0", "1.1.1"])(
     "retains exact %s policy without substituting current instructions",
     async (version) => {
       const old = JSON.parse(
@@ -130,20 +134,65 @@ describe("trusted system AI release", () => {
     },
   );
 
-  it("keeps the retained 1.1.0 instructions in the compatible current patch", async () => {
+  it("сохраняет опубликованную policy 1.1.1 в текущем patch-выпуске", async () => {
     const previous = JSON.parse(
       await readFile(
         resolve(
-          "packages/change-engine/src/system-ai/releases/realize-system-1.1.0.generated.json",
+          "packages/change-engine/src/system-ai/releases/realize-system-1.1.1.generated.json",
         ),
         "utf8",
       ),
     );
-    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.1");
-    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.1");
+    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.2");
+    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.2");
     expect(SYSTEM_AI_RELEASE.instructions).toEqual(previous.instructions);
     expect(SYSTEM_AI_RELEASE.capabilities).toEqual(previous.capabilities);
+    expect(SYSTEM_AI_RELEASE.checkIDs).toEqual(previous.checkIDs);
     expect(SYSTEM_AI_RELEASE.execution).toEqual(previous.execution);
+    expect(SYSTEM_AI_RELEASE.projectProfile).toBe(previous.projectProfile);
+    expect(SYSTEM_AI_RELEASE.schemaVersion).toBe(previous.schemaVersion);
+  });
+
+  it("сохраняет execution snapshot 1.1.1 без перепривязки к текущему выпуску", async () => {
+    const previous = JSON.parse(
+      await readFile(
+        resolve(
+          "packages/change-engine/src/system-ai/releases/realize-system-1.1.1.generated.json",
+        ),
+        "utf8",
+      ),
+    );
+    const reference = {
+      releaseID: previous.releaseID,
+      manifestHash: previous.manifestHash,
+    };
+    const system = requireSystemAIRelease(reference);
+    const release = createAIConfigReleaseFixture();
+    const snapshot = {
+      schemaVersion: "1.0" as const,
+      pointerVersion: 1,
+      releaseVersion: release.version,
+      compiled: compileAgentConfiguration({
+        release,
+        profileKey: "admin",
+        system,
+      }),
+    };
+    expect(assertRuntimeAIConfiguration(reference, snapshot)).toEqual(snapshot);
+    expect(() =>
+      assertRuntimeAIConfiguration(SYSTEM_AI_RELEASE_REFERENCE, snapshot),
+    ).toThrow("trusted system");
+
+    const context = createAIExecutionContext({
+      systemRelease: reference,
+      agentConfiguration: snapshot,
+      sourceRunID: "retained-run",
+      inputContextHash: "b".repeat(64),
+      originalRequestHash: hashCanonicalJSON("Запрос прежнего запуска"),
+    });
+    const restored = parseAIExecutionContext(context);
+    expect(restored.systemRelease).toEqual(reference);
+    expect(restored.agentConfiguration).toEqual(snapshot);
   });
 
   it("rejects missing, unknown, changed or client-supplied system policy", () => {

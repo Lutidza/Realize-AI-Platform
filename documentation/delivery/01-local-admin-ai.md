@@ -402,6 +402,54 @@ Web запускает подготовленный standalone bundle внутр
 меняет текущую папку. Media originals/variants и история интеграции сохраняют
 прежние каталоги. `REALIZE_BUILD_WITHOUT_DATABASE` — только параметр отдельной
 сборки без БД, на работающие службы он не передаётся.
+В этом режиме корневой layout, загрузчик категорий `/shop` и общий
+[`findPreviewDocumentBySlug`](../../src/utilities/preview/findPreviewDocumentBySlug.service.ts)
+ожидают `connection()` перед чтением CMS. Дочерний сегмент может начать
+prerender независимо от корневого layout, поэтому
+[`CategoryList`](../../src/components/layout/search/Categories.tsx) и reader
+страниц и товаров останавливаются до `getPayload()`. Сам по себе `draftMode()`
+не останавливает prerender: в Next 16.4 он возвращает `isEnabled=false`.
+Данные загружаются при HTTP-запросе с прежними проверками preview-доступа;
+сигнал Next об остановке prerender передаётся без перехвата и кэширования.
+
+Tracing ограничен корнем исходного проекта через `outputFileTracingRoot`.
+Для вложенного source snapshot с общими `node_modules` задайте абсолютный
+`REALIZE_BUILD_TRACING_ROOT` исходного checkout; снимок должен находиться внутри
+него. Build owner проверяет границу до запуска этапов и заменяет унаследованный
+`NEXT_PRIVATE_OUTPUT_TRACE_ROOT` проверенным значением. Корень файловой системы,
+домашний каталог, чужой проект и зависимости Next вне выбранной границы
+отклоняются. Default или заданный `REALIZE_CODEX_STATE_ROOT` должен находиться
+вне этой области: runtime-данные Codex не являются входом сборки.
+Путь приложения в standalone берите из `relativeAppDir` в
+`.next/required-server-files.json`, поскольку вложенный снимок сохраняет свою
+позицию относительно tracing root.
+
+Для отдельного переносимого web bundle используйте общий упаковщик после
+успешной сборки:
+
+```bash
+node scripts/runtime/standalone/packageStandalone.controller.mjs \
+  --source /absolute/path/to/built-site \
+  --output /absolute/path/to/new-bundle
+```
+
+Родитель output должен существовать, сам output — отсутствовать. Команда
+создаёт новую копию, сохраняет вложенный `relativeAppDir`, `BUILD_ID` и search
+receipt, добавляет `.next/static` и `public`. Абсолютные ссылки на зависимости
+заменяются относительными только при наличии соответствующего target внутри
+traced bundle; общий `node_modules` не копируется. Отсутствующий target,
+выход за границу, private/runtime path или symlink среди static/public assets
+останавливают упаковку с очисткой только созданного output. Исходная сборка
+и существующий output не изменяются. Результат JSON содержит `appDirectory`;
+сервер запускается из него командой `node server.js`.
+
+Из `public/media` исходников читается только обычный статический `logo.svg`,
+включённый также в allowlist source snapshot. Пользовательские загрузки не
+обходятся; постоянное Media-хранилище подключается отдельно при deployment.
+Другие entries в `public/media` traced bundle и ссылки вместо каталога или
+logo отклоняются. Переносимость проверяется для совместимых Node, ОС и
+архитектуры; подключения к БД и остальная runtime-конфигурация задаются при
+запуске. Упаковка не запускает сервер и не переключает действующие службы.
 
 Публичный upload Media использует `process.cwd()/public/media` текущего runtime.
 Команды миграций и генерации типов запускаются из корня исходников и используют
@@ -431,6 +479,45 @@ Generated pointer позволяет CLI и службам читать receipt 
 сохраняя прежнюю сборку. Ручная запись manifest, pointer или BUILD_ID не допускается.
 Production source snapshot создаётся с `readinessMarker=false`; fixture API
 `/api/search-acceptance` в установленную систему не переносится.
+
+18 октября 2026 года по согласованию пользователя web переключён на
+System AI `realize-system-1.1.2`, manifest
+`30dd1171e85d5a457a1c9b8b81478491961e6dc1d9b052772d2a2b94cc73c604`.
+Bundle — `.next/system-ai-1.1.2-f4b8`, BUILD_ID `J2Fb13_m7FAKdmsxm_I-Z`;
+override `96-system-ai-1.1.2-f4b8.conf` задаёт вложенный ESM launcher и его
+runtime dist. Перезапущен только web: текущие CP/worker принимают сохранённые
+System AI references; их PID, а также процессы PostgreSQL и Media сохранены.
+Новых миграций не было. Пакет проверен по inventory до подключения постоянного
+`public/media`; его исходный статический logo сохранён в `bundled-public-media`
+внутри нового bundle и совпадает с logo постоянного каталога.
+
+Перед переключением через штатный Config API создан и активирован резервный
+`installation-config-v6`, совместимый с прежним web `1.1.1`. После переключения
+создан и активирован `installation-config-v7` для `1.1.2`, manifest
+`0f61633d1ba6d5a8556fc89180d9f01ab384d5e08605cbb2f16d7408dfee84f3`.
+Во всех 27 артефактах сохранены ключи и content hashes. Прежний v5 допускал
+только system `1.1.0` и давал конфликт runtime catalog; после активации v7
+catalog отвечает `200`, доступны оба профиля ru-RU. Авторизованный браузер
+подтвердил `/system`, `/admin/ai/settings` и отображение обоих профилей;
+live/readiness вернули `200`. Реальный AI-запрос этим этапом не запускался.
+
+На момент переключения read-only агрегаты БД не показывали активных runs,
+running usage, свежих claimed jobs или Codex lease; worker был idle. Полный
+in-memory idle CP этим не доказывается. После пользовательской приёмки в
+16:45 UTC штатный `activateInstalledSearchBinding` переключил search active
+pointer на новый bundle. Actual health, compiled receipt и свежий source hash
+`b66c7c87f30c2489337eee8b5bb137a806cb652d5ac4cf087f868a4eb25677f1`
+совпали; `readInstalledSearchBinding` подтвердил новый BUILD_ID. Финализация
+не потребовала перезапуска служб. Локальное обновление принято и завершено.
+
+Сохранены bundle `.next/rename-runtime-d9a1`, override 95 и резервный v6 для
+System AI `1.1.1`. Окно возврата до приёмки завершено: старый bundle имеет
+другой search source hash и не может объявляться установленной версией текущих
+исходников. Старый web также не поддерживает новые execution contexts `1.1.2`.
+Наличие резервов не подтверждает полный откат после начала новой работы;
+generated binding вручную не переписывается. Настоящий AI-запрос, полное
+восстановление данных и исправление snapshot/tracing helpers остаются вне
+результата этой установки.
 
 1 октября 2026 года локальный web переключён на bundle
 `.next/search-runtime-43b7`; actual health подтвердил BUILD_ID

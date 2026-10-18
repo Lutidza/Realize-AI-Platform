@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/src/searchSourceBinding.adapter.mjs
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.1.1
+ * @date 2026-10-18
  * @description Хеширует явный bounded набор runtime sources без Git, секретов и persistent index.
  */
 import { createHash } from "node:crypto";
@@ -13,6 +13,7 @@ export async function readSearchSourceVersion(root) {
     "package-lock.json",
     "next.config.ts",
     "scripts/runtime/runProductionBuild.service.mjs",
+    "scripts/runtime/readProductionTracingRoot.config.mjs",
     "src/app/(app)/api/health/live/route.ts",
     ".ai/tools/agent-search/package-lock.json",
     "packages/ai-contracts/src/mcpToolInputs.config.ts",
