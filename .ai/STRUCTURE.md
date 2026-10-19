@@ -105,7 +105,8 @@ runtime_sources:
 по задачам. Его правила принадлежат
 [операционному слою](rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md).
 Вход — [шаблон TASK](templates/task-workspace/TEMPLATE-TASK.md), исполнение
-локальных lifecycle-команд — [task-workspace](tools/task-workspace/README.md).
+создания через Task Manager и lifecycle локального резерва —
+[task-workspace](tools/task-workspace/README.md).
 Закрытые quiescent досье сохраняются в `.ai-workspace/history/<localKey>/`;
 runtime stores инструментов остаются у собственных владельцев.
 
@@ -117,8 +118,9 @@ runtime stores инструментов остаются у собственны
 результаты внешних агентов, снимки обслуживания — исключаются по
 [правилам `.gitignore`](tools/agent-runtime/.gitignore).
 
-`.ai/tools/task-workspace/runtime/` содержит locks и recovery-журналы операций
-локального досье. Это состояние инструмента, а не второй источник task status;
+`.ai/tools/task-workspace/runtime/` содержит locks, recovery-журналы операций
+локального досье и привязки/replay intake Task Manager без credentials.
+Это состояние инструмента, а не второй источник server task status;
 оно не переносится вместе с результатами задачи и не сохраняется в Git.
 
 ## Связанные документы

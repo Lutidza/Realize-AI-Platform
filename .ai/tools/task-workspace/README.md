@@ -1,17 +1,212 @@
-# Локальное досье задачи (`task-workspace`)
+# Задачи Task Manager и локальный резерв (`task-workspace`)
 
-CLI управляет versioned локальным досье в `.ai-workspace` до отдельного
-cutover к Task API. Каноническое поведение рабочего агента принадлежит
+CLI создаёт задачу прежде всего в Task Manager и управляет versioned локальным
+резервом в `.ai-workspace`, когда платформа не настроена или соединение
+доказанно недоступно. Каноническое поведение рабочего агента принадлежит
 [правилу](../../rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md), порядок
 сдачи — [main-delivery](../../workflows/core/main-delivery/WORKFLOW.md), вход
 создания — [шаблону TASK](../../templates/task-workspace/TEMPLATE-TASK.md).
-Публичные schemas принадлежат
-`@realize/payload-task-manager/workspace-contracts`.
+Локальные schemas принадлежат
+`@realize/payload-task-manager/workspace-contracts`, DTO серверного intake —
+`@realize/payload-task-manager/contracts`.
 
-Инструмент не меняет server Foundation, не синхронизирует Task API и не
-запускает, не ставит в очередь и не возобновляет агентов. Production services,
+Intake использует существующий server Foundation; полная синхронизация lifecycle
+и перенос файлов не реализованы. Инструмент не запускает, не ставит в очередь
+и не возобновляет агентов. Production services,
 `.next`, корневой `node_modules`, пользовательские данные и runtime stores
 других инструментов не входят в область task cleanup.
+
+Выбор Project/List аргументами и команды управления ими описывают текущий код.
+Локальная web-сборка `Dfi6Wz9am3HM5TVk5N8El` активирована 19 октября 2026 года
+после M34. Доступны центр токенов, browser login CLI и управление Project/List.
+Канонический адрес этой установки — `http://localhost:3000`; browser consent
+открывается на настроенном сервером public origin. Постоянное подключение CLI
+создаётся отдельной командой `login` с явным подтверждением пользователя.
+
+## Task Manager и локальный резерв
+
+Task Manager — предметный владелец новой задачи. `create` сначала проверяет
+подключение через GET, затем отправляет `POST /api/task-manager/tasks/from-workspace`;
+успешное серверное создание
+сохраняет только служебную привязку CLI, без локальных TASK и manifest.
+`--task <localKey>` остаётся стабильным ключом запроса, даже когда папки нет.
+`inspect` показывает безопасную привязку и сохранённые серверные идентификаторы
+без сетевого чтения.
+
+Для постоянного подключения CLI выполните вход через браузер:
+
+```bash
+npm run --silent task:workspace -- login --url http://localhost:3000/api/task-manager
+npm run --silent task:workspace -- auth-status
+npm run --silent task:workspace -- logout
+```
+
+`login` открывает `/system/access/device` и показывает короткий код. Войдите в
+админку своим пользователем, введите код, проверьте запрошенные права и явно
+подтвердите подключение. `--no-browser` оставляет открытие браузера пользователю;
+`--name <название>` задаёт имя подключения в центре доступов. `--url` можно
+передать каждому auth command для выбора другой установки. В URL подключения
+нет фиксированных Project/List; команды продолжают выбирать их самостоятельно.
+
+Секреты CLI сохраняются в Linux Secret Service через Python GI/libsecret;
+при недоступном или заблокированном хранилище вход завершится ошибкой без
+plaintext fallback. Выбранный URL и несекретные блокировки находятся в приватном
+пользовательском state-каталоге вне checkout. Auth-команды не создают TASK,
+artifact manifest или запись доставки. CLI обновляет короткоживущий access
+token автоматически; неизвестный исход refresh требует нового `login`.
+`logout` удаляет локальные credentials и сообщает, подтверждён ли серверный отзыв.
+Подробный контракт — [доступы платформы](../../../documentation/architecture/platform-access.md).
+
+Явное окружение процесса также поддерживается:
+
+| Переменная                   | Назначение                                                             |
+| ---------------------------- | ---------------------------------------------------------------------- |
+| `REALIZE_TASK_MANAGER_URL`   | Полный API base URL, например `http://127.0.0.1:3000/api/task-manager` |
+| `REALIZE_TASK_MANAGER_TOKEN` | Scoped personal/API token из `/system/access` либо существующий user JWT |
+
+`REALIZE_TASK_MANAGER_PROJECT_ID` и `REALIZE_TASK_MANAGER_LIST_ID` больше не
+используются: оставшиеся значения игнорируются и не выбирают контекст задачи.
+При настроенном подключении новый `create` требует `--project <UUID>` до
+сетевого запроса. `--list <UUID>` можно опустить,
+только если API вернул ровно один список проекта и `nextCursor: null`.
+Отсутствующий проект или неоднозначный список — ошибка выбора, не причина fallback.
+Команды чтения и управления контекстом приведены [ниже](#проекты-и-списки).
+
+При ненастроенном подключении резерв можно создать без выбора. При настроенном,
+но недоступном соединении fallback сохраняет выбранный project.
+Переданные `--project`/`--list` сохраняются для этой задачи;
+для новой задачи `--list` требует `--project`. Поздний `sync` может дополнить
+отсутствующие значения, включая только `--list`, если проект уже сохранён.
+Изменение известного project, list или API base URL под тем же ключом запрещено.
+
+Пара URL+TOKEN из окружения имеет приоритет над keyring. Если задан только URL,
+CLI ищет сохранённые credentials строго для этого адреса; TOKEN без URL — ошибка.
+`auth-status --url` не перенаправляет env token другой установке: конфликт с
+env URL отклоняется до сети.
+Token не сохраняется в TASK, привязке, журнале или ответе. Неполная или неверная
+конфигурация требует исправления.
+URL заканчивается на `/api/task-manager`, не содержит credentials, query
+и fragment; HTTPS обязателен, кроме HTTP на loopback. Redirect не выполняется.
+
+Переменные действуют только в окружении конкретного процесса: `logout` не может
+удалить TOKEN в вызывающем shell. Для браузерного входа credentials переживают
+перезапуск CLI. Новый `create` при полностью незаданном подключении выбирает
+`not_configured` fallback; сохранённая привязка другой задачи не предоставляет
+ему credentials. Ошибка keyring/истёкшая авторизация выбранной установки требует
+исправления и не превращается в локальный резерв.
+
+До POST CLI устойчиво сохраняет UUID `clientTaskId`, точный payload и hash
+нормализованного входа `create`, включая текст body и требования. Повтор того
+же `--task` использует исходные данные; изменение запроса под прежним ключом
+отклоняется. Сервер связывает UUID с неизменяемым hash первоначального создания.
+Повтор возвращает текущий TaskDTO с `disposition: existing`, первое создание —
+`created`. Потерянный ответ не создаёт вторую задачу.
+
+| Результат попытки                                                                                                  | Действие                                                           |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Подключение полностью отсутствует                                                                                  | Локальный резерв с причиной `not_configured`                       |
+| Первая попытка доказанно не достигла соединения: `ECONNREFUSED`, `ENOTFOUND`, `EHOSTUNREACH`, `ENETUNREACH`        | Локальный резерв с сохранённым запросом для последующей доставки   |
+| Неверная настройка/credential, отсутствие online project, неоднозначный list, HTTP 401/403/404/409/429, validation | Ошибка; локальная задача не создаётся в обход сервера              |
+| До первого POST read-only `GET /api/task-manager/projects` завершился timeout либо HTTP 502/503/504                | Доказанная недоступность платформы, локальный резерв               |
+| После возможной передачи POST: timeout, reset/обрыв с неизвестным исходом, HTTP 5xx                                | Pending исходного запроса; повтор тем же UUID, без локального TASK |
+
+После неизвестного исхода даже последующий отказ соединения не переводит
+pending запрос в локальный резерв: сервер мог уже создать задачу. Повторяй
+исходный `create` либо `sync --task <localKey>` после устранения причины.
+Этот intake pending отличается от журнала локальной файловой мутации:
+`recover --operation` обслуживает прежние файловые операции, а не HTTP intake.
+HTTP 404 на предварительном чтении не отличим от неверного URL и не даёт
+fallback. Для ещё не развёрнутой или не настроенной платформы подключение
+оставляют полностью незаданным. Фонового проверяющего процесса нет: доступность
+и повтор проверяются только при соответствующей команде CLI.
+
+`sync --task <localKey> [--project <UUID>] [--list <UUID>]` явно передаёт существующее managed досье в Task Manager
+или повторяет сохранённый intake. Legacy сначала требует явного `adopt`;
+сам `adopt` и обычное чтение старых задач не импортируют их. Для уже выбранного
+локального резерва CLI перед новой локальной мутацией автоматически повторяет
+доставку, когда подключение настроено и выбор проекта сохранён. Резерв без проекта
+остаётся доступным для локальных изменений с `remote_selection_required`;
+если проект сохранён, а список неоднозначен, передача откладывается с
+`remote_list_required`. Online `create` и явный `sync` требуют устранить этот выбор;
+для передачи требуется явный `sync --project <UUID>` и при необходимости `--list`.
+Успешная доставка останавливает
+локальную мутацию с `remote_owned`: дальше задача ведётся через Task Manager.
+`sync` не требует `--expected-revision`: исходный snapshot фиксируется под
+блокировкой задачи. Автоматический повтор не выполняется для `recover` и
+просмотра cleanup без `--apply`. Активное execution или открытые producers
+откладывают передачу с `remote_sync_deferred_active_work`, сохраняя возможность
+завершить локальную работу; явный `sync` в этом состоянии отклоняется.
+
+После подтверждённой связи все локальные мутации блокируются, включая прямые
+services. Привязка с `taskRef` хранится у CLI; ранее созданный TASK и его
+артефакты не переписываются и не очищаются. `inspect` показывает этот прежний
+снимок отдельно от серверных идентификаторов. Поля local status/result/acceptance не
+становятся серверными: Foundation поддерживает `backlog/in_progress/review`,
+локальные `done/closed` не означают приёмку на сервере. Полный импорт файлов,
+обновление проекции и дальнейший cutover остаются отдельными поставками.
+
+Полный JSON возвращает `backend: local|task_manager`,
+`ownership: local|pending|remote`, `binding: {phase, clientTaskId, taskRef, selection}`
+и безопасный `reason`; `phase` принимает `queued|pending|remote`. Краткий ответ
+помещает эти сведения в `routing`. `inspect` показывает безопасные project/list/base URL
+из `selection`. Credentials и исходный payload не выдаются.
+
+Durable journal v2 хранит `selection: {projectId,listId,baseUrl}|null` отдельно
+от соединения; `listId` и `baseUrl` могут быть `null` до уточнения.
+Записи v1 читаются через преобразование в памяти, без записи при `inspect`.
+Их исходные `createHash` и pending payload сохраняются. Pending/remote повтор
+использует уже закреплённые destination и payload; новые selectors не перенаправляют
+задачу в другой проект, список или установку.
+
+## Проекты и списки
+
+Эти команды работают только с сервером, без локального досье и fallback.
+Подключение использует тот же URL и credentials из keyring или env override.
+Сначала прочитай доступные проекты
+и списки, затем передай их UUID в `create` или `sync`.
+
+| Команда          | Аргументы и результат                                                                               |
+| ---------------- | --------------------------------------------------------------------------------------------------- |
+| `projects`       | `[--after <CURSOR>]`; страница доступных проектов                                                   |
+| `project`        | `--project <UUID>`; актуальный Project DTO                                                          |
+| `project-create` | `--input <file\|-> --request-id <UUID>`; создание проекта и default List «Задачи»                   |
+| `project-update` | `--project <UUID> --input <file\|-> --request-id <UUID>`; полная замена редактируемых полей проекта |
+| `lists`          | `--project <UUID> [--after <CURSOR>]`; страница списков проекта                                     |
+| `list`           | `--list <UUID>`; актуальный List DTO                                                                |
+| `list-create`    | `--input <file\|-> --request-id <UUID>`; создание списка в проекте из JSON                          |
+| `list-update`    | `--list <UUID> --input <file\|-> --request-id <UUID>`; переименование списка                        |
+
+Вход JSON строгий; передавай все поля соответствующей API schema:
+
+| Команда          | Поля JSON                                               |
+| ---------------- | ------------------------------------------------------- |
+| `project-create` | `title`, `description`, `memberIds`                     |
+| `project-update` | `title`, `description`, `memberIds`, `expectedRevision` |
+| `list-create`    | `projectId`, `title`                                    |
+| `list-update`    | `title`, `expectedRevision`                             |
+
+`memberIds` — полный состав участников, не delta. Менять проект и его состав
+может только owner; сервер сохраняет owner в members и не меняет владельца.
+Создавать и переименовывать списки может любой текущий участник проекта.
+Связь списка с проектом неизменна. Удаление и архивирование не предоставлены.
+
+Для mutations обязателен явно выбранный UUID `--request-id`, передаваемый как
+`Idempotency-Key`. При неизвестном исходе повтори ту же команду с тем же UUID
+и JSON; CLI не создаёт новый ключ. Update берёт `expectedRevision` из JSON,
+а не из локального `--expected-revision`. Успешный повтор возвращает сохранённый
+receipt snapshot; отдельный `project`/`list` читает текущее состояние.
+Ответ содержит `data: DTO` либо `data: {items,nextCursor}`; `--compact` сохраняет
+`data` у этих команд. Следующую страницу запроси с `--after <nextCursor>`;
+opaque cursor передавай без декодирования или замены на UUID.
+
+```bash
+npm run --silent task:workspace -- projects --compact
+npm run --silent task:workspace -- lists --project <projectUUID> --compact
+npm run --silent task:workspace -- project-create \
+  --request-id <requestUUID> --input - --compact <<'JSON'
+{"title":"Новый проект","description":"Назначение проекта","memberIds":[]}
+JSON
+```
 
 ## Вход и пути
 
@@ -72,17 +267,18 @@ artifactIds/paths/settlement/phase и сведения cleanup/receipt. Полн
 
 ## Структура инструмента
 
-| Каталог               | Ответственность                                                                           |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| `src/cli/`            | Разбор аргументов и вызов выбранной команды                                               |
-| `src/dossier/`        | Чтение TASK, создание, переходы, перенос и чистые lifecycle-проверки                      |
-| `src/artifacts/`      | Подготовка, регистрация и завершение артефактов; чтение evidence и публикация результата  |
-| `src/producer-group/` | Публичный вход группы, process-local привязки, инварианты и собственные каталоги producer |
-| `src/cleanup/`        | План, общие проверки допустимости и применение очистки                                    |
-| `src/recovery/`       | Общий вход мутации, журнал, индекс прежних операций и точная запись metadata              |
-| `src/filesystem/`     | Закреплённый файловый доступ, пути, блокировка, снимок, удаление и хеширование            |
-| `src/consumers/`      | Область поиска, сопоставление ссылок и чтение доступных процессов                         |
-| `test/`               | CLI, lifecycle/safety и producer-group сценарии на временных хранилищах                   |
+| Каталог               | Ответственность                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `src/cli/`            | Разбор аргументов и вызов выбранной команды                                                                                 |
+| `src/remote/`         | Подключение, выбор Project/List, управление ими по API, preflight, intake, durable привязка/replay и выбор владельца задачи |
+| `src/dossier/`        | Чтение TASK, создание, переходы, перенос и чистые lifecycle-проверки                                                        |
+| `src/artifacts/`      | Подготовка, регистрация и завершение артефактов; чтение evidence и публикация результата                                    |
+| `src/producer-group/` | Публичный вход группы, process-local привязки, инварианты и собственные каталоги producer                                   |
+| `src/cleanup/`        | План, общие проверки допустимости и применение очистки                                                                      |
+| `src/recovery/`       | Общий вход мутации, журнал, индекс прежних операций и точная запись metadata                                                |
+| `src/filesystem/`     | Закреплённый файловый доступ, пути, блокировка, снимок, удаление и хеширование                                              |
+| `src/consumers/`      | Область поиска, сопоставление ссылок и чтение доступных процессов                                                           |
+| `test/`               | CLI, lifecycle/safety и producer-group сценарии на временных хранилищах                                                     |
 
 Общие пути задаёт `src/workspacePaths.config.mjs`; CLI
 `src/cli/runWorkspaceCommand.controller.mjs` вычисляет корень относительно
@@ -99,27 +295,29 @@ artifactIds/paths/settlement/phase и сведения cleanup/receipt. Полн
 
 ## Команды
 
-| Команда        | Вход и эффект                                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `create`       | `--task`, `--title`, optional `--body-file`; новое open-досье и пустой artifact manifest                              |
-| `adopt`        | `--task`, `--title`, явно выбранная `--category open\|active`; body legacy TASK сохраняется                           |
-| `inspect`      | `--task`; чтение досье и artifact metadata, без изменения состояния                                                   |
-| `status`       | `--task --expected-revision --input`; переход category и отдельные execution/acceptance/delivery projections          |
-| `register`     | Те же flags; регистрация явно перечисленных artifact trees по текущим hashes/bytes                                    |
-| `settle`       | Те же flags; завершение выбранных producers после проверки записанной PID identity                                    |
-| `result`       | Те же flags; durable immutable result manifest в `logs/results/<revision>.json`                                       |
-| `plan-cleanup` | `--task --expected-revision`, optional `--input {paths}`, optional `--output logs/<file>.json`; точный план без purge |
-| `cleanup`      | `--plan <project-path>` показывает сохранённый план; `--apply` применяет и восстанавливает тот же reviewed план       |
-| `archive`      | `--task --expected-revision`; атомарный перенос closed/quiescent досье в `history/`                                   |
-| `recover`      | `--task --operation`; продолжение исходной сохранённой операции без нового входа и плана                              |
-| `reopen`       | `--task --expected-revision`; возврат closed-досье в active с сохранением identity/истории                            |
+| Команда        | Вход и эффект                                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create`       | `--task`, `--title`, optional `--body-file`, `--project`, `--list`; online требует project, list можно опустить при единственном списке; intake либо допустимый локальный open-резерв |
+| `sync`         | `--task`, optional `--project`, `--list`; явная передача managed резерва с уточнением незаданного выбора либо точный повтор сохранённого intake                                       |
+| `adopt`        | `--task`, `--title`, явно выбранная `--category open\|active`; body legacy TASK сохраняется                                                                                           |
+| `inspect`      | `--task`; чтение досье и artifact metadata, без изменения состояния                                                                                                                   |
+| `status`       | `--task --expected-revision --input`; переход category и отдельные execution/acceptance/delivery projections                                                                          |
+| `register`     | Те же flags; регистрация явно перечисленных artifact trees по текущим hashes/bytes                                                                                                    |
+| `settle`       | Те же flags; завершение выбранных producers после проверки записанной PID identity                                                                                                    |
+| `result`       | Те же flags; durable immutable result manifest в `logs/results/<revision>.json`                                                                                                       |
+| `plan-cleanup` | `--task --expected-revision`, optional `--input {paths}`, optional `--output logs/<file>.json`; точный план без purge                                                                 |
+| `cleanup`      | `--plan <project-path>` показывает сохранённый план; `--apply` применяет и восстанавливает тот же reviewed план                                                                       |
+| `archive`      | `--task --expected-revision`; атомарный перенос closed/quiescent досье в `history/`                                                                                                   |
+| `recover`      | `--task --operation`; продолжение исходной сохранённой операции без нового входа и плана                                                                                              |
+| `reopen`       | `--task --expected-revision`; возврат closed-досье в active с сохранением identity/истории                                                                                            |
 
 Для `create` и `adopt` повторяемый `--required-check <id>` задаёт обязательные
 checks. `--acceptance-required` и `--delivery-required` включают соответствующие
 gates по критериям задачи. Политика обязательности не подменяется поздним
 `status`; отмена оформляется отдельным outcome и причиной.
 
-Начальная пара TASK/manifest создаётся только через `create` или явный `adopt`.
+Начальная пара TASK/manifest создаётся только при допустимом локальном fallback
+из `create` либо через явный `adopt`. Успешный серверный intake её не создаёт.
 Заголовки нового TASK соответствуют действующему шаблону. У managed-досье manifest
 обязателен: отсутствие (`artifact_manifest_missing`), повреждение или чужой
 `localDossierId` блокируют зависимую операцию. Повтор create/adopt не затирает
@@ -130,8 +328,9 @@ gates по критериям задачи. Политика обязатель�
 Frontmatter `TASK.md` содержит `schemaVersion: 1`, identity/revision/даты,
 `status: {id, category}`, отдельные execution, acceptance, delivery и outcome,
 result pointer, optional server `taskRef`, legacy metadata и `archivedAt`.
-`taskRef` зарезервирован для отдельного cutover; текущие команды не привязывают
-локальное досье к серверной задаче.
+Поле `taskRef` внутри старого TASK не переписывается при intake. Подтверждённая
+серверная связь хранится в служебной привязке CLI; локальный TASK сохраняется
+как прежний снимок, а не второй writer серверного состояния.
 `criteriaHash` фиксирует body целиком. Его изменение требует нового result
 и требуемой приёмки; closed или archived досье сначала переоткрывается.
 
@@ -299,7 +498,8 @@ trees блокируют purge. Проверки повторяются пере
 filesystem snapshot и coverage; allocation estimate не равняется reclaimed
 bytes при hardlinks.
 
-Каждая мутация, включая create/adopt и запись плана, входит в общий контекст.
+Каждая локальная мутация, включая fallback create/adopt и запись плана, входит
+в общий контекст. HTTP intake использует отдельную служебную привязку выше.
 Порядок блокировок — recovery-index → задача; общая блокировка освобождается
 после подготовки индекса и захвата задачи. Вложенные фазы используют один
 контекст, без второго журнала. До первого эффекта устойчиво записывается

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/taskManager.plugin.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Подключает постоянный Task domain к Payload без AI runtime и внутренних host импортов.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -12,7 +12,10 @@ import { createTaskCollections } from "./taskCollections.config";
 import { createTaskEndpoints } from "./server/taskManagerEndpoints.controller";
 import { resolveTaskManagerOptions } from "./taskManagerOptions.config";
 
-export type { TaskManagerOptions } from "./TaskManagerOptions.types";
+export type {
+  TaskManagerOptions,
+  TaskManagerPermission,
+} from "./TaskManagerOptions.types";
 
 /** Host сохраняет свои hooks, collections и endpoints; совпадение владельцев отклоняется. */
 export function taskManagerPlugin(pluginOptions: TaskManagerOptions): Plugin {

@@ -1,13 +1,19 @@
 /**
  * @file .ai/tools/task-workspace/src/cli/runWorkspaceCommand.controller.mjs
- * @version 1.0.3
- * @date 2026-10-15
- * @description Запускает локальные dossier операции через bounded CLI без серверного CRUD или Git.
+ * @version 1.3.0
+ * @date 2026-10-19
+ * @description Предоставляет синхронный local dispatcher и запускает remote-first CLI задач.
  * @see documentation/specifications/task-management-execution.md
  */
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { WorkspaceFs } from "../filesystem/WorkspaceFs.adapter.mjs";
+import { runRemoteFirstWorkspaceCommand } from "../remote/runRemoteFirstWorkspaceCommand.controller.mjs";
+import { isTaskManagerCommand } from "../remote/runTaskManagerCommand.controller.mjs";
+import {
+  isAuthCommand,
+  runAuthCommand,
+} from "../auth/runAuthCommand.controller.mjs";
 import {
   readWorkspaceInput,
   workspaceInputPath,
@@ -35,6 +41,9 @@ import { readWorkspaceRecoveryIndex } from "../recovery/ensureWorkspaceRecoveryI
 const help = {
   command: "npm run task:workspace -- <action> [flags]",
   actions: [
+    "login",
+    "logout",
+    "auth-status",
     "create",
     "adopt",
     "inspect",
@@ -47,8 +56,20 @@ const help = {
     "archive",
     "reopen",
     "recover",
+    "sync",
+    "projects",
+    "project",
+    "project-create",
+    "project-update",
+    "lists",
+    "list",
+    "list-create",
+    "list-update",
   ],
   notes: [
+    "login [--url https://host/api/task-manager] [--name label] [--no-browser]: подтверждение в браузере и Linux Secret Service",
+    "logout [--url ...] отзывает сохранённое подключение; auth-status [--url ...] проверяет его онлайн; команды не создают TASK",
+    "REALIZE_TASK_MANAGER_URL + REALIZE_TASK_MANAGER_TOKEN — явный override; выбранный URL и keyring используются после login",
     "adopt требует --category open|active и сохраняет тело legacy TASK",
     "изменения требуют --task и --expected-revision; JSON передаётся через --input файл или --input - (stdin <= 1 MiB)",
     "--compact включает краткий JSON; --output сохраняет назначение пути cleanup плана",
@@ -56,6 +77,11 @@ const help = {
     "recover требует --task и --operation; pending блокирует другие мутации",
     "create/adopt требуют --title; optional повторяемый --required-check и acceptance/delivery-required",
     "документация: .ai/tools/task-workspace/README.md",
+    "create предпочитает Task Manager; sync --task явно передаёт резерв, inspect показывает ownership без HTTP",
+    "create/sync принимают --project UUID и --list UUID; новый online create требует project, list можно опустить только при единственном списке",
+    "projects [--after cursor]; project --project UUID; lists --project UUID [--after cursor]; list --list UUID; cursor берётся из nextCursor без изменений",
+    "project-create/list-create требуют --input файл|- и --request-id UUID; update дополнительно требует --project/--list UUID",
+    "management JSON соответствует API; expectedRevision находится в update JSON; повтор сохраняет прежние --request-id и JSON",
   ],
 };
 /** Выполняет разобранную команду в явно переданном файловом workspace.
@@ -63,11 +89,10 @@ const help = {
  * @param {import("./WorkspaceCommand.types").WorkspaceCommandRequest} request
  * @param {import("./WorkspaceCommand.types").WorkspaceCommandPresentationContext} [presentation]
  */
-export function runWorkspaceCommand(
-  storage,
-  { action, flags: f },
-  presentation = {},
-) {
+export function runWorkspaceCommand(storage, request, presentation = {}) {
+  if (isTaskManagerCommand(request)) fail("remote_command_required");
+  if (isAuthCommand(request)) fail("auth_command_required");
+  const { action, flags: f } = request;
   if (action === "help") return help;
   /** @param {string} value */
   const readInput = (value) => readWorkspaceInput(storage, value);
@@ -252,9 +277,25 @@ if (
     request = parseWorkspaceArguments(argv);
     let output;
     if (request.action === "help") output = help;
-    else {
+    else if (isAuthCommand(request)) {
+      const abort = new AbortController();
+      const cancel = () => abort.abort();
+      process.once("SIGINT", cancel);
+      process.once("SIGTERM", cancel);
+      try {
+        output = await runAuthCommand(request, undefined, abort.signal);
+      } finally {
+        process.removeListener("SIGINT", cancel);
+        process.removeListener("SIGTERM", cancel);
+      }
+    } else {
       storage = new WorkspaceFs(workspaceRoot);
-      output = runWorkspaceCommand(storage, request, presentation);
+      output = await runRemoteFirstWorkspaceCommand(
+        storage,
+        request,
+        runWorkspaceCommand,
+        presentation,
+      );
     }
     const compactOutput = compact && request.action !== "help";
     process.stdout.write(
@@ -283,6 +324,7 @@ if (
       error: code,
       ...(error instanceof WorkspaceError ? { message: error.message } : {}),
       ...(details?.operation ? { operation: details.operation } : {}),
+      ...(presentation.routing ? { routing: presentation.routing } : {}),
     };
     process.stderr.write(
       JSON.stringify(

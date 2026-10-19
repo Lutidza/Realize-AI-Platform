@@ -2,6 +2,8 @@
 
 - **Статус:** current implementation
 - **Дата сверки:** 12 октября 2026 года (Task Manager: Git/polling; установленные template packages, appearance и Payload ↔ Realize; прежние MCP и Мастерская сохранены)
+- **Сверка создания задач рабочего слоя:** 19 октября 2026 года (M33 и web активированы локально; CLI intake и отображение задачи проверены)
+- **Сверка доступов платформы:** 19 октября 2026 года (M34, production build и web активированы; live health/admission/device cancellation проверены)
 
 ## Цель проекта
 
@@ -67,7 +69,45 @@ server receipt возвращается по прежнему ключу. Browse
 Полный контракт и дальнейшие этапы —
 [Task Manager](specifications/task-management.md#128-постоянный-foundation-2026-10-11)
 и [долговечный polling](specifications/task-management-execution.md#14-долговечная-синхронизация-git-по-запросу-2026-10-12).
-Локальные `.ai-workspace/tasks/**` сохраняют прежнюю роль до проверенного cutover.
+Новые задачи рабочего слоя прежде всего создаются в Task Manager через
+`task:workspace create` и `POST /api/task-manager/tasks/from-workspace`.
+Успех не создаёт локальный TASK. Локальный резерв появляется при отсутствии
+настройки платформы или доказанном offline до создания; неизвестный исход
+POST требует точного повтора с прежним UUID, без второй задачи. `sync` явно
+передаёт managed резерв; уже выбранный fallback повторяет доставку при
+последующей CLI mutation с настроенным подключением и выбранным контекстом. После связи сервер
+владеет предметной задачей, локальные мутации блокируются, прежние файлы
+сохраняются. Полная синхронизация lifecycle и file import/cutover ещё не
+реализованы; legacy не импортируется автоматически. Контракт —
+[Task Manager §15.4](specifications/task-management.md#154-основное-создание-в-task-manager-и-локальный-резерв).
+
+19 октября 2026 года M33 применена к рабочей БД, а локальный web переключён
+на сборку `ETNHSUtT24y6haUFL630m`; health live/ready вернули 200.
+Проверочный CLI запрос создал одну `TASK-2` в проекте «Рабочий стол», списке
+«Задачи», без локального досье; браузер и отдельное чтение БД подтвердили результат.
+JWT действовал только в проверочном child process; установка не получила
+постоянные credentials. Новый create при полностью незаданном подключении
+продолжает выбирать `not_configured` fallback.
+
+Локально активирован [центр доступов платформы](architecture/platform-access.md):
+отдельные personal/API токены с ограниченными scopes и CLI sessions, выдаваемые
+после явного browser approval. Владелец — `packages/payload-access-management`,
+UI `/system/access` и ссылка из Users; текущая роль и ACL проверяются при каждом
+доступе. CLI `login`/`logout`/`auth-status` используют Linux Secret Service и
+не создают TASK. M34 применена в batch 21; web использует сборку
+`Dfi6Wz9am3HM5TVk5N8El` на `http://localhost:3000`. Health и закрытые access routes
+проверены; собственный временный device request отменён без выдачи grant.
+Постоянный CLI login пользователя пока не выполнен. Подробный статус проверок —
+в каноническом документе.
+
+Подключение URL/credentials отделено от выбора задачи: `create` с настроенным
+подключением требует `--project`, а `--list` можно опустить только при единственном списке.
+Прежние env Project/List игнорируются. Резерв, созданный без настройки и выбора, остаётся
+локально редактируемым до явного `sync` с недостающими selectors.
+Добавлены CLI/API чтения, создания и изменения проектов/списков; metadata
+и members проекта меняет только owner, списки — текущие участники.
+Этот срез включён в активированную сборку центра доступов; контракт и границы —
+[§12.5](specifications/task-management-execution.md#125-явный-выбор-projectlist-и-управление-через-cli-2026-10-19).
 
 `src/RealizeCore/**` и `src/app/_realize/**` quarantined по ADR-0001. Пути
 `src/domain/**`, `src/ui/**` и root `src/app/api/**` сейчас не являются

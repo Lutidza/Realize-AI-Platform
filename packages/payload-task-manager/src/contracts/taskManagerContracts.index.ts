@@ -1,13 +1,17 @@
 /**
  * @file packages/payload-task-manager/src/contracts/taskManagerContracts.index.ts
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.4.0
+ * @date 2026-10-19
  * @description Публикует клиентские контракты без серверных зависимостей и импорта host-приложения.
  * @see documentation/specifications/task-management-execution.md
  */
 export type * from "./TaskManager.types";
 export type * from "./TaskGitObservation.types";
 export type * from "./TaskGitSync.types";
+export type {
+  TaskWorkspaceCreateInput,
+  TaskWorkspaceCreateResult,
+} from "./TaskWorkspace.types";
 export {
   taskGitSyncInputSchema,
   taskGitSyncSchema,
@@ -26,9 +30,14 @@ export {
   taskCreateSchema,
   taskUpdateSchema,
   taskProjectCreateSchema,
+  taskProjectUpdateSchema,
+  taskListCreateSchema,
+  taskListUpdateSchema,
   taskProjectSchema,
   taskListSchema,
   taskSchema,
   taskEventSchema,
   taskGitBindingSchema,
+  taskWorkspaceCreateSchema,
+  taskWorkspaceCreateResultSchema,
 } from "./taskManager.schemas";

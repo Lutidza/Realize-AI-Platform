@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/task-workspace/src/dossier/createDossier.service.mjs
- * @version 1.0.3
- * @date 2026-10-15
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Создаёт или явно принимает legacy досье без потери тела и без выдуманных серверных IDs.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -21,7 +21,7 @@ import { fail } from "../Workspace.error.mjs";
  * @param {import("../filesystem/WorkspaceFs.adapter.mjs").WorkspaceFs} storage
  * @param {import("./Dossier.types").CreateWorkspaceDossierInput} input
  * @param {boolean} [adopt]
- * @param {Pick<import("../recovery/WorkspaceOperation.types.ts").WorkspaceMutationOptions, "operationId">} [options]
+ * @param {Pick<import("../recovery/WorkspaceOperation.types.ts").WorkspaceMutationOptions, "operationId"> & {localDossierId?:string}} [options] Внутренний UUID seed связывает fallback с уже сохранённым clientTaskId; CLI flag для него отсутствует.
  * @returns {import("../dossier/Dossier.types").WorkspaceTask}
  */
 export function createDossier(storage, input, adopt = false, options = {}) {
@@ -32,9 +32,14 @@ export function createDossier(storage, input, adopt = false, options = {}) {
     {
       kind: adopt ? "adopt" : "create",
       operationId: options.operationId,
-      checkCompletedIdentity: (localDossierId) =>
-        assertDossierIdentity(storage, key, localDossierId),
-      input,
+      checkCompletedIdentity: (localDossierId) => {
+        if (options.localDossierId && options.localDossierId !== localDossierId)
+          fail("operation_identity_conflict");
+        assertDossierIdentity(storage, key, localDossierId);
+      },
+      input: options.localDossierId
+        ? { ...input, localDossierId: options.localDossierId }
+        : input,
     },
     (ctx) => {
       if (ctx.journal) return resumeWorkspaceMetadataOperation(storage, ctx);
@@ -54,7 +59,7 @@ export function createDossier(storage, input, adopt = false, options = {}) {
       if (Buffer.byteLength(body) > 512 * 1024) fail("body_limit");
       const meta = workspaceTaskSchema.parse({
         schemaVersion: 1,
-        localDossierId: randomUUID(),
+        localDossierId: options.localDossierId ?? randomUUID(),
         localKey: key,
         revision: 1,
         title: input.title,

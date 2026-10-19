@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-task-manager/src/server/TaskManager.service.ts
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.5.0
+ * @date 2026-10-19
  * @description Координирует membership, задачи, revision CAS, live Git observation и долговечные sync.
  * @see documentation/specifications/task-management-execution.md
  */
 import { randomUUID } from "node:crypto";
 import type { PayloadRequest } from "payload";
 import type {
+  TaskCreateInput,
   TaskDto,
   TaskEventDto,
   TaskListDto,
@@ -21,7 +22,10 @@ import {
   taskPublicIdSchema,
   taskUpdateSchema,
 } from "../contracts/taskManager.schemas";
-import type { ResolvedTaskManagerOptions } from "../TaskManagerOptions.types";
+import type {
+  ResolvedTaskManagerOptions,
+  TaskManagerPermission,
+} from "../TaskManagerOptions.types";
 import type { TaskGitObservationsDto } from "../contracts/TaskGitObservation.types";
 import type { TaskGitSyncDto } from "../contracts/TaskGitSync.types";
 import {
@@ -46,28 +50,48 @@ import { withTaskMutation } from "./withTaskMutation.service";
 import { assertIndependentTaskTransaction } from "./withTaskTransaction.repository";
 import { readTaskGitObservations } from "./readTaskGitObservations.service";
 import { TaskGitSyncService } from "./TaskGitSync.service";
+import { TaskWorkspaceIntakeService } from "./TaskWorkspaceIntake.service";
+import { TaskProjectManagementService } from "./TaskProjectManagement.service";
+import { TaskListManagementService } from "./TaskListManagement.service";
+import type { TaskWorkspaceSource } from "./TaskWorkspaceIntake.types";
 
 /** Все публичные методы авторизуют req.user; actorId не принимается от клиента. */
 export class TaskManagerService {
   private readonly repository: TaskStoreRepository;
   private readonly participantsRepository: TaskParticipantsRepository;
   private readonly gitSyncService: TaskGitSyncService;
+  private readonly projectManagement: TaskProjectManagementService;
+  private readonly listManagement: TaskListManagementService;
   constructor(
     private readonly req: PayloadRequest,
     private readonly options: ResolvedTaskManagerOptions,
   ) {
     this.repository = new TaskStoreRepository(req);
     this.participantsRepository = new TaskParticipantsRepository(req, options);
+    const containerContext = {
+      req,
+      options,
+      authorize: (permission?: TaskManagerPermission) =>
+        this.authorize(permission),
+      readProject: (projectId: string, actor: TaskActor) =>
+        this.project(projectId, actor),
+    };
+    this.projectManagement = new TaskProjectManagementService(containerContext);
+    this.listManagement = new TaskListManagementService(containerContext);
     this.gitSyncService = new TaskGitSyncService({
       req,
       options,
-      authorize: () => this.authorize(),
+      authorize: (permission?: TaskManagerPermission) =>
+        this.authorize(permission),
       readTask: async (taskId, actor) =>
         (await this.ownedTask(taskId, actor)).task,
     });
   }
 
-  async authorize(): Promise<TaskActor> {
+  async authorize(
+    permission: TaskManagerPermission = "read",
+  ): Promise<TaskActor> {
+    await this.options.authorizeRequest?.({ req: this.req, permission });
     const user = this.req.user;
     if (!user)
       throw new TaskManagerError(
@@ -110,7 +134,7 @@ export class TaskManagerService {
   }
 
   async createProject(value: unknown): Promise<TaskProjectDto> {
-    const actor = await this.authorize();
+    const actor = await this.authorize("projects");
     await assertIndependentTaskTransaction(this.req);
     const input = parseTaskCommand(taskProjectCreateSchema, value);
     return withTaskMutation({
@@ -120,7 +144,7 @@ export class TaskManagerService {
       operation: "create-project",
       command: input,
       authorize: async () => {
-        await this.authorize();
+        await this.authorize("projects");
       },
       readReceipt: async (receipt) => {
         const project = mapTaskProject(receipt);
@@ -180,6 +204,29 @@ export class TaskManagerService {
       items: page.rows.map((row) => mapTaskList(row.record)),
       nextCursor: page.nextCursor,
     };
+  }
+
+  async projectById(projectId: string): Promise<TaskProjectDto> {
+    return this.projectManagement.read(projectId);
+  }
+
+  async updateProject(
+    projectId: string,
+    value: unknown,
+  ): Promise<TaskProjectDto> {
+    return this.projectManagement.update(projectId, value);
+  }
+
+  async listById(listId: string): Promise<TaskListDto> {
+    return this.listManagement.read(listId);
+  }
+
+  async createList(value: unknown): Promise<TaskListDto> {
+    return this.listManagement.create(value);
+  }
+
+  async updateList(listId: string, value: unknown): Promise<TaskListDto> {
+    return this.listManagement.update(listId, value);
   }
 
   async tasks(
@@ -278,7 +325,7 @@ export class TaskManagerService {
   }
 
   async createTask(value: unknown): Promise<TaskDto> {
-    const actor = await this.authorize();
+    const actor = await this.authorize("write");
     await assertIndependentTaskTransaction(this.req);
     const input = parseTaskCommand(taskCreateSchema, value);
     return withTaskMutation({
@@ -288,56 +335,29 @@ export class TaskManagerService {
       operation: "create-task",
       command: input,
       authorize: async () => {
-        await this.authorize();
+        await this.authorize("write");
         await this.project(input.projectId, actor);
       },
       readReceipt: mapTask,
       work: async () => {
-        const { project } = await this.project(input.projectId, actor);
-        await this.list(input.projectId, input.listId);
-        await this.assignee(project, input.assigneeId);
-        const now = new Date().toISOString();
-        const task: TaskDto = {
-          id: randomUUID(),
-          key: "TASK-1",
-          projectId: input.projectId,
-          listId: input.listId,
-          title: input.title,
-          description: input.description,
-          status: input.status,
-          priority: input.priority,
-          assigneeId: input.assigneeId,
-          gitBindings: input.gitBindings,
-          revision: 1,
-          createdBy: actor.id,
-          updatedBy: actor.id,
-          createdAt: now,
-          updatedAt: now,
-        };
-        const row = await this.repository.create(TASKS_SLUG, {
-          taskId: task.id,
-          projectId: task.projectId,
-          listId: task.listId,
-          revision: task.revision,
-          record: task,
-        });
-        // Внутренний numeric PK задаёт читабельный key; UUID остаётся устойчивым публичным ID.
-        if (!/^[1-9][0-9]*$/.test(String(row.id)))
-          throw new TaskManagerError(
-            "STORAGE_UNAVAILABLE",
-            "Хранилище задач требует числовой идентификатор записи.",
-            503,
-          );
-        task.key = `TASK-${row.id}`;
-        await this.repository.update(TASKS_SLUG, row.id, { record: task });
-        await this.appendEvent(task, "created", "Задача создана.");
-        return { result: mapTask(task), projectId: task.projectId };
+        const task = await this.persistTaskCreate(input, actor);
+        return { result: task, projectId: task.projectId };
       },
     });
   }
 
+  async createTaskFromWorkspace(value: unknown) {
+    return new TaskWorkspaceIntakeService({
+      req: this.req,
+      authorize: () => this.authorize("write"),
+      authorizeProject: (projectId, actor) => this.project(projectId, actor),
+      createTask: (input, actor, source) =>
+        this.persistTaskCreate(input, actor, source),
+    }).create(value);
+  }
+
   async updateTask(taskId: string, value: unknown): Promise<TaskDto> {
-    const actor = await this.authorize();
+    const actor = await this.authorize("write");
     await assertIndependentTaskTransaction(this.req);
     const input = parseTaskCommand(taskUpdateSchema, value);
     const initial = await this.ownedTask(taskId, actor);
@@ -348,7 +368,7 @@ export class TaskManagerService {
       operation: `update-task:${taskId}`,
       command: input,
       authorize: async () => {
-        await this.authorize();
+        await this.authorize("write");
         await this.project(initial.task.projectId, actor);
       },
       readReceipt: mapTask,
@@ -408,6 +428,48 @@ export class TaskManagerService {
         return { result: mapTask(task), projectId: task.projectId };
       },
     });
+  }
+
+  /** Оба create-пути используют общую проверку target и единую запись task/event в caller-owned txn. */
+  private async persistTaskCreate(
+    input: TaskCreateInput,
+    actor: TaskActor,
+    source?: TaskWorkspaceSource,
+  ): Promise<TaskDto> {
+    const { project } = await this.project(input.projectId, actor);
+    await this.list(input.projectId, input.listId);
+    await this.assignee(project, input.assigneeId);
+    const now = new Date().toISOString();
+    const task: TaskDto = {
+      id: randomUUID(),
+      key: "TASK-1",
+      ...input,
+      revision: 1,
+      createdBy: actor.id,
+      updatedBy: actor.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const row = await this.repository.create(TASKS_SLUG, {
+      taskId: task.id,
+      projectId: task.projectId,
+      listId: task.listId,
+      revision: task.revision,
+      workspaceSourceId: source?.workspaceSourceId ?? null,
+      workspaceCreateHash: source?.workspaceCreateHash ?? null,
+      record: task,
+    });
+    // Numeric PK задаёт читабельный key; UUID остаётся устойчивым публичным ID.
+    if (!/^[1-9][0-9]*$/.test(String(row.id)))
+      throw new TaskManagerError(
+        "STORAGE_UNAVAILABLE",
+        "Хранилище задач требует числовой идентификатор записи.",
+        503,
+      );
+    task.key = `TASK-${row.id}`;
+    await this.repository.update(TASKS_SLUG, row.id, { record: task });
+    await this.appendEvent(task, "created", "Задача создана.");
+    return mapTask(task);
   }
 
   private async project(

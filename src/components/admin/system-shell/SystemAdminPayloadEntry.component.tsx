@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/SystemAdminPayloadEntry.component.tsx
- * @version 2.4.0
- * @date 2026-10-12
+ * @version 2.5.0
+ * @date 2026-10-19
  * @description Добавляет в Payload общие входы в самостоятельные системные разделы.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -19,6 +19,7 @@ import {
   SYSTEM_WORKSHOP_ROUTE,
   SYSTEM_APPEARANCE_ROUTE,
   SYSTEM_ADMIN_ROUTE,
+  SYSTEM_ACCESS_ROUTE,
 } from "./systemAdmin.routes";
 
 /** Ссылка открывает самостоятельный root layout; доступ повторно проверяет сервер страницы. */
@@ -33,6 +34,7 @@ export const SystemAdminPayloadEntry = () => {
         { href: SYSTEM_ADMIN_ROUTE, label: "Realize — рабочая область" },
         { href: SYSTEM_WORKSHOP_ROUTE, label: "Мастерская" },
         { href: SYSTEM_APPEARANCE_ROUTE, label: "Темы и шаблоны" },
+        { href: SYSTEM_ACCESS_ROUTE, label: "Доступы и токены" },
         {
           href: SYSTEM_TASK_MANAGER_REFERENCE_ROUTE,
           label: "Референс задач",

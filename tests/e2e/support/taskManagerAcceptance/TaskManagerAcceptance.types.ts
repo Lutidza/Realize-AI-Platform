@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/support/taskManagerAcceptance/TaskManagerAcceptance.types.ts
- * @version 1.0.1
- * @date 2026-10-15
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Задаёт границы browser fixture, outcomes и подтверждённой остановки её ресурсов.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -16,6 +16,8 @@ export type TaskManagerFixtureOptions = {
   runId: string;
   attemptId: string;
   source: URL;
+  /** Оба профиля используют одинаковую изолированную БД, Users и lifecycle. */
+  profile?: "tasks" | "access";
   paths: {
     logs: string;
     screenshots: string;

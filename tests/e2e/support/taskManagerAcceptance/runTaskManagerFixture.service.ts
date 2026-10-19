@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/support/taskManagerAcceptance/runTaskManagerFixture.service.ts
- * @version 1.0.3
- * @date 2026-10-15
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Координирует browser этап, остановку ресурсов, сохранение evidence и точную producer cleanup.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -116,7 +116,10 @@ export async function runTaskManagerFixture(
     let group: WorkspaceProducerGroup;
     try {
       group = producers.begin(storage, localKey, {
-        stageId: "task-manager-browser",
+        stageId:
+          options.profile === "access"
+            ? "access-browser"
+            : "task-manager-browser",
         attemptId: options.attemptId,
         artifacts: [
           {
@@ -269,7 +272,9 @@ export async function runTaskManagerFixture(
         [
           "node_modules/@playwright/test/cli.js",
           "test",
-          "tests/e2e/task-manager.spec.ts",
+          options.profile === "access"
+            ? "tests/e2e/access-management.spec.ts"
+            : "tests/e2e/task-manager.spec.ts",
           "--project=chromium",
           "--workers=1",
           "--retries=0",
@@ -280,7 +285,10 @@ export async function runTaskManagerFixture(
           cwd: options.root,
           env: {
             ...env,
-            TASK_BROWSER_ACCEPTANCE: "true",
+            TASK_BROWSER_ACCEPTANCE:
+              options.profile === "access" ? "false" : "true",
+            ACCESS_BROWSER_ACCEPTANCE:
+              options.profile === "access" ? "true" : "false",
             TASK_BROWSER_EVIDENCE_DIR: resolve(
               options.root,
               options.task,
@@ -290,6 +298,11 @@ export async function runTaskManagerFixture(
               options.root,
               options.task,
               options.paths.logs,
+            ),
+            TASK_BROWSER_TEMP_DIR: resolve(
+              options.root,
+              options.task,
+              options.paths.temporary,
             ),
             PLAYWRIGHT_SKIP_WEB_SERVER: "true",
             PLAYWRIGHT_BASE_URL: baseURL,

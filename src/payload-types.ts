@@ -80,6 +80,10 @@ export interface Config {
     'media-originals': MediaOriginal;
     'media-processing-sets': MediaProcessingSet;
     'media-variants': MediaVariant;
+    'access-credentials': AccessCredential;
+    'access-device-requests': AccessDeviceRequest;
+    'access-rate-limits': AccessRateLimit;
+    'access-refresh-history': AccessRefreshHistory;
     'realize-task-projects': RealizeTaskProject;
     'realize-task-lists': RealizeTaskList;
     'realize-tasks': RealizeTask;
@@ -162,6 +166,10 @@ export interface Config {
     'media-originals': MediaOriginalsSelect<false> | MediaOriginalsSelect<true>;
     'media-processing-sets': MediaProcessingSetsSelect<false> | MediaProcessingSetsSelect<true>;
     'media-variants': MediaVariantsSelect<false> | MediaVariantsSelect<true>;
+    'access-credentials': AccessCredentialsSelect<false> | AccessCredentialsSelect<true>;
+    'access-device-requests': AccessDeviceRequestsSelect<false> | AccessDeviceRequestsSelect<true>;
+    'access-rate-limits': AccessRateLimitsSelect<false> | AccessRateLimitsSelect<true>;
+    'access-refresh-history': AccessRefreshHistorySelect<false> | AccessRefreshHistorySelect<true>;
     'realize-task-projects': RealizeTaskProjectsSelect<false> | RealizeTaskProjectsSelect<true>;
     'realize-task-lists': RealizeTaskListsSelect<false> | RealizeTaskListsSelect<true>;
     'realize-tasks': RealizeTasksSelect<false> | RealizeTasksSelect<true>;
@@ -1319,6 +1327,72 @@ export interface MediaVariant {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-credentials".
+ */
+export interface AccessCredential {
+  id: number;
+  credentialId: string;
+  ownerId: string;
+  expiresAt: string;
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-device-requests".
+ */
+export interface AccessDeviceRequest {
+  id: number;
+  deviceId: string;
+  userCode: string;
+  expiresAt: string;
+  record:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-rate-limits".
+ */
+export interface AccessRateLimit {
+  id: number;
+  bucket: string;
+  windowStart: string;
+  count: number;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-refresh-history".
+ */
+export interface AccessRefreshHistory {
+  id: number;
+  refreshHash: string;
+  credentialId: string;
+  expiresAt: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "realize-task-projects".
  */
 export interface RealizeTaskProject {
@@ -1365,6 +1439,8 @@ export interface RealizeTaskList {
 export interface RealizeTask {
   id: number;
   taskId: string;
+  workspaceSourceId?: string | null;
+  workspaceCreateHash?: string | null;
   projectId: string;
   listId: string;
   revision: number;
@@ -3398,6 +3474,52 @@ export interface MediaVariantsSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-credentials_select".
+ */
+export interface AccessCredentialsSelect<T extends boolean = true> {
+  credentialId?: T;
+  ownerId?: T;
+  expiresAt?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-device-requests_select".
+ */
+export interface AccessDeviceRequestsSelect<T extends boolean = true> {
+  deviceId?: T;
+  userCode?: T;
+  expiresAt?: T;
+  record?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-rate-limits_select".
+ */
+export interface AccessRateLimitsSelect<T extends boolean = true> {
+  bucket?: T;
+  windowStart?: T;
+  count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "access-refresh-history_select".
+ */
+export interface AccessRefreshHistorySelect<T extends boolean = true> {
+  refreshHash?: T;
+  credentialId?: T;
+  expiresAt?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "realize-task-projects_select".
  */
 export interface RealizeTaskProjectsSelect<T extends boolean = true> {
@@ -3425,6 +3547,8 @@ export interface RealizeTaskListsSelect<T extends boolean = true> {
  */
 export interface RealizeTasksSelect<T extends boolean = true> {
   taskId?: T;
+  workspaceSourceId?: T;
+  workspaceCreateHash?: T;
   projectId?: T;
   listId?: T;
   revision?: T;

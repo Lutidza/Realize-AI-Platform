@@ -1,10 +1,12 @@
 /**
  * @file .ai/tools/task-workspace/src/cli/presentCompactWorkspaceResponse.util.mjs
- * @version 1.0.0
- * @date 2026-10-15
+ * @version 1.3.0
+ * @date 2026-10-19
  * @description Сокращает уже полученный CLI результат без файловых чтений, сохраняя refs и явные неизвестные значения.
  * @see documentation/specifications/task-management-execution.md
  */
+import { isTaskManagerCommand } from "../remote/runTaskManagerCommand.controller.mjs";
+import { isAuthCommand } from "../auth/runAuthCommand.controller.mjs";
 /** @param {unknown} value @returns {Record<string, unknown> | null} */
 const record = (value) =>
   value !== null && typeof value === "object" && !Array.isArray(value)
@@ -71,6 +73,16 @@ export function presentCompactWorkspaceResponse(
         }
       : null);
   return {
+    ...(isTaskManagerCommand(request) || isAuthCommand(request)
+      ? {
+          data: failure
+            ? null
+            : /** @type {import('./WorkspaceCommand.types').WorkspaceCompactResponse['data']} */ (
+                output?.data ?? null
+              ),
+        }
+      : {}),
+    routing: failure?.routing ?? context.routing ?? null,
     status: failure ? "error" : "completed",
     action: request?.action ?? null,
     key:

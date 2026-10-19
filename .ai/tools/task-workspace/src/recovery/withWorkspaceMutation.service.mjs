@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/task-workspace/src/recovery/withWorkspaceMutation.service.mjs
- * @version 1.0.0
- * @date 2026-10-15
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Допускает одну мутацию под блокировкой задачи после проверки индекса и конфликтующих операций.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -9,6 +9,7 @@ import { acquireWorkspaceFileLock } from "../filesystem/withWorkspaceFileLock.ad
 import { safeTaskKey } from "../filesystem/safeTaskKey.validator.mjs";
 import { canonicalHash } from "../filesystem/canonicalHash.util.mjs";
 import { fail } from "../Workspace.error.mjs";
+import { assertLocalWorkspaceOwnership } from "../remote/RemoteWorkspace.repository.mjs";
 import { ensureWorkspaceRecoveryIndex } from "./ensureWorkspaceRecoveryIndex.service.mjs";
 import {
   safeWorkspaceOperationId,
@@ -262,6 +263,7 @@ export function withWorkspaceMutation(storage, key, options, operation) {
     );
   }
   return withWorkspaceOperationLock(storage, key, () => {
+    assertLocalWorkspaceOwnership(storage, key);
     const state = readWorkspaceOperationState(storage, key);
     const activeLegacy = state.legacy.filter((ref) => !ref.completed);
     if (activeLegacy.length > 1 || (state.pending && activeLegacy.length))

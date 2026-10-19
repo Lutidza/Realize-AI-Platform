@@ -1,8 +1,8 @@
 /**
  * @file scripts/runtime/verifyTaskManager.controller.mjs
- * @version 1.0.0
- * @date 2026-10-11
- * @description Создаёт одноразовую PostgreSQL БД для проверки Task Manager и удаляет только созданную fixture.
+ * @version 1.1.0
+ * @date 2026-10-19
+ * @description Создаёт одноразовую PostgreSQL БД для Task Manager или центра доступов и удаляет только созданную fixture.
  * @see documentation/specifications/task-management-execution.md
  */
 import nextEnv from "@next/env";
@@ -12,6 +12,8 @@ import { randomBytes } from "node:crypto";
 import assert from "node:assert/strict";
 
 nextEnv.loadEnvConfig(process.cwd(), false, { info() {}, error() {} });
+const profile = process.argv[2] ?? "tasks";
+assert.ok(["tasks", "access"].includes(profile), "FIXTURE_PROFILE_INVALID");
 const url = new URL(process.env.DATABASE_URI || process.env.DATABASE_URL);
 assert.ok(["localhost", "127.0.0.1"].includes(url.hostname));
 url.hostname = "127.0.0.1";
@@ -37,14 +39,17 @@ try {
       "run",
       "--config",
       "vitest.config.mts",
-      "tests/int/task-manager-postgres.int.spec.ts",
+      profile === "access"
+        ? "tests/int/access-management-postgres.int.spec.ts"
+        : "tests/int/task-manager-postgres.int.spec.ts",
     ],
     {
       env: {
         ...process.env,
         DATABASE_URI: url.href,
         DATABASE_URL: url.href,
-        TASK_TEST_DATABASE_URI: url.href,
+        TASK_TEST_DATABASE_URI: profile === "tasks" ? url.href : "",
+        ACCESS_TEST_DATABASE_URI: profile === "access" ? url.href : "",
         PAYLOAD_DB_PUSH: "false",
         REALIZE_AI_RUNTIME_ISOLATED: "true",
       },

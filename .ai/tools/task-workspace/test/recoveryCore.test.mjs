@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/task-workspace/test/recoveryCore.test.mjs
- * @version 1.0.0
- * @date 2026-10-15
+ * @version 1.0.1
+ * @date 2026-10-19
  * @description Проверяет допуск мутаций, устойчивые метаданные и индекс прежних журналов в собственных временных деревьях.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -232,9 +232,19 @@ test("Recovery после перезапуска завершает единст
     import.meta.url,
   ).href;
   const code = `import { WorkspaceFs } from ${JSON.stringify(fsUrl)}; import { recoverWorkspaceOperation } from ${JSON.stringify(recoverUrl)}; import { resumeWorkspaceMetadataOperation } from ${JSON.stringify(metadataUrl)}; const storage=new WorkspaceFs(process.argv[1]); console.log(JSON.stringify(recoverWorkspaceOperation(storage,process.argv[2],process.argv[3],{status:resumeWorkspaceMetadataOperation}))); storage.close();`;
+  // Recovery читает общие TS contracts: перезапуск использует тот же bootstrap, что task:workspace.
   const child = spawnSync(
     process.execPath,
-    ["--input-type=module", "-e", code, root, KEY, "fixture-status"],
+    [
+      "--import",
+      import.meta.resolve("tsx/esm"),
+      "--input-type=module",
+      "-e",
+      code,
+      root,
+      KEY,
+      "fixture-status",
+    ],
     { encoding: "utf8", timeout: 10000 },
   );
   assert.equal(child.status, 0, child.stderr);

@@ -31,6 +31,8 @@ Codex-адаптеры — в `.codex/**`.
 6. [Architecture Decision Log](architecture/decisions/INDEX.md).
 7. [Поиск для агентов и диагностика](architecture/repository-search.md) — CLI/MCP,
    измерения, история Admin и ограничения покрытия.
+8. [Доступы платформы и авторизация CLI](architecture/platform-access.md) —
+   личные/API токены, browser approval, scopes, сроки, отзыв и Secret Service.
 
 Подключение аккаунта ChatGPT или API key и требования к исполнителям:
 [интеграция Codex](architecture/codex-integration.md).

@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdmin.navigation.tsx
- * @version 1.10.0
- * @date 2026-10-12
+ * @version 1.11.0
+ * @date 2026-10-19
  * @description Задаёт порядок, названия, иконки и доступные переходы общей навигации Realize.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -32,10 +32,12 @@ import {
   SYSTEM_WORKSHOP_ROUTE,
   SYSTEM_AI_ANALYTICS_ROUTE,
   SYSTEM_APPEARANCE_ROUTE,
+  SYSTEM_ACCESS_ROUTE,
 } from "./systemAdmin.routes";
 import { SYSTEM_ADMIN_ANALYTICS_NAVIGATION } from "./systemAdminAnalytics.navigation";
 import { SYSTEM_ADMIN_WORKSHOP_NAVIGATION } from "./systemAdminWorkshop.navigation";
 import { SYSTEM_ADMIN_APPEARANCE_NAVIGATION } from "./systemAdminAppearance.navigation";
+import { getSystemAdminSettingsNavigation } from "./systemAdminSettings.navigation";
 
 const iconProps = { size: 22, strokeWidth: 1.75, "aria-hidden": true } as const;
 
@@ -45,6 +47,7 @@ const iconProps = { size: 22, strokeWidth: 1.75, "aria-hidden": true } as const;
  */
 export function getSystemAdminNavigation({
   onTasks,
+  currentPath,
   tasksFavoriteLinks,
   tasksPanel,
 }: SystemAdminNavigationOptions): SystemAdminNavigationItem[] {
@@ -154,6 +157,8 @@ export function getSystemAdminNavigation({
       label: "Настройки системы",
       icon: <Settings2 {...iconProps} />,
       description: "Общие параметры системы и рабочей среды.",
+      href: SYSTEM_ACCESS_ROUTE,
+      groups: getSystemAdminSettingsNavigation(currentPath),
     },
     {
       id: "documentation",

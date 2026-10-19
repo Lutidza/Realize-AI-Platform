@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/task-workspace/test/workspaceCli.test.mjs
- * @version 1.0.4
- * @date 2026-10-15
+ * @version 1.3.0
+ * @date 2026-10-19
  * @description Проверяет реальные CLI маршруты, обязательные flags и локальную поставку без изменения проекта.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -70,6 +70,12 @@ async function cliFixture(context) {
         timeout: 20000,
         maxBuffer: 16 * 1024 * 1024,
         input,
+        env: {
+          ...process.env,
+          XDG_STATE_HOME: path.join(temporary, "auth-state"),
+          REALIZE_TASK_MANAGER_URL: undefined,
+          REALIZE_TASK_MANAGER_TOKEN: undefined,
+        },
       },
     );
   /** @param {string[]} argv */
@@ -94,6 +100,9 @@ test("Настоящий CLI process возвращает help и безопас
   const good = fixture.run("--help");
   assert.equal(good.status, 0);
   assert.deepEqual(JSON.parse(good.stdout).actions, [
+    "login",
+    "logout",
+    "auth-status",
     "create",
     "adopt",
     "inspect",
@@ -106,6 +115,15 @@ test("Настоящий CLI process возвращает help и безопас
     "archive",
     "reopen",
     "recover",
+    "sync",
+    "projects",
+    "project",
+    "project-create",
+    "project-update",
+    "lists",
+    "list",
+    "list-create",
+    "list-update",
   ]);
   const bad = fixture.run(
     "status",

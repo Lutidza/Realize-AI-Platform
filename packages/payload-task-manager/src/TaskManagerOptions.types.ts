@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/TaskManagerOptions.types.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-10-19
  * @description Задаёт переносимые зависимости Task plugin от admission, пользователей и read-only Git owner.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -15,9 +15,16 @@ export type TaskGitBindingObserver = (args: {
   req: PayloadRequest;
 }) => Promise<TaskGitObservationProviderResult>;
 
+export type TaskManagerPermission = "read" | "write" | "projects";
+
 /** Admission не предоставляет Git, AI execution, release или deployment полномочия. */
 export type TaskManagerOptions = {
   userCollection: CollectionSlug;
+  /** Endpoint-local token binding; вызывается заново под mutation lock перед receipt/write. */
+  authorizeRequest?: (args: {
+    req: PayloadRequest;
+    permission: TaskManagerPermission;
+  }) => void | Promise<void>;
   canUseTaskManager: (args: {
     req: PayloadRequest;
   }) => boolean | Promise<boolean>;

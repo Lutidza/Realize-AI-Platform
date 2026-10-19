@@ -30,6 +30,8 @@ import * as migration_20261004_210727_ai_usage_ledger from './20261004_210727_ai
 import * as migration_20261011_162630_task_manager_foundation from './20261011_162630_task_manager_foundation';
 import * as migration_20261011_215235_task_git_sync from './20261011_215235_task_git_sync';
 import * as migration_20261012_094626_extension_manager_state from './20261012_094626_extension_manager_state';
+import * as migration_20261019_065606_task_workspace_intake from './20261019_065606_task_workspace_intake';
+import * as migration_20261019_085743_platform_access from './20261019_085743_platform_access';
 
 export const migrations = [
   {
@@ -190,6 +192,16 @@ export const migrations = [
   {
     up: migration_20261012_094626_extension_manager_state.up,
     down: migration_20261012_094626_extension_manager_state.down,
-    name: '20261012_094626_extension_manager_state'
+    name: '20261012_094626_extension_manager_state',
+  },
+  {
+    up: migration_20261019_065606_task_workspace_intake.up,
+    down: migration_20261019_065606_task_workspace_intake.down,
+    name: '20261019_065606_task_workspace_intake',
+  },
+  {
+    up: migration_20261019_085743_platform_access.up,
+    down: migration_20261019_085743_platform_access.down,
+    name: '20261019_085743_platform_access'
   },
 ];

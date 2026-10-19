@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/contracts/TaskManager.types.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Определяет публичные задачи, проекты, списки и историю первого постоянного среза.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -63,6 +63,19 @@ export type TaskProjectCreateInput = {
   title: string;
   description: string;
   memberIds: string[];
+};
+/** Полная замена редактируемых полей; сервер сохраняет владельца в составе участников. */
+export type TaskProjectUpdateInput = TaskProjectCreateInput & {
+  expectedRevision: number;
+};
+export type TaskListCreateInput = {
+  projectId: string;
+  title: string;
+};
+/** Принадлежность списка проекту неизменна. */
+export type TaskListUpdateInput = {
+  title: string;
+  expectedRevision: number;
 };
 export type TaskCreateInput = TaskEditableFields & {
   projectId: string;

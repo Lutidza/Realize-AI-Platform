@@ -2,6 +2,8 @@
 
 - **Статус:** current implementation runbook
 - **Дата сверки:** 12 октября 2026 года (Task Manager и source appearance state/replay schema)
+- **Сверка workspace intake migration:** 19 октября 2026 года; M33 адресно применена к рабочей БД и проверена после commit.
+- **Сверка access migration:** 19 октября 2026 года; M34 адресно применена, batch 21; рабочий web обновлён.
 
 ## 1. Канонический порядок миграций
 
@@ -71,8 +73,17 @@
 31. `20261011_215235_task_git_sync` — immutable Git/PR/CI snapshots для точной
     task revision; отдельный populated rollback guard.
 32. `20261012_094626_extension_manager_state` — appearance target state и
-    immutable prepare/apply receipt ledger; source migration, к основной
-    установке не применена.
+    immutable prepare/apply receipt ledger. Preflight 19 октября подтвердил
+    существующий receipt от 12 октября 2026 года, batch 19; текущий access apply
+    эту миграцию не выполнял.
+33. `20261019_065606_task_workspace_intake` — nullable unique workspace source
+    UUID и immutable initial create hash в Task; защищённый populated rollback.
+    Source migration создана штатным генератором; 19 октября 2026 года адресно
+    применена к рабочей БД через native migration API.
+34. `20261019_085743_platform_access` — четыре закрытые таблицы access credentials,
+    device requests, rate limits и использованных refresh hashes. Создана
+    штатным генератором с [template](../../scripts/migrations/platform-access.mjs).
+    19 октября 2026 года адресно применена к рабочей БД, batch 21.
 
 В production `push` отключён. Schema меняется только versioned миграциями:
 
@@ -81,9 +92,64 @@ npm run payload:migrate
 npm run payload:migrate:status
 ```
 
-В пустой PostgreSQL source registry содержит последовательность из 32 миграций.
+В пустой PostgreSQL source registry содержит последовательность из 34 миграций.
 Для upgrade-сценария третья миграция сначала заполняет legacy-значения,
 а затем устанавливает `NOT NULL` и unique index.
+
+19 октября M34 применена через native Payload transaction после private backup.
+Отдельное соединение подтвердило сохранность всех 31 прежних migration receipts
+и existing schema: добавлены четыре таблицы, 19 индексов и четыре primary indexes;
+receipts стало 32. Только M24/M25 остались pending. Backup проверен по SHA256,
+каталогу и полному чтению архива; restore в отдельную БД не выполнялся.
+
+Web переключён на `Dfi6Wz9am3HM5TVk5N8El` из `.next/platform-access-20261019`
+после штатного production build и isolated startup. Live/readiness вернули 200,
+неавторизованный доступ закрыт, собственный device request отменён. Предыдущий
+пакет и drop-in 97 сохранены; новый drop-in — `98-platform-access-20261019.conf`.
+Перезапущен только web, остальные четыре службы сохранили PID. При rollback
+приложения новый drop-in удаляется только после сверки его сохранённого hash;
+search binding возвращается штатным owner с проверкой source/build match.
+
+Access migration добавляет только новые таблицы. `down` блокирует их под
+`ACCESS EXCLUSIVE` и отказывает с `ACCESS_ROLLBACK_BLOCKED`, если credentials,
+device requests или refresh history содержат записи. Один rate-limit bucket
+сам по себе не препятствует откату. Удалять доступы ради rollback нельзя.
+Полная цепочка M1–M34, пустой `down/up`, populated guard и конкурентные
+refresh/device/revoke проверяются через `npm run check:access:postgres` на
+собственной одноразовой БД; `PAYLOAD_DB_PUSH=false`. Контракт —
+[доступы платформы](../architecture/platform-access.md).
+
+Workspace intake добавляет `workspace_source_id` и `workspace_create_hash`
+в существующую `realize_tasks`. Unique index и trigger сохраняют identity
+первоначального создания: source/hash нельзя изменить, связанный Task нельзя
+удалить. `down` под `ACCESS EXCLUSIVE` отказывает с
+`TASK_WORKSPACE_ROLLBACK_BLOCKED`, если хотя бы одна запись содержит source/hash.
+Удалять задачи или сбрасывать эти поля ради rollback нельзя. Генератор —
+[`task-workspace-intake.mjs`](../../scripts/migrations/task-workspace-intake.mjs),
+контракт — [Task Manager intake](../specifications/task-management-execution.md#124-первичный-intake-из-рабочего-слоя-2026-10-19).
+
+19 октября 2026 года применена только M33, receipt записан в batch 20.
+Проверка после commit подтвердила две nullable-колонки, валидный unique index
+и включённый trigger. Все 30 прежних migration receipts и существующие данные
+Task Manager сохранены; receipts стало 31, прежние одна задача и одно событие
+не изменились. `design_preview` (M24) и `workshop_mcp` (M25) остались pending.
+Перед применением создана и проверена приватная резервная копия; восстановление
+рабочей БД из неё не выполнялось.
+
+В 07:41 UTC того же дня локальный `realize-web.service` переключён на сборку
+`ETNHSUtT24y6haUFL630m` из постоянного `.next/task-workspace-intake-b6e2`.
+Candidate прошёл `next typegen`, TypeScript, Webpack build и отдельный startup;
+после переключения `/api/health/live` и `/api/health/ready` вернули HTTP 200
+для точного build. Обновлён только web; control plane, execution worker,
+Media worker и PostgreSQL продолжили работать в прежних процессах.
+
+Повтор сохранённого CLI запроса после первоначального HTTP 404 использовал
+тот же `clientTaskId` и создал одну `TASK-2`. Она отображена в браузере;
+read-only сверка БД подтвердила одну задачу этого source UUID и всего две задачи
+с двумя событиями. Локальное досье для запроса не появилось. JWT передавался
+только в окружение проверочного child process. Постоянные credentials shell/IDE
+и credential helper этим запуском не настроены; новый CLI create без настройки подключения
+по-прежнему выбирает локальный резерв `not_configured`.
 
 Миграция контекста чата добавляет таблицу и nullable-поля; текст сообщения
 становится необязательным для отправки изображения без подписи. Откат версии
@@ -572,10 +638,11 @@ Generic kernel дополнительно проверен на атомарно
 чтения повреждённого appearance и независимом native выборе: 17 tests прошли.
 Это проверка source migration и persistence, не production acceptance.
 
-Миграция к рабочей БД не применена; main migration receipts и deployment
-не менялись. До разрешённого применения source API показывает `requires_schema`
-и блокирует запись с `SCHEMA_REQUIRED`, а System Admin SSR использует проверенное
-начальное compiled назначение. Иные SQL ошибки и повреждённый JSON завершаются
+При preflight 19 октября 2026 года в рабочей БД обнаружен receipt этой миграции
+от 12 октября, batch 19. Это подтверждение наличия схемы, не отдельная live
+acceptance appearance API. Для установки без этой миграции source API показывает
+`requires_schema` и блокирует запись с `SCHEMA_REQUIRED`, а System Admin SSR
+использует проверенное начальное compiled назначение. Иные SQL ошибки и повреждённый JSON завершаются
 безопасным отказом. Schema push, автоматический apply из HTTP и операция
 установки нового package этим этапом не предоставлены. Контракт —
 [менеджер расширений](../specifications/extension-management.md#state-immutable-ledger-и-атомарность).

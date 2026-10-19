@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/support/taskManagerAcceptance/createTaskManagerFixtureOptions.config.ts
- * @version 1.0.1
- * @date 2026-10-15
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Выбирает явно назначенное локальное досье и уникальные каталоги одного browser запуска.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -31,6 +31,9 @@ export function createTaskManagerFixtureOptions(
     throw new Error("TASK_BROWSER_DATABASE_INVALID");
   }
   source = normalizeFixtureDatabaseSource(source);
+  const profile = environment.PLATFORM_BROWSER_PROFILE ?? "tasks";
+  if (profile !== "tasks" && profile !== "access")
+    throw new Error("FIXTURE_PROFILE_INVALID");
   const attempt = `task-browser-${runId}`;
   return {
     root: resolve(root),
@@ -39,6 +42,7 @@ export function createTaskManagerFixtureOptions(
     runId,
     attemptId: randomUUID(),
     source,
+    profile,
     paths: {
       logs: `logs/${attempt}`,
       screenshots: `screenshots/${attempt}`,

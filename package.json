@@ -65,7 +65,9 @@
     "check:task-workspace": "npm run typecheck:task-workspace && npm run lint:task-workspace && node --import=tsx/esm --test packages/payload-task-manager/src/contracts/workspace/workspaceContracts.test.ts .ai/tools/task-workspace/test/*.test.mjs",
     "check:task-fixture": "node --import=tsx/esm --test --test-concurrency=1 tests/e2e/support/taskManagerAcceptance/*.test.ts",
     "typecheck:task-workspace": "tsc --project .ai/tools/task-workspace/tsconfig.json",
-    "lint:task-workspace": "eslint --config .ai/tools/task-workspace/eslint.config.mjs \".ai/tools/task-workspace/src/**/*.{mjs,ts}\" \".ai/tools/task-workspace/test/**/*.mjs\" .ai/tools/task-workspace/eslint.config.mjs"
+    "lint:task-workspace": "eslint --config .ai/tools/task-workspace/eslint.config.mjs \".ai/tools/task-workspace/src/**/*.{mjs,ts}\" \".ai/tools/task-workspace/test/**/*.mjs\" .ai/tools/task-workspace/eslint.config.mjs",
+    "check:access:postgres": "node scripts/runtime/verifyTaskManager.controller.mjs access",
+    "check:access:browser": "cross-env PLATFORM_BROWSER_PROFILE=access node --import=tsx/esm tests/e2e/support/runTaskManagerAcceptance.fixture.ts"
   },
   "keywords": [],
   "author": "",
@@ -132,7 +134,8 @@
     "stripe": "^22.3.1",
     "tailwind-merge": "^3.6.0",
     "typescript": "6.0.3",
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "@realize/payload-access-management": "0.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",

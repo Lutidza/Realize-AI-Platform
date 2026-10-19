@@ -578,6 +578,13 @@ props. `/system/task-manager` использует тот же gate и shell с 
 Next определяет зависимость защищённого экрана от запроса до подключения к БД.
 Это позволяет штатной production-сборке без DB credentials пропустить
 prerender защищённых страниц; сессия и роль проверяются при реальном запросе.
+Центр `/system/access` и подтверждение CLI `/system/access/device` используют
+тот же template host с режимом `cookieOnly`: непустая Users cookie, отключённый
+autoLogin, проверенная `local-jwt` strategy и отсутствие Authorization header.
+Оба точных management route доступны также при native shell policy; остальные
+рабочие маршруты сохраняют прежний guard. Native entry и раздел настроек ведут
+в центр доступов, карточка Users — на owner-фильтр. Lifecycle, scopes и
+одноразовая выдача секрета определены в [контракте доступов](platform-access.md).
 `/reference/task-manager` остаётся публичной демонстрацией вымышленных данных.
 
 Admin entry отдельно показывает «Референс задач» (`/system/task-manager/reference`)

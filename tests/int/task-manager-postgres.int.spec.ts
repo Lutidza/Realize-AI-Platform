@@ -1,7 +1,7 @@
 /**
  * @file tests/int/task-manager-postgres.int.spec.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.3.0
+ * @date 2026-10-19
  * @description Проверяет постоянные задачи, ACL, replay, CAS и защищённую историю на отдельной мигрированной PostgreSQL БД.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -51,6 +51,9 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
     )!;
     const gitMigration = migrations.find((migration) =>
       /_task_git_sync$/.test(migration.name),
+    )!;
+    const workspaceMigration = migrations.find((migration) =>
+      /_task_workspace_intake$/.test(migration.name),
     )!;
 
     const migrate = async (operation: typeof foundation.up) => {
@@ -148,10 +151,12 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
         ).rows[0].count,
       ).toBe(0);
       for (const migration of migrations) await migrate(migration.up);
+      await migrate(workspaceMigration.down);
       await migrate(gitMigration.down);
       await migrate(foundation.down);
       await migrate(foundation.up);
       await migrate(gitMigration.up);
+      await migrate(workspaceMigration.up);
       payload = await openMcpPayload();
       const user = async (role: "admin" | "customer", name: string) => ({
         ...(await payload.create({
@@ -232,6 +237,333 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
         task,
       ]);
       expect((await (await service()).events(task.id)).items).toHaveLength(1);
+    });
+
+    it("lets only the owner update projects, keeps owner membership and compares member sets", async () => {
+      const { project: created, listId, task } = await create();
+      const command = {
+        title: "Управляемый проект",
+        description: "Обновлённое описание",
+        memberIds: [String(member.id), String(stranger.id)],
+        expectedRevision: created.revision,
+      };
+      expect(await (await service(member)).projectById(created.id)).toEqual(
+        created,
+      );
+      expect(await (await service(member)).listById(listId)).toMatchObject({
+        id: listId,
+        projectId: created.id,
+      });
+      await expect(
+        (await service(member)).updateProject(created.id, command),
+      ).rejects.toMatchObject({ status: 403 });
+      await expect(
+        (await service(stranger)).updateProject(created.id, command),
+      ).rejects.toMatchObject({ status: 404 });
+      const key = randomUUID();
+      const changed = await (
+        await service(owner, key)
+      ).updateProject(created.id, command);
+      expect(changed).toMatchObject({
+        id: created.id,
+        ownerId: String(owner.id),
+        revision: 2,
+        title: command.title,
+        description: command.description,
+      });
+      expect([...changed.memberIds].sort()).toEqual(
+        [String(owner.id), String(member.id), String(stranger.id)].sort(),
+      );
+      expect((await (await service(stranger)).projects()).items).toContainEqual(
+        changed,
+      );
+      expect(
+        await (
+          await service(owner, key)
+        ).updateProject(created.id, {
+          ...command,
+          memberIds: [...changed.memberIds].reverse(),
+        }),
+      ).toEqual(changed);
+      await expect(
+        (await service(owner, key)).updateProject(created.id, {
+          ...command,
+          title: "Different command",
+        }),
+      ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+      const noOp = await (
+        await service()
+      ).updateProject(created.id, {
+        ...command,
+        memberIds: [...changed.memberIds].reverse(),
+        expectedRevision: changed.revision,
+      });
+      expect(noOp).toEqual(changed);
+      expect(await (await service()).task(task.id)).toEqual(task);
+      expect(await (await service()).listById(listId)).toMatchObject({
+        id: listId,
+        projectId: created.id,
+        revision: 1,
+      });
+      const later = await (
+        await service()
+      ).updateProject(created.id, {
+        ...command,
+        title: "Latest title",
+        expectedRevision: changed.revision,
+      });
+      expect(
+        await (await service(owner, key)).updateProject(created.id, command),
+      ).toEqual(changed);
+      expect(await (await service()).projectById(created.id)).toEqual(later);
+    });
+
+    it("creates and renames lists with member ACL, stable references, receipts and no-op revisions", async () => {
+      const { project: created } = await project();
+      const createKey = randomUUID();
+      const command = { projectId: created.id, title: "Дополнительный список" };
+      const list = await (await service(member, createKey)).createList(command);
+      expect(list).toMatchObject({
+        projectId: created.id,
+        title: command.title,
+        revision: 1,
+      });
+      expect(
+        await (await service(member, createKey)).createList(command),
+      ).toEqual(list);
+      expect((await (await service()).lists(created.id)).items).toHaveLength(2);
+      await expect(
+        (await service(member, createKey)).createList({
+          ...command,
+          title: "Other",
+        }),
+      ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+      await expect(
+        (await service(stranger)).createList(command),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        (await service(stranger)).listById(list.id),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        (await service(stranger)).updateList(list.id, {
+          title: "Hidden",
+          expectedRevision: 1,
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+      const task = await (
+        await service()
+      ).createTask({ ...editable(), projectId: created.id, listId: list.id });
+      const updateKey = randomUUID();
+      const renamed = await (
+        await service(member, updateKey)
+      ).updateList(list.id, { title: "Переименован", expectedRevision: 1 });
+      expect(renamed).toMatchObject({
+        id: list.id,
+        projectId: created.id,
+        revision: 2,
+      });
+      expect(
+        await (
+          await service()
+        ).updateList(list.id, { title: renamed.title, expectedRevision: 2 }),
+      ).toEqual(renamed);
+      const latest = await (
+        await service()
+      ).updateList(list.id, { title: "Последнее имя", expectedRevision: 2 });
+      expect(
+        await (
+          await service(member, updateKey)
+        ).updateList(list.id, { title: "Переименован", expectedRevision: 1 }),
+      ).toEqual(renamed);
+      expect(
+        await (await service(member, createKey)).createList(command),
+      ).toEqual(list);
+      expect(await (await service()).listById(list.id)).toEqual(latest);
+      expect(await (await service()).task(task.id)).toEqual(task);
+      await expect(
+        (await service(member, updateKey)).updateList(list.id, {
+          title: "Other",
+          expectedRevision: 1,
+        }),
+      ).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+    });
+
+    it("revokes member reads and receipt replay without rewriting assigned tasks", async () => {
+      const { project: created, listId } = await project();
+      const task = await (
+        await service()
+      ).createTask({
+        ...editable(),
+        projectId: created.id,
+        listId,
+        assigneeId: String(member.id),
+      });
+      const createKey = randomUUID();
+      const createCommand = { projectId: created.id, title: "Member list" };
+      const list = await (
+        await service(member, createKey)
+      ).createList(createCommand);
+      const updateKey = randomUUID();
+      const updateCommand = { title: "Member edit", expectedRevision: 1 };
+      await (
+        await service(member, updateKey)
+      ).updateList(list.id, updateCommand);
+      const changed = await (
+        await service()
+      ).updateProject(created.id, {
+        title: created.title,
+        description: created.description,
+        memberIds: [],
+        expectedRevision: 1,
+      });
+      expect(changed.memberIds).toEqual([String(owner.id)]);
+      expect(
+        (await (await service(member)).projects()).items.some(
+          (item) => item.id === created.id,
+        ),
+      ).toBe(false);
+      for (const call of [
+        async () => (await service(member)).projectById(created.id),
+        async () => (await service(member)).listById(list.id),
+        async () => (await service(member)).task(task.id),
+        async () =>
+          (await service(member, createKey)).createList(createCommand),
+        async () =>
+          (await service(member, updateKey)).updateList(list.id, updateCommand),
+      ])
+        await expect(call()).rejects.toMatchObject({ status: 404 });
+      expect(await (await service()).task(task.id)).toEqual(task);
+      await expect(
+        (await service()).updateTask(task.id, {
+          ...editable(task),
+          title: "Assignee must be current",
+          expectedRevision: 1,
+        }),
+      ).rejects.toMatchObject({ status: 422 });
+      expect(
+        await (
+          await service()
+        ).updateTask(task.id, {
+          ...editable(task),
+          assigneeId: null,
+          expectedRevision: 1,
+        }),
+      ).toMatchObject({ assigneeId: null, revision: 2 });
+    });
+
+    it("serializes project and list CAS races under their existing project lock", async () => {
+      const { project: created, listId } = await project();
+      const projectResults = await Promise.allSettled(
+        [0, 1].map(async (index) =>
+          (await service()).updateProject(created.id, {
+            title: `Project race ${index}`,
+            description: created.description,
+            memberIds: created.memberIds,
+            expectedRevision: 1,
+          }),
+        ),
+      );
+      const listResults = await Promise.allSettled(
+        [owner, member].map(async (actor, index) =>
+          (await service(actor)).updateList(listId, {
+            title: `List race ${index}`,
+            expectedRevision: 1,
+          }),
+        ),
+      );
+      for (const results of [projectResults, listResults]) {
+        expect(
+          results.filter((item) => item.status === "fulfilled"),
+        ).toHaveLength(1);
+        expect(
+          results.filter((item) => item.status === "rejected"),
+        ).toMatchObject([
+          { reason: { status: 409, code: "REVISION_CONFLICT" } },
+        ]);
+      }
+      expect(await (await service()).projectById(created.id)).toMatchObject({
+        revision: 2,
+      });
+      expect(await (await service()).listById(listId)).toMatchObject({
+        revision: 2,
+      });
+    });
+
+    it("rejects ineligible/oversized membership and rolls back container changes when receipt persistence fails", async () => {
+      const { project: created, listId } = await project();
+      const command = {
+        title: "Changed",
+        description: created.description,
+        memberIds: [String(stranger.id)],
+        expectedRevision: 1,
+      };
+      for (const memberIds of [
+        [String(customer.id)],
+        ["missing-user"],
+        ["2147483648"],
+        Array.from({ length: 101 }, (_, index) => `non-owner-${index}`),
+      ])
+        await expect(
+          (await service()).updateProject(created.id, {
+            ...command,
+            memberIds,
+          }),
+        ).rejects.toMatchObject({ status: 422 });
+      const originalList = await (await service()).listById(listId);
+      const receiptsBefore = (
+        await db.query(
+          "SELECT count(*)::int AS count FROM realize_task_operations WHERE project_id=$1",
+          [created.id],
+        )
+      ).rows[0].count;
+      await db.query(`CREATE FUNCTION realize_task_test_fail_container_receipt() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+        IF NEW.project_id = '${created.id}' THEN RAISE EXCEPTION 'TASK_TEST_CONTAINER_RECEIPT_FAILURE'; END IF;
+        RETURN NEW; END $$;
+        CREATE TRIGGER realize_task_test_container_receipt_failure BEFORE INSERT ON realize_task_operations
+        FOR EACH ROW EXECUTE FUNCTION realize_task_test_fail_container_receipt();`);
+      try {
+        await expect(
+          (await service()).updateProject(created.id, command),
+        ).rejects.toThrow();
+        await expect(
+          (await service()).createList({
+            projectId: created.id,
+            title: "Rolled back",
+          }),
+        ).rejects.toThrow();
+        await expect(
+          (await service()).updateList(listId, {
+            title: "Rolled back",
+            expectedRevision: 1,
+          }),
+        ).rejects.toThrow();
+        expect(await (await service()).projectById(created.id)).toEqual(
+          created,
+        );
+        expect((await (await service(member)).projects()).items).toContainEqual(
+          created,
+        );
+        expect(
+          (await (await service(stranger)).projects()).items.some(
+            (item) => item.id === created.id,
+          ),
+        ).toBe(false);
+        expect((await (await service()).lists(created.id)).items).toEqual([
+          originalList,
+        ]);
+        expect(
+          (
+            await db.query(
+              "SELECT count(*)::int AS count FROM realize_task_operations WHERE project_id=$1",
+              [created.id],
+            )
+          ).rows[0].count,
+        ).toBe(receiptsBefore);
+      } finally {
+        await db.query(
+          "DROP TRIGGER realize_task_test_container_receipt_failure ON realize_task_operations; DROP FUNCTION realize_task_test_fail_container_receipt();",
+        );
+      }
     });
 
     it("saves updates with the real actor and replays without increasing revision or event count", async () => {
@@ -894,6 +1226,267 @@ describe.skipIf(!process.env.TASK_TEST_DATABASE_URI)(
       expect((await (await service()).projects()).items.length).toBeGreaterThan(
         0,
       );
+    });
+
+    it("creates from workspace without a header and replays the current task across actors and restart", async () => {
+      const scope = await project();
+      const input = {
+        ...editable(),
+        clientTaskId: randomUUID(),
+        projectId: scope.project.id,
+        listId: scope.listId,
+      };
+      const req = await request();
+      req.headers.delete("idempotency-key");
+      const first = await createTaskManagerService(
+        req,
+        taskManagerOptions,
+      ).createTaskFromWorkspace({
+        ...input,
+        clientTaskId: input.clientTaskId.toUpperCase(),
+        title: `  ${input.title}  `,
+      });
+      expect(first.disposition).toBe("created");
+      expect(first.task.createdBy).toBe(String(owner.id));
+      const updated = await (
+        await service(member)
+      ).updateTask(first.task.id, {
+        ...editable(first.task),
+        title: "Изменено в Task Manager",
+        expectedRevision: 1,
+      });
+      await payload.destroy();
+      payload = await openMcpPayload();
+      expect(
+        await (await service(member)).createTaskFromWorkspace(input),
+      ).toEqual({
+        task: updated,
+        disposition: "existing",
+      });
+      expect(
+        (await (await service()).events(first.task.id)).items,
+      ).toHaveLength(2);
+      const stored = await db.query(
+        "SELECT workspace_source_id, workspace_create_hash FROM realize_tasks WHERE task_id=$1",
+        [first.task.id],
+      );
+      expect(stored.rows).toEqual([
+        {
+          workspace_source_id: input.clientTaskId,
+          workspace_create_hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        },
+      ]);
+    });
+
+    it("serializes the same global source across actors and rejects a competing target", async () => {
+      const firstScope = await project();
+      const secondScope = await project();
+      const input = {
+        ...editable(),
+        clientTaskId: randomUUID(),
+        projectId: firstScope.project.id,
+        listId: firstScope.listId,
+      };
+      const result = await Promise.all(
+        [owner, member].map(async (actor) =>
+          (await service(actor)).createTaskFromWorkspace(input),
+        ),
+      );
+      expect(result.map((item) => item.disposition).sort()).toEqual([
+        "created",
+        "existing",
+      ]);
+      expect(result[0].task.id).toBe(result[1].task.id);
+      expect(
+        (await (await service()).events(result[0].task.id)).items,
+      ).toHaveLength(1);
+
+      const competingId = randomUUID();
+      const competing = await Promise.allSettled([
+        (async () =>
+          (await service(owner)).createTaskFromWorkspace({
+            ...input,
+            clientTaskId: competingId,
+          }))(),
+        (async () =>
+          (await service(member)).createTaskFromWorkspace({
+            ...input,
+            clientTaskId: competingId,
+            projectId: secondScope.project.id,
+            listId: secondScope.listId,
+          }))(),
+      ]);
+      expect(
+        competing.filter((item) => item.status === "fulfilled"),
+      ).toHaveLength(1);
+      expect(
+        competing.filter((item) => item.status === "rejected"),
+      ).toMatchObject([
+        { reason: { code: "WORKSPACE_SOURCE_CONFLICT", status: 409 } },
+      ]);
+      expect(
+        (
+          await db.query(
+            "SELECT count(*)::int AS count FROM realize_tasks WHERE workspace_source_id=$1",
+            [competingId],
+          )
+        ).rows[0].count,
+      ).toBe(1);
+    });
+
+    it("checks intake ACL before source lookup and rejects changed commands, missing lists and forged actor fields", async () => {
+      const scope = await project();
+      const input = {
+        ...editable(),
+        clientTaskId: randomUUID(),
+        projectId: scope.project.id,
+        listId: scope.listId,
+      };
+      await (await service()).createTaskFromWorkspace(input);
+      for (const [actor, status] of [
+        [null, 401],
+        [customer, 403],
+        [stranger, 404],
+      ] as const)
+        await expect(
+          (await service(actor)).createTaskFromWorkspace(input),
+        ).rejects.toMatchObject({ status });
+      for (const change of [{ title: "Changed" }, { listId: randomUUID() }])
+        await expect(
+          (await service()).createTaskFromWorkspace({ ...input, ...change }),
+        ).rejects.toMatchObject({
+          status: 409,
+          code: "WORKSPACE_SOURCE_CONFLICT",
+        });
+      await expect(
+        (await service()).createTaskFromWorkspace({
+          ...input,
+          createdBy: String(stranger.id),
+        }),
+      ).rejects.toMatchObject({ status: 422 });
+      const missingId = randomUUID();
+      await expect(
+        (await service()).createTaskFromWorkspace({
+          ...input,
+          clientTaskId: missingId,
+          listId: randomUUID(),
+        }),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(
+        (await service()).createTaskFromWorkspace({
+          ...input,
+          clientTaskId: missingId,
+          assigneeId: String(stranger.id),
+        }),
+      ).rejects.toMatchObject({ status: 422 });
+      expect(
+        (
+          await db.query(
+            "SELECT count(*)::int AS count FROM realize_tasks WHERE workspace_source_id=$1",
+            [missingId],
+          )
+        ).rows[0].count,
+      ).toBe(0);
+      const row = await payload.find({
+        collection: TASK_PROJECTS_SLUG,
+        overrideAccess: true,
+        where: { projectId: { equals: scope.project.id } },
+        limit: 1,
+      });
+      await payload.update({
+        collection: TASK_PROJECTS_SLUG,
+        id: row.docs[0].id,
+        overrideAccess: true,
+        data: {
+          members: [owner.id],
+          record: { ...scope.project, memberIds: [String(owner.id)] },
+        },
+      });
+      await expect(
+        (await service(member)).createTaskFromWorkspace(input),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+
+    it("rolls back source/task/event together and leaves an inherited transaction intact", async () => {
+      const scope = await project();
+      const input = {
+        ...editable(),
+        clientTaskId: randomUUID(),
+        projectId: scope.project.id,
+        listId: scope.listId,
+      };
+      await db.query(`CREATE FUNCTION realize_task_workspace_test_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+        IF NEW.project_id = '${scope.project.id}' THEN RAISE EXCEPTION 'TASK_WORKSPACE_TEST_EVENT_FAILURE'; END IF;
+        RETURN NEW; END $$;
+        CREATE TRIGGER realize_task_workspace_test_failure BEFORE INSERT ON realize_task_events FOR EACH ROW EXECUTE FUNCTION realize_task_workspace_test_failure();`);
+      try {
+        await expect(
+          (await service()).createTaskFromWorkspace(input),
+        ).rejects.toThrow();
+        expect(
+          (
+            await db.query(
+              "SELECT count(*)::int AS count FROM realize_tasks WHERE workspace_source_id=$1",
+              [input.clientTaskId],
+            )
+          ).rows[0].count,
+        ).toBe(0);
+      } finally {
+        await db.query(
+          "DROP TRIGGER realize_task_workspace_test_failure ON realize_task_events; DROP FUNCTION realize_task_workspace_test_failure();",
+        );
+      }
+      const req = await request();
+      expect(await initTransaction(req)).toBe(true);
+      const outer = req.transactionID;
+      try {
+        await expect(
+          createTaskManagerService(
+            req,
+            taskManagerOptions,
+          ).createTaskFromWorkspace(input),
+        ).rejects.toMatchObject({ status: 503 });
+        expect(req.transactionID).toBe(outer);
+      } finally {
+        await killTransaction(req);
+      }
+      expect(
+        (await (await service()).createTaskFromWorkspace(input)).disposition,
+      ).toBe("created");
+    });
+
+    it("keeps ordinary creates source-free and protects source identity/hash and populated rollback in PostgreSQL", async () => {
+      const { task } = await create();
+      expect(
+        (
+          await db.query(
+            "SELECT workspace_source_id, workspace_create_hash FROM realize_tasks WHERE task_id=$1",
+            [task.id],
+          )
+        ).rows,
+      ).toEqual([{ workspace_source_id: null, workspace_create_hash: null }]);
+      const input = {
+        ...editable(),
+        clientTaskId: randomUUID(),
+        projectId: task.projectId,
+        listId: task.listId,
+      };
+      const intake = await (await service()).createTaskFromWorkspace(input);
+      for (const statement of [
+        "UPDATE realize_tasks SET workspace_source_id=NULL WHERE task_id=$1",
+        "UPDATE realize_tasks SET workspace_create_hash=repeat('f',64) WHERE task_id=$1",
+        "DELETE FROM realize_tasks WHERE task_id=$1",
+      ])
+        await expect(db.query(statement, [intake.task.id])).rejects.toThrow(
+          "TASK_WORKSPACE_SOURCE_IMMUTABLE",
+        );
+      await expect(migrate(workspaceMigration.down)).rejects.toThrow(
+        "TASK_WORKSPACE_ROLLBACK_BLOCKED",
+      );
+      expect(await (await service()).createTaskFromWorkspace(input)).toEqual({
+        task: intake.task,
+        disposition: "existing",
+      });
     });
   },
 );

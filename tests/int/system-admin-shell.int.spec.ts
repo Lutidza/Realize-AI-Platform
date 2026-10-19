@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-shell.int.spec.ts
- * @version 1.4.0
- * @date 2026-10-12
+ * @version 1.5.0
+ * @date 2026-10-19
  * @description Проверяет отказ в доступе и безопасный контекст самостоятельной системной админки.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -108,6 +108,112 @@ describe("Проверка доступа системной админки", ()
     expect(mocks.cookies).not.toHaveBeenCalled();
     expect(mocks.runtimeAssignment).not.toHaveBeenCalled();
   });
+
+  it.each([
+    new Headers(),
+    new Headers({ authorization: "Bearer fixture" }),
+    new Headers({
+      authorization: "Bearer fixture",
+      cookie: "payload-token=fixture",
+    }),
+    new Headers({ cookie: "other-token=fixture" }),
+    new Headers({ cookie: "payload-token=" }),
+  ])(
+    "центр доступов не принимает bearer или отсутствие Users cookie",
+    async (requestHeaders) => {
+      mocks.headers.mockResolvedValue(requestHeaders);
+      mocks.auth.mockResolvedValue({
+        user: { id: 1, collection: "users", roles: ["admin"] },
+      });
+      await expect(
+        requireSystemAdmin("/system/access", { cookieOnly: true }),
+      ).rejects.toThrow("redirect:/admin/login?redirect=%2Fsystem%2Faccess");
+      expect(mocks.auth).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["/system/access", "/system/access/device"])(
+    "открывает management route %s через cookie при native-only policy",
+    async (route) => {
+      mocks.headers.mockResolvedValue(
+        new Headers({ cookie: "payload-token=fixture" }),
+      );
+      mocks.auth.mockResolvedValue({
+        user: {
+          id: 1,
+          collection: "users",
+          roles: ["admin"],
+          _strategy: "local-jwt",
+        },
+      });
+      mocks.shellRuntime.mockResolvedValue({
+        effectiveMode: "native",
+        requiresRecovery: false,
+        policy: {
+          enabled: { native: true, template: false },
+          nativeRoute: "/admin",
+        },
+      });
+      const context = await requireSystemAdmin(route, { cookieOnly: true });
+      expect(context.currentActor.id).toBe("1");
+      expect(mocks.auth).toHaveBeenCalledOnce();
+      expect(mocks.auth.mock.calls[0][0].headers.get("DisableAutologin")).toBe(
+        "true",
+      );
+    },
+  );
+
+  it.each([
+    "/system/access/other",
+    "/system/access-unsafe",
+    "/system/task-manager",
+  ])("не расширяет native-only allowlist на %s", async (route) => {
+    mocks.headers.mockResolvedValue(
+      new Headers({ cookie: "payload-token=fixture" }),
+    );
+    mocks.auth.mockResolvedValue({
+      user: {
+        id: 1,
+        collection: "users",
+        roles: ["admin"],
+        _strategy: "local-jwt",
+      },
+    });
+    mocks.shellRuntime.mockResolvedValue({
+      effectiveMode: "native",
+      requiresRecovery: false,
+      policy: {
+        enabled: { native: true, template: false },
+        nativeRoute: "/admin",
+      },
+    });
+    await expect(
+      requireSystemAdmin(route, { cookieOnly: true }),
+    ).rejects.toThrow("redirect:/admin");
+  });
+
+  it.each([undefined, "api-key", "autologin"])(
+    "не принимает cookie при неподходящей auth strategy %s",
+    async (strategy) => {
+      mocks.headers.mockResolvedValue(
+        new Headers({ cookie: "payload-token=fixture" }),
+      );
+      mocks.auth.mockResolvedValue({
+        user: {
+          id: 1,
+          collection: "users",
+          roles: ["admin"],
+          _strategy: strategy,
+        },
+      });
+      await expect(
+        requireSystemAdmin("/system/access", { cookieOnly: true }),
+      ).rejects.toThrow("redirect:/admin/login?redirect=%2Fsystem%2Faccess");
+      expect(mocks.auth.mock.calls[0][0].headers.get("DisableAutologin")).toBe(
+        "true",
+      );
+    },
+  );
 
   it.each([
     { collection: "users", roles: ["customer"] },

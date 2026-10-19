@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-navigation.int.spec.ts
- * @version 1.9.2
- * @date 2026-10-12
+ * @version 1.10.0
+ * @date 2026-10-19
  * @description Проверяет группы подпунктов, hover, клавиатурную и мобильную навигацию системного меню.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -20,6 +20,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SystemAdminNavigation } from "../../packages/template-realize/src/layouts/admin/SystemAdminNavigation.component";
 import type { SystemAdminNavigationItem } from "../../packages/template-realize/src/layouts/admin/SystemAdminShell.types";
 import type { SystemAdminNavigationPreferences } from "../../packages/template-realize/src/layouts/admin/systemAdminNavigationPreferences.types";
+import { getSystemAdminNavigation } from "../../src/components/admin/system-shell/systemAdmin.navigation";
+import { filterSystemAdminNavigation } from "../../src/components/admin/system-shell/filterSystemAdminNavigation.util";
 
 const scrollIntoViewDescriptor = Object.getOwnPropertyDescriptor(
   HTMLElement.prototype,
@@ -1604,5 +1606,51 @@ describe("Общая навигация системной админки", () =
     ).toBe("false");
     expect(openHome).not.toHaveBeenCalled();
     expect(props.onNavigationPreferencesChange).not.toHaveBeenCalled();
+  });
+});
+
+describe("Навигация центра доступов", () => {
+  it.each([
+    ["/system/access", "settings-access-tokens"],
+    ["/system/access/device", "settings-access-device"],
+  ])("отмечает только текущий settings route %s", (currentPath, activeId) => {
+    const settings = getSystemAdminNavigation({
+      onTasks: () => undefined,
+      currentPath,
+    }).find((item) => item.id === "settings");
+    const links = settings?.groups?.flatMap((group) => group.items) ?? [];
+    expect(settings?.href).toBe("/system/access");
+    expect(links.map((link) => [link.label, link.href])).toEqual([
+      ["Доступы и токены", "/system/access"],
+      ["Подключение CLI", "/system/access/device"],
+      ["MCP-серверы", "/admin/mcp-servers"],
+    ]);
+    expect(links.filter((link) => link.active).map((link) => link.id)).toEqual([
+      activeId,
+    ]);
+  });
+
+  it("применяет существующий native filter только к переходу MCP", () => {
+    const navigation = getSystemAdminNavigation({
+      onTasks: () => undefined,
+      currentPath: "/system/access",
+    });
+    const settings = filterSystemAdminNavigation(navigation, false).find(
+      (item) => item.id === "settings",
+    );
+    const links = settings?.groups?.flatMap((group) => group.items) ?? [];
+    expect(
+      links.find((link) => link.id === "settings-mcp-servers"),
+    ).toMatchObject({
+      href: undefined,
+      disabled: true,
+      statusLabel: "Недоступно в этой установке",
+    });
+    expect(
+      links.find((link) => link.id === "settings-access-tokens"),
+    ).toMatchObject({ href: "/system/access", active: true });
+    expect(
+      links.find((link) => link.id === "settings-access-device")?.href,
+    ).toBe("/system/access/device");
   });
 });

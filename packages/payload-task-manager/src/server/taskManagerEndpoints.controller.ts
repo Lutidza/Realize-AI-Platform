@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/taskManagerEndpoints.controller.ts
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.4.0
+ * @date 2026-10-19
  * @description Адаптирует authenticated Task HTTP к серверному facade с безопасными envelopes.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -96,9 +96,29 @@ export function createTaskEndpoints(
     endpoint("/projects", "post", async (service, req) =>
       service.createProject(await readTaskBody(req)),
     ),
+    endpoint("/projects/:id", "get", (service, req) => {
+      query(req, emptyQuery);
+      return service.projectById(id(req));
+    }),
+    endpoint("/projects/:id", "patch", async (service, req) => {
+      query(req, emptyQuery);
+      return service.updateProject(id(req), await readTaskBody(req));
+    }),
     endpoint("/lists", "get", (service, req) => {
       const input = query(req, listQuery);
       return service.lists(input.projectId, input.after ?? null);
+    }),
+    endpoint("/lists", "post", async (service, req) => {
+      query(req, emptyQuery);
+      return service.createList(await readTaskBody(req));
+    }),
+    endpoint("/lists/:id", "get", (service, req) => {
+      query(req, emptyQuery);
+      return service.listById(id(req));
+    }),
+    endpoint("/lists/:id", "patch", async (service, req) => {
+      query(req, emptyQuery);
+      return service.updateList(id(req), await readTaskBody(req));
     }),
     endpoint("/tasks", "get", (service, req) => {
       const input = query(req, taskQuery);
@@ -107,6 +127,10 @@ export function createTaskEndpoints(
     endpoint("/tasks", "post", async (service, req) =>
       service.createTask(await readTaskBody(req)),
     ),
+    endpoint("/tasks/from-workspace", "post", async (service, req) => {
+      query(req, emptyQuery);
+      return service.createTaskFromWorkspace(await readTaskBody(req));
+    }),
     endpoint("/tasks/:id", "get", (service, req) => service.task(id(req))),
     endpoint("/tasks/:id", "patch", async (service, req) =>
       service.updateTask(id(req), await readTaskBody(req)),

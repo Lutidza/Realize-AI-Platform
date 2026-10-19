@@ -1,0 +1,187 @@
+/**
+ * @file src/components/admin/access-tokens/AccessTokens.module.css
+ * @version 1.0.0
+ * @date 2026-10-19
+ * @description Размещает центр доступов и device confirmation на общих UI tokens.
+ */
+.workbench,
+.stack,
+.fieldset {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-width: 0;
+}
+.workbench {
+  max-width: 1120px;
+  width: 100%;
+  margin-inline: auto;
+}
+.header,
+.sectionHeader,
+.actions,
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.header,
+.sectionHeader {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.35;
+}
+.section h2,
+.card h3 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.intro {
+  margin: 8px 0 0;
+  max-width: 720px;
+  line-height: 1.55;
+  color: var(--ui-color-muted);
+}
+.muted,
+.help,
+.metadata dt {
+  color: var(--ui-color-muted);
+}
+.section,
+.card {
+  display: grid;
+  gap: 16px;
+  padding: var(--ui-space-4);
+  min-width: 0;
+}
+.stackSmall {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.badges {
+  gap: 8px;
+}
+.prefix,
+.command {
+  margin: 0;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.prefix code,
+.command,
+.secret,
+.userCode {
+  font-family: var(--ui-font-monospace);
+}
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 16px;
+  margin: 0;
+  font-size: 13px;
+}
+.metadata dt {
+  margin-bottom: 4px;
+}
+.metadata dd {
+  margin: 0;
+  line-height: 1.5;
+}
+.field {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  min-width: 0;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+}
+.formGrid,
+.infoGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.fieldset legend {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.scopeField {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  font-size: 13px;
+}
+.scopeField strong {
+  font-weight: 500;
+}
+.help {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.ownerForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+.ownerForm .field {
+  flex: 1;
+  max-width: 360px;
+  min-width: min(100%, 220px);
+}
+.device {
+  max-width: 700px;
+}
+.userCode {
+  font-size: 24px;
+  letter-spacing: 0.1em;
+  overflow-wrap: anywhere;
+}
+.codeInput {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: var(--ui-font-monospace);
+}
+.scopeList {
+  padding-inline-start: 20px;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.secret {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+@media (max-width: 700px) {
+  .formGrid,
+  .infoGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .header h1 {
+    font-size: 21px;
+  }
+  .header > .actions {
+    width: 100%;
+  }
+  .header > .actions > button {
+    flex: 1;
+  }
+}

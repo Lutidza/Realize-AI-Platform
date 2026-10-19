@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/TaskGitSync.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Сохраняет immutable Git sync с durable replay, сетью вне locks и свежей ACL/CAS при записи.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -35,7 +35,7 @@ export class TaskGitSyncService {
   async sync(taskId: string, value: unknown): Promise<TaskGitSyncDto> {
     const { req } = this.context;
     await assertIndependentTaskTransaction(req);
-    const actor = await this.context.authorize();
+    const actor = await this.context.authorize("write");
     const input = parseTaskCommand(taskGitSyncInputSchema, value);
     const initial = await this.context.readTask(taskId, actor);
     const operation = `sync-git:${taskId}`;
@@ -154,7 +154,7 @@ export class TaskGitSyncService {
       after,
       "desc",
     );
-    await this.authorizedTask(taskId, actor);
+    await this.authorizedTask(taskId, actor, "read");
     return {
       items: page.rows.map((row) => {
         const sync = mapTaskGitSync(row.record);
@@ -173,8 +173,9 @@ export class TaskGitSyncService {
   private async authorizedTask(
     taskId: string,
     actor: TaskActor,
+    permission: "read" | "write" = "write",
   ): Promise<TaskDto> {
-    const currentActor = await this.context.authorize();
+    const currentActor = await this.context.authorize(permission);
     if (currentActor.id !== actor.id)
       throw new TaskManagerError(
         "FORBIDDEN",

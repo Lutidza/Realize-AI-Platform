@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/task-workspace/src/recovery/recoverWorkspaceOperation.service.mjs
- * @version 1.0.0
- * @date 2026-10-15
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Продолжает известную сохранённую операцию через конечный набор переданных обработчиков.
  * @see documentation/specifications/task-management-execution.md
  */
+import { assertLocalWorkspaceOwnership } from "../remote/RemoteWorkspace.repository.mjs";
 import {
   safeWorkspaceOperationId,
   readWorkspaceOperationState,
@@ -37,6 +38,7 @@ export function recoverWorkspaceOperation(
 ) {
   safeWorkspaceOperationId(operationId);
   return withWorkspaceOperationLock(storage, key, () => {
+    assertLocalWorkspaceOwnership(storage, key);
     const state = readWorkspaceOperationState(storage, key);
     const activeLegacy = state.legacy.filter((ref) => !ref.completed);
     if (activeLegacy.length > 1 || (state.pending && activeLegacy.length))

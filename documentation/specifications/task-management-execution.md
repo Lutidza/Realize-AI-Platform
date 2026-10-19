@@ -1,9 +1,12 @@
 # Task manager — контракт исполнения и интеграции с AI
 
-Версия: **0.13**, 2026-10-13. Статус: **проект технической части ТЗ**.
+Версия: **0.15**, 2026-10-19. Статус: **проект технической части ТЗ с реализованными ограниченными срезами**.
 Читается вместе с [продуктовым ТЗ](task-management.md). Новые сущности,
 команды и состояния ниже — целевой контракт, кроме явно обозначенных
-реализованных срезов §8.1 и §12–14; локальный CLI из §8.1 не расширяет Task API.
+реализованных срезов §8.1–8.3 и §12–14. Intake локального CLI описан отдельно
+в §8.3/§12.4; он не добавляет серверную приёмку или полный artifact lifecycle.
+Выбор контекста и управление Project/List из §12.5 реализованы в исходниках;
+локально активированная сборка пока сохраняет предыдущий серверный интерфейс.
 Этот документ не меняет действующие AI rules и не разрешает запуск/публикацию кода.
 
 Подтверждённое направление постоянного Task Manager, commit/release связей и
@@ -459,17 +462,17 @@ Retention удалённого текста соблюдается: ссылка
 
 ## 8. Артефакты, TASK.md и источники истины
 
-| Данные                                                                                                      | Источник истины                                                                              |
-| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| Проекты, задачи, назначения/handoff, task relations/conversation links, декларативный план, доступ, приёмка | Payload task domain и версии сущностей                                                       |
-| Диалоги, сообщения и исходные message/run relationships                                                     | Существующий conversation owner; task хранит ссылки и разрешённый контекст                   |
-| Переходы workflow, fan-out/join, текущий этап                                                               | Единственный workflow engine; task UI читает проекцию                                        |
-| Конфигурация AI                                                                                             | Существующий AI-layer release/compiler                                                       |
-| Фактический run/job/checkpoint/effect                                                                       | Исходный runtime owner; task хранит refs и восстанавливаемые projections                     |
-| Метаданные файлов, revisions, hashes и права                                                                | Task artifact catalog                                                                        |
-| Бинарное содержимое                                                                                         | Закрытый storage adapter с контролируемой выдачей                                            |
-| Локальный workspace                                                                                         | До cutover — локальный TASK.md по §8.1; после — рабочая проекция/явно импортируемый источник |
-| Native agent session/SQLite registry                                                                        | Собственный runtime инструментов; в task dossier только разрешённые ссылки/сводки            |
+| Данные                                                                                                      | Источник истины                                                                                                                             |
+| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Проекты, задачи, назначения/handoff, task relations/conversation links, декларативный план, доступ, приёмка | Payload task domain и версии сущностей                                                                                                      |
+| Диалоги, сообщения и исходные message/run relationships                                                     | Существующий conversation owner; task хранит ссылки и разрешённый контекст                                                                  |
+| Переходы workflow, fan-out/join, текущий этап                                                               | Единственный workflow engine; task UI читает проекцию                                                                                       |
+| Конфигурация AI                                                                                             | Существующий AI-layer release/compiler                                                                                                      |
+| Фактический run/job/checkpoint/effect                                                                       | Исходный runtime owner; task хранит refs и восстанавливаемые projections                                                                    |
+| Метаданные файлов, revisions, hashes и права                                                                | Task artifact catalog                                                                                                                       |
+| Бинарное содержимое                                                                                         | Закрытый storage adapter с контролируемой выдачей                                                                                           |
+| Локальный workspace                                                                                         | Несвязанный резерв — TASK.md по §8.1; после связи предметный owner — Task API, старый снимок сохранён; полный file cutover остаётся целевым |
+| Native agent session/SQLite registry                                                                        | Собственный runtime инструментов; в task dossier только разрешённые ссылки/сводки                                                           |
 
 Artifact metadata: ID/revision, category, filename, MIME, bytes, content hash,
 storage key, author, task/execution/stage/attempt, createdAt, provenance,
@@ -481,11 +484,15 @@ URL/скачивание проверяют ACL; private files не попада
 Публикация результатов проходит через artifact API с expectedRevision и
 idempotency. Большие файлы загружаются потоково/частями по контракту storage.
 
-После подтверждённого cutover TASK.md становится читаемой проекцией ревизии
+Новая задача прежде всего создаётся в Task Manager (§8.3). Серверное создание
+не создаёт локальный TASK или каталог артефактов. Локальный резерв допускается
+при отсутствии настройки платформы или доказанной недоступности до отправки
+создания. После подтверждённого полного cutover TASK.md становится читаемой проекцией ревизии
 задания, критериев, результатов и handoff. Статус тогда меняется командой task
-API; правка markdown сама по себе его не меняет. До cutover локальное досье
+API; правка markdown сама по себе его не меняет. Несвязанный локальный резерв
 имеет один источник состояния — frontmatter `TASK.md` под управлением §8.1.
-Это явная локальная область, не второй writer серверной задачи.
+После intake сервер владеет предметной задачей, прежний локальный снимок
+сохраняется без синхронизации и доступен только для чтения через CLI.
 Существующие локальные TASK.md не перезаписываются автосинхронизацией.
 Импорт папки — явная операция с preview, hash manifest, сопоставлением
 категорий и исторических участников. Импорт материалов не возобновляет старый run.
@@ -504,6 +511,9 @@ GC повторно проверяет ссылки перед удаление�
 кандидат на очистку» не является автоматическим удалением продуктового досье.
 
 ### 8.1. Реализованный локальный lifecycle (2026-10-15)
+
+Этот подраздел описывает несвязанный локальный резерв. Создание прежде всего
+на сервере, условия fallback и передача владения добавлены в §8.3.
 
 Owner CLI — `.ai/tools/task-workspace`, вход — `npm run task:workspace --`.
 Внутренние владельцы разделены на `cli`, `dossier`, `artifacts`, `producer-group`,
@@ -525,7 +535,7 @@ projection не добавляют серверные поля, routes или CR
 операции, но не требует отдельного управляемого досье или его закрытия/архива.
 Наличие `tasks/<taskId>/` у инструмента само по себе не включает этот lifecycle.
 
-CLI явно выполняет `create`, `adopt`, `inspect`, `status`, `result`, `register`, `settle`,
+CLI явно выполняет `create`, `sync`, `adopt`, `inspect`, `status`, `result`, `register`, `settle`,
 `plan-cleanup`, `cleanup`, `archive`, `reopen`, `recover`. Мутация versioned досье
 требует `--expected-revision`; сложный вход передаётся как JSON через `--input`.
 `create` принимает `--task`, `--title`, `--body-file`, повторяемый
@@ -544,8 +554,8 @@ CLI явно выполняет `create`, `adopt`, `inspect`, `status`, `result`
 `state/runtimeRef/stageId/attemptId`, acceptance, delivery, outcome и
 `archivedAt`. Состояние задачи не выдаётся за состояние процесса. Регистрация
 в `artifact-manifest.json` фиксирует artifact IDs/revisions/hashes и retention;
-result manifests сохраняются в `logs/results/`. До cutover эти локальные
-источники не синхронизируются с API.
+result manifests сохраняются в `logs/results/`. Intake §8.3 передаёт начальную
+постановку; эти локальные lifecycle/artifact поля не синхронизируются с API.
 Локальный `criteriaHash` фиксирует body `TASK.md` целиком; его изменение требует
 нового result manifest и актуальной обязательной приёмки.
 Причина отмены допустима только с `outcome: cancelled`; окончательное body,
@@ -713,6 +723,70 @@ Contracts/owner tests — `npm run check:task-workspace`, orchestration и ре�
 process guards — `npm run check:task-fixture`. Синхронизация с Task API остаётся
 отдельным последующим шагом.
 
+### 8.3. Создание через Task Manager и локальный резерв (2026-10-19)
+
+`task:workspace create` выбирает Task Manager основным источником новой задачи.
+При успешном intake из §12.4 локальный TASK и artifact manifest не создаются.
+Служебная привязка CLI хранит стабильный `clientTaskId`, неизменяемый вход,
+состояние доставки и `taskRef`; это транспортная запись, не второе досье.
+`inspect` читает её без сети и показывает прежний локальный снимок отдельно,
+если он появился при fallback. Статус команды не означает приёмку задачи.
+
+Подключение использует browser `login` и Linux Secret Service по
+[контракту доступов](../architecture/platform-access.md) либо явные
+`REALIZE_TASK_MANAGER_URL` и `REALIZE_TASK_MANAGER_TOKEN` (scoped token или user JWT). Прежние
+`REALIZE_TASK_MANAGER_PROJECT_ID`/`REALIZE_TASK_MANAGER_LIST_ID` игнорируются.
+При настроенном подключении новый `create` требует `--project <UUID>` до сети;
+`--list <UUID>` можно опустить
+только при единственном списке без следующей страницы. Отсутствующий проект
+или неоднозначный список не разрешают fallback. Credentials берутся из keyring или окружения и
+не сохраняются в задачах, журнале или ответе. Полное отсутствие подключения
+даёт локальный резерв `not_configured`; частичная/неверная конфигурация требует
+исправления, не обхода через локальный TASK.
+
+При ненастроенном подключении резерв может не иметь выбора; переданные selectors
+сохраняются для этой задачи. При настроенном, но недоступном соединении fallback
+сохраняет выбранный project. Для новой задачи `--list` требует `--project`; поздний `sync`
+может дополнить недостающие значения, но не заменить известный project, list
+или API base URL. Без выбора резерв остаётся доступным для локальной работы
+и требует явного `sync` с selectors. Pending/remote retry сохраняет прежний
+target и точный payload. Journal v2 читает v1 через преобразование в памяти,
+не переписывая его при `inspect` и не меняя прежние createHash/pending payload.
+
+До первого POST read-only проверка `GET /api/task-manager/projects` отделяет
+недоступность платформы от неизвестного исхода записи. Отказ соединения до
+передачи запроса, timeout предварительного чтения и HTTP 502/503/504 на нём
+допускают fallback. HTTP 401/403/404/409/429, validation и ошибки credentials
+не допускают его. После возможной передачи POST timeout/reset/5xx сохраняют
+pending и требуют точного повтора тем же UUID; последующий offline не разрешает
+создать вторую задачу. Матрица ошибок принадлежит
+[CLI](../../.ai/tools/task-workspace/README.md#task-manager-и-локальный-резерв).
+
+`sync --task <localKey>` явно передаёт managed локальную задачу или повторяет
+pending intake. Старый legacy сначала принимается через явный `adopt`;
+автоматического поиска/import всех TASK нет. Уже выбранный локальный резерв
+повторяет доставку перед следующей CLI mutation при полном подключении
+и сохранённом выборе. При отсутствии проекта автоматическая передача
+откладывается с `remote_selection_required`, при неоднозначном списке —
+с `remote_list_required`, без блокировки локального редактирования.
+Online `create` и явный `sync` требуют исправить выбор.
+При успехе mutation останавливается с `remote_owned`; предметный owner теперь
+сервер. Проверяющего daemon или фоновой синхронизации нет.
+`sync` фиксирует snapshot под task lock и не требует `--expected-revision`.
+Активное execution или producers откладывают автоматическую передачу с
+`remote_sync_deferred_active_work`, позволяя завершить локальную работу;
+явный `sync` отклоняется. `recover` и просмотр cleanup без `--apply` не запускают
+автоматическую доставку.
+
+Подтверждённая связь блокирует локальные мутации, включая прямые services.
+Прежний TASK и артефакты сохраняются без переписывания и очистки. Intake
+передаёт только начальную постановку, не history, files, checks, результаты
+или acceptance. Foundation остаётся `backlog/in_progress/review`;
+локальные `done/closed` не отображаются как серверная приёмка. Полная
+проекция lifecycle, artifact access и проверяемый перенос файлов из
+[продуктового §15](task-management.md#15-разработка-платформы-git-и-переход-к-постоянным-задачам)
+остаются последующими этапами.
+
 ## 9. Нефункциональные требования и миграции
 
 - Все mutation paths имеют validation, ACL, revision/idempotency и audit.
@@ -876,8 +950,9 @@ host подключает Payload plugin и задаёт admission/катало�
 Обычные collection REST/GraphQL CRUD запрещены: операции идут через фасад,
 который проверяет admission, project membership и инварианты, затем использует
 Local API в общей транзакции. Host Realize допускает только администраторов.
-Owner автоматически включён в members; в пилоте все разрешённые члены имеют
-read/write. Участники каталогизируются с сохранением host user-read ACL;
+Owner автоматически включён в members; разрешённые члены имеют read/write
+для задач и списков. Изменение проекта и его состава принадлежит только owner
+(новый source-контракт §12.5). Участники каталогизируются с сохранением host user-read ACL;
 публичный DTO содержит ID/name без email или credentials.
 
 Project create атомарно создаёт List «Задачи». У Project/List/Task постоянные
@@ -904,16 +979,21 @@ Mutation facade в пилоте требует request без внешней `tr
 
 ### 12.2. API и интерфейс
 
-| Endpoint после host `/api`            | Результат                                            |
-| ------------------------------------- | ---------------------------------------------------- |
-| GET/POST `/task-manager/projects`     | Доступные проекты / создание проекта и default List  |
-| GET `/task-manager/lists?projectId=…` | Доступные списки проекта                             |
-| GET `/task-manager/participants`      | Ограниченный каталог допустимых участников           |
-| GET/POST `/task-manager/tasks`        | Страница задач выбранных projectId/listId / создание |
-| GET/PATCH `/task-manager/tasks/:id`   | Точная Task revision / изменение с expectedRevision  |
-| GET `/task-manager/tasks/:id/events`  | Страница истории доступной задачи                    |
+| Endpoint после host `/api`                | Результат                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| GET/POST `/task-manager/projects`         | Доступные проекты / создание проекта и default List                 |
+| GET/PATCH `/task-manager/projects/:id`    | Актуальный проект / изменение metadata и members владельцем (§12.5) |
+| GET `/task-manager/lists?projectId=…`     | Доступные списки проекта                                            |
+| POST `/task-manager/lists`                | Создание списка участником проекта (§12.5)                          |
+| GET/PATCH `/task-manager/lists/:id`       | Актуальный список / переименование участником проекта (§12.5)       |
+| GET `/task-manager/participants`          | Ограниченный каталог допустимых участников                          |
+| GET/POST `/task-manager/tasks`            | Страница задач выбранных projectId/listId / создание                |
+| POST `/task-manager/tasks/from-workspace` | Первичное создание/повтор по `clientTaskId` (§12.4)                 |
+| GET/PATCH `/task-manager/tasks/:id`       | Точная Task revision / изменение с expectedRevision                 |
+| GET `/task-manager/tasks/:id/events`      | Страница истории доступной задачи                                   |
 
-Create/update требуют UUID `Idempotency-Key`. Envelope: `{ok:true,data}` либо
+Обычные create/update требуют UUID `Idempotency-Key`; intake из §12.4
+использует собственный `clientTaskId`. Envelope: `{ok:true,data}` либо
 `{ok:false,error:{code,message,fieldErrors?}}`. Страницы имеют `{items,nextCursor}`;
 `after` задаёт курсор следующей страницы. Cursor связан с actor и scope запроса,
 не раскрывает storage IDs и не расширяет доступ. Ошибки authentication, ACL,
@@ -948,18 +1028,101 @@ Git binding содержит `repositoryId`, полный `commitSha` (40/64 hex
 - Миграции, типы, browser формы/focus/mobile и заданные contract tests проверены;
   существенные непроверенные границы явно указаны.
 
-Срез не разрешает удаление локальных задач: import, artifact storage, agent
-access и cutover из продуктового §15 остаются последующими поставками.
+Срез не разрешает удаление локальных задач: intake §12.4 не заменяет import
+файлов, artifact storage, полный agent access и cutover из продуктового §15.
 
 Проверка PostgreSQL запускается через `npm run check:tasks:postgres`, браузер —
 через `TASK_BROWSER_TASK=.ai-workspace/tasks/<localKey> npm run check:tasks:browser`.
-Для браузера предварительно создаётся managed досье командой `task:workspace create`
-либо явно принимается существующее legacy через `adopt` (§8.1).
+Для браузера требуется существующее несвязанное managed досье локального резерва
+либо явно принятое legacy через `adopt` (§8.1). Успешный серверный `create`
+такого каталога не создаёт; серверная задача не является fixture workspace.
 Обе проверки создают собственную временную БД на loopback PostgreSQL, отключают
 schema push и фоновые AI workers; рабочая БД установки не мигрируется.
 Browser fixture использует отдельный Next process/dist и producer lifecycle
 из §8.2: logs/screenshots остаются в выбранном досье, собственный tmp очищается
 после подтверждённой остановки ресурсов и восстановления Next inputs.
+
+### 12.4. Первичный intake из рабочего слоя (2026-10-19)
+
+`POST /api/task-manager/tasks/from-workspace` принимает строгий
+`TaskWorkspaceCreateInput`: поля `TaskCreateInput` и UUID `clientTaskId`.
+Владельцы — [публичный контракт](../../packages/payload-task-manager/src/contracts/TaskWorkspace.types.ts)
+и [intake service](../../packages/payload-task-manager/src/server/TaskWorkspaceIntake.service.ts).
+Обязательны существующие поля создания, включая `status`, `priority`,
+`assigneeId` и `gitBindings`; произвольный local metadata не принимается.
+Actor определяется Payload user session/JWT либо endpoint-local scoped bearer
+центра доступов, затем проверяются host admission, project membership и принадлежность
+List. Intake требует `task-manager:write`; scoped bearer не открывает generic Payload CRUD.
+
+Task хранит nullable глобально уникальный `workspaceSourceId` и неизменяемый
+hash нормализованного исходного create без actor и `clientTaskId`. Это
+долговечная identity источника, не TTL idempotency receipt. Совпадающие UUID и
+исходный hash возвращают текущий TaskDTO, включая новые разрешённые изменения
+задачи, с `disposition: existing`; первое создание возвращает `created`.
+Другой payload, project или list под тем же UUID дают conflict. Проверка доступа
+предшествует source lookup; чужая задача не раскрывается через deduplication.
+Заголовок `Idempotency-Key` этому endpoint не требуется.
+
+Создание task, начальное audit event и source binding атомарны; конкурирующие
+повторы не создают второй Task. Общий Task update не меняет source identity
+и initial hash. Обычное создание через UI остаётся без workspace source.
+Endpoint не пишет локальную файловую систему, не импортирует TASK/manifest
+и не изменяет категории серверного Foundation. Передача на сервер не является
+приёмкой, архивом либо разрешением на очистку локальных материалов.
+Schema принадлежит source migration `20261019_065606_task_workspace_intake`;
+guards и ограничения rollback описаны в
+[runbook миграций](../delivery/03-migrations-and-rollback.md#1-канонический-порядок-миграций).
+
+Локальная активация проверена 19 октября 2026 года после применения M33 и
+переключения web на build `ETNHSUtT24y6haUFL630m`. Запрос с ключом
+`2026-10-19-task-manager-live-check-44a1` после первоначального HTTP 404
+повторён с прежним `clientTaskId` `138f5f61-a72a-4036-9527-eff4e18b1584`.
+Создана одна `TASK-2` (`7eb06de9-8cc1-4962-b3c9-aaca73dca161`), revision 1,
+в проекте «Рабочий стол» и списке «Задачи». Повтор CLI вернул ту же привязку;
+браузер показал задачу, отдельная read-only проверка БД нашла ровно одну запись
+для source UUID. Общее число задач и событий изменилось с 1/1 на 2/2;
+локальные TASK/manifest не созданы.
+
+Для этой проверки user JWT передавался только в окружение дочернего CLI процесса.
+Постоянные credentials будущих shell/IDE запусков той проверкой не настроены.
+Следующий новый create при полностью незаданном подключении
+по-прежнему создаёт допустимый локальный резерв `not_configured`.
+
+### 12.5. Явный выбор Project/List и управление через CLI (2026-10-19)
+
+Этот срез активирован 19 октября 2026 года в локальной web-сборке
+`Dfi6Wz9am3HM5TVk5N8El` вместе с центром доступов. Само управление проектами
+не требует новой миграции. Подключение CLI
+содержит URL и credentials; выбор `--project`/`--list` закрепляется за конкретной
+задачей по §8.3. Отдельный [центр доступов](../architecture/platform-access.md)
+добавляет M34, browser login и системное хранение credentials.
+
+CLI предоставляет `projects`, `project`, `project-create`, `project-update`,
+`lists`, `list`, `list-create` и `list-update`. Это серверные команды без
+локального fallback, TASK или artifact manifest. Точные аргументы, JSON
+и примеры принадлежат [CLI owner](../../.ai/tools/task-workspace/README.md#проекты-и-списки).
+Чтение возвращает текущий DTO или страницу `{items,nextCursor}`.
+
+Строгие входы принадлежат
+[schemas](../../packages/payload-task-manager/src/contracts/taskManager.schemas.ts)
+и [типам](../../packages/payload-task-manager/src/contracts/TaskManager.types.ts):
+Project update принимает полные `title`, `description`, `memberIds` и
+`expectedRevision`; List create — `projectId`, `title`; List update —
+`title`, `expectedRevision`. Частичная delta в этих входах не поддерживается.
+
+Project update разрешён только owner. Владелец неизменяем и всегда сохраняется
+в members; допускается до 100 остальных участников. Состав заменяется целиком.
+Удаление участника не переписывает существующие task refs и `assigneeId`.
+Любой текущий участник может создавать и переименовывать списки своего проекта;
+projectId списка неизменяем. Delete/archive и передача ownership не предоставлены.
+
+POST/PATCH требуют UUID `Idempotency-Key`; CLI передаёт обязательный
+`--request-id`. При неизвестном исходе повторяют тот же request-id и payload.
+Updates проверяют `expectedRevision` из JSON; конкурентная устаревшая запись
+отклоняется. No-op с теми же metadata и набором members не повышает revision.
+Replay возвращает сохранённый receipt snapshot после новой проверки прав;
+для текущего состояния нужен GET. Это отличается от intake §12.4,
+возвращающего текущую задачу по immutable source identity.
 
 ## 13. Ограниченное чтение Git-фактов (2026-10-12)
 

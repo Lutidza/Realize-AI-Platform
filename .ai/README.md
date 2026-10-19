@@ -41,7 +41,10 @@ runtime_sources:
 [шаблон TASK](templates/task-workspace/TEMPLATE-TASK.md) ссылается на
 [правило рабочей области](rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md);
 машинные schemas принадлежат `@realize/payload-task-manager/workspace-contracts`.
-Этот CLI не запускает runtime и не синхронизирует server Task API.
+CLI сначала создаёт задачу в Task Manager; локальное досье служит резервом
+при ненастроенном или доказанно недоступном подключении. Подтверждённая
+серверная связь сохраняется без переноса файлов и полной синхронизации lifecycle.
+CLI не запускает runtime.
 
 ## Выбор инструкций
 

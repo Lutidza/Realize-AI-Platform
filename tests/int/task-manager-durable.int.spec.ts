@@ -1,7 +1,7 @@
 /**
  * @file tests/int/task-manager-durable.int.spec.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.3.0
+ * @date 2026-10-19
  * @description Проверяет строгий task API, admission, неподтверждённые Git-связи и scoped курсоры.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -203,6 +203,9 @@ describe("durable Task Manager boundaries", () => {
     const service = new TaskManagerService(req, options);
     for (const mutation of [
       () => service.createProject({}),
+      () => service.updateProject("unknown-project", {}),
+      () => service.createList({}),
+      () => service.updateList("unknown-list", {}),
       () => service.createTask({}),
       () => service.updateTask("unknown-task", {}),
     ])
@@ -319,6 +322,6 @@ describe("durable Task Manager boundaries", () => {
     ).rejects.toThrow("endpoint collision");
     const config = await plugin({ secret: "test", db, collections: [users] });
     expect(config.collections).toHaveLength(7);
-    expect(config.endpoints).toHaveLength(12);
+    expect(config.endpoints).toHaveLength(18);
   });
 });

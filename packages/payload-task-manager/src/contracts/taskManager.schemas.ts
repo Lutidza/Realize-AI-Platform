@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/contracts/taskManager.schemas.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.2.0
+ * @date 2026-10-19
  * @description Проверяет ограниченные команды и DTO Task Manager без доверия полям браузера.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -63,10 +63,34 @@ export const taskProjectCreateSchema = z.strictObject({
       "Участники повторяются.",
     ),
 });
+export const taskProjectUpdateSchema = z.strictObject({
+  title,
+  description,
+  memberIds: z
+    .array(actorId)
+    .max(101)
+    .refine(
+      (ids) => new Set(ids).size === ids.length,
+      "Участники повторяются.",
+    ),
+  expectedRevision: revision,
+});
+export const taskListCreateSchema = z.strictObject({
+  projectId: publicId,
+  title,
+});
+export const taskListUpdateSchema = z.strictObject({
+  title,
+  expectedRevision: revision,
+});
 export const taskCreateSchema = z.strictObject({
   projectId: publicId,
   listId: publicId,
   ...editable,
+});
+/** UUID исходного запроса остаётся тем же при retry и смене авторизованного участника. */
+export const taskWorkspaceCreateSchema = taskCreateSchema.extend({
+  clientTaskId: publicId.transform((value) => value.toLowerCase()),
 });
 export const taskUpdateSchema = z.strictObject({
   ...editable,
@@ -110,5 +134,9 @@ export const taskEventSchema = z.strictObject({
   revision,
   occurredAt: timestamp,
   summary: z.string().min(1).max(1000),
+});
+export const taskWorkspaceCreateResultSchema = z.strictObject({
+  task: taskSchema,
+  disposition: z.enum(["created", "existing"]),
 });
 export const taskPublicIdSchema = publicId;

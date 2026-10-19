@@ -24,6 +24,11 @@
   hidden collections, membership ACL, transactional mutations/replay/history,
   endpoints и узкий server facade. Host policy — `src/plugins/taskManager.config.ts`;
   operational UI — `src/components/admin/task-manager/**` вне `reference/`.
+- `packages/payload-access-management/**` — закрытое хранилище scoped credentials,
+  device authorization и CLI refresh; публичные DTO в `./contracts`, endpoint-local
+  проверка bearer в `./server`. Host — `src/plugins/accessManagement.config.ts`,
+  интерфейс — `src/components/admin/access-tokens/**`, маршруты `/system/access`
+  и `/system/access/device`. Контракт — [доступы платформы](platform-access.md).
 - `packages/payload-extension-manager/**` — независимый от AI compiled каталог,
   отдельный `admin-shell/` lifecycle host choice и общий strict-codec persistence kernel,
   browser-safe contracts, pure appearance plans и server facade. Две hidden

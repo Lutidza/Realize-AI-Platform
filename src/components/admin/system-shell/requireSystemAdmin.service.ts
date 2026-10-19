@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/requireSystemAdmin.service.ts
- * @version 1.4.0
- * @date 2026-10-12
+ * @version 1.5.0
+ * @date 2026-10-19
  * @description Проверяет сессию Payload и роль администратора перед выдачей безопасного UI-контекста.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -22,6 +22,10 @@ import { checkRole } from "@/access/utilities";
 import { extensionManagerOptions } from "@/plugins/extensionManager.config";
 import { adminAppearanceConfig } from "./adminAppearance.config";
 import { systemAdminReferenceAppearance } from "./systemAdminReferenceAppearance.config";
+import {
+  SYSTEM_ACCESS_ROUTE,
+  SYSTEM_ACCESS_DEVICE_ROUTE,
+} from "./systemAdmin.routes";
 import type {
   RequireSystemAdminOptions,
   SystemAdminContext,
@@ -35,8 +39,34 @@ export async function requireSystemAdmin(
   // Next должен определить request-bound render до инициализации подключения к БД.
   const requestHeaders = await headers();
   const payload = await getPayload({ config: configPromise });
-  const { user } = await payload.auth({ headers: requestHeaders });
   const adminRoute = payload.config.routes.admin;
+  // Нельзя превратить bearer инструмента в browser управление credential lifecycle.
+  const hasBrowserCookie = Boolean(
+    requestHeaders
+      .get("cookie")
+      ?.split(";")
+      .some(
+        (cookie) =>
+          cookie.trim().startsWith(`${payload.config.cookiePrefix}-token=`) &&
+          cookie.trim().length > `${payload.config.cookiePrefix}-token=`.length,
+      ),
+  );
+  const authHeaders = options.cookieOnly
+    ? new Headers(requestHeaders)
+    : requestHeaders;
+  if (options.cookieOnly) authHeaders.set("DisableAutologin", "true");
+  const authentication =
+    options.cookieOnly &&
+    (requestHeaders.has("authorization") || !hasBrowserCookie)
+      ? { user: null }
+      : await payload.auth({ headers: authHeaders });
+  const user =
+    authentication.user &&
+    (!options.cookieOnly ||
+      ("_strategy" in authentication.user &&
+        authentication.user._strategy === "local-jwt"))
+      ? authentication.user
+      : null;
   if (!user) {
     const loginRoute = formatAdminURL({
       adminRoute,
@@ -67,7 +97,9 @@ export async function requireSystemAdmin(
   if (
     shell &&
     !shell.policy.enabled.template &&
-    !returnTo.startsWith("/system/appearance")
+    !returnTo.startsWith("/system/appearance") &&
+    returnTo !== SYSTEM_ACCESS_ROUTE &&
+    returnTo !== SYSTEM_ACCESS_DEVICE_ROUTE
   )
     redirect(shell.policy.nativeRoute);
   const effective = reference

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/withTaskTransaction.repository.ts
- * @version 1.0.1
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Сериализует replay и изменения проекта PostgreSQL locks в транзакции Payload.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -33,6 +33,7 @@ export async function withTaskTransaction<T>(
   actorId: string,
   projectId: string | null,
   work: () => Promise<T>,
+  additionalLockScopes: readonly string[] = [],
 ): Promise<T> {
   await assertIndependentTaskTransaction(req);
   const ownsTransaction = await initTransaction(req);
@@ -62,6 +63,7 @@ export async function withTaskTransaction<T>(
     for (const scope of [
       `actor:${actorId}`,
       ...(projectId ? [`project:${projectId}`] : []),
+      ...additionalLockScopes,
     ]) {
       const hash = createHash("sha256")
         .update(`realize:task-manager:${scope}`)

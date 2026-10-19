@@ -51,9 +51,11 @@ Payload, которые нужны этому API для разрешения п
 Live приёмка проверила native вход Admin, отказ anonymous/customer, карточки и
 сохранность drafts, 1440/390 light/dark, appearance preview без применения,
 настоящий native preview/dashboard, apply → recover и immutable UUID replay.
-Временные пользователи удалены; ошибки console/page отсутствуют. Итог —
-[delivery report](../../.ai-workspace/tasks/2026-10-12-admin-template-architecture-f3a1/logs/installed-templates-delivery-report.json),
-[live browser evidence](../../.ai-workspace/tasks/2026-10-12-admin-template-architecture-f3a1/logs/shell-installed-auth-browser.json).
+Временные пользователи удалены; ошибки console/page отсутствуют. Итог и
+расположение сохранённых delivery/browser evidence описаны в
+[отчёте передачи](../reports/2026-10-12-admin-template-refactoring-handoff.md).
+19 октября локальное досье перенесено в Task Manager как `TASK-9`, список
+«локальные задачи» проекта «Рабочий стол»; архивный путь указан в описании задачи.
 `sourceVersion` в receipt идентифицирует существующий ограниченный набор search
 sources; он не является digest всего приложения или template package.
 

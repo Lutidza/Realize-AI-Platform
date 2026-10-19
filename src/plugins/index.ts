@@ -1,7 +1,7 @@
 /**
  * @file src/plugins/index.ts
- * @version 1.11.1
- * @date 2026-10-12
+ * @version 1.12.0
+ * @date 2026-10-19
  * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
 
@@ -22,8 +22,10 @@ import {
 import { ecommercePlugin } from "@payloadcms/plugin-ecommerce";
 import { realizeAIPlugin } from "@realize/payload-ai-control";
 import { taskManagerPlugin } from "@realize/payload-task-manager";
+import { accessManagementPlugin } from "@realize/payload-access-management";
 import { extensionManagerPlugin } from "@realize/payload-extension-manager";
 import { taskManagerOptions } from "./taskManager.config";
+import { accessManagementOptions } from "./accessManagement.config";
 import { extensionManagerOptions } from "./extensionManager.config";
 
 import { stripeAdapter } from "@payloadcms/plugin-ecommerce/payments/stripe";
@@ -111,6 +113,7 @@ const generateURL: GenerateURL<Product | Page> = ({ doc }) => {
 };
 
 export const plugins: Plugin[] = [
+  accessManagementPlugin(accessManagementOptions),
   taskManagerPlugin(taskManagerOptions),
   extensionManagerPlugin(extensionManagerOptions),
   seoPlugin({

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/taskCollections.config.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-10-19
  * @description Регистрирует закрытые задачи, membership проектов и неизменяемую историю операций.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -60,6 +60,8 @@ export function createTaskCollections(
       slug: TASKS_SLUG,
       fields: [
         text("taskId", { unique: true }),
+        { name: "workspaceSourceId", type: "text", unique: true },
+        { name: "workspaceCreateHash", type: "text" },
         text("projectId", { index: true }),
         text("listId", { index: true }),
         { name: "revision", type: "number", required: true, min: 1 },

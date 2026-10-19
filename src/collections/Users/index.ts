@@ -1,7 +1,7 @@
 /**
  * @file src/collections/Users/index.ts
- * @version 1.0.0
- * @date 2026-10-05
+ * @version 1.1.0
+ * @date 2026-10-19
  * @description Настраивает пользователей и защищает аккаунт владельца от других администраторов.
  */
 import type { CollectionConfig } from "payload";
@@ -34,6 +34,16 @@ export const Users: CollectionConfig = {
     tokenExpiration: 1209600,
   },
   fields: [
+    {
+      name: "accessManagement",
+      type: "ui",
+      admin: {
+        components: {
+          Field:
+            "/src/components/admin/access-tokens/UserAccessLink.component#UserAccessLink",
+        },
+      },
+    },
     {
       name: "name",
       type: "text",

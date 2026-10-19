@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdmin.types.ts
- * @version 1.4.0
- * @date 2026-10-12
+ * @version 1.5.0
+ * @date 2026-10-19
  * @description Описывает безопасный контекст системного интерфейса после серверной проверки сессии.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -32,7 +32,11 @@ export type SystemAdminContext = {
 };
 
 /** Reference route не читает рабочее назначение из базы. */
-export type RequireSystemAdminOptions = { appearance?: "active" | "reference" };
+export type RequireSystemAdminOptions = {
+  appearance?: "active" | "reference";
+  /** Управление доступами требует browser cookie и отклоняет Authorization. */
+  cookieOnly?: boolean;
+};
 
 /** Параметры сохранения режима определяет host, без зависимости client от Payload. */
 export type SystemAdminThemeOptions = Pick<

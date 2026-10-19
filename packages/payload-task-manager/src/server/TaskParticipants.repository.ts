@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/TaskParticipants.repository.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.0.1
+ * @date 2026-10-19
  * @description Читает допустимых реальных участников через host users ACL без email и auth-полей.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -18,6 +18,7 @@ import type { ResolvedTaskManagerOptions } from "../TaskManagerOptions.types";
 import { TASK_PAGE_SIZE } from "../taskManager.constants";
 import { TaskManagerError } from "./TaskManager.error";
 import { createTaskCursor, readTaskCursor } from "./taskCursor.adapter";
+import { validateTaskParticipantIds } from "./validateTaskParticipantIds.validator";
 
 export class TaskParticipantsRepository {
   constructor(
@@ -26,6 +27,7 @@ export class TaskParticipantsRepository {
   ) {}
 
   async members(ids: string[]): Promise<Array<string | number>> {
+    validateTaskParticipantIds(this.req, this.options.userCollection, ids);
     const filter = await this.options.participantWhere({ req: this.req });
     const found = await this.req.payload.find({
       collection: this.options.userCollection,

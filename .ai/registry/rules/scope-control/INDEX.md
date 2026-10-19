@@ -31,7 +31,7 @@ entries:
     related_tools:
       [.ai/tools/task-workspace/README.md, .ai/tools/git-delivery/README.md]
     routing_tags: [scope-control, task, workspace, artifacts]
-    trigger: "Выбор короткой операции, продолжения задачи или досье; локальный TASK, его lifecycle и восстановление незавершённой операции (recover); создание, сохранение, чтение и очистка материалов, включая операционный Git-контекст без TASK."
+    trigger: "Выбор короткой операции, продолжения задачи или создания через Task Manager; локальный резерв TASK, его lifecycle и восстановление незавершённой операции (recover); создание, сохранение, чтение и очистка материалов, включая операционный Git-контекст без TASK."
   - entry_id: artifact-disposition
     entry_type: active_rule
     status: active
