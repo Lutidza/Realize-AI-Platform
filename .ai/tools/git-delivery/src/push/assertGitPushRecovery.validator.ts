@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/push/assertGitPushRecovery.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Разрешает только следующую явно назначенную попытку незавершённого push.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { PolicyError } from "../contracts.ts";
 import type { GitPushJournal, GitPushRecovery } from "./GitPush.types.ts";
 
 /** Вызывается после проверки исходного remoteOid; счётчик сохраняется перед отправкой. */

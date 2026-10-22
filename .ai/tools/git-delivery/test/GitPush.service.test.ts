@@ -1,9 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/test/GitPush.service.test.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет разрешения, журналирование и восстановление push во временных Git-репозиториях с тестовой сетью.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
+import { PolicyError } from "@realize/git-runtime";
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -12,10 +14,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
-import { emptyResult, PolicyError } from "../src/contracts.ts";
-import { Git } from "../src/Git.adapter.ts";
-import { GitFailure } from "../src/GitFailure.error.ts";
-import { GIT_FAILURE_CATEGORIES } from "../src/gitFailureCategory.constants.ts";
+import { emptyResult } from "../src/contracts.ts";
+import { GitFailure } from "@realize/git-runtime";
+import { GIT_FAILURE_CATEGORIES } from "@realize/git-runtime";
 import { GitJournalRepository } from "../src/GitJournal.repository.ts";
 import type { GitNetworkConnection } from "../src/network/GitNetwork.types.ts";
 import type {
@@ -82,7 +83,7 @@ async function fixture(t: TestContext) {
   const hooks = join(temporary, "hooks");
   await mkdir(root);
   await mkdir(hooks);
-  const git = new Git(root);
+  const git = new FixtureGit(root);
   await git.run(["init", "--initial-branch=main", "--template="]);
   for (const [key, value] of Object.entries({
     "core.hooksPath": hooks,
@@ -259,10 +260,13 @@ test("replace refs, grafts и shallow блокируются до сети и п
         const mutate = async () => {
           if (mode === "replace") {
             const tree = (
-              await f.git.run(["rev-parse", `${f.source}^{tree}`])
+              await f.git.runUncoordinatedFixture([
+                "rev-parse",
+                `${f.source}^{tree}`,
+              ])
             ).trim();
             const replacement = (
-              await f.git.run([
+              await f.git.runUncoordinatedFixture([
                 "commit-tree",
                 tree,
                 "-p",
@@ -271,7 +275,11 @@ test("replace refs, grafts и shallow блокируются до сети и п
                 "Fixture with hidden earlier parent",
               ])
             ).trim();
-            await f.git.run(["replace", f.source, replacement]);
+            await f.git.runUncoordinatedFixture([
+              "replace",
+              f.source,
+              replacement,
+            ]);
           } else if (mode === "grafts") {
             await mkdir(join(f.root, ".git", "info"), { recursive: true });
             await writeFile(
@@ -289,14 +297,21 @@ test("replace refs, grafts и shallow блокируются до сети и п
             f.context.authorization.scope.commits = [f.source];
             attest(f.context);
             assert.deepEqual(
-              (await f.git.run(["rev-list", f.source, "--not", f.remote]))
+              (
+                await f.git.runUncoordinatedFixture([
+                  "rev-list",
+                  f.source,
+                  "--not",
+                  f.remote,
+                ])
+              )
                 .trim()
                 .split("\n"),
               [f.source],
             );
             assert.deepEqual(
               (
-                await f.git.run([
+                await f.git.runUncoordinatedFixture([
                   "--no-replace-objects",
                   "rev-list",
                   f.source,
@@ -340,10 +355,22 @@ test("HEAD и ветка проверяются при входе и повто�
         const f = await fixture(child);
         const mutate = async () => {
           if (change === "head")
-            await f.git.run(["update-ref", "refs/heads/main", f.earlier]);
+            await f.git.runUncoordinatedFixture([
+              "update-ref",
+              "refs/heads/main",
+              f.earlier,
+            ]);
           else {
-            await f.git.run(["update-ref", "refs/heads/other", f.source]);
-            await f.git.run(["symbolic-ref", "HEAD", "refs/heads/other"]);
+            await f.git.runUncoordinatedFixture([
+              "update-ref",
+              "refs/heads/other",
+              f.source,
+            ]);
+            await f.git.runUncoordinatedFixture([
+              "symbolic-ref",
+              "HEAD",
+              "refs/heads/other",
+            ]);
           }
         };
         if (timing === "before") await mutate();

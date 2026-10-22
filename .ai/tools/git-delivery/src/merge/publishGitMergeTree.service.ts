@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/publishGitMergeTree.service.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Публикует только проверенные immutable blobs/tree с журналом каждого object POST и без повторов неизвестного исхода.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type { GitJournalRepository } from "../GitJournal.repository.ts";
 import type {
   GitMergeContext,

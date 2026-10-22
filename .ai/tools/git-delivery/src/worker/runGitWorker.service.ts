@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.service.ts
- * @version 1.3.0
- * @date 2026-10-12
+ * @version 1.3.1
+ * @date 2026-10-22
  * @description Ведёт ограниченную сессию Git-воркера и возвращает фактический результат Git-операции.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { PolicyError } from "../contracts.ts";
 import { parseGitWorkerCommand } from "./parseGitWorkerCommand.validator.ts";
 import { GitWorkerCapabilityService } from "./GitWorkerCapability.service.ts";
 import { GIT_WORKER_CONFIG } from "./gitWorker.config.ts";

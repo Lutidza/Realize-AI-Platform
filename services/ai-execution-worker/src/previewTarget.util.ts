@@ -1,14 +1,14 @@
 /**
  * @file services/ai-execution-worker/src/previewTarget.util.ts
- * @version 1.0.0
- * @date 2026-09-17
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Определяет статическую страницу предпросмотра по принятой области изменений.
  */
 
 import { pathMatchesExecutionScope } from "@realize/change-engine";
 
 import type { ClaimedPreviewDeployment } from "./previewTypes";
-import { WorktreePolicyError } from "./worktree";
+import { WorktreePolicyError } from "./WorktreePolicy.error";
 
 const referenceRoot = "src/app/(reference)/reference/";
 

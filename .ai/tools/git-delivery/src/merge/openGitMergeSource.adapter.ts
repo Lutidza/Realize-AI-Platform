@@ -1,16 +1,16 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/openGitMergeSource.adapter.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Удерживает общий Git lock и сверяет неизменённые local refs/checkout перед remote merge mutation.
  */
 import { realpath } from "node:fs/promises";
-import { Git } from "../Git.adapter.ts";
+import { Git } from "@realize/git-runtime";
 import { GitJournalRepository } from "../GitJournal.repository.ts";
-import { acquireGitLock } from "../acquireGitLock.adapter.ts";
+import { acquireGitLock } from "@realize/git-runtime";
 import { assertGitManageClean } from "../manage/readGitManageState.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
-import type { GitLock } from "../GitLock.types.ts";
+import { PolicyError } from "@realize/git-runtime";
+import type { GitLock } from "@realize/git-runtime";
 import type { GitMergeContext, GitMergeLocalSource } from "./GitMerge.types.ts";
 
 /** Порт читает Git metadata; не меняет local HEAD/index/worktree и не получает network credential. */
@@ -41,7 +41,7 @@ export async function openGitMergeSource(
     const common = await directory("--git-common-dir");
     const gitDir = await directory("--git-dir");
     lock = await acquireGitLock(common);
-    git.lockDescriptor = lock.descriptor;
+    git.attachLock(lock);
     const storage = new GitJournalRepository(context);
     await git.run([
       "--no-literal-pathspecs",

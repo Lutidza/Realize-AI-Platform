@@ -1,7 +1,7 @@
 /**
  * @file next.config.ts
- * @version 1.5.2
- * @date 2026-10-18
+ * @version 1.5.3
+ * @date 2026-10-22
  * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
@@ -51,6 +51,7 @@ const nextConfig: NextConfig = {
     "@realize/ai-contracts",
     "@realize/change-engine",
     "@realize/codex-adapter",
+    "@realize/git-runtime",
     "@realize/payload-ai-control",
     "@realize/ui-kit",
     "@realize/template-contracts",

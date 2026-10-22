@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/loadGitWorkerContext.adapter.ts
- * @version 1.3.0
- * @date 2026-10-12
+ * @version 1.3.1
+ * @date 2026-10-22
  * @description Привязывает контекст вызывающей среды к рабочей копии установленного Git-воркера.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import { randomUUID } from "node:crypto";
 import { realpath } from "node:fs/promises";
-import { PolicyError } from "../contracts.ts";
+
 import { loadGitContext } from "../loadGitContext.adapter.ts";
 import type {
   GitWorkerAction,

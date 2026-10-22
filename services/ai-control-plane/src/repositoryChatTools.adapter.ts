@@ -1,6 +1,6 @@
 /**
  * @file services/ai-control-plane/src/repositoryChatTools.adapter.ts
- * @version 1.1.0
+ * @version 1.1.1
  * @date 2026-10-22
  * @description Подключает серверное чтение файлов и Git HEAD к общим ограничениям одного run.
  * @see documentation/architecture/repository-search.md
@@ -21,7 +21,7 @@ import { listRepositoryFiles } from "./listRepositoryFiles.service";
 import { readRepositoryLines } from "./readRepositoryLines.service";
 import { buildSearchObservation } from "./buildRepositorySearchObservation.mapper";
 import { readGitHead } from "../../../.ai/tools/git-delivery/src/read/gitRead.server.index";
-import { GitFailure } from "../../../.ai/tools/git-delivery/src/GitFailure.error";
+import { GitFailure } from "@realize/git-runtime";
 import { buildRepositorySourceLink as sourceLink } from "./repositorySourceLink.mapper";
 
 const SEARCH_TOOL_NAMES = [

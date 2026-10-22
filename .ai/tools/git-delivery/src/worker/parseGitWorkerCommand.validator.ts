@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/parseGitWorkerCommand.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет команду воркера отдельно от полномочий и параметров назначенной Git-операции.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { parseCommand, PolicyError } from "../contracts.ts";
+import { parseCommand } from "../contracts.ts";
 import { GIT_WORKER_ACTIONS } from "./gitWorkerActions.constants.ts";
 import type { GitWorkerAction, GitWorkerCommand } from "./GitWorker.types.ts";
 

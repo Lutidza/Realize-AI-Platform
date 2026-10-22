@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/validateGitManageContext.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет единственное немодельное разрешение локального управления Git.
  */
 import { isAbsolute, resolve } from "node:path";
 import { relativeFile } from "../contracts.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type {
   GitManageContext,
   GitManageOperation,

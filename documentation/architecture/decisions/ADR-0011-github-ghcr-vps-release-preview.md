@@ -21,6 +21,11 @@ security evidence, разворачивает изолированный HTTPS p
 - server-owned adapter публикует exact commit в отдельный remote ref
   `refs/heads/ai/release-candidates/<candidate-key>` и запускает только
   `prepare-release-candidate.yml` через GitHub CLI;
+- Git publication использует общий `@realize/git-runtime`. Новая candidate ref
+  создаётся с атомарным условием отсутствия
+  `--force-with-lease=<exact-ref>:` и только с exact approved commit. Уже
+  существующий ref на другом commit блокирует публикацию, включая гонку между
+  preflight и push; безусловный `--force` и перезапись ref запрещены;
 - workflow определяется из trusted ref, а candidate source checkout выполняется
   по exact 40-character commit SHA;
 - GHCR image строится и публикуется один раз, затем идентифицируется только как

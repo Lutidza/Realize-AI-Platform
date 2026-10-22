@@ -1,14 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/read/readGitDiff.service.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Читает точные стороны diff и выдаёт полные hunks в одном проверяемом снимке.
  */
 import { createHash } from "node:crypto";
 import type { McpToolInput } from "../../../../../packages/ai-contracts/src/McpTool.types";
 import { RepositoryReadError } from "../../../../../services/ai-control-plane/src/RepositoryRead.error";
 import { decodeRepositoryContent } from "../../../../../services/ai-control-plane/src/readRepositoryFile.service";
-import { Git } from "../Git.adapter.ts";
+import { Git } from "@realize/git-runtime";
 import type {
   GitContentIdentity,
   GitReadContext,

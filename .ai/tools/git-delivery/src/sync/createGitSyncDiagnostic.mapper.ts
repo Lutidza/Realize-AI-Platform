@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/sync/createGitSyncDiagnostic.mapper.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Преобразует сбой синхронизации в ограниченную диагностику без сообщений и stderr.
  */
 
-import { GitFailure } from "../GitFailure.error.ts";
-import { GIT_FAILURE_CATEGORIES } from "../gitFailureCategory.constants.ts";
+import { GitFailure } from "@realize/git-runtime";
+import { GIT_FAILURE_CATEGORIES } from "@realize/git-runtime";
 import type { GitSyncDiagnostic, GitSyncStage } from "./GitSync.types.ts";
 
 export function createGitSyncDiagnostic(

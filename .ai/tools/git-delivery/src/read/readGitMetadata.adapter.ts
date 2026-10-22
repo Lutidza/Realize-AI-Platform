@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/read/readGitMetadata.adapter.ts
- * @version 1.1.1
- * @date 2026-10-20
+ * @version 1.1.2
+ * @date 2026-10-22
  * @description Читает только имена, режимы и object IDs без содержимого исторических файлов.
  */
-import { Git } from "../Git.adapter.ts";
+import { Git } from "@realize/git-runtime";
 import { RepositoryReadError } from "../../../../../services/ai-control-plane/src/RepositoryRead.error";
 import { hashRepositorySnapshot } from "../../../../../services/ai-control-plane/src/RepositoryCursor.service";
 import type { GitReadContext, GitReadEntry } from "./GitRead.types";

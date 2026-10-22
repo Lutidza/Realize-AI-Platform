@@ -1,16 +1,17 @@
 /**
  * @file .ai/tools/git-delivery/test/GitWorkerAssignedOperations.test.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет назначенные manage/fetch/pull capability без Git-операций, сети и обращения к реальным credential profiles.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { emptyResult, PolicyError } from "../src/contracts.ts";
+import { emptyResult } from "../src/contracts.ts";
 import type { GitManageContext } from "../src/manage/GitManage.types.ts";
 import type { GitSyncContext } from "../src/sync/GitSync.types.ts";
 import { GitWorkerCapabilityService } from "../src/worker/GitWorkerCapability.service.ts";

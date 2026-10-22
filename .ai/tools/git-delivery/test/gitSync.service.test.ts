@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/gitSync.service.test.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет fetch/pull, stale разрешения и восстановление только во временных Git-репозиториях с fixture-сетью.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
 
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -11,8 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
-import { Git } from "../src/Git.adapter.ts";
-import { GitFailure } from "../src/GitFailure.error.ts";
+import { Git } from "@realize/git-runtime";
+import { GitFailure } from "@realize/git-runtime";
 import { GitJournalRepository } from "../src/GitJournal.repository.ts";
 import type { GitNetworkConnection } from "../src/network/GitNetwork.types.ts";
 import type {
@@ -30,7 +31,7 @@ async function fixture(t: TestContext, action: GitSyncAction = "fetch") {
   t.after(() => rm(temporary, { recursive: true, force: true }));
   const root = join(temporary, "repository");
   await mkdir(root);
-  const git = new Git(root);
+  const git = new FixtureGit(root);
   await git.run(["init", "--initial-branch=main", "--template="]);
   for (const [key, value] of Object.entries({
     "core.hooksPath": "/dev/null",
@@ -86,6 +87,7 @@ async function fixture(t: TestContext, action: GitSyncAction = "fetch") {
   const journal = async () =>
     (await repository.load()) as GitSyncJournal | null;
   const calls = { resolve: 0, read: 0, fetch: 0, push: 0, close: 0 };
+  let networkGit: Git;
   const network = {
     remote: remote as string | null,
     async readRemoteHead() {
@@ -95,7 +97,7 @@ async function fixture(t: TestContext, action: GitSyncAction = "fetch") {
     async fetch(ref: string, previousOid: string | null) {
       calls.fetch++;
       assert.equal((await journal())?.phase, "fetching");
-      await git.run([
+      await networkGit.run([
         "update-ref",
         ref,
         context.target.remoteOid,
@@ -116,6 +118,7 @@ async function fixture(t: TestContext, action: GitSyncAction = "fetch") {
       return structuredClone(connection);
     },
     async createNetwork(receivedGit, receivedConnection, target) {
+      networkGit = receivedGit;
       assert.equal(receivedGit.root, root);
       assert.deepEqual(receivedConnection, connection);
       assert.deepEqual(target, context.target);

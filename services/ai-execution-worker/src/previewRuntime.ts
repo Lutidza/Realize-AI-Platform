@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/previewRuntime.ts
- * @version 1.0.1
- * @date 2026-09-17
+ * @version 1.0.2
+ * @date 2026-10-22
  * @description Запускает изолированный loopback preview с копией БД и запретом AI runtime.
  * @owner services/ai-execution-worker
  * @purpose Starts and safely stops an exact-build loopback preview with a sanitized DB clone.
@@ -20,7 +20,7 @@ import type {
   LocalPreviewRuntime,
   PromotionCommit,
 } from "./previewTypes";
-import { WorktreePolicyError } from "./worktree";
+import { WorktreePolicyError } from "./WorktreePolicy.error";
 
 const isInside = (owner: string, candidate: string): boolean => {
   const path = relative(owner, candidate);

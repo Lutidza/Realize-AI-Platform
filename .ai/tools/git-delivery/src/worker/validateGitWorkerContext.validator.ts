@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/validateGitWorkerContext.validator.ts
- * @version 1.4.0
- * @date 2026-10-13
+ * @version 1.4.1
+ * @date 2026-10-22
  * @description Проверяет отдельный контекст Git-воркера без назначения разрешений и результатов проверок.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { parseContext, PolicyError } from "../contracts.ts";
+import { parseContext } from "../contracts.ts";
 import { validateGitPushContext } from "../push/validateGitPushContext.validator.ts";
 import { validateGitManageContext } from "../manage/validateGitManageContext.validator.ts";
 import { validateGitSyncContext } from "../sync/validateGitSyncContext.validator.ts";

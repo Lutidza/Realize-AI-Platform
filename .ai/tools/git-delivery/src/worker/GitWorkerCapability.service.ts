@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorkerCapability.service.ts
- * @version 1.4.0
- * @date 2026-10-13
+ * @version 1.4.1
+ * @date 2026-10-22
  * @description Ограничивает инструменты Git-воркера назначенной операцией и сохраняет фактические результаты обработчика.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { parseCommand, PolicyError } from "../contracts.ts";
+import { parseCommand } from "../contracts.ts";
 import type { Context } from "../contracts.ts";
 import { parseGitWorkerCommand } from "./parseGitWorkerCommand.validator.ts";
 import { GIT_ASSIGNED_OPERATION_TOOLS } from "./gitWorkerActions.constants.ts";

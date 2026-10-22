@@ -52,11 +52,17 @@ optimistic version, exact preview artifact/commit, tested GitHub connection и
 `GET /api/realize-ai/source-promotions/:id`.
 
 Execution worker повторно проверяет source hashes и снимок
-repository/default-branch/integration revision, затем без force push публикует
+repository/default-branch/integration revision, затем через общий Git executor публикует
 exact commit в `ai/changes/<change-id>-<key>` и идемпотентно создаёт open draft
 Pull Request. Token существует только в worker memory/`GIT_ASKPASS`; raw GitHub
 response и credential в Payload/DTO не сохраняются. `main`, основной checkout,
 merge и production при этом не изменяются.
+
+Новая product ref создаётся с `--force-with-lease=<exact-ref>:`: пустой expected
+value означает обязательное отсутствие remote ref. Появившаяся после preflight
+ветка не перезаписывается; безусловный `--force` запрещён. Такое же create-only
+условие применяется к `ai/release-candidates/<candidate-key>`. Обычный IDE push
+сохраняет свой отдельный pre-push guard и разрешённую область.
 
 Разрешение «Публикация Pull Request» включается в Admin → Интеграции →
 GPT — Codex → Агент. Ниже остаются только параметры серверного исполнителя:

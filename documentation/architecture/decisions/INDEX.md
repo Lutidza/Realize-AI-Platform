@@ -17,7 +17,7 @@
 13. [ADR-0013 — GitHub Pull Request source promotion](ADR-0013-github-pull-request-source-promotion.md)
 14. [ADR-0014 — Universal site core and project profiles](ADR-0014-universal-site-core-and-project-profiles.md)
 15. [ADR-0015 — Protected system AI layer and installation overlay](ADR-0015-protected-system-ai-layer-and-installation-overlay.md)
-16. [ADR-0016 — Обработчик Git-операций рабочего слоя ИИ-агентов](ADR-0016-development-git-delivery-handler.md)
+16. [ADR-0016 — Общий исполнитель Git и адаптеры доступа](ADR-0016-development-git-delivery-handler.md)
 17. [ADR-0017 — Внутренний MCP и управление экземплярами серверов](ADR-0017-internal-mcp-and-server-management.md)
 18. [ADR-0018 — Самодостаточные шаблонные пакеты и единый lifecycle](ADR-0018-self-contained-template-packages.md)
 

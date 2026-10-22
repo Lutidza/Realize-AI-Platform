@@ -1,14 +1,15 @@
 /**
  * @file .ai/tools/git-delivery/src/GitJournal.repository.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Безопасное чтение и атомарная запись JSON-журнала Git-операции.
  */
+import { PolicyError } from "@realize/git-runtime";
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { PolicyError } from "./contracts.ts";
+
 import type { GitJournalContext } from "./GitJournal.types.ts";
 
 const MAX_JOURNAL_BYTES = 2 * 1024 * 1024;

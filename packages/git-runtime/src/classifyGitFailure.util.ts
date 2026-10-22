@@ -1,7 +1,7 @@
 /**
- * @file .ai/tools/git-delivery/src/classifyGitFailure.util.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @file packages/git-runtime/src/classifyGitFailure.util.ts
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Сопоставляет stderr Git с конечной категорией без выдачи исходных данных.
  */
 

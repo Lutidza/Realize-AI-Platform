@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/sync/openGitSyncResources.adapter.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Подключает для fetch/pull общий primary resolver и назначенные SSH-профили без выдачи секретов модели.
  */
 
@@ -9,7 +9,7 @@ import { GitRepositoryConnectionService } from "@realize/payload-ai-control/serv
 import { openGitIntegrationResources } from "../integrations/openGitIntegrationResources.adapter.ts";
 import { loadGitContext } from "../loadGitContext.adapter.ts";
 import { createGitNetworkSession } from "../network/createGitNetworkSession.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type { GitSyncResources } from "./GitSync.types.ts";
 
 /** Закрытие освобождает тот же Pool, которым пользуется existing push integration. */

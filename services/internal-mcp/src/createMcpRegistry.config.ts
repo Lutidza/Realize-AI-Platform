@@ -1,6 +1,6 @@
 /**
  * @file services/internal-mcp/src/createMcpRegistry.config.ts
- * @version 1.5.0
+ * @version 1.5.1
  * @date 2026-10-22
  * @description Регистрирует единую поверхность обеих protocol eras с повторной авторизацией вызова.
  */
@@ -20,7 +20,7 @@ import {
 } from "../../../packages/ai-contracts/src/mcpToolOutputs.config";
 import { RepositoryReadError } from "../../ai-control-plane/src/RepositoryRead.error";
 import type { RepositoryCursorService } from "../../ai-control-plane/src/RepositoryCursor.service";
-import { GitFailure } from "../../../.ai/tools/git-delivery/src/GitFailure.error";
+import { GitFailure } from "@realize/git-runtime";
 import { executeMcpTool } from "./executeMcpTool.service";
 import { availableMcpTools } from "./availableMcpTools.service";
 import { mcpToolCatalog, MCP_SERVER_VERSION } from "./mcpToolCatalog.config";

@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/assertNoGitSecrets.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет байты на явные секреты без раскрытия совпадений.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 
 export function assertNoGitSecrets(bytes: Buffer): void {
   // Это дополнительный детектор явных секретов, а не доказательство их отсутствия.

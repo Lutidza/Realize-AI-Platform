@@ -33,12 +33,15 @@ S/B/P/C и внешние executors остаются целевым продол
    Pack используют один owner. Статические `AGENTS.md`, `.ai` и `.codex`
    доступны только server-authorized developer principal; секреты, private
    runtime и task state исключены. Installation Admin не расширяет этот grant.
-3. `.ai/tools/git-delivery` предоставляет отдельный deterministic machine read
-   port для status/diff. Доверенная composition задаёт root, разрешённые пути,
+3. `.ai/tools/git-delivery/src/read` предоставляет deterministic machine read
+   ports для HEAD/status/diff через общий `@realize/git-runtime` по ADR-0016.
+   Доверенная composition задаёт root, разрешённые пути,
    principal, deadline и limits. Политика применяется до чтения содержимого.
    Порт не запускает LLM, не меняет индекс, не использует сеть и не принимает
    произвольные команды. Development Git агента продолжает проходить через
    существующего отдельного Git-воркера; новый порт не заменяет этот маршрут.
+   Подключение GPT использует те же grants и tools; общий engine не добавляет
+   write permissions или публичный произвольный Git API.
 4. Pages server facade находится в Payload plugin и использует реальные
    actor ACL и существующие DTO. AIRun не фабрикуется ради чтения. Payload
    запускается лениво без schema push, seed, cron или product worker.

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-git-read-performance.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-20
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет ограниченное параллельное чтение Git, неизменность snapshot и защиту обхода.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -22,7 +22,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { Git } from "../../.ai/tools/git-delivery/src/Git.adapter";
+import { disposableGitFixture } from "./fixtures/disposableGit.fixture";
 import { readGitStatus } from "../../.ai/tools/git-delivery/src/read/readGitStatus.service";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { RepositoryReadError } from "../../services/ai-control-plane/src/RepositoryRead.error";
@@ -39,7 +39,7 @@ describe("Git MCP: bounded snapshot без изменения политики",
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "realize-mcp-git-performance-"));
     await mkdir(join(root, "src"));
-    const git = new Git(root);
+    const git = disposableGitFixture(root);
     await git.run(["init", "--initial-branch=main"]);
     await writeFile(join(root, "src/base.ts"), "base\n");
     await git.run(["add", "--", "src/base.ts"]);
@@ -191,7 +191,7 @@ describe("Git MCP: bounded snapshot без изменения политики",
   }, 15000);
 
   it("сохраняет фильтрацию секретов, ссылок и вложенных checkout без запуска clean filters", async () => {
-    const git = new Git(root);
+    const git = disposableGitFixture(root);
     await writeFile(join(root, "src/.gitattributes"), "*.ts filter=fixture\n");
     await git.run([
       "config",

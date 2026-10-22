@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/loadGitWorkerSettings.adapter.test.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет загрузку настроек и инструкций Git-воркера из временного проекта.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
@@ -12,7 +13,6 @@ import { dirname, join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
 
-import { PolicyError } from "../src/contracts.ts";
 import { loadGitWorkerSettings } from "../src/worker/loadGitWorkerSettings.adapter.ts";
 
 const configPath = ".codex/agents/delivery/git/inspect.json";

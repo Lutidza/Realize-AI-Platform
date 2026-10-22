@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/runGitDelivery.controller.ts
- * @version 1.0.1
- * @date 2026-09-09
+ * @version 1.0.2
+ * @date 2026-10-22
  * @description Принимает команду CLI и передаёт её обработчику с назначенным механизмом запуска контекстом.
  */
-import { emptyResult, PolicyError } from "./contracts.ts";
+import { PolicyError } from "@realize/git-runtime";
+import { emptyResult } from "./contracts.ts";
 import { runDelivery } from "./handler.ts";
 import { loadGitContext } from "./loadGitContext.adapter.ts";
 

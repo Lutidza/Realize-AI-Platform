@@ -97,6 +97,7 @@
     "@realize/ai-contracts": "0.1.0",
     "@realize/change-engine": "0.1.0",
     "@realize/codex-adapter": "0.1.0",
+    "@realize/git-runtime": "0.1.0",
     "@realize/payload-ai-control": "0.1.0",
     "@realize/payload-task-manager": "0.1.0",
     "@realize/payload-extension-manager": "0.1.0",

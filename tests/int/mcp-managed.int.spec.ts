@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-managed.int.spec.ts
- * @version 1.3.0
- * @date 2026-09-30
+ * @version 1.3.1
+ * @date 2026-10-22
  * @description Проверяет MCP registry, grants и Pages на отдельной PostgreSQL с настоящим Payload.
  */
 // @vitest-environment node
@@ -26,7 +26,7 @@ import {
   type McpHostedConfiguration,
   type McpServerDetailDto,
 } from "@realize/ai-contracts";
-import { Git } from "../../.ai/tools/git-delivery/src/Git.adapter";
+import { disposableGitFixture } from "./fixtures/disposableGit.fixture";
 import { openMcpPayload } from "../../services/internal-mcp/src/openMcpPayload.adapter";
 import { createManagedMcpRuntime } from "../../services/internal-mcp/src/createManagedMcpRuntime.config";
 import { createMcpHttpServer } from "../../services/internal-mcp/src/createMcpHttpServer.controller";
@@ -85,7 +85,7 @@ describe.skipIf(!enabled)("managed MCP on isolated PostgreSQL", () => {
       join(root, "src/example.ts"),
       "export const managed = true;\n",
     );
-    await new Git(root).run(["init", "-q"]);
+    await disposableGitFixture(root).run(["init", "-q"]);
     const port = await new Promise<number>((resolve, reject) => {
       const socket = createServer();
       socket.once("error", reject);

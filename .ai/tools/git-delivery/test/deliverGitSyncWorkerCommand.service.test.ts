@@ -1,16 +1,16 @@
 /**
  * @file .ai/tools/git-delivery/test/deliverGitSyncWorkerCommand.service.test.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет ленивые sync resources и сохранение фактического результата при ошибке закрытия fixture-ресурса.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
 
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { Git } from "../src/Git.adapter.ts";
 import type { GitNetworkConnection } from "../src/network/GitNetwork.types.ts";
 import type {
   GitSyncContext,
@@ -25,7 +25,7 @@ test("ресурс закрывается один раз, close failure сох�
   t.after(() => rm(temporary, { recursive: true, force: true }));
   const root = join(temporary, "repository");
   await mkdir(root);
-  const git = new Git(root);
+  const git = new FixtureGit(root);
   await git.run(["init", "--initial-branch=main", "--template="]);
   for (const [key, value] of Object.entries({
     "core.hooksPath": "/dev/null",
@@ -68,11 +68,11 @@ test("ресурс закрывается один раз, close failure сох�
   const resources: GitSyncResources = {
     dependencies: {
       resolveConnection: async () => connection,
-      createNetwork: async () => ({
+      createNetwork: async (networkGit) => ({
         readRemoteHead: async () => commit,
         async fetch(ref, previousOid) {
           calls.fetch++;
-          await git.run([
+          await networkGit.run([
             "update-ref",
             ref,
             commit,

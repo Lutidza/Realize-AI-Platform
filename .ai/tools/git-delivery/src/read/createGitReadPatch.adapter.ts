@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/src/read/createGitReadPatch.adapter.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Строит unified hunks из уже проверенных байтов без повторного чтения checkout Git-ом.
  */
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Git } from "../Git.adapter.ts";
+import { Git } from "@realize/git-runtime";
 
 /** Временные файлы принадлежат вызову и удаляются после завершения дочернего процесса. */
 export async function createGitReadPatch(

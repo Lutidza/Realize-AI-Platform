@@ -1,16 +1,20 @@
 /**
  * @file .ai/tools/git-delivery/src/push/runGitPush.service.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Отправляет разрешённый набор коммитов в назначенную ветку с журналом и проверкой сетевого результата.
  */
+import {
+  PolicyError,
+  acquireGitLock as acquireLock,
+} from "@realize/git-runtime";
 
 import { realpath } from "node:fs/promises";
-import { emptyResult, PolicyError } from "../contracts.ts";
-import { Git } from "../Git.adapter.ts";
-import { GitFailure } from "../GitFailure.error.ts";
+import { emptyResult } from "../contracts.ts";
+import { Git } from "@realize/git-runtime";
+import { GitFailure } from "@realize/git-runtime";
 import { GitJournalRepository } from "../GitJournal.repository.ts";
-import { acquireLock } from "../state.ts";
+
 import type {
   GitNetworkConnection,
   GitNetworkSession,
@@ -96,7 +100,7 @@ export async function runGitPush(
       ).trim(),
     );
     lock = await acquireLock(common);
-    git.lockDescriptor = lock.descriptor;
+    git.attachLock(lock);
     const source = new GitPushSourceService(git, context);
     await source.assertReady();
     result.checks = context.verification.requiredChecks.map((id) => ({

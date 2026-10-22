@@ -1,7 +1,7 @@
 /**
- * @file .ai/tools/git-delivery/src/network/createGitAskpass.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @file packages/git-runtime/src/createGitAskpass.adapter.ts
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Создаёт временный askpass, читающий HTTPS token только из окружения дочернего Git.
  */
 

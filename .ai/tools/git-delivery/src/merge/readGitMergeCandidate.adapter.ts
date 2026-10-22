@@ -1,14 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/readGitMergeCandidate.adapter.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Читает только принятые candidate файлы через O_NOFOLLOW и проверяет точные bytes/mode/blob SHA1.
  */
 import { constants } from "node:fs";
 import { open, realpath } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
 import { relative } from "node:path";
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import { assertNoGitSecrets } from "../commit/assertNoGitSecrets.validator.ts";
 import { hashGitBlob } from "./hashGitTree.util.ts";
 import type {

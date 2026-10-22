@@ -2,7 +2,7 @@
 
 ```yaml
 rule_id: RULE-GIT-DELIVERY
-title: Git-операции через отдельного воркера
+title: Общий исполнитель Git и разрешённые адаптеры
 owner_role: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 owner_layer: .ai/rules/git/
 workflow: .ai/workflows/delivery/git/commit-push/WORKFLOW.md
@@ -20,8 +20,31 @@ codex_adapter:
 
 Все команды Git рабочего слоя, включая чтение состояния, выполняет отдельный
 Git-воркер через программный обработчик. Основной агент передаёт задание и
-оценивает подтверждённый отчёт; самостоятельно Git не запускает. Продуктовые
-SourcePromotion, ReleaseCandidate и их полномочия этим правилом не меняются.
+оценивает подтверждённый отчёт; самостоятельно Git не запускает.
+IDE-обработчик, продуктовые execution/preview/SourcePromotion и серверные
+repository reads используют общий `@realize/git-runtime` по
+[ADR-0016](../../../documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md).
+ReleaseCandidate, приёмка и развёртывание сохраняют собственные полномочия.
+
+### Общий программный контракт
+
+- Запуск Git, лимиты, фильтрация окружения и lock lease принадлежат
+  `packages/git-runtime`; адаптеры не создают параллельные shell/process owners.
+- Изменяющие фазы удерживают общую блокировку канонического `git-common-dir`.
+  Lease выдаёт и проверяет программный owner; модель не получает её и не
+  назначает root, argv, профиль исполнения или credentials. Build, review и
+  копирование БД выполняются вне Git-блокировки.
+- Разрешения проверяет вход: IDE — область пользователя и checks; платформа —
+  CR/job, approval и evidence; GPT/MCP — principal, grants и allowlist tools.
+  Общий исполнитель не переносит полномочия между этими входами.
+- Commit/push разработчика сохраняют настроенные hooks и подпись. Служебный
+  commit preview использует контролируемый service profile по продуктовому
+  контракту; это не разрешает отключить hooks в IDE.
+- Проверки изменений и установленная приёмка относятся к своим source/build
+  bindings. Новый код общего executor сам по себе не активирует runtime и не
+  подтверждает прежние installed receipts на новой версии.
+
+### Вызов development Git-воркера
 
 Воркер не наследует историю диалога. Модель выбирается по настройке и указанию
 пользователя; текущий выбор — `gpt-5.6-luna` с уровнем рассуждения `low`.
@@ -76,11 +99,12 @@ SourcePromotion, ReleaseCandidate и их полномочия этим прав
 
 ### Серверный порт чтения MCP
 
-Узкое исключение по [ADR-0017](../../../documentation/architecture/decisions/ADR-0017-internal-mcp-and-server-management.md)
-относится к deterministic machine read port существующего `.ai/tools/git-delivery`:
-серверный MCP вызывает только status/diff и служебную проверку Git metadata
+По [ADR-0017](../../../documentation/architecture/decisions/ADR-0017-internal-mcp-and-server-management.md)
+платформа и GPT/MCP используют deterministic machine read ports существующего
+`.ai/tools/git-delivery/src/read` через общий executor:
+серверный MCP вызывает только HEAD/status/diff и проверку Git metadata
 для диагностики без LLM на каждый RPC. Внутренний helper HEAD/branch не создаёт
-новый публичный tool и не проверяет content snapshot или чистоту рабочей копии.
+дополнительных прав и не проверяет content snapshot или чистоту рабочей копии.
 Доверенная composition задаёт repository root, principal, scope, deadline и лимиты;
 политика путей применяется до чтения содержимого. Порт не выполняет запись,
 staging, сетевые операции и произвольные команды. Обычные Git-операции

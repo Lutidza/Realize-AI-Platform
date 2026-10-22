@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/GitNetworkSsh.adapter.test.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет SSH-профили и effective config без сети, а также точный stdin pre-push guard.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
 
 import assert from "node:assert/strict";
 import { execFile, spawn } from "node:child_process";
@@ -23,7 +24,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
 import { promisify } from "node:util";
-import { Git, GitFailure } from "../src/Git.adapter.ts";
+import { GitFailure } from "@realize/git-runtime";
 import { resolveGitSshProfile } from "../src/network/resolveGitSshProfile.adapter.ts";
 import { createGitSshCommand } from "../src/network/createGitSshCommand.adapter.ts";
 import { createGitPushHook } from "../src/network/createGitPushHook.adapter.ts";
@@ -121,7 +122,7 @@ test("SSH explicit agent требует pinned public identity и собстве
 
 test("pre-push stdin guard не допускает подмену source/ref, extra refs или deletion", async (t) => {
   const f = await fixture(t);
-  const git = new Git(f.root);
+  const git = new FixtureGit(f.root);
   await git.run(["init", "--initial-branch=main"]);
   const marker = join(f.root, "hook-marker");
   await writeFile(

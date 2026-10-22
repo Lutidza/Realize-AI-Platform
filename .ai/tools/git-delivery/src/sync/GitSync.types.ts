@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/src/sync/GitSync.types.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Определяет отдельное разрешение fetch/pull, ограниченную сеть и безопасный результат синхронизации.
  */
 
 import type { Context, Result } from "../GitDelivery.types.ts";
-import type { Git } from "../Git.adapter.ts";
-import type { GitFailureCategory } from "../GitFailureCategory.types.ts";
+import type { Git } from "@realize/git-runtime";
+import type { GitFailureCategory } from "@realize/git-runtime";
 import type {
   GitFetchNetworkSession,
   GitNetworkConnection,

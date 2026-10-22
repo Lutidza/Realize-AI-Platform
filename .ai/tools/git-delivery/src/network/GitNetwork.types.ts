@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/network/GitNetwork.types.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Определяет доверенное GitHub-подключение и ограниченную сетевую сессию Git.
  */
 
-import type { Git } from "../Git.adapter.ts";
+import type { Git } from "@realize/git-runtime";
 
 /** Структурная граница серверного ready DTO; секрет никогда не становится ответом модели. */
 export type GitNetworkConnection = {

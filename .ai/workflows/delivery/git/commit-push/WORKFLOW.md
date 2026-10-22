@@ -26,9 +26,11 @@ related_workflows:
 
 ## Маршрут
 
-Серверный MCP status/diff использует отдельный ограниченный read port по
-Git-правилу и ADR-0017. Этот workflow по-прежнему описывает development
-Git-воркера; machine port не заменяет его inspect и не предоставляет delivery.
+Этот workflow описывает development Git-воркера. IDE-обработчик, продуктовые
+execution/preview/SourcePromotion и серверные HEAD/status/diff используют общий
+`@realize/git-runtime` по Git-правилу и ADR-0016. Их разрешения проверяют
+соответствующие адаптеры; GPT обращается через существующий MCP read port.
+Machine read не заменяет development inspect и не предоставляет delivery.
 
 Прочитай [правило Git](../../../../rules/git/RULE-GIT-DELIVERY.md).
 Используй `inspect`, `commit`, `push`, `manage`, `fetch`, `pull` или `merge`; `commit_push`

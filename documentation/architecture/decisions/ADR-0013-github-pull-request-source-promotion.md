@@ -31,8 +31,12 @@ artifact, signature, migrations и remote preview. Использование э
   preview/acceptance binding и неизменность integration destination;
 - head branch выводится детерминированно как
   `ai/changes/<change-id>-<promotion-key-prefix>`. Worker публикует только exact
-  commit, никогда не использует force push и блокирует существующий ref на
-  другом commit;
+  commit и блокирует существующий ref на другом commit. Создание новой ветки
+  использует общий `@realize/git-runtime` и атомарное условие отсутствия ref:
+  `--force-with-lease=<exact-ref>:` с пустым expected value. Это create-only CAS:
+  ветка, появившаяся после предварительного чтения, не обновляется даже при
+  возможности fast-forward. Безусловный `--force` и перезапись существующей
+  ветки запрещены; тот же уже опубликованный commit допускает безопасный retry;
 - GitHub credential расшифровывается только в worker. Для Git он передаётся
   через временный `GIT_ASKPASS`, а не command arguments, logs, DTO или Payload
   record;

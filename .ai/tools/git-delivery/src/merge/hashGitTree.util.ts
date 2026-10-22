@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/hashGitTree.util.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Вычисляет Git SHA1 blobs/полного дерева и точный candidate overlay без Git CLI или записи.
  */
+import { PolicyError } from "@realize/git-runtime";
 import { createHash } from "node:crypto";
-import { relativeFile, PolicyError } from "../contracts.ts";
+import { relativeFile } from "../contracts.ts";
 import type {
   GitMergeTree,
   GitMergeCandidateFile,

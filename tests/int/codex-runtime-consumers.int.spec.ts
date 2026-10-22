@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codex-runtime-consumers.int.spec.ts
- * @version 1.4.0
- * @date 2026-10-05
+ * @version 1.5.0
+ * @date 2026-10-22
  * @description Проверяет интеграцию, сохранение пояснений при отказе и границы отдельного этапа исполнения.
  */
 import type { CodingAgentAdapter } from "@realize/ai-contracts";
@@ -17,7 +17,7 @@ import { runIndependentReview } from "../../services/ai-execution-worker/src/ind
 import { executeClaimedJob } from "../../services/ai-execution-worker/src/executor";
 import type { ClaimedExecutionJob } from "../../services/ai-execution-worker/src/types";
 import type { ExecutionJobRepository } from "../../services/ai-execution-worker/src/jobRepository";
-import { WorktreePolicyError } from "../../services/ai-execution-worker/src/worktree";
+import { WorktreePolicyError } from "../../services/ai-execution-worker/src/WorktreePolicy.error";
 
 const mock = vi.hoisted(() => ({
   create: vi.fn(),
@@ -26,7 +26,15 @@ const mock = vi.hoisted(() => ({
   check: vi.fn(),
   verify: vi.fn(),
   searchAccess: vi.fn(),
+  verifiedDiff: vi.fn(),
 }));
+vi.mock(
+  "../../services/ai-execution-worker/src/readVerifiedPromotionDiff.service",
+  () => ({
+    readVerifiedPromotionDiff: (...args: unknown[]) =>
+      mock.verifiedDiff(...args),
+  }),
+);
 vi.mock(
   "../../services/ai-control-plane/src/createRepositoryRunAccess.service",
   () => ({
@@ -55,6 +63,11 @@ vi.mock(
   async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
     createExecutionWorktree: async () => "/fixture-workspace",
+  }),
+);
+vi.mock(
+  "../../services/ai-execution-worker/src/captureWorktreeDiff.service",
+  () => ({
     captureWorktreeDiff: (...args: unknown[]) => mock.capture(...args),
   }),
 );
@@ -122,6 +135,9 @@ beforeEach(() => {
   mock.searchAccess.mockResolvedValue(undefined);
   mock.verify.mockReturnValue(true);
   mock.capture.mockResolvedValue({ diffHash: "fixture-diff" });
+  mock.verifiedDiff.mockResolvedValue(
+    "diff --git a/src/fixture.ts b/src/fixture.ts\n+verified change\n",
+  );
 });
 
 describe("Codex reviewer integration consumer", () => {
@@ -158,6 +174,13 @@ describe("Codex reviewer integration consumer", () => {
       isolated: true,
     });
     const turn = mock.turn.mock.calls[0]?.[0];
+    expect(mock.verifiedDiff).toHaveBeenCalledExactlyOnceWith({
+      job: test.input.job,
+      workspace: test.input.workspace,
+    });
+    expect(turn.prompt).toContain("+verified change");
+    expect(turn.prompt).toContain("Do not run Git commands");
+    expect(turn.prompt).not.toContain("Inspect git diff --cached");
     expect(turn.prompt).toContain("native repository-search sub-agent");
     expect(turn.prompt).toContain("bounded read-only repository discovery");
     expect(turn.prompt).toContain("wait for the actual findings");
@@ -204,6 +227,18 @@ describe("Codex reviewer integration consumer", () => {
       "fixture integration disabled",
     );
     expect(mock.create).not.toHaveBeenCalled();
+    expect(mock.turn).not.toHaveBeenCalled();
+  });
+
+  it("не запускает модель и интеграцию при изменении принятого diff", async () => {
+    const test = fixture();
+    mock.verifiedDiff.mockRejectedValueOnce(
+      new Error("Accepted diff changed."),
+    );
+    await expect(runIndependentReview(test.input)).rejects.toThrow(
+      "Accepted diff changed.",
+    );
+    expect(test.input.codex.acquire).not.toHaveBeenCalled();
     expect(mock.turn).not.toHaveBeenCalled();
   });
 });
@@ -486,6 +521,53 @@ describe("Codex implementation integration consumer", () => {
       validationFailure: true,
     });
     expect(test.repository.complete).not.toHaveBeenCalled();
+  });
+
+  it("отклоняет изменённый после успешных checks diff вместо сохранения устаревшего evidence", async () => {
+    const test = execution();
+    const check = {
+      command: "npm run typecheck",
+      status: "passed",
+      evidenceHash: "fixture-passed-check",
+    };
+    test.executionInput.job.checks = [check.command];
+    test.executionInput.job.capability.checks = test.executionInput.job.checks;
+    test.executionInput.job.scopeHash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          affectedPaths: test.executionInput.job.allowedPaths,
+          checks: test.executionInput.job.checks,
+        }),
+      )
+      .digest("hex");
+    test.executionInput.job.capability.scopeHash =
+      test.executionInput.job.scopeHash;
+    mock.turn.mockImplementation(async function* () {
+      yield { type: "assistant.completed", content: "fixture implementation" };
+    });
+    mock.capture
+      .mockResolvedValueOnce({ diffHash: "before-checks" })
+      .mockResolvedValueOnce({ diffHash: "after-checks" });
+    mock.check.mockResolvedValue(check);
+
+    await executeClaimedJob(test.executionInput);
+
+    expect(mock.capture).toHaveBeenCalledTimes(2);
+    expect(test.repository.addCheckResult).toHaveBeenCalledWith(
+      test.executionInput.job,
+      check,
+      1,
+    );
+    expect(mock.check.mock.invocationCallOrder[0]).toBeLessThan(
+      mock.capture.mock.invocationCallOrder[1],
+    );
+    expect(test.repository.complete).not.toHaveBeenCalled();
+    expect(test.repository.fail).toHaveBeenCalledWith(test.executionInput.job, {
+      blocked: true,
+      summary: "Worktree diff changed during validation.",
+      workerSummary: "fixture implementation",
+      validationFailure: true,
+    });
   });
 
   it("не выдаёт разрешения на исполнение при отказе проверки capability", async () => {

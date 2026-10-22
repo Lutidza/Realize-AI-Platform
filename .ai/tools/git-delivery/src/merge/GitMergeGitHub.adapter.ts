@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/GitMergeGitHub.adapter.ts
- * @version 1.0.1
- * @date 2026-10-13
+ * @version 1.0.2
+ * @date 2026-10-22
  * @description Исполняет только фиксированные GitHub object/ref операции approved-tree merge с deadline и лимитом ответа.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type {
   GitMergeCommit,
   GitMergeCommitBody,

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/contracts.ts
- * @version 1.2.0
- * @date 2026-10-11
+ * @version 1.2.1
+ * @date 2026-10-22
  * @description Проверяет отдельные входы модели и вызывающей среды, сохраняя публичные экспорты Git-контракта.
  */
 import { isAbsolute } from "node:path";
@@ -13,7 +13,7 @@ import type {
   Context,
   Scope,
 } from "./GitDelivery.types.ts";
-import { PolicyError } from "./Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import { parseGitCommitRecovery } from "./parseGitCommitRecovery.validator.ts";
 
 export type {
@@ -25,7 +25,6 @@ export type {
   Result,
   Scope,
 } from "./GitDelivery.types.ts";
-export { PolicyError } from "./Policy.error.ts";
 export { emptyResult } from "./emptyResult.util.ts";
 
 function object(value: unknown, keys: string[]): Record<string, unknown> {

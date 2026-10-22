@@ -1,7 +1,7 @@
 /**
- * @file .ai/tools/git-delivery/src/Git.types.ts
- * @version 1.1.0
- * @date 2026-09-23
+ * @file packages/git-runtime/src/Git.types.ts
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Определяет настройки ограниченного Git executor и доверенную сетевую авторизацию.
  */
 
@@ -11,10 +11,14 @@ export type GitNetworkEnvironment =
   | { transport: "ssh"; sshPath: string };
 
 export type GitOptions = {
+  profile?: GitExecutionProfile;
   command?: string;
   timeoutMs?: number;
   maxOutputBytes?: number;
 };
+
+/** Профиль выбирает доверенный server owner, а не вход модели или MCP DTO. */
+export type GitExecutionProfile = "developer" | "service" | "machine-read";
 
 export type GitRunOptions = {
   signal?: AbortSignal;

@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/runGitMerge.service.ts
- * @version 1.0.1
- * @date 2026-10-13
+ * @version 1.0.2
+ * @date 2026-10-22
  * @description Создаёт verified approved-tree commit с двумя parents и продвигает только назначенный GitHub ref.
  * @see documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md
  */
 import { createHash } from "node:crypto";
-import { GitFailure } from "../GitFailure.error.ts";
+import { GitFailure } from "@realize/git-runtime";
 import { GitJournalRepository } from "../GitJournal.repository.ts";
 import { openGitMergeSource } from "./openGitMergeSource.adapter.ts";
 import type { GitMergeLocalSource } from "./GitMerge.types.ts";
@@ -14,7 +14,7 @@ import { readGitMergeCandidate } from "./readGitMergeCandidate.adapter.ts";
 import { hashGitTree, applyGitTreeChanges } from "./hashGitTree.util.ts";
 import { publishGitMergeTree } from "./publishGitMergeTree.service.ts";
 import { emptyResult } from "../emptyResult.util.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import { validateGitMergeContext } from "./validateGitMergeContext.validator.ts";
 import { validateGitMergeTrees } from "./validateGitMergeTrees.validator.ts";
 import { validateGitMergeJournal } from "./validateGitMergeJournal.validator.ts";

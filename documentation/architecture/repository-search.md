@@ -165,6 +165,13 @@ CLI consumer переназначается исполнителю/reviewer пр
 SQLite буфер установки: durable enqueue предшествует ack исходной очереди.
 
 `sourceVersion` вычисляется по явному bounded набору sources и lockfiles без Git.
+Общий `packages/git-runtime/src` и typed ports `.ai/tools/git-delivery/src/read`
+включены рекурсивно, вместе с package manifest и используемым secret detector.
+Для этих owners обход ограничен глубиной 8, 512 entries на каталог и 1000
+entries суммарно; symlinks отклоняются. Общие пределы binding остаются 1000
+файлов, 2 МиБ на файл и 4 МиБ суммарно. Это связывает изменения Git execution
+и read policy с новой версией источников, включая новые вложенные модули.
+IDE worker и его delivery journals в этот набор не входят.
 Штатная typegen → tsc → build создаёт `.next/realize-search-build.json` только
 при неизменных sources. Consumers добавляют installedBuildID лишь при совпадении
 source hash и настоящего BUILD_ID. Manifest переносится build owner-ом в

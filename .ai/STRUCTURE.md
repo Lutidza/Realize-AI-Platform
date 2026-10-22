@@ -85,6 +85,8 @@ runtime_sources:
 - `tools/git-delivery/src/worker/` запускает Git-воркера для inspect, commit, push,
   manage, fetch, pull и GitHub merge проверенного дерева; настройки
   находятся в `.codex/`, общий транспорт — в `packages/codex-adapter/`.
+  Общий Git process/lock owner для IDE, платформы и GPT/MCP находится в
+  `packages/git-runtime/`; этот пакет не является источником инструкций модели.
 - `worker-profiles/` предназначен для необязательных повторно используемых
   профилей делегирования. Сейчас содержит только индекс, готовых профилей нет.
 - `agents-evolution/` хранит наблюдения, предложения и результаты изменения

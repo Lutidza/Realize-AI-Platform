@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/push/GitPushSource.service.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет локальный источник push и точное разрешение на его неизменённую полную историю.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import { lstat } from "node:fs/promises";
-import { PolicyError } from "../contracts.ts";
-import type { Git } from "../Git.adapter.ts";
+
+import type { Git } from "@realize/git-runtime";
 import type { GitPushContext } from "./GitPush.types.ts";
 
 /**

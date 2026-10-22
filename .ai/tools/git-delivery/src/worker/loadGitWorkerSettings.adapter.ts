@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/loadGitWorkerSettings.adapter.ts
- * @version 1.3.0
- * @date 2026-10-12
+ * @version 1.3.1
+ * @date 2026-10-22
  * @description Читает конфигурацию Codex и действующие инструкции Git-воркера из проекта.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { PolicyError } from "../contracts.ts";
+
 import type { GitWorkerAction, GitWorkerSettings } from "./GitWorker.types.ts";
 import { isGitWorkerAction } from "./parseGitWorkerCommand.validator.ts";
 

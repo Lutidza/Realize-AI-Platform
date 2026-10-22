@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/readGitManagement.adapter.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Возвращает ограниченное чтение локальных Git-метаданных без раскрытия явных секретов.
  */
-import { Git } from "../Git.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { Git } from "@realize/git-runtime";
+import { PolicyError } from "@realize/git-runtime";
 import { assertNoGitSecrets } from "../commit/assertNoGitSecrets.validator.ts";
 import type {
   GitManageDetails,

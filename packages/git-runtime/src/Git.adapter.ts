@@ -1,17 +1,30 @@
 /**
- * @file .ai/tools/git-delivery/src/Git.adapter.ts
- * @version 1.3.0
- * @date 2026-09-23
+ * @file packages/git-runtime/src/Git.adapter.ts
+ * @version 1.3.1
+ * @date 2026-10-22
  * @description Ограниченный запуск Git без shell; унаследованные GIT_* не меняют выбранную рабочую копию.
  */
 
 import { spawn } from "node:child_process";
 import { isAbsolute, resolve } from "node:path";
+import { realpath } from "node:fs/promises";
 import { GitFailure } from "./GitFailure.error.ts";
 import { classifyGitFailure } from "./classifyGitFailure.util.ts";
-import type { GitOptions, GitRunOptions } from "./Git.types.ts";
-
-export { GitFailure } from "./GitFailure.error.ts";
+import type {
+  GitExecutionProfile,
+  GitOptions,
+  GitRunOptions,
+} from "./Git.types.ts";
+import type { GitLock } from "./GitLock.types.ts";
+import { assertGitLockHeld } from "./acquireGitLock.adapter.ts";
+import {
+  assertMachineReadArguments,
+  gitCommandOffset,
+  requiresGitLock,
+} from "./GitExecutionProfile.policy.ts";
+import { assertGitNetworkConfiguration } from "./assertGitNetworkConfiguration.adapter.ts";
+import { GIT_NETWORK_CONFIG } from "./gitNetworkConfig.constants.ts";
+import { PolicyError } from "./Policy.error.ts";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 4 * 1024 * 1024;
@@ -51,18 +64,20 @@ const IDENTITY_ENVIRONMENT = new Set([
 /** Исполняет только программно составленные аргументы, сохраняя configured hooks/signing. */
 export class Git {
   root: string;
-  /** Доверенный descriptor блокировки сохраняет её, пока Git жив после сбоя родителя. */
-  lockDescriptor?: number;
+  private lock?: GitLock;
+  private readonly profile: GitExecutionProfile;
   private readonly command: string;
   private readonly timeoutMs: number;
   private readonly maxOutputBytes: number;
 
   constructor(root: string, options: GitOptions = {}) {
     this.root = resolve(root);
+    this.profile = options.profile ?? "developer";
     this.command = options.command ?? "git";
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.maxOutputBytes = options.maxOutputBytes ?? DEFAULT_MAX_OUTPUT_BYTES;
     if (
+      !["developer", "service", "machine-read"].includes(this.profile) ||
       !this.command ||
       this.command.includes("\0") ||
       !Number.isSafeInteger(this.timeoutMs) ||
@@ -79,8 +94,22 @@ export class Git {
     }
   }
 
+  /** Не захватывает lock повторно; полномочие и принадлежность проверяются перед записью. */
+  attachLock(lease: GitLock): void {
+    assertGitLockHeld(lease);
+    this.lock = lease;
+  }
+
+  /** Заимствованный lease освобождает вызывающий owner. */
+  detachLock(): void {
+    this.lock = undefined;
+  }
+
   /** Возвращает полный UTF-8 stdout либо ошибку, не выдавая stderr или содержимое аргументов. */
-  async run(args: string[], options: GitRunOptions = {}): Promise<string> {
+  async run(
+    args: readonly string[],
+    options: GitRunOptions = {},
+  ): Promise<string> {
     const output = await this.runBytes(args, options);
     try {
       return new TextDecoder("utf-8", { fatal: true }).decode(output);
@@ -93,7 +122,10 @@ export class Git {
   }
 
   /** Возвращает точные байты stdout, включая бинарные blobs, с теми же пределами исполнения. */
-  async runBytes(args: string[], options: GitRunOptions = {}): Promise<Buffer> {
+  async runBytes(
+    args: readonly string[],
+    options: GitRunOptions = {},
+  ): Promise<Buffer> {
     if (options.signal?.aborted)
       throw new GitFailure(
         "git_timeout",
@@ -116,15 +148,67 @@ export class Git {
         "Недопустимые аргументы Git.",
       );
     }
-    if (
-      this.lockDescriptor !== undefined &&
-      (!Number.isSafeInteger(this.lockDescriptor) || this.lockDescriptor < 3)
-    ) {
+    const offset = gitCommandOffset(args);
+    const machineRead =
+      this.profile === "machine-read" || options.machineRead === true;
+    if (machineRead) assertMachineReadArguments(args);
+    const mutation = requiresGitLock(args);
+    if (machineRead && mutation)
       throw new GitFailure(
-        "git_configuration_invalid",
-        "Недопустимый descriptor блокировки Git.",
+        "git_arguments_invalid",
+        "Машинное чтение не разрешает изменение Git.",
       );
+    if (this.lock) assertGitLockHeld(this.lock);
+    if (mutation) {
+      if (!this.lock)
+        throw new PolicyError(
+          "git_lock_required",
+          "Изменение Git требует общей блокировки репозитория.",
+        );
+      const probe = new Git(this.root, {
+        profile: "machine-read",
+        command: this.command,
+        timeoutMs: this.timeoutMs,
+        maxOutputBytes: 16384,
+      });
+      const common = await realpath(
+        (
+          await probe.run(
+            ["rev-parse", "--path-format=absolute", "--git-common-dir"],
+            { signal: options.signal },
+          )
+        ).trimEnd(),
+      );
+      assertGitLockHeld(this.lock);
+      if (common !== this.lock.commonDirectory)
+        throw new PolicyError(
+          "git_lock_repository_mismatch",
+          "Git owner не совпадает с блокировкой операции.",
+        );
     }
+    if (
+      ["fetch", "push", "ls-remote", "clone"].includes(args[offset]) &&
+      !options.network
+    )
+      throw new GitFailure(
+        "git_network_required",
+        "Сетевая операция Git требует явного серверного подключения.",
+      );
+    if (
+      this.profile === "service" &&
+      args
+        .slice(offset + 1)
+        .some(
+          (part) =>
+            part === "-S" ||
+            part.startsWith("--gpg-sign") ||
+            /^-S.+/u.test(part),
+        )
+    )
+      throw new GitFailure(
+        "git_arguments_invalid",
+        "Служебный профиль не использует пользовательскую подпись.",
+      );
     const input = options.input ?? "";
     if (
       typeof input !== "string" ||
@@ -154,18 +238,8 @@ export class Git {
     }
     env.GIT_OPTIONAL_LOCKS = "0";
     env.GIT_TERMINAL_PROMPT = "0";
-    if (options.machineRead) {
-      if (
-        options.network ||
-        ![
-          "rev-parse",
-          "symbolic-ref",
-          "ls-tree",
-          "ls-files",
-          "cat-file",
-          "diff",
-        ].includes(args[0])
-      ) {
+    if (machineRead) {
+      if (options.network) {
         throw new GitFailure(
           "git_arguments_invalid",
           "Операция не разрешена машинному чтению.",
@@ -179,6 +253,16 @@ export class Git {
       env.GIT_PAGER = "cat";
       env.LC_ALL = "C";
       delete env.SSH_AUTH_SOCK;
+    }
+    if (this.profile === "service") {
+      env.GIT_CONFIG_GLOBAL = "/dev/null";
+      env.GIT_CONFIG_NOSYSTEM = "1";
+      env.GIT_NO_REPLACE_OBJECTS = "1";
+      env.GIT_NO_LAZY_FETCH = "1";
+      env.GIT_ALLOW_PROTOCOL = "";
+      delete env.SSH_AUTH_SOCK;
+      delete env.GPG_TTY;
+      delete env.GNUPGHOME;
     }
     if (options.network !== undefined) {
       const network = options.network;
@@ -206,6 +290,12 @@ export class Git {
           "Недопустимое сетевое окружение Git.",
         );
       }
+      await assertGitNetworkConfiguration(
+        this,
+        network.transport,
+        args.slice(0, offset),
+        options.signal,
+      );
       env.GIT_ALLOW_PROTOCOL = network.transport;
       env.LC_ALL = "C";
       delete env.SSH_AUTH_SOCK;
@@ -219,6 +309,7 @@ export class Git {
       }
     }
 
+    if (this.lock) assertGitLockHeld(this.lock);
     return await new Promise<Buffer>((resolvePromise, reject) => {
       const child = spawn(
         this.command,
@@ -226,7 +317,7 @@ export class Git {
           "--literal-pathspecs",
           "-c",
           "core.fsmonitor=false",
-          ...(options.machineRead
+          ...(machineRead
             ? [
                 "-c",
                 "core.hooksPath=/dev/null",
@@ -238,7 +329,19 @@ export class Git {
                 "submodule.recurse=false",
               ]
             : []),
-          ...args,
+          ...args.slice(0, offset),
+          ...(options.network ? GIT_NETWORK_CONFIG : []),
+          ...(this.profile === "service"
+            ? [
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "commit.gpgSign=false",
+                "-c",
+                "tag.gpgSign=false",
+              ]
+            : []),
+          ...args.slice(offset),
         ],
         {
           cwd: this.root,
@@ -249,7 +352,7 @@ export class Git {
             "pipe",
             "pipe",
             "pipe",
-            ...(this.lockDescriptor === undefined ? [] : [this.lockDescriptor]),
+            ...(this.lock === undefined ? [] : [this.lock.descriptor]),
           ],
         },
       );

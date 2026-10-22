@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/verifyGitCommitEvidence.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Связывает обязательные проверки с одним проверенным снимком commit.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type { Context, Result } from "../GitDelivery.types.ts";
 
 export function verifyEvidence(

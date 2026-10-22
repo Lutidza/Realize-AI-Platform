@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/GitJournal.repository.test.ts
- * @version 1.0.1
- * @date 2026-10-15
+ * @version 1.0.2
+ * @date 2026-10-22
  * @description Проверки границ файлового журнала в изолированных временных каталогах.
  */
+import { PolicyError } from "@realize/git-runtime";
 import assert from "node:assert/strict";
 import childProcess from "node:child_process";
 import {
@@ -26,7 +27,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
-import { parseContext, PolicyError } from "../src/contracts.ts";
+import { parseContext } from "../src/contracts.ts";
 import type { Context } from "../src/contracts.ts";
 import { GitJournalRepository } from "../src/GitJournal.repository.ts";
 import { loadGitContext } from "../src/loadGitContext.adapter.ts";

@@ -1,14 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/network/resolveGitSshProfile.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет доверенную карту SSH-профилей, права файлов и явный источник ключа.
  */
 
 import { constants } from "node:fs";
 import { open, lstat } from "node:fs/promises";
 import { isAbsolute } from "node:path";
-import { GitFailure } from "../GitFailure.error.ts";
+import { GitFailure } from "@realize/git-runtime";
 import type { GitSshProfile } from "./GitNetwork.types.ts";
 
 function invalid(): never {

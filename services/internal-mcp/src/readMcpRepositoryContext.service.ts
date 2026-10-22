@@ -1,12 +1,12 @@
 /**
  * @file services/internal-mcp/src/readMcpRepositoryContext.service.ts
- * @version 1.0.0
- * @date 2026-10-20
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Независимо проверяет доступность файлов и Git без полного снимка checkout.
  * @see documentation/specifications/internal-mcp.md
  */
 import { readGitHead } from "../../../.ai/tools/git-delivery/src/read/gitRead.server.index";
-import { GitFailure } from "../../../.ai/tools/git-delivery/src/GitFailure.error";
+import { GitFailure } from "@realize/git-runtime";
 import { openRepositoryDirectory } from "../../ai-control-plane/src/openRepositoryDirectory.adapter";
 import { assertRepositoryReadActive } from "../../ai-control-plane/src/readRepositoryFile.service";
 import { RepositoryReadError } from "../../ai-control-plane/src/RepositoryRead.error";

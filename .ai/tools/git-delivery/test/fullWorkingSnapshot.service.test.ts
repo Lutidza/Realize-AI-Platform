@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/test/fullWorkingSnapshot.service.test.ts
- * @version 1.0.0
- * @date 2026-10-11
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет явное включение частичного индекса в полный рабочий снимок на disposable Git.
  */
+import { PolicyError } from "@realize/git-runtime";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { parseContext, PolicyError } from "../src/contracts.ts";
+import { parseContext } from "../src/contracts.ts";
 import { runDelivery } from "../src/handler.ts";
 import { hashGitCommitContext } from "../src/commit/hashGitCommitContext.util.ts";
 import { verifyGitStagedContent } from "../src/commit/verifyGitStagedContent.adapter.ts";

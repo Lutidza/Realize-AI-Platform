@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/push/validateGitPushJournal.validator.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет привязку и допустимый этап сохранённого журнала push без файловых операций.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { PolicyError } from "../contracts.ts";
 import type { GitPushJournal } from "./GitPush.types.ts";
 import { MAX_GIT_PUSH_RECOVERY_ATTEMPTS } from "./gitPush.constants.ts";
 import { validateGitPushDiagnostic } from "./validateGitPushDiagnostic.validator.ts";

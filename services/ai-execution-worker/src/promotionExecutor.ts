@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/promotionExecutor.ts
- * @version 1.2.0
- * @date 2026-10-05
+ * @version 1.2.1
+ * @date 2026-10-22
  * @description Проверяет принятый diff, выполняет независимый Codex review и запускает local preview.
  */
 
@@ -23,11 +23,9 @@ import { runPreviewBrowserSmoke } from "./previewBrowserSmoke";
 import { runPreviewBrowserPreflight } from "./previewBrowserPreflight.service";
 import { resolvePreviewTargetPath } from "./previewTarget.util";
 import type { PromotionRepository } from "./promotionRepository";
-import {
-  commitPromotion,
-  preparePromotionWorktree,
-  removePromotionWorktree,
-} from "./promotionWorktree";
+import { preparePromotionWorktree } from "./promotionWorktree";
+import { commitPromotion } from "./commitPromotion.service";
+import { removePromotionWorktree } from "./removePromotionWorktree.service";
 import {
   removePreviewRuntimeFiles,
   startLocalPreview,
@@ -38,7 +36,7 @@ import type {
   LocalPreviewRuntime,
 } from "./previewTypes";
 import type { WorkerCheckResult } from "./types";
-import { WorktreePolicyError } from "./worktree";
+import { WorktreePolicyError } from "./WorktreePolicy.error";
 import { withWorkspaceDependencies } from "./workspaceDependencies";
 
 class PromotionValidationError extends Error {

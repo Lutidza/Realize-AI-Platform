@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/acceptGitCommitRecovery.service.ts
- * @version 1.1.0
- * @date 2026-10-11
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Принимает проверенное исправление прерванного commit с сохранением его назначения.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type { Context, Result } from "../GitDelivery.types.ts";
-import type { Git } from "../Git.adapter.ts";
+import type { Git } from "@realize/git-runtime";
 import type { Snapshot } from "../GitSnapshot.types.ts";
 import type { Journal } from "./GitCommitJournal.types.ts";
 import { saveJournal } from "../state.ts";

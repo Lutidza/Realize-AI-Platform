@@ -1,30 +1,27 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/gitRepository.ts
- * @version 2026-08-21
- * @description Resolves the immutable Git base used when an execution job is enqueued.
+ * @version 1.0.0
+ * @date 2026-10-22
+ * @description Читает неизменяемую Git-базу задания через общий ограниченный исполнитель.
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { Git } from "@realize/git-runtime";
 
 import { EndpointError } from "./http";
-
-const execute = promisify(execFile);
 
 /** Returns HEAD only after verifying that the configured root is the Git owner. */
 export const resolveExecutionBaseCommit = async (
   repositoryRoot: string,
 ): Promise<string> => {
   try {
-    const [{ stdout: topLevel }, { stdout: commit }] = await Promise.all([
-      execute("git", ["rev-parse", "--show-toplevel"], {
-        cwd: repositoryRoot,
-        encoding: "utf8",
-      }),
-      execute("git", ["rev-parse", "--verify", "HEAD^{commit}"], {
-        cwd: repositoryRoot,
-        encoding: "utf8",
-      }),
+    const git = new Git(repositoryRoot, {
+      profile: "machine-read",
+      timeoutMs: 2_000,
+      maxOutputBytes: 16_384,
+    });
+    const [topLevel, commit] = await Promise.all([
+      git.run(["rev-parse", "--show-toplevel"]),
+      git.run(["rev-parse", "--verify", "HEAD^{commit}"]),
     ]);
     if (topLevel.trim() !== repositoryRoot) {
       throw new Error("Configured root is not the Git top-level directory.");

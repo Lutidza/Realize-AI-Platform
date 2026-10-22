@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/repository.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Снимок связывает Git, байты индекса и разрешённые файлы без staging и чтения через symlink.
  */
 
@@ -11,7 +11,7 @@ import { lstat, open, readlink, realpath } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 
-import { Git, GitFailure } from "./Git.adapter.ts";
+import { Git, GitFailure } from "@realize/git-runtime";
 
 const MAX_PATHS = 10_000;
 const MAX_FILE_BYTES = 32 * 1024 * 1024;
@@ -30,7 +30,7 @@ import type {
   GitContentValidator,
   GitSnapshotReadBudget,
 } from "./GitSnapshot.types.ts";
-import { PolicyError } from "./Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type { Scope } from "./GitDelivery.types.ts";
 
 const hash = (value: string | Buffer): string =>

@@ -1,15 +1,15 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/readGitManageDiff.adapter.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Строит безопасный diff из blob и буквальных рабочих bytes без clean filters и symlink-переходов.
  */
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
-import { Git } from "../Git.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { Git } from "@realize/git-runtime";
+import { PolicyError } from "@realize/git-runtime";
 import { relativeFile } from "../contracts.ts";
 import { assertNoGitSecrets } from "../commit/assertNoGitSecrets.validator.ts";
 import { createGitReadPatch } from "../read/createGitReadPatch.adapter.ts";

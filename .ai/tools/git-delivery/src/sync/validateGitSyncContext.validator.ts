@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/sync/validateGitSyncContext.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет точное немодельное разрешение fetch/pull без произвольных команд, URL и режимов merge.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { parseContext, PolicyError } from "../contracts.ts";
+import { parseContext } from "../contracts.ts";
 import type { GitSyncAction, GitSyncContext } from "./GitSync.types.ts";
 
 function record(value: unknown, keys: string[]): Record<string, unknown> {

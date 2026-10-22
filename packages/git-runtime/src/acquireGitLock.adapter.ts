@@ -1,14 +1,26 @@
 /**
- * @file .ai/tools/git-delivery/src/acquireGitLock.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @file packages/git-runtime/src/acquireGitLock.adapter.ts
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Удерживает процессную блокировку общего каталога Git через flock.
  */
 import { spawn } from "node:child_process";
-import { constants } from "node:fs";
+import { constants, fstatSync, statSync } from "node:fs";
 import { open, realpath } from "node:fs/promises";
 import { PolicyError } from "./Policy.error.ts";
 import type { GitLock } from "./GitLock.types.ts";
+
+const issuedLeases = new WeakSet<object>();
+
+/** Общий executor принимает только живой lease, выданный этим owner. */
+export function assertGitLockHeld(lease: GitLock): void {
+  if (!lease || !issuedLeases.has(lease))
+    throw new PolicyError(
+      "git_lock_invalid",
+      "Блокировка Git не принадлежит общему исполнителю.",
+    );
+  lease.assertHeld();
+}
 
 export async function acquireGitLock(
   commonDirectory: string,
@@ -18,8 +30,9 @@ export async function acquireGitLock(
       "unsupported_platform",
       "Первый этап требует Linux и flock.",
     );
+  const canonicalDirectory = await realpath(commonDirectory);
   const directory = await open(
-    await realpath(commonDirectory),
+    canonicalDirectory,
     constants.O_RDONLY | constants.O_DIRECTORY,
   );
   // Блокируется существующий каталог: inspect не создаёт даже отдельный lock-файл.
@@ -58,16 +71,40 @@ export async function acquireGitLock(
     await directory.close();
     throw error;
   }
-  return {
+  const identity = await directory.stat().catch(async (error: unknown) => {
+    await directory.close();
+    throw error;
+  });
+  const lease = Object.freeze({
     descriptor: directory.fd,
+    commonDirectory: canonicalDirectory,
     assertHeld() {
       if (!alive) {
         throw new PolicyError("lock_lost", "Блокировка операции потеряна.");
       }
+      try {
+        const current = fstatSync(directory.fd);
+        const owner = statSync(canonicalDirectory);
+        if (
+          current.dev !== identity.dev ||
+          current.ino !== identity.ino ||
+          owner.dev !== identity.dev ||
+          owner.ino !== identity.ino
+        )
+          throw new Error("lock identity changed");
+      } catch {
+        throw new PolicyError(
+          "lock_lost",
+          "Descriptor блокировки операции недоступен.",
+        );
+      }
     },
     async release() {
+      if (!alive) return;
       alive = false;
       await directory.close();
     },
-  };
+  }) as GitLock;
+  issuedLeases.add(lease);
+  return lease;
 }

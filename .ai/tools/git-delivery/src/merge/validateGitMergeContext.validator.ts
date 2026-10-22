@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/validateGitMergeContext.validator.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет закрытое разрешение approved-tree merge и fingerprint фактически назначенного candidate.
  */
-import { parseContext, relativeFile, PolicyError } from "../contracts.ts";
+import { PolicyError } from "@realize/git-runtime";
+import { parseContext, relativeFile } from "../contracts.ts";
 import { assertNoGitSecrets } from "../commit/assertNoGitSecrets.validator.ts";
 import { assertAllowedGitChangedPaths } from "../commit/validateGitChanges.validator.ts";
 import type { GitMergeContext } from "./GitMerge.types.ts";

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-repository-context.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-20
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет причины Git-only отказов, доступность файлов и отмену context.
  */
 // @vitest-environment node
@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Git, GitFailure } from "../../.ai/tools/git-delivery/src/Git.adapter";
+import { Git, GitFailure } from "@realize/git-runtime";
 import { RepositoryReadError } from "../../services/ai-control-plane/src/RepositoryRead.error";
 import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";

@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.controller.ts
- * @version 1.3.1
- * @date 2026-10-13
+ * @version 1.3.2
+ * @date 2026-10-22
  * @description Принимает Git-действие и передаёт его воркеру с контекстом вызывающей среды.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import { realpath } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { PolicyError } from "../contracts.ts";
+
 import { deliverGitWorkerCommand } from "./deliverGitWorkerCommand.service.ts";
 import { createGitWorkerTransport } from "./createGitWorkerTransport.adapter.ts";
 import { loadGitWorkerSettings } from "./loadGitWorkerSettings.adapter.ts";

@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/test/manageContext.test.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет границы доверенного разрешения manage и запрет обхода scope.
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { PolicyError } from "../src/Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import { validateGitManageContext } from "../src/manage/validateGitManageContext.validator.ts";
 import type { GitManageContext } from "../src/manage/GitManage.types.ts";
 

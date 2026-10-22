@@ -1,14 +1,15 @@
 /**
  * @file .ai/tools/git-delivery/test/GitWorkerCapability.service.test.ts
- * @version 1.1.1
- * @date 2026-09-09
+ * @version 1.1.2
+ * @date 2026-10-22
  * @description Проверяет границы Git inspect и commit capability без запуска Git и модели.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { emptyResult, PolicyError } from "../src/contracts.ts";
+import { emptyResult } from "../src/contracts.ts";
 import type { Context, Result } from "../src/contracts.ts";
 import { GitWorkerCapabilityService } from "../src/worker/GitWorkerCapability.service.ts";
 import type {

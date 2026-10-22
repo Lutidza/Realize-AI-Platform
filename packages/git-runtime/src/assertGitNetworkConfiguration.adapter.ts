@@ -1,12 +1,12 @@
 /**
- * @file .ai/tools/git-delivery/src/network/assertGitNetworkConfiguration.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @file packages/git-runtime/src/assertGitNetworkConfiguration.adapter.ts
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Отклоняет Git config, способный подменить сетевое назначение или явную авторизацию.
  */
 
-import { GitFailure } from "../GitFailure.error.ts";
-import type { Git } from "../Git.adapter.ts";
+import { GitFailure } from "./GitFailure.error.ts";
+import type { Git } from "./Git.adapter.ts";
 import { lstat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +15,8 @@ import { join } from "node:path";
 export async function assertGitNetworkConfiguration(
   git: Git,
   transport: "https" | "ssh",
+  prefix: readonly string[] = [],
+  signal?: AbortSignal,
 ): Promise<void> {
   if (transport === "https") {
     for (const filename of [".netrc", "_netrc"]) {
@@ -40,13 +42,17 @@ export async function assertGitNetworkConfiguration(
     }
   }
   try {
-    const matches = await git.run([
-      "config",
-      "--null",
-      "--name-only",
-      "--get-regexp",
-      "^(url\\..*\\.(insteadof|pushinsteadof)|remote\\.(https://|ssh://).*|core\\.sshcommand|http\\..*\\..*|credential\\..*\\..*|http\\.(sslcainfo|sslcapath|sslcert|sslkey|curloptresolve|sslbackend|schannelusesslcainfo))$",
-    ]);
+    const matches = await git.run(
+      [
+        ...prefix,
+        "config",
+        "--null",
+        "--name-only",
+        "--get-regexp",
+        "^(include\\.path|includeif\\..*\\.path|url\\..*\\.(insteadof|pushinsteadof)|remote\\.(https://|ssh://).*|core\\.sshcommand|http\\..*\\..*|credential\\..*\\..*|http\\.(sslcainfo|sslcapath|sslcert|sslkey|curloptresolve|sslbackend|schannelusesslcainfo))$",
+      ],
+      { signal },
+    );
     if (matches.length)
       throw new GitFailure(
         "git_network_configuration_denied",

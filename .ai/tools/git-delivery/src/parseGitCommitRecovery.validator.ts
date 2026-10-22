@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/src/parseGitCommitRecovery.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет явно разрешённую попытку восстановления commit и прежний отпечаток.
  */
 
 import { MAX_GIT_COMMIT_RECOVERY_ATTEMPTS } from "./commit/gitCommitRecovery.constants.ts";
 import type { Context } from "./GitDelivery.types.ts";
-import { PolicyError } from "./Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 
 /** Проверяет форму разрешения; связь с прежним журналом устанавливает операция commit. */
 export function parseGitCommitRecovery(

@@ -1,7 +1,7 @@
 /**
- * @file .ai/tools/git-delivery/src/GitFailure.error.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @file packages/git-runtime/src/GitFailure.error.ts
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Передаёт безопасную причину сбоя Git и код завершения без исходного stderr.
  */
 

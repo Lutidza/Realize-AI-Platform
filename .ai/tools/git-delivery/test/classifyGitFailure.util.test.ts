@@ -1,17 +1,17 @@
 /**
  * @file .ai/tools/git-delivery/test/classifyGitFailure.util.test.ts
- * @version 1.0.1
- * @date 2026-09-09
+ * @version 1.0.2
+ * @date 2026-10-22
  * @description Проверяет конечные категории Git, приоритет причин и сокрытие диагностических данных.
  */
 
 import assert from "node:assert/strict";
 import { inspect } from "node:util";
 import { test } from "node:test";
-import { classifyGitFailure } from "../src/classifyGitFailure.util.ts";
-import { GitFailure } from "../src/GitFailure.error.ts";
-import { GIT_FAILURE_CATEGORIES } from "../src/gitFailureCategory.constants.ts";
-import type { GitFailureCategory } from "../src/GitFailureCategory.types.ts";
+import { classifyGitFailure } from "@realize/git-runtime";
+import { GitFailure } from "@realize/git-runtime";
+import { GIT_FAILURE_CATEGORIES } from "@realize/git-runtime";
+import type { GitFailureCategory } from "@realize/git-runtime";
 
 const diagnostics: Array<[GitFailureCategory, string]> = [
   [

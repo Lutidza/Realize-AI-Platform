@@ -1431,6 +1431,19 @@ release не переписывается; пока совместимый пр�
 
 Product runtime игнорирует AGENTS.md и project `.codex` как policy Codex.
 Работа разработчика в IDE и отдельный Git worker сохраняют свой рабочий протокол.
+При этом оба входа и repository tools GPT/MCP используют общий программный
+Git executor `@realize/git-runtime` по
+[ADR-0016](../architecture/decisions/ADR-0016-development-git-delivery-handler.md).
+Product owners проверяют CR/job, approval и evidence; IDE — разрешённый scope
+и checks; MCP — principal и grants. Общая блокировка `git-common-dir`
+координирует изменяющие Git-фазы, не удерживается на build/review/копировании БД
+и не объединяет эти разрешения. Developer hooks/signing и контролируемый
+service commit preview сохраняют разные профили.
+
+Изменения общего пакета и machine read ports меняют source binding. После
+сборки нужны отдельная активация и проверка установленного runtime; успешные
+проверки исходников и старые installed receipts не заменяют этот шаг.
+Рефакторинг Git owner сам по себе не запускает preview или развёртывание.
 Это локальная доверенная сборка; внешний клиентский host и закрытый vendor AI
 сервис физически разделяются на PLAT-10. Детали —
 [контракт system/overlay](../specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md#1011-опубликованный-system-ai-release-и-исполнение).

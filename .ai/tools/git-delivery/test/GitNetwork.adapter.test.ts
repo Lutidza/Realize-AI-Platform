@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/GitNetwork.adapter.test.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет HTTPS Git transport и advertised guard только на изолированном loopback fixture.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
 
 import assert from "node:assert/strict";
 import { spawn, execFile } from "node:child_process";
@@ -15,7 +16,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
 import { promisify } from "node:util";
-import { Git, GitFailure } from "../src/Git.adapter.ts";
+import { GitFailure } from "@realize/git-runtime";
 import { createGitNetworkSession } from "../src/network/createGitNetworkSession.adapter.ts";
 import type { GitNetworkConnection } from "../src/network/GitNetwork.types.ts";
 
@@ -53,15 +54,15 @@ async function fixture(
   const local = join(root, "local");
   const remoteRoot = join(root, "remote.git");
   await mkdir(local);
-  const localGit = new Git(local);
+  const localGit = new FixtureGit(local);
   await localGit.run(["init", "--initial-branch=main"]);
   await localGit.run(["config", "commit.gpgsign", "false"]);
   await writeFile(join(local, "owned.txt"), "seed\n");
   await localGit.run(["add", "owned.txt"]);
   await localGit.run(["commit", "-m", "Fixture seed"], { env: identity });
   const sourceOid = (await localGit.run(["rev-parse", "HEAD"])).trim();
-  await new Git(root).run(["init", "--bare", remoteRoot]);
-  const remoteGit = new Git(remoteRoot);
+  await new FixtureGit(root).run(["init", "--bare", remoteRoot]);
+  const remoteGit = new FixtureGit(remoteRoot);
   await remoteGit.run(["config", "http.receivepack", "true"]);
   const certificate = join(root, "cert.pem");
   await execute("/usr/bin/openssl", [
@@ -187,7 +188,7 @@ child.on("exit", code => {process.exitCode = code ?? 1;});
 `,
     { mode: 0o700 },
   );
-  const git = new Git(local, { command: shim, timeoutMs: 15_000 });
+  const git = new FixtureGit(local, { command: shim, timeoutMs: 15_000 });
   return {
     root,
     local,
@@ -326,7 +327,7 @@ test("rewrite и scoped HTTP config отклоняются до сетевого
 test("network overlay не принимает произвольные env или shell executable", async (t) => {
   const root = await mkdtemp(join(tmpdir(), "realize-git-env-test-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const git = new Git(root);
+  const git = new FixtureGit(root);
   await assert.rejects(
     git.run(["version"], {
       network: {
@@ -359,7 +360,7 @@ test("HTTPS не использует неявный netrc credential fallback",
   try {
     await assert.rejects(
       createGitNetworkSession({
-        git: new Git(root),
+        git: new FixtureGit(root),
         connection,
         expected: {
           branch: "main",

@@ -1,6 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/sourcePromotionExecutor.ts
- * @version 2026-08-28
+ * @version 1.0.0
+ * @date 2026-10-22
  * @docref ADR-0013
  * @see documentation/architecture/decisions/ADR-0013-github-pull-request-source-promotion.md
  * @description Оркестрирует exact branch publication и draft Pull Request без merge authority.
@@ -19,10 +20,8 @@ import {
   IntegrationRuntimeError,
   type GitHubConnectionResolver,
 } from "@realize/payload-ai-control/server/integration-runtime";
-import {
-  publishExactGitHubBranch,
-  SourcePromotionGitPolicyError,
-} from "./sourcePromotionGit";
+import { publishExactGitHubBranch } from "./sourcePromotionGit";
+import { SourcePromotionGitPolicyError } from "./SourcePromotionGitPolicy.error";
 import {
   ensureGitHubDraftPullRequest,
   GitHubPullRequestError,

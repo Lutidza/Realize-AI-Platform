@@ -1,14 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/loadGitContext.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Читает назначенный личный JSON-файл контекста с проверкой владельца, прав и размера.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import { isAbsolute } from "node:path";
-import { PolicyError } from "./contracts.ts";
 
 /** Возвращает JSON из явного пути; проверка схемы контекста остаётся у потребителя. */
 export async function loadGitContext(

@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/validateGitMergeJournal.validator.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Отклоняет журнал, изменяющий назначение, identity, message или детерминированный commit object.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import { hashGitMergeCommit } from "./hashGitMergeCandidate.util.ts";
 import type { GitMergeContext, GitMergeJournal } from "./GitMerge.types.ts";
 

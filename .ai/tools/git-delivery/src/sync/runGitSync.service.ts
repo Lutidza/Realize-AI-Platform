@@ -1,17 +1,18 @@
 /**
  * @file .ai/tools/git-delivery/src/sync/runGitSync.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Исполняет адресный fetch или чистый fast-forward pull с общей блокировкой, журналом и сверкой OID.
  */
+import { acquireGitLock as acquireLock } from "@realize/git-runtime";
 
 import { realpath } from "node:fs/promises";
 import { emptyResult } from "../emptyResult.util.ts";
-import { Git } from "../Git.adapter.ts";
-import { GitFailure } from "../GitFailure.error.ts";
+import { Git } from "@realize/git-runtime";
+import { GitFailure } from "@realize/git-runtime";
 import { GitJournalRepository } from "../GitJournal.repository.ts";
-import { PolicyError } from "../Policy.error.ts";
-import { acquireLock } from "../state.ts";
+import { PolicyError } from "@realize/git-runtime";
+
 import type {
   GitFetchNetworkSession,
   GitNetworkConnection,
@@ -117,7 +118,7 @@ export async function runGitSync(
       ).trim(),
     );
     lock = await acquireLock(common);
-    git.lockDescriptor = lock.descriptor;
+    git.attachLock(lock);
     const source = new GitSyncSourceService(git, context);
     stage = "journal";
     repository = new GitJournalRepository(context);

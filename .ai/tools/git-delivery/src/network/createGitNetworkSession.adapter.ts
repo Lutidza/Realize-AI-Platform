@@ -1,44 +1,24 @@
 /**
  * @file .ai/tools/git-delivery/src/network/createGitNetworkSession.adapter.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Создаёт ограниченную HTTPS/SSH сессию чтения, адресного fetch и non-force push в канонический GitHub remote.
  */
 
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { GitFailure } from "../GitFailure.error.ts";
-import type { GitNetworkEnvironment } from "../Git.types.ts";
+import { GitFailure } from "@realize/git-runtime";
+import type { GitNetworkEnvironment } from "@realize/git-runtime";
 import type {
   GitNetworkOptions,
   GitFetchNetworkSession,
 } from "./GitNetwork.types.ts";
-import { assertGitNetworkConfiguration } from "./assertGitNetworkConfiguration.adapter.ts";
-import { createGitAskpass } from "./createGitAskpass.adapter.ts";
+import { assertGitNetworkConfiguration } from "@realize/git-runtime";
+import { createGitAskpass } from "@realize/git-runtime";
 import { createGitPushHook } from "./createGitPushHook.adapter.ts";
 import { createGitSshCommand } from "./createGitSshCommand.adapter.ts";
 import { resolveGitSshProfile } from "./resolveGitSshProfile.adapter.ts";
-
-const NETWORK_CONFIG = [
-  "credential.helper=",
-  "credential.username=x-access-token",
-  "credential.interactive=true",
-  "http.emptyAuth=false",
-  "http.proactiveAuth=basic",
-  "http.extraHeader=",
-  "http.cookieFile=",
-  "http.saveCookies=false",
-  "http.proxy=",
-  "http.followRedirects=false",
-  "http.sslVerify=true",
-  "http.lowSpeedLimit=1",
-  "http.lowSpeedTime=15",
-  "push.followTags=false",
-  "push.recurseSubmodules=no",
-  "push.pushOption=",
-].flatMap((value) => ["-c", value]);
-NETWORK_CONFIG.unshift("--no-replace-objects");
 
 /** Авторизация приходит только из trusted server DTO; URL модели и произвольные transport env не принимаются. */
 export async function createGitNetworkSession(
@@ -153,14 +133,7 @@ export async function createGitNetworkSession(
           let output: string;
           try {
             output = await git.run(
-              [
-                ...NETWORK_CONFIG,
-                "ls-remote",
-                "--refs",
-                "--exit-code",
-                remote,
-                ref,
-              ],
+              ["ls-remote", "--refs", "--exit-code", remote, ref],
               { network },
             );
           } catch (error) {
@@ -213,7 +186,6 @@ export async function createGitNetworkSession(
           // Точный OID исключает configured fetch mappings, tags, submodules и общий FETCH_HEAD.
           await git.run(
             [
-              ...NETWORK_CONFIG,
               "-c",
               "core.hooksPath=/dev/null",
               "-c",
@@ -268,7 +240,6 @@ export async function createGitNetworkSession(
           const hooks = await createGitPushHook(git, directory, expected);
           await git.run(
             [
-              ...NETWORK_CONFIG,
               "-c",
               `core.hooksPath=${hooks}`,
               "push",

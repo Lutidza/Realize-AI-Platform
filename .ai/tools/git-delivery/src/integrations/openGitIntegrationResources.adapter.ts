@@ -1,16 +1,17 @@
 /**
  * @file .ai/tools/git-delivery/src/integrations/openGitIntegrationResources.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Открывает общий реестр интеграций с локальными настройками среды и ограниченным Pool.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse } from "dotenv";
 import { Pool } from "pg";
 import { IntegrationRuntimeRepository } from "@realize/payload-ai-control/server/integration-runtime";
-import { PolicyError } from "../contracts.ts";
+
 import type { GitIntegrationResources } from "./GitIntegrationResources.types.ts";
 
 /** Вызывающий адаптер закрывает Pool; чтение среды не изменяет process.env. */

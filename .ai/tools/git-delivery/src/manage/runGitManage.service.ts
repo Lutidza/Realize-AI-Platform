@@ -1,17 +1,17 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/runGitManage.service.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Координирует одну разрешённую локальную Git-операцию с блокировкой и безопасным replay.
  */
 import { createHash } from "node:crypto";
 import { realpath } from "node:fs/promises";
-import { Git, GitFailure } from "../Git.adapter.ts";
-import { acquireGitLock } from "../acquireGitLock.adapter.ts";
+import { Git, GitFailure } from "@realize/git-runtime";
+import { acquireGitLock } from "@realize/git-runtime";
 import { GitJournalRepository } from "../GitJournal.repository.ts";
-import type { GitLock } from "../GitLock.types.ts";
+import type { GitLock } from "@realize/git-runtime";
 import { emptyResult } from "../emptyResult.util.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type {
   GitManageContext,
   GitManageJournal,
@@ -86,7 +86,7 @@ export async function runGitManage(input: unknown): Promise<GitManageResult> {
     const commonDir = await directory("--git-common-dir");
     const gitDir = await directory("--git-dir");
     lock = await acquireGitLock(commonDir);
-    git.lockDescriptor = lock.descriptor;
+    git.attachLock(lock);
     if (
       (await directory("--git-common-dir")) !== commonDir ||
       (await directory("--git-dir")) !== gitDir
@@ -235,7 +235,7 @@ export async function runGitManage(input: unknown): Promise<GitManageResult> {
       "git_start_failed",
     ].includes(result.errorCode);
   } finally {
-    if (git) git.lockDescriptor = undefined;
+    if (git) git.detachLock();
     await lock?.release().catch(() => {});
   }
   return result;

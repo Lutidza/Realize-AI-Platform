@@ -1,10 +1,11 @@
 /**
  * @file scripts/security/check-secrets.mjs
- * @version 2026-08-17
- * @description Rejects common private-key and provider-token signatures in versionable files.
+ * @version 1.0.0
+ * @date 2026-10-22
+ * @description Проверяет сигнатуры секретов в файлах, перечисленных общим Git-исполнителем.
  */
 
-import { execFileSync } from "node:child_process";
+import { Git } from "@realize/git-runtime";
 import { readFileSync } from "node:fs";
 
 const signatures = [
@@ -15,10 +16,12 @@ const signatures = [
   ["aws-access-key", /\bAKIA[0-9A-Z]{16}\b/],
 ];
 
-const candidateFiles = execFileSync(
-  "git",
-  ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-  { encoding: "utf8" },
+const candidateFiles = (
+  await new Git(process.cwd(), {
+    profile: "machine-read",
+    timeoutMs: 30_000,
+    maxOutputBytes: 4 * 1024 * 1024,
+  }).run(["ls-files", "--cached", "--others", "--exclude-standard", "-z"])
 )
   .split("\0")
   .filter(Boolean);

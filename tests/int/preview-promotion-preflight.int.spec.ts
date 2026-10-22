@@ -1,7 +1,7 @@
 /**
  * @file tests/int/preview-promotion-preflight.int.spec.ts
- * @version 1.1.0
- * @date 2026-10-05
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет раннюю остановку promotion и сохранение evidence недоступного Chromium.
  */
 
@@ -23,9 +23,19 @@ vi.mock(
 );
 vi.mock("../../services/ai-execution-worker/src/promotionWorktree", () => ({
   preparePromotionWorktree: mocks.prepare,
-  commitPromotion: mocks.commit,
-  removePromotionWorktree: mocks.remove,
 }));
+vi.mock(
+  "../../services/ai-execution-worker/src/commitPromotion.service",
+  () => ({
+    commitPromotion: mocks.commit,
+  }),
+);
+vi.mock(
+  "../../services/ai-execution-worker/src/removePromotionWorktree.service",
+  () => ({
+    removePromotionWorktree: mocks.remove,
+  }),
+);
 vi.mock("../../services/ai-execution-worker/src/checkRunner", () => ({
   runExecutionCheck: mocks.check,
 }));

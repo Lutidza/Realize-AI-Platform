@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.4.0
- * @date 2026-10-05
+ * @version 1.4.1
+ * @date 2026-10-22
  * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
 
@@ -28,11 +28,9 @@ import { ExecutionJobRepository } from "./jobRepository";
 import { sanitizeExecutionOutput } from "./sanitizeExecutionOutput.util";
 import type { ClaimedExecutionJob, WorkerCheckResult } from "./types";
 import { withWorkspaceDependencies } from "./workspaceDependencies";
-import {
-  captureWorktreeDiff,
-  createExecutionWorktree,
-  WorktreePolicyError,
-} from "./worktree";
+import { createExecutionWorktree } from "./worktree";
+import { captureWorktreeDiff } from "./captureWorktreeDiff.service";
+import { WorktreePolicyError } from "./WorktreePolicy.error";
 
 class ValidationFailure extends Error {
   constructor(message: string) {
@@ -261,6 +259,9 @@ export const executeClaimedJob = async (input: {
         }
       },
     );
+    const verifiedDiff = await captureWorktreeDiff(workspace, input.job);
+    if (verifiedDiff.diffHash !== diff.diffHash)
+      throw new WorktreePolicyError("Worktree diff changed during validation.");
     const evidenceHash = createHash("sha256")
       .update(
         JSON.stringify([

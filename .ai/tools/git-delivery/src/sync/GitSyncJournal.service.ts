@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/src/sync/GitSyncJournal.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Привязывает журнал синхронизации к точному назначению и изолированному tracking ref.
  */
 
 import { createHash } from "node:crypto";
 import { GitJournalRepository } from "../GitJournal.repository.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type {
   GitSyncAction,
   GitSyncContext,

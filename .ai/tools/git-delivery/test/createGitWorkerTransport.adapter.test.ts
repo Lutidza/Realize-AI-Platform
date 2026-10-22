@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/createGitWorkerTransport.adapter.test.ts
- * @version 1.0.0
- * @date 2026-09-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет явный профиль Git-воркера и окружение реального дочернего RPC-процесса.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import assert from "node:assert/strict";
 import { getEventListeners } from "node:events";
@@ -11,7 +12,6 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 
-import { PolicyError } from "../src/contracts.ts";
 import { createGitWorkerEnvironment } from "../src/worker/createGitWorkerEnvironment.adapter.ts";
 import { createGitWorkerTransport } from "../src/worker/createGitWorkerTransport.adapter.ts";
 

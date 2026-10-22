@@ -144,7 +144,14 @@ registry, clients, Pages facade и receipts —
 `packages/payload-ai-plugin/src/integrations/mcp/`, Admin — соседний
 `admin/mcp-servers/`. Repository read policy принадлежит
 `services/ai-control-plane/src`, там же размещён S1 resolver/read инструкций;
-machine Git status/diff — `.ai/tools/git-delivery/src/read/`.
+machine Git HEAD/status/diff — `.ai/tools/git-delivery/src/read/`.
+Общий process/lock owner — `packages/git-runtime` (`@realize/git-runtime`):
+его напрямую используют IDE Git-обработчик, execution/preview/SourcePromotion,
+release candidate и проверка секретов,
+Payload Git endpoint и machine read ports платформы/GPT. Проверки разрешений,
+scope и evidence принадлежат соответствующим адаптерам; пакет не импортирует
+control plane и не предоставляет модели произвольный Git CLI. Детали —
+[ADR-0016](decisions/ADR-0016-development-git-delivery-handler.md).
 Каталог capabilities принадлежит MCP adapter; локальный credential helper —
 `scripts/runtime/readLocalMcpHeaders.*.mjs`. Lifecycle и запуск описаны в
 [MCP tooling](mcp-tooling.md); эти ports не предоставляют worker-у новые права.

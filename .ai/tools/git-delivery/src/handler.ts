@@ -1,27 +1,21 @@
 /**
  * @file .ai/tools/git-delivery/src/handler.ts
- * @version 1.2.0
- * @date 2026-10-11
+ * @version 1.2.1
+ * @date 2026-10-22
  * @description Локальные inspect/commit: доверенная область, привязанные проверки и повтор по журналу ADR-0016.
  */
+import {
+  PolicyError,
+  acquireGitLock as acquireLock,
+} from "@realize/git-runtime";
 import { realpath, lstat } from "node:fs/promises";
 import { join } from "node:path";
-import {
-  emptyResult,
-  parseCommand,
-  parseContext,
-  PolicyError,
-} from "./contracts.ts";
+import { emptyResult, parseCommand, parseContext } from "./contracts.ts";
 import type { Command, Context, Result } from "./GitDelivery.types.ts";
-import { Git, GitFailure } from "./Git.adapter.ts";
+import { Git, GitFailure } from "@realize/git-runtime";
 import { inspectRepository } from "./repository.ts";
 import type { Snapshot } from "./GitSnapshot.types.ts";
-import {
-  acquireLock,
-  journalRelativePath,
-  loadJournal,
-  saveJournal,
-} from "./state.ts";
+import { journalRelativePath, loadJournal, saveJournal } from "./state.ts";
 import type { Journal } from "./commit/GitCommitJournal.types.ts";
 import { hashGitCommitContext } from "./commit/hashGitCommitContext.util.ts";
 import { verifyEvidence } from "./commit/verifyGitCommitEvidence.validator.ts";
@@ -194,7 +188,7 @@ export async function runDelivery(
       ).replace(/\n$/, ""),
     );
     lock = await acquireLock(commonDir);
-    git.lockDescriptor = lock.descriptor;
+    git.attachLock(lock);
     const snapshot = await inspectRepository(
       git,
       context.authorization.scope,
@@ -474,7 +468,7 @@ export async function runDelivery(
       await saveJournal(context, journal).catch(() => {});
     }
   } finally {
-    if (git) git.lockDescriptor = undefined;
+    if (git) git.detachLock();
     await lock?.release().catch(() => {});
   }
   return result;

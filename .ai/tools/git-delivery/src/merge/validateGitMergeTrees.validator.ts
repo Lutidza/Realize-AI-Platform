@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/merge/validateGitMergeTrees.validator.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Доказывает точный diff candidate к target по полным GitHub trees без чтения blobs.
  */
-import { relativeFile, PolicyError } from "../contracts.ts";
+import { PolicyError } from "@realize/git-runtime";
+import { relativeFile } from "../contracts.ts";
 import type { GitMergeContext, GitMergeTree } from "./GitMerge.types.ts";
 import { hashGitTree } from "./hashGitTree.util.ts";
 

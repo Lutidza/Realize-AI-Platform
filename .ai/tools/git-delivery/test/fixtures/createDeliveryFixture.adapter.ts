@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/fixtures/createDeliveryFixture.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Создаёт изолированный Git-репозиторий и evidence для тестов локальной доставки.
  */
+import { FixtureGit } from "./FixtureGit.adapter.ts";
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -11,7 +12,6 @@ import { join } from "node:path";
 import type { TestContext } from "node:test";
 
 import type { Context, Result } from "../../src/contracts.ts";
-import { Git } from "../../src/Git.adapter.ts";
 import { runDelivery } from "../../src/handler.ts";
 import { journalRelativePath } from "../../src/state.ts";
 import type { Journal } from "../../src/state.ts";
@@ -38,7 +38,7 @@ export async function createDeliveryFixture(
   const hooks = join(temporary, "hooks");
   await mkdir(root);
   await mkdir(hooks);
-  const git = new Git(root);
+  const git = new FixtureGit(root);
   await git.run(["init", "--initial-branch=main"]);
   for (const [key, value] of Object.entries({
     "core.hooksPath": hooks,

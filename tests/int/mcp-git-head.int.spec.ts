@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-git-head.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-21
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет привязку Git HEAD к descriptor корня, согласованность пары и общий deadline.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -11,7 +11,8 @@ import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { Git } from "../../.ai/tools/git-delivery/src/Git.adapter";
+import { Git } from "@realize/git-runtime";
+import { disposableGitFixture } from "./fixtures/disposableGit.fixture";
 import { readGitHead } from "../../.ai/tools/git-delivery/src/read/readGitHead.adapter";
 import type { GitReadContext } from "../../.ai/tools/git-delivery/src/read/GitRead.types";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
@@ -21,7 +22,7 @@ import * as fileReader from "../../services/ai-control-plane/src/readRepositoryF
 
 describe("Git HEAD: привязанный корень и согласованные metadata", () => {
   let root: string;
-  let git: Git;
+  let git: ReturnType<typeof disposableGitFixture>;
   let context: GitReadContext;
   let opened: number;
   let closed: number;
@@ -49,7 +50,7 @@ describe("Git HEAD: привязанный корень и согласован�
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "realize-git-head-"));
     await mkdir(join(root, "src"));
-    git = new Git(root);
+    git = disposableGitFixture(root);
     await git.run(["init", "--initial-branch=main"]);
     context = {
       policy: await createRepositoryReadPolicy(root, true),
@@ -102,7 +103,7 @@ describe("Git HEAD: привязанный корень и согласован�
     ) {
       expect(this.root).toMatch(new RegExp(`^/proc/${process.pid}/fd/\\d+$`));
       expect(options?.machineRead).toBe(true);
-      calls.push(args);
+      calls.push([...args]);
       return originalRun.call(this, args, options);
     });
     expect(await readGitHead(context)).toEqual({
@@ -156,7 +157,10 @@ describe("Git HEAD: привязанный корень и согласован�
         replaced = true;
         await rename(root, `${root}-held`);
         await mkdir(root);
-        await new Git(root).run(["init", "--initial-branch=foreign"]);
+        await disposableGitFixture(root).run([
+          "init",
+          "--initial-branch=foreign",
+        ]);
       }
       return originalRun.call(this, args, options);
     });
@@ -170,7 +174,7 @@ describe("Git HEAD: привязанный корень и согласован�
   it("отказывает заменённому корню до первой команды Git", async () => {
     await rename(root, `${root}-held`);
     await mkdir(root);
-    await new Git(root).run(["init", "--initial-branch=foreign"]);
+    await disposableGitFixture(root).run(["init", "--initial-branch=foreign"]);
     const run = vi.spyOn(Git.prototype, "run");
     await expect(readGitHead(context)).rejects.toMatchObject({
       code: "CONFLICT",

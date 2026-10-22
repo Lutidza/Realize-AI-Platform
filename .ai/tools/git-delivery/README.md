@@ -13,23 +13,49 @@ pull допускает только fast-forward. Merge использует о
 Ни модель, ни основной агент не должны самостоятельно создавать себе разрешение
 на запись. Доступный вход чтения не расширяет разрешённую пользователем задачу.
 
+## Общий исполнитель и входы
+
+`packages/git-runtime` (`@realize/git-runtime`) — общий серверный owner запуска
+Git, ограничений процесса, ошибок и блокировки. Этот каталог сохраняет
+IDE-обработчик, журнал доставки и typed repository read ports. Продуктовые
+execution/preview/SourcePromotion импортируют тот же пакет напрямую.
+
+IDE связывает операцию с пользовательским разрешением, scope и checks через
+отдельного Git-воркера. Платформа проверяет CR/job, approval, evidence и свой
+worktree. GPT/ChatGPT использует существующий internal MCP с principal, grants,
+лимитами и allowlist tools; новые публичные инструменты записи не добавлены.
+Модели не назначают root, Git argv, credentials, профиль исполнения или lease.
+
+Общий `flock` на каноническом `git-common-dir` координирует изменяющие фазы IDE
+и платформы, включая связанные worktrees. Lease принадлежит исполнителю и
+проверяется до записи; адаптер повторно использует её внутри фазы без повторного
+захвата того же lock. Build, review, копирование БД и browser-проверки выполняются
+после освобождения блокировки. Файловые fingerprints и проверка принятого diff
+остаются у владельцев операций.
+
+Developer commit/push сохраняют hooks и подпись. Service commit preview
+использует отдельный контролируемый профиль и service identity. Сетевые
+credentials предоставляет владелец интеграций; shared engine не выдаёт
+разрешения на сеть или запись сам по себе.
+
 ## Git-воркер
 
 Для server-to-server MCP предусмотрен отдельный ограниченный machine read port
 по [ADR-0017](../../../documentation/architecture/decisions/ADR-0017-internal-mcp-and-server-management.md).
-Он размещается у этого обработчика, выполняет только status/diff и служебную
+Он размещается у этого обработчика, выполняет только HEAD/status/diff и служебную
 проверку metadata с доверенными root/scope/deadline и проверяет пути до чтения
 bytes. Индекс, hooks, сеть и delivery не затрагиваются; модель на каждый read RPC
 не запускается. Доступность
 порта подтверждается его реализацией и protocol tests. Development-агент
 не использует его вместо описанного ниже inspect через отдельного воркера.
 
-Уточнение MCP `1.3.1` от 20 октября 2026 года проверено на bootstrap и через
-Realize AI ChatGPT connector. Внутренний helper этого owner читает HEAD/branch для
+Внутренний helper этого owner читает HEAD/branch для
 `realize_get_context` без content snapshot. Context отдельно сообщает
 доступность filesystem/Git и возвращает `dirty:null`,
 `dirtyStatus:"not_checked"`; это не доказательство чистоты рабочей копии.
-Публичный Git tool для HEAD не добавляется, `.git` через file reader закрыт.
+В MCP `1.4.0` зарегистрирован `repo_git_head` с пустым входом `{}` и существующим
+repository-read grant; `.git` через file reader закрыт. Обновление shared engine
+не заменяет проверку нового source/build binding в установленной платформе.
 
 Снимки остальных действий сохраняют свои контракты:
 
@@ -773,21 +799,21 @@ Commit без изменений также сохраняет результа�
 `packages/codex-adapter/src/JsonLineRpcClient.adapter.ts`; его прежний
 потребитель `OpenAICodexAdapter` сохраняет свой API.
 
-| Файл                                                                                                                                           | Ответственность                                                               |
-| ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| [runGitDelivery.controller.ts](src/runGitDelivery.controller.ts), [contracts.ts](src/contracts.ts)                                             | Разделение входов, валидация, JSON-ответ                                      |
-| [handler.ts](src/handler.ts)                                                                                                                   | Порядок операции и восстановление                                             |
-| [repository.ts](src/repository.ts)                                                                                                             | Ограниченный снимок состояния и файлов                                        |
-| [Git.adapter.ts](src/Git.adapter.ts)                                                                                                           | Исполнитель Git, пределы, байты и UTF-8                                       |
-| [safety.ts](src/safety.ts), [commit/](src/commit/)                                                                                             | Совместимые экспорты, проверки и восстановление локального commit             |
-| [manage/](src/manage/)                                                                                                                         | Контекст, локальное управление remote/worktrees/ветками и безопасное чтение   |
-| [sync/](src/sync/)                                                                                                                             | Закреплённые fetch/pull, fast-forward и восстановление этапов                 |
-| [merge/](src/merge/)                                                                                                                           | GitHub approved-tree commit, точная область дерева и подтверждение target ref |
-| [state.ts](src/state.ts), [GitJournal.repository.ts](src/GitJournal.repository.ts), [acquireGitLock.adapter.ts](src/acquireGitLock.adapter.ts) | Журнал и отдельная блокировка                                                 |
+| Файл                                                                                               | Ответственность                                                               |
+| -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [runGitDelivery.controller.ts](src/runGitDelivery.controller.ts), [contracts.ts](src/contracts.ts) | Разделение входов, валидация, JSON-ответ                                      |
+| [handler.ts](src/handler.ts)                                                                       | Порядок операции и восстановление                                             |
+| [repository.ts](src/repository.ts)                                                                 | Ограниченный снимок состояния и файлов                                        |
+| [git-runtime](../../../packages/git-runtime/src/gitRuntime.server.index.ts)                        | Общий Git engine, пределы, байты, UTF-8, ошибки и lock lease                  |
+| [safety.ts](src/safety.ts), [commit/](src/commit/)                                                 | Совместимые экспорты, проверки и восстановление локального commit             |
+| [manage/](src/manage/)                                                                             | Контекст, локальное управление remote/worktrees/ветками и безопасное чтение   |
+| [sync/](src/sync/)                                                                                 | Закреплённые fetch/pull, fast-forward и восстановление этапов                 |
+| [merge/](src/merge/)                                                                               | GitHub approved-tree commit, точная область дерева и подтверждение target ref |
+| [state.ts](src/state.ts), [GitJournal.repository.ts](src/GitJournal.repository.ts)                 | Журнал IDE-операций                                                           |
 
-Старые публичные входы `contracts.ts`, `safety.ts`, `state.ts` и `repository.ts`
-сохраняют совместимость; типы, ошибка, блокировка и проверки commit имеют
-отдельных владельцев.
+`contracts.ts`, `safety.ts`, `state.ts` и `repository.ts` принадлежат адаптеру
+доставки. Перенесённые process/lock/error owners импортируются непосредственно
+из `@realize/git-runtime`; re-export по прежним путям не используется.
 
 Сетевую операцию координирует `src/push/`, авторизацию и Git-протокол —
 `src/network/`. Общие ресурсы БД находятся в `src/integrations/`; их используют

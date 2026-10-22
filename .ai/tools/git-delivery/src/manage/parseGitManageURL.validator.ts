@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/parseGitManageURL.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Допускает только GitHub URL без секретов и сохраняет границы переименования repository.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 
 /** Проверяет URL без credentials, query, port, альтернативных host и транспорта. */
 export function parseGitManageURL(value: unknown) {

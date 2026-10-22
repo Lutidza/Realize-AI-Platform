@@ -1,6 +1,6 @@
 /**
  * @file tests/int/mcp-git-head-tool.int.spec.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-22
  * @description Проверяет HTTP-контракт Git HEAD, явные grants и run-owned bridge без вызова Git.
  * @see documentation/specifications/internal-mcp.md
@@ -30,7 +30,7 @@ import type {
 import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { RepositoryReadError } from "../../services/ai-control-plane/src/RepositoryRead.error";
-import { GitFailure } from "../../.ai/tools/git-delivery/src/GitFailure.error";
+import { GitFailure } from "@realize/git-runtime";
 
 const { readHead } = vi.hoisted(() => ({ readHead: vi.fn() }));
 vi.mock(

@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/push/validateGitPushDiagnostic.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет сохранённую диагностику перед передачей из журнала в результат push.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { PolicyError } from "../contracts.ts";
-import { GIT_FAILURE_CATEGORIES } from "../gitFailureCategory.constants.ts";
+import { GIT_FAILURE_CATEGORIES } from "@realize/git-runtime";
 import { GIT_PUSH_STAGES } from "./gitPush.constants.ts";
 import type { GitPushDiagnostic } from "./GitPush.types.ts";
 

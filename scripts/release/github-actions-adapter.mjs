@@ -1,9 +1,10 @@
 /**
  * @file scripts/release/github-actions-adapter.mjs
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-10-22
  * @docref ADR-0011
  * @see documentation/architecture/decisions/ADR-0011-github-ghcr-vps-release-preview.md
- * @description Correlates one release candidate with an exact GitHub Actions run and evidence artifact.
+ * @description Связывает release candidate с точным GitHub Actions run и подтверждённым артефактом.
  */
 
 import { lstat, mkdtemp, readFile, rm } from "node:fs/promises";
@@ -239,7 +240,7 @@ export const prepareGitHubReleaseCandidate = async (
   try {
     const input = { config, request };
     const environment = commandEnvironment(config, temporaryRoot);
-    await pushCandidateCommit(input, execute, temporaryRoot);
+    await pushCandidateCommit(input, options.execute, temporaryRoot);
     const run = await waitForRun(input, execute, environment, wait);
     return await readEvidence(input, run, execute, environment, temporaryRoot);
   } finally {

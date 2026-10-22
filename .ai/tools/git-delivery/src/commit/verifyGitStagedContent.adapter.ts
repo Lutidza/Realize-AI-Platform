@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/verifyGitStagedContent.adapter.ts
- * @version 1.1.0
- * @date 2026-10-11
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Сверяет staged-пути, режимы и байты с проверенным снимком.
  */
 import { createHash } from "node:crypto";
-import { PolicyError } from "../Policy.error.ts";
-import type { Git } from "../Git.adapter.ts";
+import { PolicyError } from "@realize/git-runtime";
+import type { Git } from "@realize/git-runtime";
 import type { Snapshot, GitContentValidator } from "../GitSnapshot.types.ts";
 import { assertIndexScope } from "./assertGitIndexScope.adapter.ts";
 

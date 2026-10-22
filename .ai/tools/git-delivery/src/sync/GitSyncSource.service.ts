@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/src/sync/GitSyncSource.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет неизменённые HEAD, ветку, полную историю и чистую рабочую копию перед синхронизацией.
  */
 
 import { lstat } from "node:fs/promises";
-import type { Git } from "../Git.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
+import type { Git } from "@realize/git-runtime";
+import { PolicyError } from "@realize/git-runtime";
 import type { GitSyncContext } from "./GitSync.types.ts";
 
 /** Повторные проверки не изменяют refs, индекс или файлы и исключают скрытые операции Git. */

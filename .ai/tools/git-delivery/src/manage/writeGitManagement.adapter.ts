@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/writeGitManagement.adapter.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Вычисляет точные переходы локального Git и исполняет только разрешённую mutation.
  */
 import { join } from "node:path";
-import { Git } from "../Git.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { Git } from "@realize/git-runtime";
+import { PolicyError } from "@realize/git-runtime";
 import type { GitManageContext, GitManageState } from "./GitManage.types.ts";
 import { parseGitManageURL } from "./parseGitManageURL.validator.ts";
 

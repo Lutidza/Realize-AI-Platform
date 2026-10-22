@@ -1,15 +1,15 @@
 /**
  * @file .ai/tools/git-delivery/src/network/createGitPushHook.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Ограждает push точным advertised ref/OID и сохраняет настроенный pre-push hook.
  */
 
 import { constants } from "node:fs";
 import { access, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Git } from "../Git.adapter.ts";
-import { GitFailure } from "../GitFailure.error.ts";
+import type { Git } from "@realize/git-runtime";
+import { GitFailure } from "@realize/git-runtime";
 import type { GitNetworkExpected } from "./GitNetwork.types.ts";
 
 /** Источник — полный OID в refspec; hook не разрешает дополнительные refs или изменившийся remote OID. */

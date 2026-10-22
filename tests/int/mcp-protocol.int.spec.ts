@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-protocol.int.spec.ts
- * @version 1.3.1
- * @date 2026-10-20
+ * @version 1.3.2
+ * @date 2026-10-22
  * @description Проверяет обе protocol eras настоящими SDK clients и Git на одноразовом checkout.
  */
 // @vitest-environment node
@@ -23,7 +23,7 @@ import {
   Client,
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
-import { Git } from "../../.ai/tools/git-delivery/src/Git.adapter";
+import { disposableGitFixture } from "./fixtures/disposableGit.fixture";
 import { readGitDiff } from "../../.ai/tools/git-delivery/src/read/readGitDiff.service";
 import { readGitStatus } from "../../.ai/tools/git-delivery/src/read/readGitStatus.service";
 import { createMcpHttpServer } from "../../services/internal-mcp/src/createMcpHttpServer.controller";
@@ -36,7 +36,7 @@ import type { McpRuntimeOptions } from "../../services/internal-mcp/src/McpRunti
 
 describe("MCP: loopback HTTP и read-only Git", () => {
   let root: string;
-  let git: Git;
+  let git: ReturnType<typeof disposableGitFixture>;
   let options: McpRuntimeOptions;
   let running: Awaited<ReturnType<typeof createMcpHttpServer>>;
   let revoked: boolean;
@@ -45,7 +45,7 @@ describe("MCP: loopback HTTP и read-only Git", () => {
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "realize-mcp-protocol-"));
     await mkdir(join(root, "src"));
-    git = new Git(root);
+    git = disposableGitFixture(root);
     await git.run(["init", "--initial-branch=main"]);
     await writeFile(join(root, "src/a.ts"), "first\nsecond\nthird\n");
     await git.run(["add", "--", "src/a.ts"]);
@@ -628,7 +628,7 @@ describe("MCP: loopback HTTP и read-only Git", () => {
     });
     const empty = await mkdtemp(join(tmpdir(), "realize-mcp-unborn-"));
     try {
-      await new Git(empty).run(["init", "--initial-branch=empty"]);
+      await disposableGitFixture(empty).run(["init", "--initial-branch=empty"]);
       expect(
         await readGitStatus(
           { ...context, policy: await createRepositoryReadPolicy(empty, true) },

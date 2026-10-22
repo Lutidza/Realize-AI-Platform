@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/push/validateGitPushContext.validator.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет немодельное разрешение push и привязку проверок к разрешённым коммитам.
  */
+import { PolicyError } from "@realize/git-runtime";
 
-import { parseContext, PolicyError } from "../contracts.ts";
+import { parseContext } from "../contracts.ts";
 import type { GitPushContext } from "./GitPush.types.ts";
 import { MAX_GIT_PUSH_RECOVERY_ATTEMPTS } from "./gitPush.constants.ts";
 

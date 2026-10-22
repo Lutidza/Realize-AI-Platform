@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/parseGitCommitRecovery.validator.test.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет границы разрешения recovery, прежний формат контекста и evidence нового снимка.
  */
 
@@ -9,7 +9,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { parseCommand, parseContext } from "../src/contracts.ts";
 import type { Context } from "../src/GitDelivery.types.ts";
-import { PolicyError } from "../src/Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import { parseGitCommitRecovery } from "../src/parseGitCommitRecovery.validator.ts";
 import { validateGitWorkerContext } from "../src/worker/validateGitWorkerContext.validator.ts";
 

@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/loadGitCommitAuthor.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Получает настроенного автора коммитов из БД и закрывает подключение до запуска модели.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import type { GitCommitAuthor } from "@realize/ai-contracts";
 import { GitCommitAuthorService } from "@realize/payload-ai-control/server/integration-runtime";
-import { PolicyError } from "../contracts.ts";
+
 import { openGitIntegrationResources } from "../integrations/openGitIntegrationResources.adapter.ts";
 
 /** Не расшифровывает credential и не определяет имя/email по GitHub token или системному пользователю. */

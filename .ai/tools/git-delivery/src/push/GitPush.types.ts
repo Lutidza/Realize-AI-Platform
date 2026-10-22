@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/src/push/GitPush.types.ts
- * @version 1.1.0
- * @date 2026-09-09
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Определяет разрешённое назначение push, проверки коммитов и результат сетевой записи.
  */
 
 import type { Context, Result } from "../contracts.ts";
-import type { Git } from "../Git.adapter.ts";
-import type { GitFailureCategory } from "../GitFailureCategory.types.ts";
+import type { Git } from "@realize/git-runtime";
+import type { GitFailureCategory } from "@realize/git-runtime";
 import type { GIT_PUSH_STAGES } from "./gitPush.constants.ts";
 import type {
   GitNetworkConnection,

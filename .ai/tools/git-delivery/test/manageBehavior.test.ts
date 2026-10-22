@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/manageBehavior.test.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет реальные локальные Git-переходы manage и безопасный recovery во временных fixtures.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
 import assert from "node:assert/strict";
 import {
   access,
@@ -17,7 +18,7 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
-import { Git } from "../src/Git.adapter.ts";
+import { Git } from "@realize/git-runtime";
 import type {
   GitManageContext,
   GitManageOperation,
@@ -266,7 +267,7 @@ test("repair переносит main-root links только для зареги
   const pointer = await readFile(join(external, ".git"), "utf8");
   assert.ok(pointer.startsWith(`gitdir: ${moved}/.git/worktrees/`));
   assert.equal(
-    (await new Git(external).run(["rev-parse", "HEAD"])).trim(),
+    (await new FixtureGit(external).run(["rev-parse", "HEAD"])).trim(),
     context.expected!.head,
   );
   assert.equal((await runGitManage(context)).status, "noop");
@@ -583,7 +584,7 @@ test("repair не перехватывает worktree другого сущес�
   assert.equal(await readFile(join(external, ".git"), "utf8"), pointer);
   assert.equal(
     (
-      await new Git(external).run([
+      await new FixtureGit(external).run([
         "rev-parse",
         "--path-format=absolute",
         "--git-common-dir",

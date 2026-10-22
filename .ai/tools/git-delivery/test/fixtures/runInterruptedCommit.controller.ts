@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/fixtures/runInterruptedCommit.controller.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Прерывает отдельный тестовый процесс строго до или после Git staging.
  */
 import assert from "node:assert/strict";
@@ -9,7 +9,7 @@ import { realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { sep } from "node:path";
 
-import { Git } from "../../src/Git.adapter.ts";
+import { Git } from "@realize/git-runtime";
 import { runDelivery } from "../../src/handler.ts";
 
 const chunks: Buffer[] = [];

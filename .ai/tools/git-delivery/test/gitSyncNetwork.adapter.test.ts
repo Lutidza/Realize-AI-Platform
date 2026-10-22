@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/gitSyncNetwork.adapter.test.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет реальный адресный fetch и CAS во временных репозиториях, подменяя только credential transport fixture-адаптером.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
 
 import assert from "node:assert/strict";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -11,8 +12,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
-import { Git } from "../src/Git.adapter.ts";
-import type { GitRunOptions } from "../src/Git.types.ts";
+import type { GitRunOptions } from "@realize/git-runtime";
 import { createGitNetworkSession } from "../src/network/createGitNetworkSession.adapter.ts";
 import type { GitNetworkConnection } from "../src/network/GitNetwork.types.ts";
 
@@ -24,7 +24,7 @@ async function fixture(t: TestContext) {
   const producer = join(root, "producer");
   const consumer = join(root, "consumer");
   await mkdir(producer);
-  const sourceGit = new Git(producer);
+  const sourceGit = new FixtureGit(producer);
   await sourceGit.run(["init", "--initial-branch=main", "--template="]);
   for (const [key, value] of Object.entries({
     "core.hooksPath": "/dev/null",
@@ -37,7 +37,7 @@ async function fixture(t: TestContext) {
   await sourceGit.run(["add", "owned.txt"]);
   await sourceGit.run(["commit", "-m", "Network fixture seed"]);
   const sourceOid = (await sourceGit.run(["rev-parse", "HEAD"])).trim();
-  await new Git(root).run(["clone", "--no-local", producer, consumer]);
+  await new FixtureGit(root).run(["clone", "--no-local", producer, consumer]);
   await writeFile(join(producer, "owned.txt"), "received\n");
   await sourceGit.run(["add", "owned.txt"]);
   await sourceGit.run(["commit", "-m", "Network fixture remote advance"]);
@@ -58,7 +58,7 @@ async function fixture(t: TestContext) {
   const captured: string[][] = [];
   const executables: string[] = [];
   let mutateBeforeCas: (() => Promise<void>) | undefined;
-  class FixtureTransportGit extends Git {
+  class FixtureTransportGit extends FixtureGit {
     override async run(
       args: string[],
       options: GitRunOptions = {},
@@ -71,7 +71,7 @@ async function fixture(t: TestContext) {
           executables.push(options.network.askpassPath);
         }
         // Production auth/TLS покрыты existing network tests; fixture никогда не обращается к GitHub.
-        return super.run(
+        return this.runUncoordinatedFixture(
           args.map((arg) => (arg === canonical ? producer : arg)),
         );
       }
@@ -79,7 +79,7 @@ async function fixture(t: TestContext) {
       return super.run(args, options);
     }
   }
-  const localGit = new Git(consumer);
+  const localGit = new FixtureGit(consumer);
   await writeFile(
     join(consumer, ".git/FETCH_HEAD"),
     "existing-fetch-evidence\n",

@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/validateGitChanges.validator.ts
- * @version 1.1.1
- * @date 2026-10-13
+ * @version 1.1.2
+ * @date 2026-10-22
  * @description Проверяет разрешённые пути и статусы перед подготовкой commit.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type { Snapshot } from "../GitSnapshot.types.ts";
 
 /** Общий путь commit/approved-tree merge исключает секреты и локальные generated артефакты. */

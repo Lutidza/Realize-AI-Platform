@@ -180,7 +180,13 @@ ACL устанавливает реальный Pages call. Отзыв разр�
 Git delivery таким чтением не заменяются.
 
 Repository owner — `services/ai-control-plane/src`, Git port —
-`.ai/tools/git-delivery/src/read`. Linux descriptor pinning запрещает symlinks,
+`.ai/tools/git-delivery/src/read`, общий Git process/lock owner —
+`packages/git-runtime`. Платформа, IDE и GPT/MCP используют один executor с
+разными контекстами разрешений по [ADR-0016](decisions/ADR-0016-development-git-delivery-handler.md).
+GPT сохраняет существующие repository grants; перенесённый executor не добавляет
+инструменты записи. Его sources и typed read ports входят в source binding;
+приёмка прежнего установленного binding не подтверждает новую сборку.
+Linux descriptor pinning запрещает symlinks,
 hardlinks, вложенные repositories и замену предков пути; private/runtime/state,
 `.env`, binaries и явные секреты исключаются. Git binary/untracked/unmerged
 показываются как omission без patch. Secret detector является дополнительной

@@ -1,14 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/readGitManageState.adapter.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Читает HEAD и точные локальные цели для проверки управления и восстановления журнала.
  */
 import { constants } from "node:fs";
 import { lstat, open, readdir, realpath } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
-import { Git } from "../Git.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
+import { Git } from "@realize/git-runtime";
+import { PolicyError } from "@realize/git-runtime";
 import { assertNoGitSecrets } from "../commit/assertNoGitSecrets.validator.ts";
 import type { GitManageContext, GitManageState } from "./GitManage.types.ts";
 import { parseGitManageURL } from "./parseGitManageURL.validator.ts";

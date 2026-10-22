@@ -1,11 +1,11 @@
 /**
  * @file tests/int/fixtures/repositoryGitHead.fixture.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-10-22
  * @description Создаёт Git HEAD только внутри переданного disposable репозитория теста.
  * @see documentation/architecture/repository-search.md
  */
-import { Git } from "../../../.ai/tools/git-delivery/src/Git.adapter";
+import { disposableGitFixture } from "./disposableGit.fixture";
 
 const identity = {
   GIT_AUTHOR_NAME: "Fixture",
@@ -16,7 +16,7 @@ const identity = {
 
 /** Не использует рабочий checkout, пользовательскую identity, templates или commit hooks. */
 export async function createRepositoryGitHeadFixture(root: string) {
-  const git = new Git(root);
+  const git = disposableGitFixture(root);
   await git.run(["init", "--initial-branch=main", "--template="]);
   const commit = async (path: string) => {
     await git.run(["add", "--", path]);

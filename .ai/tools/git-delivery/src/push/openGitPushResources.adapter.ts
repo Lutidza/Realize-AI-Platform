@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/push/openGitPushResources.adapter.ts
- * @version 1.0.1
- * @date 2026-09-09
+ * @version 1.0.2
+ * @date 2026-10-22
  * @description Подключает общий серверный resolver интеграций и назначенный SSH-профиль для push.
  */
+import { PolicyError } from "@realize/git-runtime";
 
 import { GitRepositoryConnectionService } from "@realize/payload-ai-control/server/integration-runtime";
 import { openGitIntegrationResources } from "../integrations/openGitIntegrationResources.adapter.ts";
-import { PolicyError } from "../contracts.ts";
+
 import { loadGitContext } from "../loadGitContext.adapter.ts";
 import { createGitNetworkSession } from "../network/createGitNetworkSession.adapter.ts";
 import type { GitPushResources } from "./GitPush.types.ts";

@@ -1,6 +1,7 @@
 /**
  * @file tests/int/release-github-adapter.int.spec.ts
- * @version 2026-08-27
+ * @version 1.0.0
+ * @date 2026-10-22
  * @docref ADR-0011
  * @see documentation/architecture/decisions/ADR-0011-github-ghcr-vps-release-preview.md
  * @description Проверяет exact-ref, idempotent GitHub run и artifact-binding release adapter-а.
@@ -13,10 +14,13 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { prepareGitHubReleaseCandidate } from "../../scripts/release/github-actions-adapter.mjs";
+import { pushCandidateCommit } from "../../scripts/release/github-candidate-ref.mjs";
 import {
   parseGitHubReleaseRequest,
   readGitHubAdapterConfig,
 } from "../../scripts/release/github-release-contract.mjs";
+
+import { disposableGitFixture } from "./fixtures/disposableGit.fixture";
 
 const temporaryRoots: string[] = [];
 
@@ -81,6 +85,7 @@ const fakeExecution = (input: {
   const runURL = "https://github.com/realize/example/actions/runs/77";
   const calls: Array<{ args: string[]; executable: string }> = [];
   let dispatched = false;
+  let published = false;
   const execute = async (executable: string, args: string[]) => {
     calls.push({ args, executable });
     if (
@@ -97,9 +102,15 @@ const fakeExecution = (input: {
       return { stderr: "", stdout: `${input.request.gitCommit}\n` };
     }
     if (executable.endsWith("/git") && args.includes("ls-remote")) {
-      return { stderr: "", stdout: "" };
+      return {
+        stderr: "",
+        stdout: published
+          ? `${input.request.gitCommit}\trefs/heads/ai/release-candidates/${input.request.candidateKey}\n`
+          : "",
+      };
     }
     if (executable.endsWith("/git") && args.includes("push")) {
+      published = true;
       return { stderr: "", stdout: "" };
     }
     if (args[0] === "workflow" && args[1] === "run") {
@@ -167,6 +178,7 @@ describe("GitHub release candidate adapter", () => {
   it("pushes one scoped exact ref and accepts only the correlated run artifact", async () => {
     const repositoryRoot = await mkdtemp(resolve(tmpdir(), "release-adapter-"));
     temporaryRoots.push(repositoryRoot);
+    await disposableGitFixture(repositoryRoot).run(["init", "--template="]);
     const request = requestFixture(repositoryRoot);
     const fake = fakeExecution({ request });
 
@@ -185,6 +197,9 @@ describe("GitHub release candidate adapter", () => {
     expect(push?.args).toContain(
       `${request.gitCommit}:refs/heads/ai/release-candidates/${request.candidateKey}`,
     );
+    expect(push?.args).toContain(
+      `--force-with-lease=refs/heads/ai/release-candidates/${request.candidateKey}:`,
+    );
     expect(push?.args.join(" ")).not.toContain(environmentFixture.GH_TOKEN);
     expect(
       fake.calls.filter(
@@ -196,6 +211,7 @@ describe("GitHub release candidate adapter", () => {
   it("rejects an artifact whose binding belongs to another candidate", async () => {
     const repositoryRoot = await mkdtemp(resolve(tmpdir(), "release-adapter-"));
     temporaryRoots.push(repositoryRoot);
+    await disposableGitFixture(repositoryRoot).run(["init", "--template="]);
     const request = requestFixture(repositoryRoot);
     const fake = fakeExecution({ mismatchEvidence: true, request });
 
@@ -212,6 +228,7 @@ describe("GitHub release candidate adapter", () => {
   it("rejects a configured repository that differs from Git origin", async () => {
     const repositoryRoot = await mkdtemp(resolve(tmpdir(), "release-adapter-"));
     temporaryRoots.push(repositoryRoot);
+    await disposableGitFixture(repositoryRoot).run(["init", "--template="]);
     const request = requestFixture(repositoryRoot);
     const fake = fakeExecution({
       originRepository: "realize/another-repository",
@@ -242,5 +259,55 @@ describe("GitHub release candidate adapter", () => {
         process.cwd(),
       ),
     ).toThrow("expiresAt must be in the future");
+  });
+
+  it("не продвигает чужую ref, созданную на предке между чтением и push", async () => {
+    const repositoryRoot = await mkdtemp(
+      resolve(tmpdir(), "release-ref-race-"),
+    );
+    temporaryRoots.push(repositoryRoot);
+    const git = disposableGitFixture(repositoryRoot);
+    await git.run(["init", "--template="]);
+    await git.run(["config", "user.name", "Fixture"]);
+    await git.run(["config", "user.email", "fixture@example.invalid"]);
+    await writeFile(resolve(repositoryRoot, "content.txt"), "first");
+    await git.run(["add", "content.txt"]);
+    await git.run(["commit", "-m", "first"]);
+    const ancestor = (await git.run(["rev-parse", "HEAD"])).trim();
+    await writeFile(resolve(repositoryRoot, "content.txt"), "second");
+    await git.run(["commit", "-am", "second"]);
+    const commit = (await git.run(["rev-parse", "HEAD"])).trim();
+    const remote = resolve(repositoryRoot, "remote.git");
+    await git.run(["init", "--bare", "--template=", remote]);
+    const request = { ...requestFixture(repositoryRoot), gitCommit: commit };
+    const reference = `refs/heads/ai/release-candidates/${request.candidateKey}`;
+    const remoteURL = "https://github.com/realize/example.git";
+    await git.run(["remote", "add", "origin", remoteURL]);
+    const temporaryRoot = resolve(repositoryRoot, "askpass");
+    await mkdir(temporaryRoot);
+    let raced = false;
+    const execute = async (_command: string, args: string[]) => {
+      if (args.includes("ls-remote") && !raced) {
+        raced = true;
+        await git.run(["push", remote, `${ancestor}:${reference}`]);
+        return { stdout: "" };
+      }
+      return {
+        stdout: await git.run(
+          args.map((arg) => (arg === remoteURL ? remote : arg)),
+        ),
+      };
+    };
+    await expect(
+      pushCandidateCommit(
+        { request, config: readGitHubAdapterConfig(environmentFixture) },
+        execute,
+        temporaryRoot,
+      ),
+    ).rejects.toBeDefined();
+    expect(raced).toBe(true);
+    expect(
+      (await disposableGitFixture(remote).run(["rev-parse", reference])).trim(),
+    ).toBe(ancestor);
   });
 });

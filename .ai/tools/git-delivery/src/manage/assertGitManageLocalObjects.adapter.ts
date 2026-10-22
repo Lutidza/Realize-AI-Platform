@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/assertGitManageLocalObjects.adapter.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Запрещает локальным object-операциям manage неявный lazy fetch из partial clone.
  */
-import type { Git } from "../Git.adapter.ts";
-import { PolicyError } from "../Policy.error.ts";
+import type { Git } from "@realize/git-runtime";
+import { PolicyError } from "@realize/git-runtime";
 import type { GitManageOperation } from "./GitManage.types.ts";
 
 /** Читает только имена effective config; сеть и содержимое credential caller не назначаются. */

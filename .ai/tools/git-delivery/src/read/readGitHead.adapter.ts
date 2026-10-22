@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/read/readGitHead.adapter.ts
- * @version 1.0.0
- * @date 2026-10-20
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Читает HEAD и ветку без индекса, обхода и содержимого рабочего дерева.
  * @see documentation/specifications/internal-mcp.md
  */
-import { Git, GitFailure } from "../Git.adapter.ts";
+import { Git, GitFailure } from "@realize/git-runtime";
 import { RepositoryReadError } from "../../../../../services/ai-control-plane/src/RepositoryRead.error";
 import { openRepositoryDirectory } from "../../../../../services/ai-control-plane/src/openRepositoryDirectory.adapter";
 import { assertRepositoryReadActive } from "../../../../../services/ai-control-plane/src/readRepositoryFile.service";

@@ -1,8 +1,9 @@
 /**
  * @file .ai/tools/agent-search/src/searchSourceBinding.adapter.mjs
- * @version 1.1.1
- * @date 2026-10-18
+ * @version 1.2.0
+ * @date 2026-10-22
  * @description Хеширует явный bounded набор runtime sources без Git, секретов и persistent index.
+ * @see documentation/architecture/repository-search.md
  */
 import { createHash } from "node:crypto";
 import { lstat, readFile, realpath, readdir } from "node:fs/promises";
@@ -16,6 +17,8 @@ export async function readSearchSourceVersion(root) {
     "scripts/runtime/readProductionTracingRoot.config.mjs",
     "src/app/(app)/api/health/live/route.ts",
     ".ai/tools/agent-search/package-lock.json",
+    "packages/git-runtime/package.json",
+    ".ai/tools/git-delivery/src/commit/assertNoGitSecrets.validator.ts",
     "packages/ai-contracts/src/mcpToolInputs.config.ts",
     "packages/ai-contracts/src/mcpToolOutputs.config.ts",
     "services/ai-control-plane/src/searchRepository.service.ts",
@@ -85,6 +88,36 @@ export async function readSearchSourceVersion(root) {
         .filter((entry) => /\.(?:mjs|ts|tsx|css)$/.test(entry.name))
         .map((entry) => `${directory}/${entry.name}`),
     );
+  }
+  // Git engine и typed read policy являются runtime dependencies всех repository consumers.
+  // Рекурсивный bounded обход учитывает новые вложенные owners, но не захватывает IDE worker.
+  const pending = [
+    { directory: "packages/git-runtime/src", depth: 0 },
+    { directory: ".ai/tools/git-delivery/src/read", depth: 0 },
+  ];
+  let visited = 0;
+  while (pending.length) {
+    const { directory, depth } = pending.pop();
+    const full = resolve(root, directory);
+    const directoryStat = await lstat(full);
+    if (
+      depth > 8 ||
+      !directoryStat.isDirectory() ||
+      directoryStat.isSymbolicLink() ||
+      (await realpath(full)) !== full
+    )
+      throw new Error("search_source_binding_limit");
+    const entries = await readdir(full, { withFileTypes: true });
+    if (entries.length > 512 || (visited += entries.length) > 1000)
+      throw new Error("search_source_binding_limit");
+    for (const entry of entries) {
+      if (entry.isSymbolicLink())
+        throw new Error("search_source_binding_limit");
+      const path = `${directory}/${entry.name}`;
+      if (entry.isDirectory())
+        pending.push({ directory: path, depth: depth + 1 });
+      else if (/\.(?:mjs|ts|tsx|json)$/.test(entry.name)) paths.push(path);
+    }
   }
   if (paths.length > 1000) throw new Error("search_source_binding_limit");
   const hash = createHash("sha256");

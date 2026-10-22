@@ -1,9 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/test/git.test.ts
- * @version 1.1.1
- * @date 2026-09-09
+ * @version 1.1.2
+ * @date 2026-10-22
  * @description Проверяет executor и flock только в изолированных временных каталогах и Git fixtures.
  */
+import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
+import { acquireGitLock as acquireLock } from "@realize/git-runtime";
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -22,8 +24,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { test } from "node:test";
 import type { TestContext } from "node:test";
 import { inspect } from "node:util";
-import { Git, GitFailure } from "../src/Git.adapter.ts";
-import { acquireLock } from "../src/state.ts";
+import { Git, GitFailure } from "@realize/git-runtime";
 
 async function temporaryRoot(t: TestContext): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "realize-git-executor-"));
@@ -61,7 +62,7 @@ async function waitForFile(path: string): Promise<void> {
 
 test("runBytes возвращает staged binary blob, run отклоняет невалидный UTF-8", async (t) => {
   const root = await temporaryRoot(t);
-  const git = new Git(root);
+  const git = new FixtureGit(root);
   await git.run(["init", "--initial-branch=main"]);
   const binary = Buffer.from([0, 255, 128, 13, 10, 0, 42]);
   await writeFile(join(root, ":binary.dat"), binary);
@@ -97,7 +98,7 @@ test("аргументы и stdin остаются данными, опасно�
   );
   Object.assign(process.env, injected);
   try {
-    const args = ["fixture", "$(touch forbidden)", "quote\"'`\n"];
+    const args = ["status", "$(touch forbidden)", "quote\"'`\n"];
     const input = "Сообщение\nс переводом строки\n";
     const git = new Git(root, { command });
     const output = JSON.parse(
@@ -122,11 +123,11 @@ test("аргументы и stdin остаются данными, опасно�
     assert.equal(output.prompts, "0");
     await assert.rejects(access(join(root, "forbidden")));
     await assert.rejects(
-      git.run(["fixture"], { env: { GIT_CONFIG_COUNT: "1" } }),
+      git.run(["status"], { env: { GIT_CONFIG_COUNT: "1" } }),
       failureCode("git_environment_invalid"),
     );
     await assert.rejects(
-      git.run(["fixture"], { input: "x".repeat(1024 * 1024 + 1) }),
+      git.run(["status"], { input: "x".repeat(1024 * 1024 + 1) }),
       failureCode("git_input_limit"),
     );
   } finally {
@@ -145,7 +146,7 @@ for (const stream of ["stdout", "stderr"] as const) {
       `process.${stream}.write(Buffer.alloc(4096, 120));`,
     );
     const git = new Git(root, { command, maxOutputBytes: 64 });
-    await assert.rejects(git.runBytes(["fixture"]), (error) => {
+    await assert.rejects(git.runBytes(["status"]), (error) => {
       assert.ok(error instanceof GitFailure);
       assert.equal(error.code, "git_output_limit");
       assert.equal(error.category, "output_limit");
@@ -161,7 +162,7 @@ test("ошибка сохраняет exitCode и не раскрывает stde
     `process.stderr.write("private fixture diagnostic"); process.exitCode = 9;`,
   );
   const git = new Git(root, { command });
-  await assert.rejects(git.run(["fixture"]), (error) => {
+  await assert.rejects(git.run(["status"]), (error) => {
     assert.ok(error instanceof GitFailure);
     assert.equal(error.code, "git_command_failed");
     assert.equal(error.exitCode, 9);
@@ -184,7 +185,7 @@ test("nonzero классифицируется по stderr и сохраняет
      setImmediate(() => { process.stderr.write("failed for " + ${JSON.stringify(privateDiagnostic)}); process.exitCode = 128; });`,
   );
   const git = new Git(root, { command });
-  await assert.rejects(git.run(["fixture"]), (error) => {
+  await assert.rejects(git.run(["status"]), (error) => {
     assert.ok(error instanceof GitFailure);
     assert.equal(error.code, "git_command_failed");
     assert.equal(error.exitCode, 128);
@@ -213,7 +214,7 @@ for (const beforeLimit of [true, false]) {
       `${source} process.exitCode = 9;`,
     );
     const git = new Git(root, { command, maxOutputBytes: 128 * 1024 });
-    await assert.rejects(git.run(["fixture"]), (error) => {
+    await assert.rejects(git.run(["status"]), (error) => {
       assert.ok(error instanceof GitFailure);
       assert.equal(error.code, "git_command_failed");
       assert.equal(error.exitCode, 9);
@@ -233,7 +234,7 @@ test("лимит stderr важнее известной категории в е
     `process.stderr.write("fatal: Authentication failed\\n"); process.stderr.write(Buffer.alloc(128 * 1024, 120)); process.exitCode = 9;`,
   );
   const git = new Git(root, { command, maxOutputBytes: 64 * 1024 });
-  await assert.rejects(git.runBytes(["fixture"]), (error) => {
+  await assert.rejects(git.runBytes(["status"]), (error) => {
     assert.ok(error instanceof GitFailure);
     assert.equal(error.code, "git_output_limit");
     assert.equal(error.category, "output_limit");
@@ -248,7 +249,7 @@ test("успех не превращается в ошибку из-за диа�
     root,
     `process.stderr.write("fatal: Authentication failed\\n"); process.stderr.write(Buffer.alloc(96 * 1024, 120)); process.stdout.write("ok");`,
   );
-  assert.equal(await new Git(root, { command }).run(["fixture"]), "ok");
+  assert.equal(await new Git(root, { command }).run(["status"]), "ok");
 });
 
 test("бинарный stderr не мешает возврату безопасного nonzero", async (t) => {
@@ -257,7 +258,7 @@ test("бинарный stderr не мешает возврату безопас�
     root,
     `process.stderr.write(Buffer.from([255, 128, 0, 27])); process.exitCode = 2;`,
   );
-  await assert.rejects(new Git(root, { command }).run(["fixture"]), (error) => {
+  await assert.rejects(new Git(root, { command }).run(["status"]), (error) => {
     assert.ok(error instanceof GitFailure);
     assert.equal(error.code, "git_command_failed");
     assert.equal(error.exitCode, 2);
@@ -284,7 +285,7 @@ test("timeout завершает process group вместе с обычным д
   `,
   );
   const git = new Git(root, { command, timeoutMs: 700 });
-  await assert.rejects(git.runBytes(["fixture"]), (error) => {
+  await assert.rejects(git.runBytes(["status"]), (error) => {
     assert.ok(error instanceof GitFailure);
     assert.equal(error.code, "git_timeout");
     assert.equal(error.category, "timeout");
@@ -302,7 +303,7 @@ test("связанные worktree разделяют блокировку common
   const hooks = join(root, "hooks");
   await mkdir(repository);
   await mkdir(hooks);
-  const git = new Git(repository);
+  const git = new FixtureGit(repository);
   await git.run(["init", "--initial-branch=main"]);
   await git.run(["config", "core.hooksPath", hooks]);
   const tree = (
@@ -375,8 +376,8 @@ test("Git удерживает унаследованный lock после см
     setTimeout(() => process.exit(91), 5000);
   `,
   );
-  const gitModule = new URL("../src/Git.adapter.ts", import.meta.url).href;
-  const stateModule = new URL("../src/state.ts", import.meta.url).href;
+  const gitModule = import.meta.resolve("@realize/git-runtime");
+  const stateModule = import.meta.resolve("@realize/git-runtime");
   const parent = spawn(
     process.execPath,
     [
@@ -384,11 +385,11 @@ test("Git удерживает унаследованный lock после см
       "-e",
       `
     import { Git } from ${JSON.stringify(gitModule)};
-    import { acquireLock } from ${JSON.stringify(stateModule)};
+    import { acquireGitLock as acquireLock } from ${JSON.stringify(stateModule)};
     const lock = await acquireLock(${JSON.stringify(root)});
     const git = new Git(${JSON.stringify(root)}, { command: ${JSON.stringify(command)} });
-    git.lockDescriptor = lock.descriptor;
-    await git.runBytes(["fixture"]);
+    git.attachLock(lock);
+    await git.runBytes(["status"]);
     await lock.release();
   `,
     ],

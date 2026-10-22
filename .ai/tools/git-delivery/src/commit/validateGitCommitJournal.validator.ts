@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/validateGitCommitJournal.validator.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет совместимость и целостность журнала локального commit.
  */
 import { createHash } from "node:crypto";
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import { relativeFile } from "../contracts.ts";
 import type { Journal } from "./GitCommitJournal.types.ts";
 import { MAX_GIT_COMMIT_RECOVERY_ATTEMPTS } from "./gitCommitRecovery.constants.ts";

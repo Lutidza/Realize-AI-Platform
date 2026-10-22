@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/verifyGitStaged.adapter.ts
- * @version 1.1.0
- * @date 2026-10-11
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет подготовленный commit и обязательное отсутствие явных секретов.
  */
-import type { Git } from "../Git.adapter.ts";
+import type { Git } from "@realize/git-runtime";
 import type { Snapshot } from "../GitSnapshot.types.ts";
 import { assertNoGitSecrets } from "./assertNoGitSecrets.validator.ts";
 import { verifyGitStagedContent } from "./verifyGitStagedContent.adapter.ts";

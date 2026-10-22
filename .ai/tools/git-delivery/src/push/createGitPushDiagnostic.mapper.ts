@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/push/createGitPushDiagnostic.mapper.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Преобразует ошибку исполнения в безопасную диагностику push без исходного сообщения.
  */
 
-import { GitFailure } from "../GitFailure.error.ts";
-import { GIT_FAILURE_CATEGORIES } from "../gitFailureCategory.constants.ts";
+import { GitFailure } from "@realize/git-runtime";
+import { GIT_FAILURE_CATEGORIES } from "@realize/git-runtime";
 import type { GitPushDiagnostic, GitPushStage } from "./GitPush.types.ts";
 
 export function createGitPushDiagnostic(

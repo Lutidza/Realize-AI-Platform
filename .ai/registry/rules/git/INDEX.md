@@ -65,5 +65,5 @@ entries:
         https,
         ssh,
       ]
-    trigger: "Чтение Git, управление remote/worktrees/ветками, staging, commit, fetch, pull, push или GitHub merge проверенного дерева рабочего слоя."
+    trigger: "Git-операции рабочего слоя; изменение общего Git executor или адаптеров IDE, платформы и GPT/MCP с сохранением их разрешений."
 ```

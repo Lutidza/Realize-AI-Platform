@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/validateGitManageJournal.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет persisted before/after журнала без назначения новой цели mutation.
  */
-import { PolicyError } from "../Policy.error.ts";
+import { PolicyError } from "@realize/git-runtime";
 import type { GitManageJournal, GitManageState } from "./GitManage.types.ts";
 
 function invalid(): never {

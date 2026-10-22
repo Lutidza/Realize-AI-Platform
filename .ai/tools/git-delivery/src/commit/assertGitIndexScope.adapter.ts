@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/commit/assertGitIndexScope.adapter.ts
- * @version 1.0.0
- * @date 2026-09-09
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Сверяет весь подготовленный индекс с областью commit.
  */
-import { PolicyError } from "../Policy.error.ts";
-import type { Git } from "../Git.adapter.ts";
+import { PolicyError } from "@realize/git-runtime";
+import type { Git } from "@realize/git-runtime";
 import { stagedPaths } from "../repository.ts";
 
 export async function assertIndexScope(

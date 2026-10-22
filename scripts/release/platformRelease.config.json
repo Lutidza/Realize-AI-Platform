@@ -119,6 +119,12 @@
       ]
     },
     {
+      "id": "git-runtime",
+      "kind": "core-package",
+      "packagePath": "packages/git-runtime/package.json",
+      "sources": ["packages/git-runtime"]
+    },
+    {
       "id": "codex-provider-adapter",
       "kind": "provider-adapter",
       "packagePath": "packages/codex-adapter/package.json",
