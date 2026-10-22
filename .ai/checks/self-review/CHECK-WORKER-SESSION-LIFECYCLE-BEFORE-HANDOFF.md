@@ -12,7 +12,7 @@ related_checks:
   - .ai/checks/worker-runtime/CHECK-CODEX-EXEC-WORKER-RUNTIME-BRIDGE.md
   - .ai/checks/worker-runtime/CHECK-WORKER-DIALOG-SURFACE-BUDGET.md
   - .ai/checks/worker-runtime/CHECK-WORKER-HANDOFF-READY.md
-runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
+runtime_store_contract: .ai/tools/agent-runtime/runtime/INDEX.md
 ```
 
 Применяется, если в текущем задании запускались worker-ы.

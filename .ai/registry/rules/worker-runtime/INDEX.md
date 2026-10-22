@@ -115,8 +115,7 @@ entries:
       ]
     related_codex_artifacts:
       [.codex/skills/codex-external-worker-session/SKILL.md]
-    related_tools:
-      [.ai/tools/agent-runtime/runtime/runtime.sqlite, .ai/tools/agent-monitor/]
+    related_tools: [.ai/tools/agent-runtime/README.md, .ai/tools/agent-monitor/]
     routing_tags: [worker-runtime, monitor, visibility, launch-gate]
     trigger: "Before any worker, stage or worker group launch."
   - entry_id: codex-exec-worker-runtime-bridge
@@ -146,7 +145,7 @@ entries:
       [.codex/skills/codex-external-worker-session/SKILL.md]
     related_tools:
       [
-        .ai/tools/agent-runtime/runtime/runtime.sqlite,
+        .ai/tools/agent-runtime/README.md,
         .ai/tools/agent-runtime/bin/agent-runtime.mjs,
         .ai/tools/agent-monitor/,
       ]
@@ -172,8 +171,7 @@ entries:
       ]
     related_codex_artifacts:
       [.codex/skills/codex-external-worker-session/SKILL.md]
-    related_tools:
-      [.ai/tools/agent-runtime/runtime/runtime.sqlite, .ai/tools/agent-monitor/]
+    related_tools: [.ai/tools/agent-runtime/README.md, .ai/tools/agent-monitor/]
     routing_tags: [worker-runtime, compact-dialog, dialog-budget, launch-gate]
     trigger: "Before worker launch orchestration and before user-facing worker handoff."
   - entry_id: worker-model-selection

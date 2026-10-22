@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/pageDiscoveryDispatch.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-13
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет приватный допуск запуска, свежий thread и ограниченное чтение статуса runtime.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,7 +27,10 @@ const options = {
     model: "test-model",
   },
   pageDraft: { text: {} },
-  access: { canManageData: () => true },
+  access: {
+    canManageData: () => true,
+    canManageAIConfiguration: () => false,
+  },
 } as unknown as SanitizedRealizeAIPluginOptions;
 const req = {
   payload: {
@@ -85,6 +88,9 @@ describe("page discovery chat dispatch", () => {
     expect(dispatched.threadID).toBeUndefined();
     expect(dispatched.conversationHistory).toContain("Найди доставку");
     expect(AIRepository.prototype.getLatestThreadID).not.toHaveBeenCalled();
+    expect(dispatched.repositoryAccess).toEqual({
+      developerInstructions: false,
+    });
     expect(
       verifyPageDiscoveryGrant(dispatched.pageDiscovery.token, "7", options)
         .userID,
@@ -102,7 +108,7 @@ describe("page discovery chat dispatch", () => {
     );
   });
   it.each(["disabled", "denied", "no_adapter"])(
-    "does not offer tools outside the existing page permission: %s",
+    "starts a fresh thread without tools outside the existing page permission: %s",
     async (mode) => {
       const unavailable = {
         ...options,
@@ -113,10 +119,13 @@ describe("page discovery chat dispatch", () => {
       await createChatMessage(req, unavailable, 1, "2", "legacy-run", {
         content: "Обсудим страницу",
       });
-      expect(mocks.startRun.mock.calls[0][0].pageDiscovery).toBeUndefined();
-      expect(mocks.startRun.mock.calls[0][0].threadID).toBe(
-        "old-thread-with-other-tools",
-      );
+      const dispatched = mocks.startRun.mock.calls[0][0];
+      expect(dispatched.pageDiscovery).toBeUndefined();
+      expect(dispatched.threadID).toBeUndefined();
+      expect(AIRepository.prototype.getLatestThreadID).not.toHaveBeenCalled();
+      expect(dispatched.repositoryAccess).toEqual({
+        developerInstructions: false,
+      });
     },
   );
   it("keeps accepted-message replay stable after the integration permission changes", async () => {

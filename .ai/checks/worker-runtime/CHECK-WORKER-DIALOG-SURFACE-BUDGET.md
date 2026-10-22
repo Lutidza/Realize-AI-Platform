@@ -11,7 +11,7 @@ related_rules:
 related_workflows:
   - .ai/workflows/core/worker-assignment/WORKFLOW.md
   - .ai/workflows/core/worker-session/WORKFLOW.md
-runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
+runtime_store_contract: .ai/tools/agent-runtime/runtime/INDEX.md
 monitor_tool: .ai/tools/agent-monitor/
 ```
 

@@ -6,7 +6,7 @@ artifact_type: ai-self-review-check
 owner_role: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
 owner_layer: .ai/checks/self-review/
 workflow: .ai/workflows/ai-operations/agent-runtime-maintenance/WORKFLOW.md
-runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
+runtime_store_contract: .ai/tools/agent-runtime/runtime/INDEX.md
 runtime_writer: .ai/tools/agent-runtime/bin/agent-runtime.mjs
 projection_exporter: .ai/tools/agent-runtime/bin/agent-runtime.mjs projection-export
 maintenance_history: .ai/tools/agent-runtime/runtime/maintenance-history/

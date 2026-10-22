@@ -18,7 +18,7 @@ related_workflows:
   - .ai/workflows/core/worker-session/WORKFLOW.md
 codex_adapter:
   - .codex/skills/codex-external-worker-session/SKILL.md
-runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
+runtime_store_contract: .ai/tools/agent-runtime/runtime/INDEX.md
 runtime_tool: .ai/tools/agent-runtime
 execution_backend: codex_exec
 status: active

@@ -11,7 +11,7 @@ checks:
   - .ai/checks/worker-runtime/CHECK-CODEX-EXEC-WORKER-RUNTIME-BRIDGE.md
   - .ai/checks/worker-runtime/CHECK-WORKER-DIALOG-SURFACE-BUDGET.md
   - .ai/checks/self-review/CHECK-WORKER-SESSION-LIFECYCLE-BEFORE-HANDOFF.md
-runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
+runtime_store_contract: .ai/tools/agent-runtime/runtime/INDEX.md
 ```
 
 Применяй lifecycle к фактически запущенным worker-ам. Для native collaboration

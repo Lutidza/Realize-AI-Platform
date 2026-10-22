@@ -30,8 +30,7 @@ entries:
     related_workflows: [.ai/workflows/core/worker-session/WORKFLOW.md]
     related_codex_artifacts:
       [.codex/skills/codex-external-worker-session/SKILL.md]
-    related_tools:
-      [.ai/tools/agent-runtime/runtime/runtime.sqlite, .ai/tools/agent-monitor/]
+    related_tools: [.ai/tools/agent-runtime/README.md, .ai/tools/agent-monitor/]
     routing_tags: [agent-runtime, worker-session, lifecycle, autonomous]
     trigger: "Lifecycle фактически запущенных worker-ов; native handles среды, external process handles, managed writer только при явном выборе этого режима."
   - entry_id: agent-monitor-service-lifecycle
@@ -72,7 +71,7 @@ entries:
     related_workflows:
       [.ai/workflows/ai-operations/agent-runtime-maintenance/WORKFLOW.md]
     related_codex_artifacts: []
-    related_tools: [.ai/tools/agent-runtime/runtime/runtime.sqlite]
+    related_tools: [.ai/tools/agent-runtime/README.md]
     routing_tags: [agent-runtime, maintenance, runtime-store]
     trigger: "After agent-runtime-maintenance, retention-cleanup, projection refresh or a step that serviced runtime.sqlite."
 ```

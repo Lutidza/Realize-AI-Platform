@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/checkRunner.ts
- * @version 1.2.0
- * @date 2026-09-15
+ * @version 1.2.1
+ * @date 2026-10-22
  * @description Запускает разрешённые проверки с ограниченным build parallelism и диагностикой завершения процесса.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -62,7 +62,6 @@ const createCheckEnvironment = (
     CI: "true",
     NEXT_TELEMETRY_DISABLED: "1",
     NODE_ENV: "test",
-    REALIZE_BUILD_WITHOUT_DATABASE: "true",
   };
   for (const name of SAFE_ENVIRONMENT_NAMES) {
     if (process.env[name]) environment[name] = process.env[name];
@@ -89,8 +88,12 @@ export const runExecutionCheck = async (input: {
       (input.command === "npm run build" ? "production" : "test"),
   });
   if (input.command === "npm run build") {
+    // Prerender без БД включается только для build; caller overrides не меняют этот контракт.
+    environment.REALIZE_BUILD_WITHOUT_DATABASE = "true";
     // Подтверждено для Next 16.3.1/Turbopack; это ограничение потоков, а не общий лимит памяти.
     environment.TURBO_TASKS_AVAILABLE_PARALLELISM = "2";
+  } else {
+    delete environment.REALIZE_BUILD_WITHOUT_DATABASE;
   }
   const chunks: Buffer[] = [];
   let totalBytes = 0;

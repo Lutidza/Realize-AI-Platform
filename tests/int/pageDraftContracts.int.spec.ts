@@ -1,7 +1,7 @@
 /**
  * @file tests/int/pageDraftContracts.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет недоверенный intent страницы, точное подтверждение рецепта и протокол управляемого создания.
  * @see documentation/specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/14-data-config-pipeline.md
  */
@@ -275,14 +275,17 @@ describe("доступный агенту протокол страницы", ()
     );
   });
 
-  it("сохраняет совместимость прежнего catalog release без автоматической выдачи page binding", () => {
+  it("сохраняет catalog-only bindings совместимого release без автоматической выдачи page binding", () => {
     const release = createAIConfigRelease({
       createdAt: "2026-09-01T08:00:00.000Z",
       createdBy: "admin-1",
       draft: createAIConfigDraftFixture(),
       releaseID: "catalog-only-v1",
       releaseVersion: 1,
-      systemCompatibility: { maximumRelease: "1.0.0", minimumRelease: "1.0.0" },
+      systemCompatibility: {
+        maximumRelease: SYSTEM_AI_CONFIG_PROJECTION.version,
+        minimumRelease: "1.0.0",
+      },
     });
     const compiled = compileAgentConfiguration({
       profileKey: "admin",

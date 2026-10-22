@@ -11,7 +11,7 @@ related_workflows:
   - .ai/workflows/core/worker-assignment/WORKFLOW.md
   - .ai/workflows/core/worker-session/WORKFLOW.md
 service_lifecycle_rule: .ai/rules/agent-runtime/RULE-AGENT-MONITOR-SERVICE-LIFECYCLE.md
-runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
+runtime_store_contract: .ai/tools/agent-runtime/runtime/INDEX.md
 runtime_tool: .ai/tools/agent-runtime
 runtime_gateway: http://127.0.0.1:8765/
 monitor_url: http://127.0.0.1:5173/

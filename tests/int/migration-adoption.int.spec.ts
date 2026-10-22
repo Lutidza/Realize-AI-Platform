@@ -2,8 +2,8 @@
 
 /**
  * @file tests/int/migration-adoption.int.spec.ts
- * @version 1.1.3
- * @date 2026-10-13
+ * @version 1.1.4
+ * @date 2026-10-22
  * @description Проверяет semantic schema comparison и fail-closed migration adoption.
  */
 
@@ -55,6 +55,8 @@ const expectedMigrations = [
   "20261011_162630_task_manager_foundation",
   "20261011_215235_task_git_sync",
   "20261012_094626_extension_manager_state",
+  "20261019_065606_task_workspace_intake",
+  "20261019_085743_platform_access",
 ];
 
 describe("migration adoption evidence", () => {

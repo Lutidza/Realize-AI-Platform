@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/execution-output-sanitizer.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-15
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет безопасную диагностику, окружение и завершение процессов проверок исполнителя.
  */
 
@@ -277,6 +277,62 @@ describe("Безопасный вывод исполнителя", () => {
       expect(options.detached).toBe(process.platform !== "win32");
     }
   });
+
+  it.each([undefined, "false", "true"])(
+    "включает режим сборки без БД независимо от caller override %s",
+    async (flag) => {
+      vi.stubEnv("REALIZE_BUILD_WITHOUT_DATABASE", "false");
+      const child = createChild();
+      mock.spawn.mockReturnValueOnce(child);
+      const promise = runExecutionCheck({
+        ...checkInput,
+        command: "npm run build",
+        environment: { REALIZE_BUILD_WITHOUT_DATABASE: flag },
+      });
+      child.emit("close", 0, null);
+      await promise;
+
+      const environment = mock.spawn.mock.lastCall?.[2].env;
+      expect(environment.REALIZE_BUILD_WITHOUT_DATABASE).toBe("true");
+      expect(environment.REALIZE_AI_RUNTIME_ISOLATED).toBe("true");
+      expect(environment.NODE_ENV).toBe("production");
+    },
+  );
+
+  it.each([
+    "node scripts/security/check-secrets.mjs",
+    "npm run format:check",
+    "npm run lint",
+    "npm run payload:migrate:status",
+    "npm run test:e2e",
+    "npm run test:int",
+    "npm run typecheck",
+  ])(
+    "не переносит режим сборки без БД в %s из host или caller override",
+    async (command) => {
+      vi.stubEnv("REALIZE_BUILD_WITHOUT_DATABASE", "true");
+      for (const overrides of [
+        undefined,
+        { REALIZE_BUILD_WITHOUT_DATABASE: "true" },
+        { REALIZE_BUILD_WITHOUT_DATABASE: "false" },
+      ]) {
+        const child = createChild();
+        mock.spawn.mockReturnValueOnce(child);
+        const promise = runExecutionCheck({
+          ...checkInput,
+          command,
+          environment: overrides,
+        });
+        child.emit("close", 0, null);
+        await promise;
+
+        const environment = mock.spawn.mock.lastCall?.[2].env;
+        expect(environment.REALIZE_BUILD_WITHOUT_DATABASE).toBeUndefined();
+        expect(environment.REALIZE_AI_RUNTIME_ISOLATED).toBe("true");
+        expect(environment.NODE_ENV).toBe("test");
+      }
+    },
+  );
 
   it("отклоняет spawn error после close и отменяет timeout без сигнала несуществующей группе", async () => {
     vi.useFakeTimers();

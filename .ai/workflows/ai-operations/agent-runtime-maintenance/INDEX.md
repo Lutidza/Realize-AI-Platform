@@ -8,7 +8,7 @@ owner_layer: .ai/workflows/ai-operations/agent-runtime-maintenance/
 runtime_entrypoint: .ai/workflows/ai-operations/agent-runtime-maintenance/WORKFLOW.md
 runtime_sources:
   - .ai/tools/agent-runtime/README.md
-runtime_store: .ai/tools/agent-runtime/runtime/runtime.sqlite
+runtime_store_contract: .ai/tools/agent-runtime/runtime/INDEX.md
 runtime_writer: .ai/tools/agent-runtime/bin/agent-runtime.mjs
 check: .ai/checks/self-review/CHECK-AGENT-RUNTIME-MAINTENANCE-REPORT.md
 related_artifacts:

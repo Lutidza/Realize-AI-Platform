@@ -1,7 +1,7 @@
 /**
  * @file tests/int/preview-target.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-17
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет выбор страницы reference по принятой области и отклонение неоднозначных маршрутов.
  */
 
@@ -80,6 +80,19 @@ describe("preview target from accepted paths", () => {
     "(..)details",
     "(...)details",
     "(..)(..)details",
+  ])("rejects unsupported route segment %j", (segment) => {
+    const path = `${root}realize-ai/${segment}/page.tsx`;
+    expect(() =>
+      resolvePreviewTargetPath({
+        allowedPaths: [path],
+        expectedPaths: [path],
+      }),
+    ).toThrow(
+      "Reference preview target requires static route segments without dynamic, private or intercepting routes.",
+    );
+  });
+
+  it.each([
     "%2e%2e",
     "../other",
     ".",
@@ -87,13 +100,26 @@ describe("preview target from accepted paths", () => {
     "hello#hash",
     "hello\\other",
     "hello\nother",
-  ])("rejects unsupported or unsafe route segment %j", (segment) => {
-    const path = `${root}realize-ai/${segment}/page.tsx`;
+  ])(
+    "rejects unsafe route segment %j at the approved-scope boundary",
+    (segment) => {
+      const path = `${root}realize-ai/${segment}/page.tsx`;
+      expect(() =>
+        resolvePreviewTargetPath({
+          allowedPaths: [path],
+          expectedPaths: [path],
+        }),
+      ).toThrow("Preview target paths differ from the approved scope.");
+    },
+  );
+
+  it("rejects whitespace within an otherwise approved reference path", () => {
+    const path = `${root}realize-ai/hello other/page.tsx`;
     expect(() =>
       resolvePreviewTargetPath({
         allowedPaths: [path],
         expectedPaths: [path],
       }),
-    ).toThrow(/unsafe|static route segments/);
+    ).toThrow("Reference preview scope has unsafe paths.");
   });
 });
