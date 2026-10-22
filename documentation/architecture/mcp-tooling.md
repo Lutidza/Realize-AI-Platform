@@ -2,6 +2,10 @@
 
 - **Статус:** A+G+S1, предустановки, managed Workshop и локальная подготовка ChatGPT C; облачная приёмка C ожидается, 26 сентября 2026 года
 - **Source of truth Codex adapters:** `.codex/config.toml`
+- **Уточнение 20 октября 2026 года:** MCP `1.3.1`, context `1.1` и раздельная диагностика filesystem/Git подтверждены ответами bootstrap и Realize AI ChatGPT connector. Через connector также проверены status/diff, файлы, capability discovery и S1 instructions; полная приёмка установленных consumers поиска этим не заменяется.
+- **Текущий результат TASK-52, 22 октября 2026 года:** по разрешению пользователя создан локальный commit `9499902416cbd3bd799e9c759a122165d858641e` ровно из 16 файлов; 65 прежних изменений сохранены вне commit, push не выполнялся. После production build и canary активирована сборка `UC_Xr0YB_MtdFGCmWICbt`, sourceVersion `689993ddd5ec2027534650e504adf60f3e3ace90edbe0d131a0b759476f9b24e`. System AI `1.1.4` и `installation-config-v9` сохранены без перевыпуска или активации конфигурации. Свежие 149 адресных тестов, lint, format, headers и instruction graph прошли. Реальные CLI и MCP подтвердили поиск, полное чтение с SHA-256 и новый Git HEAD. Ручная проверка пользователя в Admin direct, run `110`, conversation `66`, подтверждена серверным чтением завершённого run, ответа, lifecycle и search/read events текущего binding. Ручная проверка поискового субагента, run `112`, conversation `68`, также подтверждена: search/read без усечения, завершение native descendants и archive до итогового ответа. Затем пользователь подтвердил внешний ChatGPT обеими ссылками; новые search/read events в 10:56 UTC относятся к текущей сборке, оба complete. SourceUrl сохранён вместе с `utm_source=chatgpt.com`. Новая штатная попытка CR `22` / job `20` от `9499902` завершилась в 11:28 UTC с `changes_ready`: создан только regression test mapper (девять сценариев), secrets/lint/typecheck/test:int/build прошли; integration — 3365 passed / 0 failed / 163 skipped. Формат и шапки проверены отдельно. До обновления отчётности 65 прежних изменённых путей сверены без расхождений; временный лимит execution восстановлен с 4G до 3G. Реальные search/read events execution относятся к текущему binding. Приёмка этой версии подтверждает **6/7**: `cli`, `mcp`, `admin-direct`, `admin-subagent`, `chatgpt`, `execution`; отсутствует только `review`. Прежние checks и даты сохранены. Implementation acceptance, product review, service commit и preview ещё не выполнялись: review-only endpoint отсутствует, штатный preview pipeline включает автоматический service commit и clone preview-БД. Approval CR22 ограничен execution; следующий этап требует согласования готового diff. TASK-52 остаётся `in_progress`. [Проверка Admin direct](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-direct-110-result.json), [проверка субагента](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-subagent-112-result.json), [проверка ChatGPT](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/chatgpt-baseline-20261022-result.json), [execution](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-baseline3-result.json), [installed preflight](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-baseline3-installed-preflight.json) и [результат установки](../delivery/01-local-admin-ai.md) содержат evidence и историю проверок.
+- **История активации 22 октября 2026 года, 07:25 UTC:** production-сборка `Mfqdf7h1W3_X-nmW3ydC7` и installed binding согласованы; активны System AI `1.1.4` и `installation-config-v9` с сохранением всех 32 artifact hashes. На этой сборке подтверждены CLI/MCP, Admin direct run `102` и ручная проверка пользователя через Admin: subagent run `105`, conversation `61`. Серверные события подтверждают поиск, чтение и закрытие дочернего потока; автоматизированный browser E2E этим не заявляется. Последующий реальный диалог ChatGPT подтверждён пользователем, исходным conversation URL и сохранёнными search/read events с текущим binding. На этой прежней сборке installed preflight подтвердил шесть из семи consumers: `cli`, `mcp`, `admin-direct`, `admin-subagent`, `chatgpt`, `execution`. Для `execution` засчитаны реальные search/read events job `18` с текущим binding; сам job завершился `failed` на TypeScript из-за V8 heap OOM. Повторный job `19` при временном бюджете памяти `4G` прошёл typecheck, но получил 27 падений в `test:int`. Отдельная диагностика с `REALIZE_BUILD_WITHOUT_DATABASE=false` дала 3338 passed / 16 failed / 163 skipped; все девять новых тестов mapper прошли. Изолированный candidate содержит исправление build-only флага checkRunner, четырёх устаревших fixtures и 13 ссылок AI metadata. После физического копирования dependencies по контракту `withWorkspaceDependencies` полный suite прошёл: 3365 passed / 0 failed / 163 skipped за 327,6 с. Первая диагностика с symlink dependencies сохранила девять environment failures; guards не ослаблялись. Typecheck прошёл за 54,6 с, scoped ESLint шести исходников — за 3,81 с; физическая копия dependencies удалена после проверок. На этапе подготовки patch из 16 файлов ещё не был применён. Для его установки требовались commit, согласованная сборка и активация runtime binding; System AI `1.1.4` и overlay v9 для этого patch перевыпускать не требуется. До следующего обновления installed sourceVersion/BUILD_ID не менялись, лимиты execution были восстановлены до `3G`. На этом этапе полная приёмка оставалась `incomplete`: продуктовый `review` ещё не был выполнен, candidate не был принят. [Результат установки](../delivery/01-local-admin-ai.md) содержит evidence, ограничения execution и поиска ChatGPT, результат полного gate.
+- **Контракт MCP `1.4.0`:** добавлен `repo_git_head` для отдельного ограниченного чтения HEAD/branch; реальный Admin run `102` подтвердил этот путь. Уже запущенные внешние клиенты могут сохранять прежний catalog: их обновление требует повторного discovery и реального вызова. Исторический ответ connector `1.3.1` не подтверждает текущую версию его сессии.
 
 ## Project-specific servers
 
@@ -129,11 +133,11 @@ boot/revision/hash; после 30 секунд без него UI показыв
 ### Инструменты и ограничения
 
 Доступны `realize_get_context`, `repo_list_files`, `repo_read_file`, `repo_search`,
-`repo_git_status`, `repo_git_diff`, `pages_list`, `pages_get`, `pages_get_structure`,
+`repo_git_head`, `repo_git_status`, `repo_git_diff`, `pages_list`, `pages_get`, `pages_get_structure`,
 `ai_context_resolve`, `ai_instructions_get`, `ai_capabilities_list`.
 Ещё 11 `workshop_*` handlers реализуют каталог/чтение snapshots, создание,
 prepare/review/apply и capture preview через общий Workshop facade.
-Всего 23 handlers; developer bootstrap регистрирует прежние 9 без Pages и Workshop.
+Всего 24 handlers; developer bootstrap регистрирует 10 без Pages и Workshop.
 Каталог отфильтрован по реальным grants и настроенным ports; Pages использует текущего
 пользователя и существующие Pages/Forms ACL без Codex credential и AIRun.
 
@@ -181,6 +185,14 @@ hardlinks, вложенные repositories и замену предков пут
 `.env`, binaries и явные секреты исключаются. Git binary/untracked/unmerged
 показываются как omission без patch. Secret detector является дополнительной
 защитой; он не доказывает отсутствие всех возможных секретов в исходниках.
+
+`repo_git_head` принимает только пустой объект `{}` и возвращает `head`,
+`branch`, `detached`, `unborn`. Reader проверяет согласованность HEAD/branch
+в пределах общего deadline, не собирая status или полный снимок файлов.
+`head:null` допустим для unborn branch; detached HEAD сохраняет коммит при
+`branch:null`. Этот ответ не содержит оценки dirty/clean и не заменяет status,
+diff или проверку fingerprint перед commit. При отсутствии repository grant
+инструмент недоступен; `.git` не открывается через файловые средства.
 
 Запрос ≤64 КиБ; файл ≤2 МиБ; scan ≤50 МиБ/10 000 entries; ответ ≤128 КиБ.
 Пагинация связывает principal, policy, query и snapshot; cursor живёт 10 минут
@@ -252,6 +264,10 @@ Git, обе protocol eras и standalone bootstrap/SIGTERM. `mcp-managed.int.spec
 настоящие Payload collections, Pages/Forms ACL, CAS, ключи, apply, занятый DB lock
 и отказ при закрытом pool. Собственный pool закрывается при завершении MCP;
 его запуск не создаёт extensions и не включает read replicas.
+Для `repo_git_head` дополнительно проверяются empty-args schema, обычный,
+detached и unborn HEAD, deadline/cancellation и независимость файлового
+чтения от Git-ошибки. В Admin проверяется тот же контракт в direct и native
+MCP, общий budget и отсутствие Git-команд внутри временного Context Pack.
 `tests/e2e/admin-mcp.e2e.spec.ts` проверяет Admin с реальным API и listener,
 двумя темами и viewport 1440/390, стандартным `/admin` и нестандартным `/control`.
 Проверенная здесь PostgreSQL — 18.6;
@@ -334,8 +350,37 @@ realize_get_context и прочитай README.md через repo_read_file».
 пользователь вводит самостоятельно в Admin; до успешных вызовов из чата
 облачная приёмка C остаётся открытой. MCP не вызывает модельный API или Codex.
 
-Capability discovery проверяет Git metadata без чтения всех файлов. В
-`realize_get_context` вспомогательный Git snapshot ограничен двумя секундами:
-при превышении repository summary сообщает unavailable, остальные модули
-возвращаются. Это не запрещает отдельное чтение файлов; полный status/diff
-сохраняет собственные ограничения объёма и времени.
+Capability discovery проверяет Git metadata без чтения всех файлов.
+`realize_get_context` `1.1` проверяет filesystem и Git отдельно:
+`modules.repository` описывает доступность файлового корня, `modules.git` —
+Git metadata. Context читает только текущие HEAD/branch через внутренний Git
+helper, без полного снимка файлов. Успешный summary содержит `dirty:null` и
+`dirtyStatus:"not_checked"`: это не подтверждение чистой рабочей копии.
+Отдельное чтение HEAD/branch выполняет `repo_git_head` с аргументами `{}`;
+для состояния разрешённых файлов вызывается `repo_git_status`.
+
+При Git timeout `modules.git` сообщает `unavailable` с `reasonCode:"TIMEOUT"`,
+а Git summary `repository` становится null. Доступный файловый корень при этом
+остаётся `modules.repository.status:"ready"`; чтение README и инструкций может
+продолжаться. Полный content snapshot, hashes и cursor conflicts сохраняются
+у `repo_git_status`; адресный `repo_git_diff` сохраняет точные стороны и
+повторную проверку снимка. Оптимизация чтения не меняет development inspect,
+fingerprint проверок перед commit или permissions Git-воркера.
+
+Ответ MCP с `TIMEOUT` отдельного инструмента или `FORBIDDEN` для `.git`
+не доказывает разрыв соединения. Проверяйте фактический module/reason code и
+отделяйте его от transport/auth failure. Внешний `INVALID_ARGUMENT` может быть
+обёрткой ошибки инструмента, поэтому в отчёт включается исходный код сервера,
+если он доступен. Для HEAD используйте `repo_git_head`; `realize_get_context`
+также содержит ограниченный Git summary. Служебный каталог `.git` остаётся
+закрытым. В чате Admin рабочий каталог модели является Context Pack, а не
+checkout: Git-команда внутри него не заменяет серверный инструмент и не
+диагностирует проект. На старом сервере `1.3.0` Git timeout мог пометить весь
+repository как unavailable; успешное чтение файла опровергает такой вывод
+о недоступности файлового слоя.
+
+После обновления и restart runtime повторите discovery инструментов в
+подключённом клиенте и обновите сохранённые output schemas. Ответ context
+имеет `outputSchemaVersion:"1.1"` в metadata инструмента, общий envelope
+сохраняет `schemaVersion:"1.0"`. Клиент с прежним ожиданием `dirty:boolean`
+должен принять явное состояние «не проверено»; приводить null к false нельзя.

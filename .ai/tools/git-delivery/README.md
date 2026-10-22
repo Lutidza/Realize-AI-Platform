@@ -17,11 +17,37 @@ pull допускает только fast-forward. Merge использует о
 
 Для server-to-server MCP предусмотрен отдельный ограниченный machine read port
 по [ADR-0017](../../../documentation/architecture/decisions/ADR-0017-internal-mcp-and-server-management.md).
-Он размещается у этого обработчика, выполняет только status/diff с доверенными
-root/scope/deadline и проверяет пути до чтения bytes. Индекс, hooks, сеть и
-delivery не затрагиваются; модель на каждый read RPC не запускается. Доступность
+Он размещается у этого обработчика, выполняет только status/diff и служебную
+проверку metadata с доверенными root/scope/deadline и проверяет пути до чтения
+bytes. Индекс, hooks, сеть и delivery не затрагиваются; модель на каждый read RPC
+не запускается. Доступность
 порта подтверждается его реализацией и protocol tests. Development-агент
 не использует его вместо описанного ниже inspect через отдельного воркера.
+
+Уточнение MCP `1.3.1` от 20 октября 2026 года проверено на bootstrap и через
+Realize AI ChatGPT connector. Внутренний helper этого owner читает HEAD/branch для
+`realize_get_context` без content snapshot. Context отдельно сообщает
+доступность filesystem/Git и возвращает `dirty:null`,
+`dirtyStatus:"not_checked"`; это не доказательство чистоты рабочей копии.
+Публичный Git tool для HEAD не добавляется, `.git` через file reader закрыт.
+
+Снимки остальных действий сохраняют свои контракты:
+
+- `repo_git_status` хеширует все разрешённые bytes до пагинации; `limit`
+  уменьшает ответ, но не область снимка. Ограниченное параллельное чтение
+  и повторное использование проверенных directory descriptors не ослабляют
+  policy, проверки ссылок, cancellation и лимиты.
+- `repo_git_diff` снимает разрешённые точные paths до/после чтения и сохраняет
+  content identities, полные hunks и `CONFLICT` при изменении снимка.
+- Development `inspect`/commit используют отдельный fingerprint из
+  `src/repository.ts`, связывающий HEAD/ветку, индекс и bytes проверенных файлов.
+  MCP status hash и лёгкий context не заменяют этот fingerprint.
+
+Ошибки `TIMEOUT` Git и `FORBIDDEN` конкретного пути не объявляют весь MCP
+недоступным. Контракт диагностики и версий —
+[спецификация MCP](../../../documentation/specifications/internal-mcp.md#9-контракты-инструментов-a);
+правила интерпретации для агента —
+[MCP tooling contour](../../rules/external-tools/RULE-MCP-TOOLING-CONTOUR.md).
 
 Из корня проекта после установки зависимостей и подготовки профиля:
 
@@ -653,7 +679,7 @@ REALIZE_GIT_CONTEXT_FILE=/absolute/context.json node .ai/tools/git-delivery/src/
 | Поле                               | Значение                                                                                                                                                |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `version`                          | `1`                                                                                                                                                     |
-| `requestId`, `projectId`, `taskId` | Идентификаторы операции, проекта и рабочего контекста; `taskId` не требует TASK |
+| `requestId`, `projectId`, `taskId` | Идентификаторы операции, проекта и рабочего контекста; `taskId` не требует TASK                                                                         |
 | `repositoryRoot`                   | Абсолютный корень рабочей копии                                                                                                                         |
 | `authorization.actions`            | Разрешённые действия                                                                                                                                    |
 | `authorization.scope`              | `{ "mode": "all" }`, явно разрешённый полный снимок `{ "mode": "all", "includePartialIndex": true }` либо `{ "mode": "paths", "paths": ["README.md"] }` |

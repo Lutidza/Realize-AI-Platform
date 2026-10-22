@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/acceptance/searchAcceptance.config.mjs
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Задаёт обязательные наборы приёмки поиска и пределы её процессов.
  * @see documentation/architecture/repository-search.md
  */
@@ -25,12 +25,13 @@ export const SEARCH_ACCEPTANCE_SUITES = Object.freeze({
     ],
   },
   repository: {
-    minimum: 62,
+    minimum: 72,
     files: [
       "tests/int/import-resolution.int.spec.ts",
       "tests/int/repository-navigation.int.spec.ts",
       "tests/int/mcp-repository.int.spec.ts",
       "tests/int/mcp-protocol.int.spec.ts",
+      "tests/int/mcp-git-head-tool.int.spec.ts",
       "tests/int/search-observation-runtime.int.spec.ts",
     ],
   },

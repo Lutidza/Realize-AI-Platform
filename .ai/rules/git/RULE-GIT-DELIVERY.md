@@ -78,8 +78,10 @@ SourcePromotion, ReleaseCandidate и их полномочия этим прав
 
 Узкое исключение по [ADR-0017](../../../documentation/architecture/decisions/ADR-0017-internal-mcp-and-server-management.md)
 относится к deterministic machine read port существующего `.ai/tools/git-delivery`:
-серверный MCP вызывает только status/diff без LLM на каждый RPC. Доверенная
-composition задаёт repository root, principal, scope, deadline и лимиты;
+серверный MCP вызывает только status/diff и служебную проверку Git metadata
+для диагностики без LLM на каждый RPC. Внутренний helper HEAD/branch не создаёт
+новый публичный tool и не проверяет content snapshot или чистоту рабочей копии.
+Доверенная composition задаёт repository root, principal, scope, deadline и лимиты;
 политика путей применяется до чтения содержимого. Порт не выполняет запись,
 staging, сетевые операции и произвольные команды. Обычные Git-операции
 development-агента, включая inspect, сохраняют маршрут отдельного воркера;

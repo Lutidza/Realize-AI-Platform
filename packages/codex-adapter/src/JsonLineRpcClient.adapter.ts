@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.adapter.ts
- * @version 2.3.0
- * @date 2026-10-04
+ * @version 2.4.0
+ * @date 2026-10-22
  * @description Ограниченный JSONL RPC и завершение изолированного процесса Codex App Server.
  */
 
@@ -58,7 +58,7 @@ const defaultArguments = (options: JsonLineRPCClientOptions): string[] => [
         "-c",
         'mcp_servers.realize_repository.bearer_token_env_var="REALIZE_CODEX_REPO_BRIDGE_AUTH"',
         "-c",
-        'mcp_servers.realize_repository.enabled_tools=["repo_search","repo_read_file","repo_list_files"]',
+        'mcp_servers.realize_repository.enabled_tools=["repo_search","repo_read_file","repo_list_files","repo_git_head"]',
         "-c",
         "mcp_servers.realize_repository.startup_timeout_sec=10",
         "-c",

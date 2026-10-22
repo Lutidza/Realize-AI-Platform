@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/createMcpRegistry.config.ts
- * @version 1.4.0
- * @date 2026-09-30
+ * @version 1.5.0
+ * @date 2026-10-22
  * @description Регистрирует единую поверхность обеих protocol eras с повторной авторизацией вызова.
  */
 import {
@@ -153,7 +153,8 @@ export function createMcpRegistry(
                 text:
                   name === "repo_search" ||
                   name === "repo_read_file" ||
-                  name === "repo_list_files"
+                  name === "repo_list_files" ||
+                  name === "repo_git_head"
                     ? JSON.stringify(envelope)
                     : "Операция выполнена; структурированные данные приведены в structuredContent.",
               },

@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/createRepositoryMcpBridge.service.ts
- * @version 1.0.0
- * @date 2026-09-30
+ * @version 1.1.0
+ * @date 2026-10-22
  * @description Предоставляет native child тот же bounded reader через существующий loopback MCP transport.
  * @see documentation/architecture/repository-search.md
  */
@@ -23,11 +23,12 @@ export async function createRepositoryMcpBridge(
     "repo_search",
     "repo_read_file",
     "repo_list_files",
+    "repo_git_head",
   ] as const;
   if (
-    tools.definitions.length !== 3 ||
-    tools.definitions.some(
-      (tool) => !allowedTools.some((name) => name === tool.name),
+    tools.definitions.length !== allowedTools.length ||
+    allowedTools.some(
+      (name) => !tools.definitions.some((tool) => tool.name === name),
     )
   )
     throw new Error("repository_mcp_tools_invalid");

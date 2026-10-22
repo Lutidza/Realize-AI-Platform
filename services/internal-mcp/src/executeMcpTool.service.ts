@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/executeMcpTool.service.ts
- * @version 1.4.2
- * @date 2026-10-12
+ * @version 2.1.0
+ * @date 2026-10-22
  * @description Направляет разрешённые read tools владельцам контекста, репозитория, Git и Pages.
  */
 import {
@@ -18,6 +18,7 @@ import type { RepositoryCursorService } from "../../ai-control-plane/src/Reposit
 import {
   readGitStatus,
   readGitDiff,
+  readGitHead,
 } from "../../../.ai/tools/git-delivery/src/read/gitRead.server.index";
 import type { McpPrincipal, McpRuntimeOptions } from "./McpRuntime.types";
 import { McpError } from "./Mcp.error";
@@ -29,6 +30,7 @@ import { readAiInstructions } from "../../ai-control-plane/src/readAiInstruction
 import type { RepositorySearchMetrics } from "../../ai-control-plane/src/RepositoryQueries.types";
 import { buildRepositorySourceLink } from "../../ai-control-plane/src/repositorySourceLink.mapper";
 import { MCP_SERVER_VERSION } from "./mcpToolCatalog.config";
+import { readMcpRepositoryContext } from "./readMcpRepositoryContext.service";
 
 export async function executeMcpTool(
   name: McpToolName,
@@ -83,29 +85,9 @@ export async function executeMcpTool(
       }
     : null;
   if (name === "realize_get_context") {
-    let repository = null;
-    let repositoryStatus: "ready" | "not_configured" | "unavailable" =
-      principal.repositoryRead && context ? "ready" : "not_configured";
-    if (principal.repositoryRead && context) {
-      try {
-        // Context должен оставаться доступным при дорогом полном Git snapshot.
-        const status = await readGitStatus(
-          {
-            ...context,
-            signal: AbortSignal.any([signal, AbortSignal.timeout(2000)]),
-          },
-          { limit: 1 },
-        );
-        repository = {
-          branch: status.branch,
-          head: status.head,
-          dirty: status.entries.length > 0,
-          dirtyScope: "allowed_paths" as const,
-        };
-      } catch {
-        repositoryStatus = "unavailable";
-      }
-    }
+    const { repository, modules } = await readMcpRepositoryContext(
+      principal.repositoryRead ? context : null,
+    );
     return {
       project: { name: "Realize — AI Platform", version: "1.0.0" },
       server: {
@@ -131,16 +113,7 @@ export async function executeMcpTool(
       },
       installation: { mode: "single", id: principal.installationID },
       modules: [
-        {
-          id: "repository",
-          status: repositoryStatus,
-          reasonCode:
-            repositoryStatus === "ready"
-              ? null
-              : repositoryStatus === "unavailable"
-                ? "DEPENDENCY_UNAVAILABLE"
-                : "NOT_CONFIGURED",
-        },
+        ...modules,
         {
           id: "pages",
           status:
@@ -163,7 +136,7 @@ export async function executeMcpTool(
       tools: availableMcpTools(principal, options).map((tool) => ({
         name: tool,
         inputSchemaVersion: "1.0",
-        outputSchemaVersion: "1.0",
+        outputSchemaVersion: tool === "realize_get_context" ? "1.1" : "1.0",
       })),
       repository,
     };
@@ -255,6 +228,9 @@ export async function executeMcpTool(
           }
         : data;
     }
+    case "repo_git_head":
+      mcpToolInputs.repo_git_head.parse(input);
+      return readGitHead(context);
     case "repo_git_status":
       return readGitStatus(context, mcpToolInputs.repo_git_status.parse(input));
     case "repo_git_diff":

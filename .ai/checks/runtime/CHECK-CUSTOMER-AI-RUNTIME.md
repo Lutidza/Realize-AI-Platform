@@ -16,6 +16,13 @@ related_rule: .ai/rules/runtime/RULE-CUSTOMER-AI-RUNTIME.md
 - Админские activate/rollback/retry сохраняют существующую историю и ACL.
 - Локальные AGENTS.md/.codex не загружаются как policy runtime. Защищённые
   пути проверяются при выдаче допуска и при приёмке diff.
+- Чат отличает временный Context Pack от серверного checkout. HEAD/branch
+  читаются через предоставленный `repo_git_head`; `.git` не копируется в
+  snapshot, shell Git не подменяет серверное чтение. Ошибка Git или отсутствие
+  инструмента не выданы за отказ доступного файлового слоя.
+- Direct и native MCP предоставляют один Git read contract в пределах
+  существующих repository ACL, budget и cancellation. Название профиля не
+  расширяет этот допуск; HEAD не выдан за проверку dirty/clean.
 - Hash обеспечивает целостность, а доверие — контролируемый владельцем
   artifact и процесс. Защита от владельца host требует отдельного сервиса.
 

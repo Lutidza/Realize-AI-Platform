@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/buildChatDeveloperInstructions.service.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-10-22
  * @description Разрешает native веб-поиск только явно выбранному read-only сообщению чата.
  */
 import { buildReadOnlyDeveloperInstructions } from "./index";
@@ -19,7 +19,7 @@ export const buildChatDeveloperInstructions = (
       "Do not use MCP servers, web search, network tools, package installation, or sub-agents.",
       [
         nativeSearch
-          ? "The only permitted MCP server is the server-owned realize_repository bridge with repo_search, repo_read_file and repo_list_files. Do not use other MCP servers, shell network tools or package installation."
+          ? "The only permitted MCP server is the server-owned realize_repository bridge with repo_search, repo_read_file, repo_list_files and repo_git_head. Do not use other MCP servers, shell network tools or package installation."
           : "Do not use MCP servers, shell network tools or package installation.",
         webSearch
           ? "You may use native web search for this turn and cite its actual sources."

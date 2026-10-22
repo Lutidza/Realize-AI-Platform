@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/mcpServer.config.ts
- * @version 1.2.0
- * @date 2026-09-26
+ * @version 1.3.0
+ * @date 2026-10-22
  * @description Задаёт каталог поддержанных типов и инструментов MCP.
  */
 import { MCP_WORKSHOP_TOOLS } from "./mcpWorkshop.config";
@@ -16,6 +16,7 @@ export const MCP_REALIZE_TOOLS = [
   "repo_list_files",
   "repo_read_file",
   "repo_search",
+  "repo_git_head",
   "repo_git_status",
   "repo_git_diff",
   "pages_list",

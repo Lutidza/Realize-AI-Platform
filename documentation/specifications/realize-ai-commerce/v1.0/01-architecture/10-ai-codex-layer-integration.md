@@ -145,6 +145,17 @@ priority с ключом как вторичным порядком, навык�
 политикой независимо от текста installation config. Наличие capability/check
 reference само по себе не подтверждает выполнение или выдачу прав.
 
+Рабочий каталог аналитического чата содержит изолированный Context Pack,
+а не Git checkout. Серверное чтение проекта выполняют разрешённые `repo_*`
+инструменты; `repo_git_head` с пустыми аргументами возвращает только текущие
+`head`, `branch`, `detached`, `unborn` из server-owned workspace. Он использует
+те же repository ACL и общий budget, доступен через direct functions и native
+MCP и не предоставляет произвольные команды или `.git`. Git внутри временного
+каталога не является диагностикой проекта; недоступность Git-инструмента
+отделяется от доступности файлов. Подробные границы — в
+[интеграции Codex](../../../../architecture/codex-integration.md) и
+[MCP tooling](../../../../architecture/mcp-tooling.md).
+
 Сериализованный snapshot ограничен 2 000 000 символов и 8 МиБ UTF-8;
 результат renderer — 128 КиБ UTF-8. Control plane дополнительно ограничивает
 JSON с `developerInstructions` и `prompt` 256 КиБ UTF-8. Переполнение инструкций
@@ -300,6 +311,19 @@ consumers, capability/check registry, protected resources и командами 
 `npm run ai:system:check` обнаруживает расхождение источников и artifact и
 включён в `npm run ci`.
 
+Изменение доверенных builders или других перечисленных источников требует
+нового `releaseID`/version и явной регистрации с сохранением прежних releases.
+Publisher не перезаписывает существующий ID с иным содержимым. Сначала
+завершаются owner sources, список provenance и registry, затем выполняются
+`npm run ai:system:publish` и `npm run ai:system:check`; generated artifact
+вручную не редактируется. При точной compatibility старого installation overlay
+новый system release требует совместимого overlay release через штатные
+draft/validate/release/activate handlers. Если инструкции установки не меняются,
+проверяется сохранность каждого artifact и content hash. Web, control plane,
+execution и active overlay переключаются согласованно: смешанная пара версий
+может отклонить каталог профилей и новые runs. Откат также проверяет совместимость
+обоих выпусков, а не только старый pointer; история runs не переписывается.
+
 Runtime импортирует artifact из контролируемой владельцем сборки. Он не читает
 `.ai`, `.codex` или AGENTS.md из клиентского checkout для восстановления policy.
 `SYSTEM_AI_CONFIG_PROJECTION.manifestHash` теперь относится к полному system
@@ -308,13 +332,15 @@ release, сохраняя существующий compiler и формат over
 Activate/rollback сохраняют прежние транзакции, optimistic lock, replay и audit.
 Новый system release требует явной регистрации; отсутствие или несовпадение
 reference останавливает новый turn/continuation/execution без latest fallback.
-С 16 октября 2026 года текущий выпуск — `realize-system-1.1.2`: patch обновляет
-provenance hashes текущих исполняемых источников, сохраняя опубликованные
-инструкции, capabilities, check IDs и execution policy выпуска 1.1.1. Registry
-сохраняет неизменные `realize-system-1.1.1`, `realize-system-1.1.0` и `realize-system-1.0.0` для
+Выпуск `realize-system-1.1.4` уточняет chat instructions и публикует provenance
+ограниченного `repo_git_head`, сохраняя текст системного правила, capabilities,
+check IDs и execution policy выпуска 1.1.2. Registry сохраняет неизменные
+`realize-system-1.1.3`, `realize-system-1.1.2`, `realize-system-1.1.1`,
+`realize-system-1.1.0` и `realize-system-1.0.0` для
 исторических bindings. Все зарегистрированные artifacts проходят
 проверку целостности; ID и hash должны совпасть с одним зарегистрированным выпуском.
-Новые runs используют 1.1.2. Исторические инструкции не заменяются новыми, но
+После согласованной установки новые runs используют 1.1.4 и совместимый
+installation overlay. Исторические инструкции не заменяются новыми, но
 текущий runtime применяет metering и admission ко всем calls. Это сохранение
 policy, а не эмуляция прежнего бинарного кода. Owner provenance 1.1.0 включает
 финансовые contracts, нормализацию usage, runtime admission и consumers.

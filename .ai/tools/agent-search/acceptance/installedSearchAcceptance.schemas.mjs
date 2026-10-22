@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/acceptance/installedSearchAcceptance.schemas.mjs
- * @version 1.0.0
- * @date 2026-09-30
+ * @version 1.1.0
+ * @date 2026-10-22
  * @description Ограничивает operator evidence установленной версии; отметка ChatGPT требует реального conversation URL.
  * @see documentation/architecture/repository-search.md
  */
@@ -47,7 +47,10 @@ const check = z.strictObject({
   conversationURL: z
     .string()
     .max(256)
-    .regex(/^https:\/\/chatgpt\.com\/c\/[A-Za-z0-9-]{8,128}$/)
+    .regex(
+      /^https:\/\/chatgpt\.com\/(?:g\/g-[A-Za-z0-9-]{1,128}\/)?c\/[A-Za-z0-9-]{8,128}$/,
+    )
+    .refine((value) => !/\s/u.test(value))
     .optional(),
 });
 export const installedSearchAcceptanceSchema = z.strictObject({

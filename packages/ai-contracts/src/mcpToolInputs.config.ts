@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/mcpToolInputs.config.ts
- * @version 1.4.0
- * @date 2026-09-28
+ * @version 1.5.0
+ * @date 2026-10-22
  * @description Определяет строгие входы инструментов MCP без управляющего контекста клиента.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -62,6 +62,7 @@ export const mcpToolInputs = {
           "resolveImports требует intent=imports и точный path; maxDepth применим только к разрешению imports.",
       },
     ),
+  repo_git_head: z.strictObject({}),
   repo_git_status: z.strictObject({ limit, cursor }),
   repo_git_diff: z.strictObject({
     scope: z.enum(["index", "working_tree"]),

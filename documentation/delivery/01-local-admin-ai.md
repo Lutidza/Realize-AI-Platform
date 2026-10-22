@@ -1,7 +1,7 @@
 # Локальный запуск и чат в Payload Admin
 
 - **Статус:** current implementation runbook
-- **Дата сверки:** 12 октября 2026 года (локальная активация Task Manager)
+- **Дата сверки:** 22 октября 2026 года (локальная активация исправления MCP/Git, TASK-52)
 
 Этот runbook описывает существующий e-commerce baseline. Capability/config
 foundation, hidden Payload persistence и aggregate Config API уже реализованы.
@@ -479,6 +479,252 @@ Generated pointer позволяет CLI и службам читать receipt 
 сохраняя прежнюю сборку. Ручная запись manifest, pointer или BUILD_ID не допускается.
 Production source snapshot создаётся с `readinessMarker=false`; fixture API
 `/api/search-acceptance` в установленную систему не переносится.
+
+**Текущее состояние, 22 октября 2026 года (TASK-52).** В 10:15 UTC
+активирована сборка `.next/platform-execution-baseline-20261022`, BUILD_ID
+`UC_Xr0YB_MtdFGCmWICbt`, sourceVersion
+`689993ddd5ec2027534650e504adf60f3e3ace90edbe0d131a0b759476f9b24e`.
+Override `99-zz-execution-baseline-20261022.conf` задаёт новый launcher и
+compiled dist. Production build, canary и согласованная активация
+web/control plane/execution/managed MCP прошли; новый worker подтвердил idle,
+прежние jobs сохранены. System AI `realize-system-1.1.4` и
+`installation-config-v9` остались прежними; Config CAS и перевыпуск не выполнялись.
+
+По разрешению пользователя создан локальный commit
+`9499902416cbd3bd799e9c759a122165d858641e` ровно из 16 согласованных файлов:
+checkRunner, его тесты, четыре fixture suites и десять документов AI metadata.
+65 прежних изменений сохранены вне commit; push не выполнялся. Свежие проверки
+применённого состава прошли: 149 адресных тестов без failures/skips, scoped
+ESLint/Prettier, headers и instruction graph. Ранее проверенный полный candidate
+suite остаётся отдельным evidence; он не объявляется новым штатным execution job.
+
+В 10:16 UTC реальные CLI definitions и managed MCP context/search/read
+подтвердили новый binding, ветку `main`, указанный Git HEAD и полное чтение
+`buildRepositorySourceLink` с совпадающим SHA-256. На этом этапе installed preflight
+подтвердил **2/7**: `cli`, `mcp`. Последующая ручная проверка пользователя в Admin
+direct, run `110`, conversation `66`, подтверждена серверным чтением завершённого
+run, его ответа, lifecycle и search/read events текущего binding. Обновлённый
+installed preflight на этом этапе подтвердил **3/7**: `cli`, `mcp`, `admin-direct`.
+Затем пользователь проверил поискового субагента: run `112`, conversation `68`,
+подтверждён зарегистрированными read handlers и событиями текущего binding.
+Search/read завершились без усечения; lifecycle seq 293 подтвердил завершение
+native descendants и archive до seq 294 `assistant.completed`. Точные child IDs,
+число и модель не заявляются. После этого installed preflight подтвердил **4/7**:
+`cli`, `mcp`, `admin-direct`, `admin-subagent`.
+Пользователь также подтвердил внешнюю проверку ChatGPT отчётом и двумя ссылками.
+Новые search/read events 10:56:48/52 UTC относятся к текущему binding, оба complete;
+sourceUrl сохранён буквально, включая `utm_source=chatgpt.com`, и проверен по
+SHA-256. URL диалога совпадает с прежним, но evidence использует только новые
+события; приватный диалог инструментами не читался. На этом этапе installed
+preflight подтвердил **5/7**: `cli`, `mcp`, `admin-direct`, `admin-subagent`, `chatgpt`.
+
+В 11:28 UTC новая штатная попытка execution завершена успешно: plan run `113`,
+conversation `69`, CR `22` / job `20`, база `9499902`, состояние `changes_ready`,
+version `7`. Создан только `tests/int/repositorySourceLink.int.spec.ts`
+(66 строк, девять тестов). Все пять обязательных checks прошли: secrets, lint,
+typecheck, test:int и build. Integration: **3365 passed / 0 failed / 163 skipped**;
+дополнительно прошли Prettier и source headers. DiffHash
+`dc11208617286e90715cd719101d60d4ef07073251d2fc64bf9e5f04517e713b`, evidenceHash
+`c3f07580cfb7caf2bb6982ab7cd81837c06b63f93845da082149d15d13a55a7c`.
+Основной код не менялся; до обновления отчётности SHA-256 всех 65 прежних
+изменённых путей совпали. Временный лимит execution `4G` возвращён к `3G`
+после terminal + idle; перезапусков нет. Прежние failed jobs `18`/`19` сохранены.
+
+Новые реальные execution search/read events текущего binding подтвердили
+шестого consumer. Текущий installed preflight: **6/7**, отсутствует только `review`;
+предыдущие checks и даты сохранены. Implementation acceptance, product review,
+service commit и preview не выполнялись. Review-only endpoint отсутствует:
+штатный `deploy-preview` после approved review автоматически создаёт service
+commit, clone preview-БД и локальный сервер. Approval CR22 ограничен execution;
+для следующего этапа требуется согласование готового diff и этих действий.
+TASK-52 остаётся `in_progress`; полная installed acceptance — `incomplete`.
+Evidence новой попытки: [execution и checks](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-baseline3-result.json),
+[точный diff](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-baseline3-terminal.json),
+[текущий installed preflight](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-baseline3-installed-preflight.json),
+[восстановление ресурсов](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-baseline3-resource-restore-readback.json).
+Evidence: [локальный commit](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/baseline-commit-result.json),
+[свежие проверки](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/baseline-commit-fresh-checks.json),
+[активация](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-baseline-activation-result.json),
+[CLI/MCP и HEAD](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/baseline-commit-postactivation-result.json),
+[preflight после активации](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/baseline-commit-postactivation-preflight.json),
+[проверка Admin direct](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-direct-110-result.json),
+[preflight после direct](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-direct-110-installed-preflight.json),
+[проверка субагента](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-subagent-112-result.json),
+[preflight после субагента](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-subagent-112-installed-preflight.json),
+[исходные ссылки ChatGPT](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/chatgpt-baseline-20261022-operator.json),
+[проверка ChatGPT](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/chatgpt-baseline-20261022-result.json),
+[preflight после ChatGPT](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/chatgpt-baseline-20261022-installed-preflight.json),
+[сохранённая runtime-конфигурация](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/baseline-commit-runtime-configuration.json).
+
+**История активации 22 октября 2026 года, 07:25 UTC.** Локальная
+установка переключена на bundle `.next/platform-admin-git-head-final-20261022`,
+BUILD_ID `Mfqdf7h1W3_X-nmW3ydC7`, sourceVersion
+`caf1f94b7b615aa8e4779621a9975d6dfb74077af812e03a9984e4123553204f`.
+Override `99-z-admin-git-head-20261022.conf` задаёт launcher и compiled dist.
+После проверки canary и idle остановлены web и потребители installed binding;
+новый web прошёл readiness, штатный owner активировал binding, control plane,
+execution и managed MCP перезапущены. Новый worker подтвердил свежий idle;
+состав прежних execution/release jobs сохранён. После этого отдельный финальный
+Config CAS активировал совместимый overlay.
+
+Активны System AI `realize-system-1.1.4`, manifest
+`e91a1d0df3c3c175ae8f83957dc0e8d9f90af930dfb509189b0165be96fec845`,
+и `installation-config-v9`, manifest
+`46706d6b36b480116502fcf2d4a127cbf7efa24bfaaa4808b4ae535b0a54aeab`,
+pointer version `9`. Все 32 artifact content hashes из v8 сохранены, доступны
+три прежних профиля; тексты «Инженера платформы» не менялись. Промежуточный
+immutable system `1.1.3` сохранён в registry и не активировался. Runtime теперь
+предоставляет `repo_git_head` в Admin direct/native MCP; временный Context Pack
+по-прежнему не является Git checkout. Неудача shell Git внутри него не означает
+недоступность Git рабочего проекта.
+
+Реальный run `102`, conversation `59`, завершился в режиме `direct` с exact
+snapshot `platform.engineering`/v9/system `1.1.4`. Агент получил HEAD
+`53e938d4a80d1d60b7d06d3ec73d70981854b3a8`, ветку `main`, выполнил поиск и
+прочитал `buildRepositorySourceLink`, приложив sourceUrl с SHA-256 и начальной
+строкой. HEAD независимо сверил Git worker. Запуск использовал доверенный
+локальный request существующего platform owner, зарегистрированные handlers
+и terminal SSE; авторизованный browser E2E этим не заявляется.
+
+Пользователь вручную проверил режим поискового субагента через Admin:
+run `105`, conversation `61`, завершился с профилем инженера/v9/system `1.1.4`.
+Серверные observations привязаны к текущим sourceVersion/BUILD_ID:
+`repo_search` за 146,13 мс и `repo_read_file` за 2,35 мс завершились с
+`outcome=complete`, без partial results. Ответ содержит sourceUrl на прочитанный
+`buildRepositorySourceLink` с SHA-256. Независимая проверка подтвердила реальный
+дочерний поток; lifecycle events фиксируют его закрытие и последующий
+`assistant.completed`. Это ручная проверка пользователя с серверным
+подтверждением, не автоматизированный browser E2E.
+
+Следующий сценарий пользователь выполнил в реальном внешнем диалоге ChatGPT:
+подтверждены исходный URL диалога проекта и sourceUrl. Точный conversation URL
+сохранён без переписывания в task evidence; сверены события managed MCP с
+текущими sourceVersion/BUILD_ID, строка исходника и его SHA-256. Первый поиск
+по корню завершился по таймауту и не засчитан как положительное событие;
+повторный поиск вернул `partial/page_limit`, допустимый текущим gate, а
+последующее чтение — `complete`, все 26 строк и совпадающий hash.
+Прежний connector smoke остаётся отдельной исторической проверкой.
+
+Реальный execution job `18` для CR `20`, runID
+`6339bb21-28ce-45e2-95df-6b3b77f79944`, выполнил поиск и чтение исходника.
+Штатный installed adapter сверил сохранённые search/read events с текущими
+sourceVersion/BUILD_ID и засчитал consumer `execution`. Это подтверждает работу
+поиска и чтения в execution, но не успешное выполнение всего job: после
+прошедших security и lint проверок `npm run typecheck` завершился с V8 heap OOM,
+exit `134`, без timeout; job получил `failed`. До `test:int` и build он не дошёл.
+
+Повторный job `19` для CR `21` при временных `MemoryHigh=4G` и `MemoryMax=4G`
+прошёл security, lint и typecheck, но завершился `failed` на `npm run test:int`:
+27 failed / 3327 passed / 163 skipped. Отдельный диагностический прогон того же
+worktree с `REALIZE_BUILD_WITHOUT_DATABASE=false` дал 3338 passed / 16 failed /
+163 skipped; новые девять тестов `repositorySourceLink` прошли. Это диагностика
+окружения и исходной базы, а не повторная штатная приёмка job. После попытки
+лимиты `realize-execution.service` восстановлены до `MemoryHigh=3G` и
+`MemoryMax=3G`; installed sourceVersion/BUILD_ID остались прежними.
+
+В изолированном disposable candidate подготовлены исправления: build-only
+флаг checkRunner ограничен командой build, обновлены четыре устаревших test
+fixtures и 13 ссылок AI metadata в десяти документах. Адресные проверки прошли:
+четыре fixture suites — 61/61; checkRunner и instruction/evaluation suites —
+39 passed с одним исключённым только из узкого harness real-descendant test;
+instruction graph — passed. Первый полный диагностический прогон с symlink
+на dependencies дал девять environment failures; его результат сохранён.
+После физического копирования dependencies по контракту
+`withWorkspaceDependencies` полный suite прошёл за 327,6 с: 3365 passed /
+0 failed / 163 skipped. Guards не ослаблялись; отдельное исключение
+real-descendant test из узкого harness в полный прогон не переносилось.
+Typecheck прошёл за 54,6 с, scoped ESLint шести исходников — за 3,81 с.
+После проверок физическая копия dependencies очищена; контроллер завершился
+с exit `0`.
+
+На этапе подготовки patch содержал ровно 16 файлов и ещё не был применён
+в основной checkout. Для его установки требовались commit, согласованная
+сборка, активация installed binding и обновление runtime: `checkRunner.ts`
+входит в search sourceVersion. Эти 16 файлов не входят в inputs publisher System AI,
+поэтому перевыпуск `1.1.4` и совместимого overlay v9 для данного patch не нужен.
+Продуктовый review ещё не выполнен; успешный candidate suite не означает
+implementation acceptance или изменение установленного runtime.
+
+Для прежней сборки installed preflight подтвердил шесть из семи consumers: `cli`, `mcp`,
+`admin-direct`, `admin-subagent`, `chatgpt`, `execution` для указанных
+sourceVersion/BUILD_ID.
+`npm run check:search` завершился с exit `1`
+на предварительной проверке installed evidence, до тяжёлых checks: полный gate
+остаётся `incomplete`, поскольку `review` ещё не подтверждён.
+Исторические события прежней сборки не заменяют новые доказательства.
+Evidence: [активация](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-git-head-activation-result.json),
+[direct-диалог](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-git-head-chat-result.json),
+[ручная проверка субагента](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/admin-subagent-105-result.json),
+[подтверждение ChatGPT](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/chatgpt-manual-20261022-installed-evidence.json),
+[проверки execution job 18](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-review-checks.json),
+[job 19](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-review-retry-terminal.json),
+[диагностика без build-флага](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-review-env-diagnostic-result.json),
+[восстановление лимитов execution](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-review-retry-resource-restore-readback.json),
+[четыре fixture suites](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/env-baseline-tests-summary.json),
+[адресные проверки checkRunner и инструкций](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/tmp/execution-baseline-candidate/logs/env-baseline-instructions-targeted.json),
+[instruction graph](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/tmp/execution-baseline-candidate/logs/env-baseline-instructions-green.json),
+[первый прогон с symlink dependencies](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/env-baseline-symlink-result.json),
+[полный suite candidate](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/env-baseline-full-result.json),
+[typecheck и scoped ESLint](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/env-baseline-static-results.json),
+[manifest подготовленных исправлений](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/env-baseline-combined-20261022.json)
+и [patch](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/env-baseline-combined-20261022.patch),
+[evidence шести consumers](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-review-installed-evidence.json),
+[installed preflight](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-review-installed-preflight.json),
+[полный gate](../../.ai-workspace/tasks/2026-10-20-mcp-git-health-7c24/logs/execution-review-full-gate.log).
+
+Возврат обновления 07:25 UTC к runtime/system `1.1.2` требует совместимого
+overlay v8 с новым Config CAS; один только возврат launcher оставит
+несовместимый v9. Это ограничение перехода между System AI releases, а не
+обновления execution baseline в 10:15 UTC, сохранившего System AI и overlay.
+Автоматический возврат pointer после активации overlay не выполняется.
+
+**История раннего обновления 22 октября 2026 года.** Локальная установка
+обновлена для TASK-52. Отдельная
+production-сборка прошла typegen, TypeScript, Next build и штатную упаковку;
+bundle — `.next/platform-mcp-task52-20261022`, BUILD_ID
+`MT42d6s_kTPUEos6ZoaBm`, sourceVersion
+`a6e357a9cd53ef761e03378b8418a4e65c37c4acc636b77836891ff7d8d83439`.
+Override `99-mcp-task52-20261022.conf` задаёт новый launcher и compiled dist.
+Перед переключением проверены отдельный canary, свежий idle worker, отсутствие
+queued/running runs и активной Codex lease. Полный список in-memory runs
+control plane этой проверкой не подтверждается.
+Actual live/readiness вернули `200`, БД доступна; штатный
+`activateInstalledSearchBinding` согласовал active pointer с текущим source hash
+и работающей сборкой. Перезапущены web, control plane, execution и managed MCP.
+Bootstrap MCP, PostgreSQL и Media не перезапускались; старые jobs не изменялись.
+
+Реальные CLI и managed MCP search/read записали события новой версии в БД;
+installed preflight подтвердил эти два consumer. Realize AI connector также
+вернул MCP `1.3.1`, `repository/git: ready`, HEAD и успешные search/read.
+Полная installed acceptance остаётся `incomplete`: Admin direct/subagent,
+execution/review и настоящий диалог ChatGPT с conversation URL ещё не подтверждены.
+Connector smoke и успешная локальная активация не заменяют эти сценарии.
+Canary остановлен, собственный disposable source snapshot удалён после проверки
+замкнутости runtime bundle; readiness после очистки — `200`. Постоянное Media,
+прежний bundle `.next/platform-access-20261019` и override 98 сохранены.
+Новых миграций, commit/push и внешнего deployment при этом не выполнялось.
+
+**История создания инженерного профиля 22 октября, до обновления runtime.**
+По запросу пользователя создан и активирован
+инженерный профиль `platform.engineering` («Инженер платформы», TASK-53).
+Installation overlay — `installation-config-v8`, manifest
+`5164b3bcfb86f3d9350b4023b93e72db8eb4ca62f474a6fe4a248c081a731606`,
+active pointer — версия 8. Зарегистрированные Config handlers выполнили
+draft → validate → release → activate с idempotency и hash-bound CAS.
+Использован доверенный локальный maintenance request существующего владельца
+из server allowlist с действующими host ACL; браузерная сессия не создавалась.
+Каталог подтверждает три профиля. Все 27 прежних artifact content hashes
+сохранены, добавлены пять инженерных артефактов; system release `1.1.2` не менялся.
+Прежний совместимый v7 доступен для штатного rollback с актуальной версией
+pointer. Пересборка, перезапуск служб и изменение прав для overlay не требуются.
+Реальный chat run `100`, conversation `58`, завершился с exact snapshot
+`platform.engineering`/v8: один `repo_search` и один `repo_read_file`, проверка
+SHA-256 и sourceUrl в ответе. Оба события сохранены с `consumer=admin` и текущим
+source/build. Вызов прошёл через зарегистрированные handlers и terminal SSE
+в режиме `direct`; авторизованный browser E2E этим не заявляется.
+Installed preflight той сборки подтвердил `cli`, `mcp`, `admin-direct`;
+`admin-subagent`, `execution`, `review`, `chatgpt` оставались непроверенными.
+Run `100` и этот preflight относятся к историческим v8/system `1.1.2` и binding.
 
 18 октября 2026 года по согласованию пользователя web переключён на
 System AI `realize-system-1.1.2`, manifest
@@ -1158,8 +1404,10 @@ web/CP/worker. Публикуемый набор задаёт
 `packages/change-engine/src/system-ai/systemAIRelease.source.json`; он включает
 явно выбранное runtime-правило из `.ai` и происхождение исполняемых builders.
 После изменения уже выпущенного набора владелец назначает новую версию/ID,
-выполняет `npm run ai:system:publish` и явно регистрирует artifact в
-`systemAIRelease.registry.ts`. Опубликованный ID не перезаписывается другим
+готовит её регистрацию в `systemAIRelease.registry.ts`, сохраняя прежние
+releases, затем выполняет `npm run ai:system:publish`. Registry входит в
+provenance, поэтому его правка после публикации требует нового выпуска.
+Опубликованный ID не перезаписывается другим
 содержимым. Проверка publication включена в `npm run ci`.
 
 Перед использованием нового кода нужна миграция

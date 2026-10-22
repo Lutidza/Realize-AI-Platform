@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.15.0
- * @date 2026-10-06
+ * @version 2.16.0
+ * @date 2026-10-22
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
@@ -36,6 +36,7 @@ export {
 } from "./usage/usageLedger.schemas";
 export type { InstalledSearchBuildDTO } from "./InstalledSearchBuild.types";
 export { mcpToolInputs } from "./mcpToolInputs.config";
+export { mcpToolDataSchemas } from "./mcpToolOutputs.config";
 export type * from "./DesignWorkshop.types";
 export type * from "./DesignWorkspace.types";
 export {

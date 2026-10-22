@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "releaseID": "realize-system-1.1.2",
-  "version": "1.1.2",
+  "releaseID": "realize-system-1.1.4",
+  "version": "1.1.4",
   "projectProfile": "e-commerce",
   "instructions": [
     {
@@ -18,6 +18,9 @@
     "packages/change-engine/src/dataOperationProtocol.ts",
     "packages/change-engine/src/repositorySearchPolicy.ts",
     "services/ai-control-plane/src/buildConfiguredChatTurn.service.ts",
+    "services/ai-control-plane/src/repositoryChatTools.adapter.ts",
+    "packages/ai-contracts/src/mcpToolInputs.config.ts",
+    "packages/ai-contracts/src/mcpToolOutputs.config.ts",
     "packages/change-engine/src/aiConfigurationCompiler.ts",
     "packages/change-engine/src/system-ai/assertRuntimeAIConfiguration.validator.ts",
     "packages/change-engine/src/system-ai/protectedRuntimePaths.policy.ts",

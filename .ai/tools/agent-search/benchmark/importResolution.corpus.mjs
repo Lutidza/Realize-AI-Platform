@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/benchmark/importResolution.corpus.mjs
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.1.1
+ * @date 2026-10-20
  * @description Задаёт независимые цели реальных imports: services, Payload aliases, workspace contracts и UI.
  */
 const plane = "services/ai-control-plane/src";
@@ -108,7 +108,7 @@ export const importResolutionCorpus = [
     "packages/payload-ai-plugin/src/admin/search-observability/SearchObservationsClient.component.tsx",
     "UiButton",
     "packages/ui-kit/src/button/UiButton.component.tsx",
-    "export const UiButton =",
+    "export function UiButton(props:",
   ],
 ].map(([id, from, query, expectedPath, anchor]) => ({
   id,

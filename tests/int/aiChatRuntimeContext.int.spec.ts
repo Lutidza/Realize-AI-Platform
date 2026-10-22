@@ -1,7 +1,7 @@
 /**
  * @file tests/int/aiChatRuntimeContext.int.spec.ts
- * @version 1.1.0
- * @date 2026-10-04
+ * @version 1.1.1
+ * @date 2026-10-22
  * @description Проверяет границы конфигурации control plane, reuse thread и публичную проекцию без вызовов модели.
  */
 import { SYSTEM_AI_RELEASE_REFERENCE } from "@realize/change-engine";
@@ -34,6 +34,77 @@ const agentConfiguration = {
 };
 
 describe("chat configuration transport and policy", () => {
+  it.each(["direct", "subagent"] as const)(
+    "отделяет Context Pack от Git checkout и направляет HEAD в server tool при %s discovery",
+    (mode) => {
+      const turn = buildConfiguredChatTurn({
+        run: {
+          systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
+          prompt: "Какой текущий Git HEAD?",
+        },
+        fileCount: 1,
+        totalBytes: 100,
+        selectedFiles: [],
+        attachmentInstructions: "",
+        repositorySearch: {
+          enabled: true,
+          mode,
+          model: "fixture-search",
+          developerInstructions: false,
+        },
+      });
+      expect(turn.developerInstructions).toContain(
+        "temporary Context Pack, not a Git checkout of the actual server project",
+      );
+      expect(turn.developerInstructions).toContain(
+        "Do not run shell Git or inspect .git",
+      );
+      expect(turn.developerInstructions).toContain(
+        "For Git HEAD or branch use only repo_git_head with empty arguments",
+      );
+      expect(turn.developerInstructions).toContain(
+        "A Git error does not make file search or reading unavailable",
+      );
+      expect(turn.developerInstructions).toContain(
+        mode === "subagent"
+          ? "through the run-owned realize_repository MCP server"
+          : "as dynamic read tools",
+      );
+    },
+  );
+  it.each([undefined, false])(
+    "не предлагает shell Git fallback без repository discovery: %s",
+    (enabled) => {
+      const turn = buildConfiguredChatTurn({
+        run: {
+          systemRelease: SYSTEM_AI_RELEASE_REFERENCE,
+          prompt: "Какой текущий Git HEAD?",
+        },
+        fileCount: 0,
+        totalBytes: 0,
+        selectedFiles: [],
+        attachmentInstructions: "",
+        repositorySearch:
+          enabled === undefined
+            ? undefined
+            : {
+                enabled,
+                mode: "direct",
+                model: "",
+                developerInstructions: false,
+              },
+      });
+      expect(turn.developerInstructions).toContain(
+        "No repository discovery tools are granted for this turn",
+      );
+      expect(turn.developerInstructions).toContain(
+        "Git metadata is unavailable in this dialog; do not try shell Git as a fallback",
+      );
+      expect(turn.developerInstructions).not.toContain(
+        "For Git HEAD or branch use only repo_git_head",
+      );
+    },
+  );
   it("accepts only exact browser selection rather than client instructions or permissions", () => {
     const selection = {
       releaseID: release.id,

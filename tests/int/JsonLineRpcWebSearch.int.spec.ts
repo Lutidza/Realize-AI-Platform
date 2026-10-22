@@ -1,8 +1,8 @@
 /**
  * @file tests/int/JsonLineRpcWebSearch.int.spec.ts
- * @version 1.1.0
- * @date 2026-10-04
- * @description Проверяет web_search и доверенный Linux tool PATH без наследования окружения shell.
+ * @version 1.1.1
+ * @date 2026-10-22
+ * @description Проверяет web_search, allowlist repository MCP и Linux tool PATH без наследования окружения shell.
  */
 
 // @vitest-environment node
@@ -24,6 +24,49 @@ afterEach(() => {
 });
 
 describe("RPC web-search arguments", () => {
+  it("выдаёт native MCP ровно четыре read tools без передачи bearer token в argv", async () => {
+    const child = Object.assign(new EventEmitter(), {
+      stdin: new PassThrough(),
+      stdout: new PassThrough(),
+      stderr: new PassThrough(),
+    });
+    processMock.spawn.mockReturnValue(child);
+    const credential = "t".repeat(43);
+    const client = new JsonLineRPCClient({
+      workingDirectory: "/fixture-context-pack",
+      environment: {
+        NODE_ENV: "test",
+        CODEX_HOME: "/fixture-profile",
+        REALIZE_CODEX_REPO_BRIDGE_AUTH: credential,
+      },
+      repositoryMcpURL: "http://127.0.0.1:43111/mcp",
+      search: {
+        enabled: true,
+        mode: "subagent",
+        model: "fixture-search",
+        developerInstructions: false,
+      },
+    });
+    client.start();
+    const args = processMock.spawn.mock.calls[0][1] as string[];
+    const allowlist = args.filter((arg) =>
+      arg.startsWith("mcp_servers.realize_repository.enabled_tools="),
+    );
+    expect(allowlist).toHaveLength(1);
+    expect(JSON.parse(allowlist[0].split("=")[1])).toEqual([
+      "repo_search",
+      "repo_read_file",
+      "repo_list_files",
+      "repo_git_head",
+    ]);
+    expect(args).toContain(
+      'mcp_servers.realize_repository.bearer_token_env_var="REALIZE_CODEX_REPO_BRIDGE_AUTH"',
+    );
+    expect(JSON.stringify(args)).not.toContain(credential);
+    const closed = client.close();
+    child.emit("close");
+    await closed;
+  });
   it("disables worktree instructions and project config only for product runtime", async () => {
     const child = Object.assign(new EventEmitter(), {
       stdin: new PassThrough(),

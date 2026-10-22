@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/mcpToolOutputs.config.ts
- * @version 1.5.1
- * @date 2026-09-30
+ * @version 2.1.0
+ * @date 2026-10-22
  * @description Задаёт закрытые wire schemas ответов MCP, включая существующие проекции Pages.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -169,7 +169,7 @@ export const mcpToolDataSchemas = {
     installation: z.strictObject({ mode: z.literal("single"), id: z.string() }),
     modules: z.array(
       z.strictObject({
-        id: z.enum(["repository", "pages", "workshop"]),
+        id: z.enum(["repository", "git", "pages", "workshop"]),
         status: z.enum(["ready", "not_configured", "unavailable"]),
         reasonCode: z.string().nullable(),
       }),
@@ -178,14 +178,15 @@ export const mcpToolDataSchemas = {
       z.strictObject({
         name: z.string(),
         inputSchemaVersion: z.literal("1.0"),
-        outputSchemaVersion: z.literal("1.0"),
+        outputSchemaVersion: z.enum(["1.0", "1.1"]),
       }),
     ),
     repository: z
       .strictObject({
         branch: z.string().nullable(),
         head: z.string().nullable(),
-        dirty: z.boolean(),
+        dirty: z.null(),
+        dirtyStatus: z.literal("not_checked"),
         dirtyScope: z.literal("allowed_paths"),
       })
       .nullable(),
@@ -232,6 +233,28 @@ export const mcpToolDataSchemas = {
     resolution: importResolutionCoverageSchema.optional(),
     ...pageWindow,
   }),
+  // HEAD не подтверждает чистоту дерева; Git SHA-1 и SHA-256 имеют разные длины OID.
+  repo_git_head: z
+    .strictObject({
+      head: z
+        .string()
+        .regex(/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/)
+        .nullable(),
+      branch: z
+        .string()
+        .min(1)
+        .max(1024)
+        .regex(/^[^\x00-\x1f\x7f]+$/u)
+        .nullable(),
+      detached: z.boolean(),
+      unborn: z.boolean(),
+    })
+    .refine(
+      (value) =>
+        value.unborn === (value.head === null) &&
+        value.detached === (value.head !== null && value.branch === null),
+      { message: "Git HEAD metadata is inconsistent." },
+    ),
   repo_git_status: z.strictObject({
     branch: z.string().nullable(),
     head: z.string().nullable(),

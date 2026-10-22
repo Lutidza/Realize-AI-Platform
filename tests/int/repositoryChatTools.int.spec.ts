@@ -1,8 +1,8 @@
 /**
  * @file tests/int/repositoryChatTools.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-30
- * @description Проверяет actual-files Admin поиск, права, текущие hashes, бюджеты и привязку telemetry к run.
+ * @version 1.0.1
+ * @date 2026-10-22
+ * @description Проверяет actual-files Admin поиск и Git HEAD с общими бюджетами, отменой и отдельной search telemetry.
  * @see documentation/architecture/repository-search.md
  */
 // @vitest-environment node
@@ -16,6 +16,8 @@ import {
 } from "@realize/ai-contracts";
 import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
 import { createRepositoryChatTools } from "../../services/ai-control-plane/src/repositoryChatTools.adapter";
+import type { RepositoryChatToolsOptions } from "../../services/ai-control-plane/src/RepositoryChatTools.types";
+import { createRepositoryGitHeadFixture } from "./fixtures/repositoryGitHead.fixture";
 
 describe("Admin actual-files repository tools", () => {
   let root: string;
@@ -27,10 +29,15 @@ describe("Admin actual-files repository tools", () => {
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
   });
-  const setup = async (id = "admin-run-1", developerInstructions = false) => {
+  const setup = async (
+    id = "admin-run-1",
+    developerInstructions = false,
+    options: Pick<RepositoryChatToolsOptions, "signal" | "responseBytes"> = {},
+  ) => {
     const events: SearchObservation[] = [];
     const run = { id, cancelRequested: false };
     const tools = createRepositoryChatTools({
+      ...options,
       policy: await createRepositoryReadPolicy(root, developerInstructions),
       run,
       observe: (event) => events.push(event),
@@ -47,6 +54,128 @@ describe("Admin actual-files repository tools", () => {
       }>;
     return { call, run, events, tools };
   };
+  it("читает unborn, branch и detached HEAD actual repository без search telemetry", async () => {
+    const fixture = await createRepositoryGitHeadFixture(root);
+    const test = await setup();
+    expect(test.tools.definitions.map(({ name }) => name).sort()).toEqual([
+      "repo_git_head",
+      "repo_list_files",
+      "repo_read_file",
+      "repo_search",
+    ]);
+    expect(await test.call("repo_git_head", {})).toEqual({
+      ok: true,
+      data: { head: null, branch: "main", detached: false, unborn: true },
+    });
+    const head = await fixture.commit("src/current.ts");
+    await writeFile(join(root, "src/untracked.ts"), "untracked fixture\n");
+    expect(await test.call("repo_git_head", {})).toEqual({
+      ok: true,
+      data: { head, branch: "main", detached: false, unborn: false },
+    });
+    await fixture.git.run(["checkout", "--detach", "HEAD"]);
+    expect(await test.call("repo_git_head", {})).toEqual({
+      ok: true,
+      data: { head, branch: null, detached: true, unborn: false },
+    });
+    expect(test.events).toEqual([]);
+  });
+  it("отделяет отсутствие Git от доступности файлов и отклоняет любые аргументы HEAD", async () => {
+    const test = await setup();
+    const failed = await test.call("repo_git_head", {});
+    expect(failed).toMatchObject({
+      ok: false,
+      error: { code: "DEPENDENCY_UNAVAILABLE" },
+    });
+    expect(JSON.stringify(failed)).not.toContain(root);
+    for (const args of [{ path: ".git/HEAD" }, { limit: 5 }, { root }, null]) {
+      expect(await test.call("repo_git_head", args)).toMatchObject({
+        ok: false,
+        error: { code: "INVALID_INPUT" },
+      });
+    }
+    expect(test.events).toEqual([]);
+    expect(
+      await test.call("repo_read_file", { path: "src/current.ts" }),
+    ).toMatchObject({
+      ok: true,
+      data: { text: "export const needle = 1;\n" },
+    });
+    expect(test.events).toHaveLength(1);
+    expect(test.events[0].tool).toBe("repo_read_file");
+  });
+  it("делит 16 вызовов между Git и файлами, сохраняя один выполняющийся запрос", async () => {
+    await createRepositoryGitHeadFixture(root);
+    const test = await setup();
+    const pending = test.call("repo_git_head", {});
+    expect(await test.call("repo_list_files", {})).toMatchObject({
+      ok: false,
+      error: { code: "RESULT_LIMIT" },
+    });
+    expect((await pending).ok).toBe(true);
+    for (let index = 2; index < 16; index++) {
+      const result =
+        index % 2
+          ? await test.call("repo_read_file", { path: "src/current.ts" })
+          : await test.call("repo_git_head", {});
+      expect(result.ok).toBe(true);
+    }
+    expect(await test.call("repo_git_head", {})).toMatchObject({
+      ok: false,
+      error: { code: "RESULT_LIMIT" },
+    });
+    expect(test.events.map((event) => event.tool)).toEqual([
+      "repo_list_files",
+      ...Array<string>(7).fill("repo_read_file"),
+    ]);
+  });
+  it("учитывает Git HEAD в общем лимите 512 KiB результатов", async () => {
+    await createRepositoryGitHeadFixture(root);
+    await writeFile(join(root, "src/large.ts"), "x".repeat(110_000));
+    const test = await setup();
+    let outputBytes = 0;
+    let lastRead;
+    for (let index = 0; index < 4; index++) {
+      lastRead = await test.call("repo_read_file", { path: "src/large.ts" });
+      expect(lastRead.ok).toBe(true);
+      outputBytes += Buffer.byteLength(JSON.stringify(lastRead));
+    }
+    // Оставляем 32 bytes после ещё одного чтения: этого недостаточно для HEAD DTO.
+    const overhead = Buffer.byteLength(JSON.stringify(lastRead)) - 110_000;
+    const remainingText = 512 * 1024 - outputBytes - overhead - 32;
+    expect(remainingText).toBeGreaterThan(10_000);
+    expect(remainingText).toBeLessThan(100_000);
+    await writeFile(join(root, "src/large.ts"), "x".repeat(remainingText));
+    const finalRead = await test.call("repo_read_file", {
+      path: "src/large.ts",
+    });
+    expect(finalRead.ok).toBe(true);
+    outputBytes += Buffer.byteLength(JSON.stringify(finalRead));
+    expect(512 * 1024 - outputBytes).toBeLessThan(64);
+    expect(await test.call("repo_git_head", {})).toMatchObject({
+      ok: false,
+      error: { code: "RESULT_LIMIT" },
+    });
+    expect(test.events).toHaveLength(5);
+  });
+  it.each(["run", "signal"] as const)(
+    "отменяет Git HEAD через %s и не создаёт search observation",
+    async (source) => {
+      await createRepositoryGitHeadFixture(root);
+      const controller = new AbortController();
+      const test = await setup("cancel-git", false, {
+        signal: controller.signal,
+      });
+      const pending = test.call("repo_git_head", {});
+      if (source === "run") test.run.cancelRequested = true;
+      else controller.abort();
+      expect(await pending).toMatchObject({
+        ok: false,
+        error: { code: "TIMEOUT" },
+      });
+      expect(test.events).toEqual([]);
+    },
+  );
   it("находит реальные файлы без Git checkout, читает актуальные строки и даёт проверяемую ссылку", async () => {
     const test = await setup();
     const result = await test.call("repo_search", {

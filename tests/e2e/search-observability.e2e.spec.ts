@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/search-observability.e2e.spec.ts
- * @version 1.2.1
- * @date 2026-09-30
+ * @version 1.2.2
+ * @date 2026-10-22
  * @description Проверяет автоматическую диагностику CLI/MCP, retry, dedupe, настройки и очистку через настоящий Admin UI.
  * @see documentation/architecture/repository-search.md
  */
@@ -34,20 +34,17 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
       ).ok(),
     ).toBe(true);
     await page.goto("/admin");
-    const navigation = page.getByRole("link", {
-      name: "Диагностика поиска",
-      exact: true,
-    });
+    // Главная Admin использует системную оболочку: сначала выбираем раздел AI.
+    await page
+      .getByRole("navigation", { name: "Разделы системы", exact: true })
+      .getByRole("button", { name: "AI", exact: true })
+      .click();
+    const navigation = page
+      .getByRole("dialog", { name: "AI", exact: true })
+      .getByRole("link", { name: "Диагностика поиска", exact: true });
     await expect(navigation).toHaveAttribute("href", "/admin/ai/search");
-    const openMenu = page.getByRole("button", {
-      name: "Open Menu",
-      exact: true,
-    });
-    await expect(
-      page.getByRole("button", { name: /^(Open|Close) Menu$/ }),
-    ).toBeVisible();
-    if (await openMenu.isVisible()) await openMenu.click();
     await navigation.click();
+    await expect(page).toHaveURL(/\/admin\/ai\/search$/);
     await expect(
       page.getByRole("heading", { name: "Диагностика поиска", exact: true }),
     ).toBeVisible();
@@ -260,7 +257,7 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
       path: testInfo.outputPath("search-analytics-desktop.png"),
     });
     await page.setViewportSize({ width: 390, height: 844 });
-    // Payload закрывает nav и перестраивает layout после смены breakpoint.
+    // Смена breakpoint не должна создавать горизонтальный overflow.
     await expect(analytics).toBeVisible();
     await expect
       .poll(() =>

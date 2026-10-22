@@ -1,7 +1,7 @@
 /**
  * @file tests/int/systemAIRelease.int.spec.ts
- * @version 1.1.2
- * @date 2026-10-16
+ * @version 1.1.3
+ * @date 2026-10-22
  * @description Проверяет происхождение release, runtime ceiling, связанный executor и защищённые пути.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
@@ -102,7 +102,7 @@ describe("trusted system AI release", () => {
     expect(Object.isFrozen(SYSTEM_AI_RELEASE.capabilities[0])).toBe(true);
   });
 
-  it.each(["1.0.0", "1.1.0", "1.1.1"])(
+  it.each(["1.0.0", "1.1.0", "1.1.1", "1.1.2", "1.1.3"])(
     "retains exact %s policy without substituting current instructions",
     async (version) => {
       const old = JSON.parse(
@@ -134,17 +134,17 @@ describe("trusted system AI release", () => {
     },
   );
 
-  it("сохраняет опубликованную policy 1.1.1 в текущем patch-выпуске", async () => {
+  it("сохраняет опубликованную policy 1.1.2 при уточнении chat tools в patch-выпуске", async () => {
     const previous = JSON.parse(
       await readFile(
         resolve(
-          "packages/change-engine/src/system-ai/releases/realize-system-1.1.1.generated.json",
+          "packages/change-engine/src/system-ai/releases/realize-system-1.1.2.generated.json",
         ),
         "utf8",
       ),
     );
-    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.2");
-    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.2");
+    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.4");
+    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.4");
     expect(SYSTEM_AI_RELEASE.instructions).toEqual(previous.instructions);
     expect(SYSTEM_AI_RELEASE.capabilities).toEqual(previous.capabilities);
     expect(SYSTEM_AI_RELEASE.checkIDs).toEqual(previous.checkIDs);
@@ -153,11 +153,11 @@ describe("trusted system AI release", () => {
     expect(SYSTEM_AI_RELEASE.schemaVersion).toBe(previous.schemaVersion);
   });
 
-  it("сохраняет execution snapshot 1.1.1 без перепривязки к текущему выпуску", async () => {
+  it("сохраняет execution snapshot 1.1.2 без перепривязки к текущему выпуску", async () => {
     const previous = JSON.parse(
       await readFile(
         resolve(
-          "packages/change-engine/src/system-ai/releases/realize-system-1.1.1.generated.json",
+          "packages/change-engine/src/system-ai/releases/realize-system-1.1.2.generated.json",
         ),
         "utf8",
       ),

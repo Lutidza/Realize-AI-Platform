@@ -1,6 +1,6 @@
 # Менеджер расширений Payload — контракт и этапы реализации
 
-Версия: **0.6**, 2026-10-12. Статус: **установленные шаблоны, appearance lifecycle и переключение Payload ↔ Realize доставлены в основную локальную установку; общий installer нового кода остаётся целевым**.
+Версия: **0.7**, 2026-10-19. Статус: **установленные шаблоны, appearance lifecycle и переключение Payload ↔ Realize доставлены в основную локальную установку; общий installer нового кода остаётся целевым**.
 Целевой менеджер устанавливает и управляет совместимыми расширениями из Admin.
 Шаблонные пакеты следуют [единому контракту Мастерской](design-workshop.md#111-единый-контракт-самодостаточного-шаблона)
 и [ADR-0018](../architecture/decisions/ADR-0018-self-contained-template-packages.md).
@@ -179,14 +179,14 @@ native рабочие страницы до RootLayout и сохраняет я�
 Payload-host может настроить префикс. Ответ — `{ ok: true, data }` либо безопасный
 `{ ok: false, error: { code, message } }`, с `private, no-store`.
 
-| Метод и путь                                       | Результат и ограничения                                                                                                                                              |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/realize-extensions`                      | Каталог, независимые `targets.admin/frontend`, последние 32 apply receipts, permissions и готовность storage/delivery.                                               |
-| `GET /api/realize-extensions/installed-templates` | Read-only inventory: runtime proof, builtin/package, версии, targets, availability, selected/active/default, settings/select actions; те же session/ACL и private/no-store. |
-| `POST /api/realize-extensions/appearance/plans`    | Строгий `assign` или `recover`: `target`, `expectedRevision`, `expectedCatalogHash`; для assign также exact `selection` и `settings`. Возвращает immutable plan DTO. |
-| `GET /api/realize-extensions/appearance/plans/:id` | Проверяет actor, TTL, catalog и исходный target state; возвращает preview DTO без изменения назначения.                                                              |
-| `POST /api/realize-extensions/appearance/apply`    | `{ planId, expectedPlanHash }`; атомарно применяет точный план и возвращает receipt DTO. Recover проходит тот же prepare/preview/apply путь.                         |
-| `POST /api/realize-extensions/install`             | После ACL/input проверки возвращает `DELIVERY_ADAPTER_UNAVAILABLE`; код и очередь не меняются.                                                                       |
+| Метод и путь                                       | Результат и ограничения                                                                                                                                                     |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/realize-extensions`                      | Каталог, независимые `targets.admin/frontend`, последние 32 apply receipts, permissions и готовность storage/delivery.                                                      |
+| `GET /api/realize-extensions/installed-templates`  | Read-only inventory: runtime proof, builtin/package, версии, targets, availability, selected/active/default, settings/select actions; те же session/ACL и private/no-store. |
+| `POST /api/realize-extensions/appearance/plans`    | Строгий `assign` или `recover`: `target`, `expectedRevision`, `expectedCatalogHash`; для assign также exact `selection` и `settings`. Возвращает immutable plan DTO.        |
+| `GET /api/realize-extensions/appearance/plans/:id` | Проверяет actor, TTL, catalog и исходный target state; возвращает preview DTO без изменения назначения.                                                                     |
+| `POST /api/realize-extensions/appearance/apply`    | `{ planId, expectedPlanHash }`; атомарно применяет точный план и возвращает receipt DTO. Recover проходит тот же prepare/preview/apply путь.                                |
+| `POST /api/realize-extensions/install`             | После ACL/input проверки возвращает `DELIVERY_ADAPTER_UNAVAILABLE`; код и очередь не меняются.                                                                              |
 
 Prepare/apply требуют `Idempotency-Key` — canonical lowercase UUID. Один UUID
 разрешён в разных kind namespaces `prepare`/`apply`. Actor и scope определяет
@@ -239,6 +239,13 @@ records. Lifetime ledger не очищается. Поэтому старый ap
 `REPLAY_CONFLICT`, а actor/scope другого запроса не получает чужой replay.
 
 ### Экран, SSR и границы поставки
+
+Целевой [первый релиз Realize-AI One](realize-ai-one-first-release.md)
+использует этот lifecycle для перехода `realize@0.1.0 → 0.2.0` и независимых
+Admin/frontend assignments. Для него отдельно требуется реальный baseline старого
+выпуска и возврат первого frontend назначения при исходном `null`;
+текущий recover с non-null previous не доказывает этот сценарий.
+Общий installer нового кода остаётся последующим этапом.
 
 `/system/appearance` показывает compiled каталог, настройки target, подготовленный
 план, результат и историю. Общая боковая панель ведёт к этим разделам через

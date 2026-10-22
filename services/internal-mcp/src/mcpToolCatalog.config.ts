@@ -1,13 +1,13 @@
 /**
  * @file services/internal-mcp/src/mcpToolCatalog.config.ts
- * @version 1.4.0
- * @date 2026-09-30
+ * @version 1.5.0
+ * @date 2026-10-22
  * @description Задаёт единый каталог регистраций, read grants и зависимостей MCP.
  */
 import { MCP_WORKSHOP_POLICY } from "@realize/ai-contracts";
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
 import type { AiCapabilitiesDto } from "../../../packages/ai-contracts/src/AiInstructions.types";
-export const MCP_SERVER_VERSION = "1.3.0";
+export const MCP_SERVER_VERSION = "1.4.0";
 
 export const mcpToolCatalog: Record<
   McpToolName,
@@ -94,7 +94,8 @@ export const mcpToolCatalog: Record<
     fallback: "authorized_owner_flow",
   },
   realize_get_context: {
-    description: "Контекст установки и разрешённые read tools.",
+    description:
+      "Контекст установки, разрешённые tools и HEAD/ветка без полного Git snapshot. modules.repository и modules.git проверяются независимо. dirty:null/not_checked не означает чистое дерево; для изменений вызовите repo_git_status. TIMEOUT отдельного инструмента и FORBIDDEN .git не означают потерю связи MCP.",
     effect: "read",
     grant: "context",
     dependency: "none",
@@ -147,6 +148,14 @@ export const mcpToolCatalog: Record<
     grant: "repository:read",
     dependency: "repository",
     fallback: "direct_project_read",
+  },
+  repo_git_head: {
+    description:
+      "Текущие Git HEAD и ветка рабочего проекта через серверный read-only reader. Без аргументов, чтения индекса или полного снимка файлов. detached/unborn явны; результат не подтверждает чистоту дерева. Используйте этот инструмент вместо Git-команд в изолированном файловом контексте чата.",
+    effect: "read",
+    grant: "repository:read",
+    dependency: "git",
+    fallback: "authorized_owner_flow",
   },
   repo_git_status: {
     description: "Статусы разрешённых путей без изменения индекса.",

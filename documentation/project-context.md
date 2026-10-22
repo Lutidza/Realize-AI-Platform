@@ -498,6 +498,38 @@ license/security policy или executable registry.
 
 ## Шаблонные пакеты и установленный Admin
 
+Сверка исходников 19 октября 2026 года:
+[карта глобального применения шаблонов — TASK-20 / ONE-01](reports/2026-10-19-template-coverage-audit.md).
+Persisted assignment подключён отдельными рабочими страницами System Admin;
+native Payload, AI/MCP/Usage и storefront используют другие цепочки оформления.
+Матрица включает динамические экраны, portals, auth и ошибки; она не ограничивает
+набор экранов будущего глобального host. Текущее поведение установленной сборки
+в этом статическом аудите не перепроверялось.
+
+[Браузерная проверка TASK-21 / ONE-02](reports/2026-10-19-template-switching-browser-audit.md)
+на сборке `Dfi6Wz9am3HM5TVk5N8El` подтвердила эти границы: главный вход
+Payload ↔ Realize переключается, прямые native/template routes сосуществуют,
+а mode/settings Realize применяются при новом открытии и reload. Открытые страницы
+сохраняют прежнее оформление; reload закрывает проверочную форму, сохранение
+её draft не подтверждено. Проверены admin/customer/guest и штатные apply/recover; исходные
+значения восстановлены, receipts сохранены. Глобальный live switch этим не реализован.
+
+[Разбор референса TASK-22 / ONE-03](reports/2026-10-19-realize-one-reference-breakdown.md)
+зафиксировал основу One: reference и рабочий renderer уже используют общий
+`SystemAdminShell`; различаются данные, capabilities и наполнение slots.
+Публичный reference проверен на 1440/768/390 px в light/dark, включая поиск,
+диалоги и мобильную навигацию. Demo store и бизнес-логика остаются в модуле.
+Auth/registration, общие status screens и управление шаблонами требуют отдельной
+композиции и интеграции; готовность One этим исследованием не заявлена.
+
+TASK-23 / ONE-04 зафиксировала [состав первого Realize-AI One и переход](specifications/realize-ai-one-first-release.md):
+плановая версия `realize@0.2.0` в существующем package owner, настоящий
+неизменяемый baseline `0.1.0`, общий Admin host и самостоятельный frontend
+renderer. Native adapter и сохранность controllers проверяются до полной
+активации; первое frontend назначение требует возврата к исходному `null`.
+Это целевой план: код, версии пакетов, assignments и политика регистрации
+в TASK-23 не менялись.
+
 Реализован и внедрён единый `@realize/template-contracts@0.1.0`:
 strict manifest/compatibility/selection и React API Admin/frontend.
 `@realize/template-realize@0.1.0` содержит первую Admin definition,

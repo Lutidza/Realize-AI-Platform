@@ -1,8 +1,8 @@
 /**
  * @file tests/int/repositoryMcpBridge.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-30
- * @description Проверяет реальный MCP transport native reader: каталог, JSON, hashes, права и завершение run.
+ * @version 1.0.1
+ * @date 2026-10-22
+ * @description Проверяет native MCP transport: каталог, Git HEAD, JSON, hashes, права и завершение run.
  */
 // @vitest-environment node
 import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
@@ -25,6 +25,7 @@ import {
 } from "../../.ai/tools/agent-search/src/searchObservationSpool.adapter.mjs";
 import { LocalSearchObservationCollector } from "../../services/ai-control-plane/src/LocalSearchObservationCollector.service";
 import { searchObservationFixture } from "./searchObservation.fixture";
+import { createRepositoryGitHeadFixture } from "./fixtures/repositoryGitHead.fixture";
 
 describe("Native repository MCP bridge", () => {
   it("переносит CLI spool worktree владельцу установки перед cleanup и доставляет после восстановления", async () => {
@@ -223,12 +224,16 @@ describe("Native repository MCP bridge", () => {
         join(root, "src/current.ts"),
         "export const currentValue = 42;\n",
       );
+      const fixture = await createRepositoryGitHeadFixture(root);
+      const head = await fixture.commit("src/current.ts");
+      const observations: SearchObservation[] = [];
       bridge = await createRepositoryMcpBridge(
         createRepositoryChatTools({
           policy: await createRepositoryReadPolicy(root, false),
           run: { id: "native-bridge-test", cancelRequested: false },
           signal: controller.signal,
           responseBytes: 56 * 1024,
+          observe: (event) => observations.push(event),
         }),
         "native-bridge-test",
         controller.signal,
@@ -241,7 +246,38 @@ describe("Native repository MCP bridge", () => {
       );
       expect(
         (await client.listTools()).tools.map((tool) => tool.name).sort(),
-      ).toEqual(["repo_list_files", "repo_read_file", "repo_search"]);
+      ).toEqual([
+        "repo_git_head",
+        "repo_list_files",
+        "repo_read_file",
+        "repo_search",
+      ]);
+      const gitHead = await client.callTool({
+        name: "repo_git_head",
+        arguments: {},
+      });
+      expect(gitHead.isError).not.toBe(true);
+      expect(gitHead.structuredContent).toEqual({
+        schemaVersion: "1.0",
+        observedAt: expect.any(String),
+        requestID: expect.any(String),
+        ok: true,
+        data: { head, branch: "main", detached: false, unborn: false },
+      });
+      expect(JSON.parse((gitHead.content[0] as { text: string }).text)).toEqual(
+        gitHead.structuredContent,
+      );
+      const invalidHead = await client.callTool({
+        name: "repo_git_head",
+        arguments: { root: "/" },
+      });
+      expect(invalidHead.isError).toBe(true);
+      // Strict schema отклоняет extra fields в SDK до исполнения adapter callback.
+      expect(invalidHead.structuredContent).toBeUndefined();
+      expect((invalidHead.content[0] as { text: string }).text).toContain(
+        "Invalid arguments for tool repo_git_head",
+      );
+      expect(observations).toEqual([]);
       const result = await client.callTool({
         name: "repo_search",
         arguments: {

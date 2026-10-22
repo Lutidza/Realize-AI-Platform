@@ -1,10 +1,11 @@
 # Внутренний MCP Realize: спецификация и техническое задание
 
-- Статус: **A+G+S1, предустановки и Workshop managed tools implemented; C настраивается в Admin, cloud acceptance pending; общие S2–S5/B/P target**, версия 0.8, 26 сентября 2026 года.
+- Статус: **A+G+S1, предустановки и Workshop managed tools implemented; C настраивается в Admin, cloud acceptance pending; общие S2–S5/B/P target**, версия 0.9, 20 октября 2026 года.
 - Предмет: внутренний MCP как функциональный интерфейс системного рабочего слоя, административных возможностей Realize и единое управление несколькими MCP-серверами в Admin.
 - A+G реализованы: отдельный SDK listener, read tools и Admin manager. S1 добавляет context resolver, чтение инструкций по hash, capability discovery и подключение development Codex. Фактические команды, поддержанные adapters и ограничения описаны в [runbook](../architecture/mcp-tooling.md); приёмка — в плане. Последующие S2–S5/B/P/C инструменты остаются целевыми контрактами.
 - Архитектура и эксплуатация: [MCP tooling](../architecture/mcp-tooling.md), [план работ](internal-mcp-implementation-plan.md).
 - Референс: [временное задание](../temp/realize-internal-mcp-agent-task.md). Реализация A+G начата по отдельному запросу пользователя «Приступай».
+- Уточнение 20 октября 2026 года: раздельная диагностика filesystem/Git и лёгкий context реализованы в MCP `1.3.1`, output contract `realize_get_context` `1.1`. Версия и успешное чтение HEAD/status подтверждены на локальном bootstrap и через Realize AI ChatGPT connector; diff, файлы и S1 instructions также проверены через connector. Это адресная проверка исправления, не полная приёмка всех consumers поиска или этапа C.
 
 ## 1. Результат и границы
 
@@ -287,6 +288,13 @@ Pagination: сортировка детерминированная; opaque curs
 
 Для list snapshot покрывает отсортированные разрешённые entries и metadata; для search — paths и SHA-256 прочитанного содержимого всех candidate files, включая ещё не возвращённые matches; для Git — HEAD/index/разрешённые working bytes соответствующего scope. Поиск повторно проверяет content snapshot, даже когда имена файлов не изменились. При достижении scan budget полного snapshot нет: nextCursor=null, truncationReason=scan_budget и запрос более узкого path. Cursor не даёт дополнительного scope; подмена principal/query/policy/expiry отвергается. Отдельная БД или постоянный индекс поиска для A не нужны.
 
+Лёгкий `realize_get_context` не строит этот content snapshot: он проверяет
+доступность файлового корня отдельно от Git и читает только HEAD/branch.
+`repo_git_status` сохраняет полный fingerprint разрешённых bytes, включая
+файлы за пределами возвращённой страницы. `limit` ограничивает ответ, а не
+область проверки снимка. Ускорение обхода и чтения не заменяет content hash
+списком статусов, размером файла или временем изменения.
+
 ## 9. Контракты инструментов A
 
 `repo_search intent=text` сохраняет literal контракт. Для TS/JS family добавлены
@@ -338,17 +346,24 @@ text ответы и diagnostic events. Web/collectors обновляются в
 
 Каждый успешный результат имеет `schemaVersion:"1.0"`, `ok:true`, `data`, `requestID`, `observedAt`. Ошибка имеет `ok:false`, `error:{code,message,retryable}`, `requestID`. Обе формы — явные output schemas. В MCP возвращаются structuredContent и краткий согласованный text content; результаты не содержат raw Payload documents. Текст не копирует большой JSON целиком.
 
-| Tool                  | Строгий input и defaults                                                                                                                | Data result                                                                                                                                                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `realize_get_context` | `{}`                                                                                                                                    | Project name/version; server version; auth scopes; single-installation mode; enabled modules и `ready/not_configured/unavailable`; фактический разрешённый tool catalog; repository branch/HEAD/dirty только при repo grant |
-| `repo_list_files`     | `path` default пустой root; `depth` 1–5 default 1; `limit` 1–100 default 50; `cursor?`                                                  | Разрешённые entries `{path,type,size?}`, `nextCursor`, `truncated`, `policyVersion`; directory names тоже проходят policy                                                                                                   |
-| `repo_read_file`      | `path`; `startLine` ≥1 default 1; `lineCount` 1–400 default 200; `expectedSha256?`                                                      | `path`, UTF-8 `text`, `startLine/endLine`, `nextLine`, `truncated`, полный version identity; границы строк явно включительные                                                                                               |
-| `repo_search` | `intent` text (default), definitions, references, imports; `query` 1–256 code points; `path` default root; `caseSensitive` default false; `limit` 1–100 default 50; `cursor?`; `resolveImports?`, `maxDepth?` только для адресных imports | Matches `{path,line,column,snippet,fileSha256,syntax?,resolution?}`, `navigation?`, `resolution?`, snapshot и page window; snippet ≤500 code points; regexp не принимается |
-| `repo_git_status`     | `limit` 1–100 default 50; `cursor?`                                                                                                     | `branch:null                                                                                                                                                                                                                | string`, `head:null                                                                                                                                    | string`, `detached`, `unborn`, разрешённые `{path,indexStatus,worktreeStatus}`, conflict status, `nextCursor`, `truncated`, snapshot fingerprint |
-| `repo_git_diff`       | `scope:"index"                                                                                                                          | "working_tree"`; `paths`1–20 точных относительных файлов;`contextLines`0–5 default 3;`limitBytes`1024–65536 default 32768;`cursor?`                                                                                         | Bounded unified diff, scope, разрешённые paths, before/after identities, `nextCursor`, `truncated`; binary/untracked не превращаются в synthetic patch |
-| `pages_list`          | `query` после trim 0–128 chars default пусто; safe integer `page` 1–999999 default 1                                                    | Существующий DTO поиска Pages, limit 20, страницы, ID/title/slug и разрешённая metadata; без произвольных collection/where/depth                                                                                            |
-| `pages_get`           | `pageID` как валидируемый string ID                                                                                                     | Существующий PageDraftContextDTO: identity, updatedAt, fingerprint, adapterVersion, разрешённые text fields; до 128 полей/64 KiB текстовой проекции и optional knowledge до 48 KiB, с общим wire budget                     |
-| `pages_get_structure` | `pageID`; safe integer `offset` 0–10000 default 0, кратный 32; `fingerprint?`, `catalogHash?` как Hash256, оба обязательны при offset>0 | Штатный DTO порции структуры, до 32 placements, next offset, fingerprints; без произвольного дерева Payload                                                                                                                 |
+Версия общего envelope остаётся `1.0`. Изменённый контракт context
+объявляется отдельно как `outputSchemaVersion:"1.1"` в metadata инструмента
+`realize_get_context`; это не повышение версий остальных инструментов.
+После обновления и restart runtime потребители повторяют tool discovery
+и обновляют сохранённые output schemas. Старое ожидание `dirty:boolean`
+несовместимо с context `1.1`: преобразование `null` в `false` запрещено.
+
+| Tool                  | Строгий input и defaults                                                                                                                                                                                                                  | Data result                                                                                                                                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `realize_get_context` | `{}`                                                                                                                                                                                                                                      | Project/server versions; auth scopes; single-installation mode; отдельные repository/Git module statuses; разрешённый tool catalog; repository branch/HEAD при repo grant, `dirty:null`, `dirtyStatus:"not_checked"` |
+| `repo_list_files`     | `path` default пустой root; `depth` 1–5 default 1; `limit` 1–100 default 50; `cursor?`                                                                                                                                                    | Разрешённые entries `{path,type,size?}`, `nextCursor`, `truncated`, `policyVersion`; directory names тоже проходят policy                                                                                            |
+| `repo_read_file`      | `path`; `startLine` ≥1 default 1; `lineCount` 1–400 default 200; `expectedSha256?`                                                                                                                                                        | `path`, UTF-8 `text`, `startLine/endLine`, `nextLine`, `truncated`, полный version identity; границы строк явно включительные                                                                                        |
+| `repo_search`         | `intent` text (default), definitions, references, imports; `query` 1–256 code points; `path` default root; `caseSensitive` default false; `limit` 1–100 default 50; `cursor?`; `resolveImports?`, `maxDepth?` только для адресных imports | Matches `{path,line,column,snippet,fileSha256,syntax?,resolution?}`, `navigation?`, `resolution?`, snapshot и page window; snippet ≤500 code points; regexp не принимается                                           |
+| `repo_git_status`     | `limit` 1–100 default 50; `cursor?`                                                                                                                                                                                                       | `branch:null                                                                                                                                                                                                         | string`, `head:null                                                                                                                                    | string`, `detached`, `unborn`, разрешённые `{path,indexStatus,worktreeStatus}`, conflict status, `nextCursor`, `truncated`, snapshot fingerprint |
+| `repo_git_diff`       | `scope:"index"                                                                                                                                                                                                                            | "working_tree"`; `paths`1–20 точных относительных файлов;`contextLines`0–5 default 3;`limitBytes`1024–65536 default 32768;`cursor?`                                                                                  | Bounded unified diff, scope, разрешённые paths, before/after identities, `nextCursor`, `truncated`; binary/untracked не превращаются в synthetic patch |
+| `pages_list`          | `query` после trim 0–128 chars default пусто; safe integer `page` 1–999999 default 1                                                                                                                                                      | Существующий DTO поиска Pages, limit 20, страницы, ID/title/slug и разрешённая metadata; без произвольных collection/where/depth                                                                                     |
+| `pages_get`           | `pageID` как валидируемый string ID                                                                                                                                                                                                       | Существующий PageDraftContextDTO: identity, updatedAt, fingerprint, adapterVersion, разрешённые text fields; до 128 полей/64 KiB текстовой проекции и optional knowledge до 48 KiB, с общим wire budget              |
+| `pages_get_structure` | `pageID`; safe integer `offset` 0–10000 default 0, кратный 32; `fingerprint?`, `catalogHash?` как Hash256, оба обязательны при offset>0                                                                                                   | Штатный DTO порции структуры, до 32 placements, next offset, fingerprints; без произвольного дерева Payload                                                                                                          |
 
 `pages_get_structure` переиспользует текущий strict parser; Page ID проверяется существующим parseIdentifier (не произвольная строка). Для list допускается пустой query по browser catalog contract; native pages_search с обязательным непустым query не подставляется вместо list parser. Альтернативная пагинация не вводится. Слишком большой text snapshot не выдаётся как полный; используется явная ошибка лимита и отдельное структурное чтение.
 
@@ -388,7 +403,7 @@ type ToolError = {
 
 Точные поля `data` repository tools:
 
-- Context: `project:{name,version}`, `server:{name,version,protocolVersions:string[]}`, `principal:{id,scopes:string[]}`, `installation:{mode:"single",id}`, `modules:{id:"repository"|"pages",status:"ready"|"not_configured"|"unavailable",reasonCode:string|null}[]`, `tools:{name,inputSchemaVersion,outputSchemaVersion}[]`, `repository:{branch:string|null,head:string|null,dirty:boolean,dirtyScope:"allowed_paths"}|null`. Unknown/timeout Git возвращает repository=null и module unavailable, не dirty=false.
+- Context, output contract `1.1`: `project:{name,version}`, `server:{name,version,protocolVersions:string[]}`, `principal:{id,scopes:string[]}`, `installation:{mode:"single",id}`, `modules:{id:"repository"|"git"|"pages"|"workshop",status:"ready"|"not_configured"|"unavailable",reasonCode:string|null}[]`, `tools:{name,inputSchemaVersion,outputSchemaVersion}[]`, `repository:{branch:string|null,head:string|null,dirty:null,dirtyStatus:"not_checked",dirtyScope:"allowed_paths"}|null`. `repository` module описывает доступность файлового корня; `git` module — отдельную проверку Git metadata. Если разрешённый файловый корень доступен, Git timeout не меняет `modules.repository.status:"ready"`: Git summary становится `repository:null`, `modules.git.status:"unavailable"` сохраняет `reasonCode:"TIMEOUT"`. При отсутствии repo grant/configuration summary также равен null; доступность не выдумывается.
 - List: `entries:{path,type:"file"|"directory",size:number|null}[]`, `policyVersion`, `snapshotHash` и PageWindow; size=null для directory, hash не включает закрытые paths.
 - Read: `path,text,startLine,endLine,totalLines,nextLine:number|null,truncated,truncationReason,version:WorkingFileVersion`.
 - Search: `matches:{path,line,column,snippet,fileSha256}[]`, `snapshotHash:string|null` и PageWindow; snapshotHash=null при неполном scan budget.
@@ -397,7 +412,17 @@ type ToolError = {
 
 Для Pages output source of truth — существующие exported `PageDraftContextDTO`, PageDiscovery/PageStructure DTO и parsers в `packages/ai-contracts`; facade не переименовывает поля и не добавляет raw document. Schema fixture tests обязаны сравнить MCP output с результатом этих parsers. При M1 фиксируются JSON schemas из указанных типов, включая все required и nullable поля; `additionalProperties:false` — часть приёмки.
 
-`dirty` в context имеет явно заявленный `dirtyScope:"allowed_paths"`; вывод не перечисляет скрытые изменения. Context не читает Config drafts, private run checkpoints, credentials и provider instructions. Temporary outage не удаляет настроенную возможность из registry: tool возвращает DEPENDENCY_UNAVAILABLE. Ненастроенный или неразрешённый модуль не рекламирует рабочие tools.
+`dirty:null` вместе с `dirtyStatus:"not_checked"` означает, что context не
+проверял изменения файлов; это не clean status и не ошибка. Для определения
+состояния разрешённых путей используется `repo_git_status`; при усечённом
+ответе агент учитывает pagination. `dirtyScope:"allowed_paths"` не разрешает
+выводы о скрытых изменениях. Для получения текущих HEAD/branch достаточно
+`realize_get_context`, чтение `.git` и дополнительный публичный Git tool
+не требуются. Context не читает Config drafts, private run checkpoints,
+credentials и provider instructions. Temporary outage не удаляет настроенную
+возможность из registry: ошибка относится к конкретной зависимости и сохраняет
+доступный reason code. Ненастроенный или неразрешённый модуль не рекламирует
+рабочие tools.
 
 ## 10. Git как ограниченный серверный read port
 
@@ -408,7 +433,9 @@ type ToolError = {
 - Git запускается без shell, с фиксированными аргументами, literal pathspecs и `--` для путей.
 - Унаследованные `GIT_*`, pager, external diff/textconv, hooks и interactive prompts не дают дополнительных действий; filesystem monitor отключён.
 - Нельзя вызывать `captureWorktreeDiff` из execution worker: он делает `git add -N`.
-- Индекс, ref и рабочие файлы не меняются; untracked видны в status, содержимое читается только `repo_read_file`.
+- Индекс, ref и рабочие файлы не меняются; untracked видны в status. Разрешённые bytes могут читаться внутри content snapshot, но status не выдаёт содержимое; для его получения используется `repo_read_file`.
+- Context читает HEAD/branch через внутренний helper того же Git owner без обхода рабочего дерева, чтения содержимого или полного index/tree manifest. Этот helper не является новым публичным инструментом и не заменяет development inspect.
+- Status сохраняет точный content snapshot. Ограниченное параллельное чтение и повторное использование удерживаемых directory descriptors сохраняют policy, проверки descriptor identity, запрет ссылок/вложенных checkout, лимиты и отмену. Все принадлежащие вызову чтения завершаются и descriptors закрываются до освобождения операции.
 - Для unborn repository staged diff сравнивается с пустым деревом; branch/HEAD nullability документирована. Detached HEAD, merge conflicts, deleted files и пробелы/Unicode проверяются отдельно. Вложенные Git repositories и submodules в A целиком исключены из traversal и Git file reads, содержимое другого checkout не открывается; административная настройка root не следует ссылке на произвольный Git dir из tool input.
 - Rename не раскрывает запрещённое старое/новое имя. Простой baseline может отключить rename detection и безопасно показать отдельные разрешённые записи.
 - В index diff before=head, after=index; в working_tree diff before=index, after=working_tree. Отсутствующая сторона обозначается source=absent. Content hash и blobOID вычисляются только для разрешённых sides.
@@ -421,6 +448,13 @@ type ToolError = {
 ## 11. Ошибки, лимиты и наблюдаемость
 
 Tool errors: INVALID_INPUT, FORBIDDEN, NOT_FOUND, CONFLICT, INVALID_CURSOR, RESULT_LIMIT, RATE_LIMITED, DEPENDENCY_UNAVAILABLE, TIMEOUT, INTERNAL_ERROR. HTTP authentication и protocol errors обрабатываются на своих уровнях; runtime ошибки tool — CallToolResult с `isError:true`. Для объекта вне прав допустим единый NOT_FOUND, чтобы не раскрывать его существование. INTERNAL_ERROR отдаёт correlation ID без stack/env/SQL.
+
+`TIMEOUT` отдельного чтения не означает потерю соединения с MCP или платформой.
+`FORBIDDEN` для `.git` — отказ политики доступа; агент не обходит его прямым
+чтением служебных файлов. Диагностика различает transport/auth failure,
+доступность filesystem, Git и других модулей. Если клиентская обёртка сообщает
+общий `INVALID_ARGUMENT`, сохраняется фактический код ответа сервера, когда он
+доступен; неизвестную причину нельзя подменять утверждением о разрыве связи.
 
 Default concurrency: 4 реально выполняющихся tool calls на principal, 8 на процесс; поиск — не более 1 на principal. Rate limit 60 calls/minute на principal с burst 10, timeout 10 секунд для repo/Git и 15 секунд для Pages. Настройки ограничены server-side ceiling. Отключение HTTP-клиента отменяет работу, если операция поддерживает отмену; слот не освобождается до фактического прекращения I/O. Promise.race без отмены недостаточен.
 

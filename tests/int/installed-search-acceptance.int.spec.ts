@@ -1,7 +1,7 @@
 /**
  * @file tests/int/installed-search-acceptance.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-30
+ * @version 1.0.1
+ * @date 2026-10-22
  * @description Проверяет refusal границы installed acceptance: build/source, реальные event IDs, недостающий ChatGPT и stale ссылки.
  * @see documentation/architecture/repository-search.md
  */
@@ -12,7 +12,10 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readInstalledSearchAcceptance as inspectInstalled } from "../../.ai/tools/agent-search/acceptance/readInstalledSearchAcceptance.adapter.mjs";
-import { INSTALLED_SEARCH_CHECKS } from "../../.ai/tools/agent-search/acceptance/installedSearchAcceptance.schemas.mjs";
+import {
+  INSTALLED_SEARCH_CHECKS,
+  installedSearchAcceptanceSchema,
+} from "../../.ai/tools/agent-search/acceptance/installedSearchAcceptance.schemas.mjs";
 import { writeInstalledSearchBinding } from "../../.ai/tools/agent-search/src/installedSearchBinding.adapter.mjs";
 import { searchObservationFixture } from "./searchObservation.fixture";
 import { parseBenchmarkOptions } from "../../.ai/tools/agent-search/benchmark/parseBenchmarkOptions.validator.mjs";
@@ -140,6 +143,69 @@ describe("installed acceptance evidence boundaries", () => {
     expect(result.missing).toEqual([]);
     expect(result.checks).toHaveLength(7);
   });
+  it.each([
+    "https://chatgpt.com/g/g-p-0123456789abcdef0123456789abcdef-project/c/operator-real-conversation",
+    "https://chatgpt.com/g/g-example-assistant/c/operator-real-conversation",
+  ])(
+    "принимает настоящий формат диалога внутри GPT или проекта: %s",
+    async (conversationURL) => {
+      const data = await evidence();
+      data.value.checks.find(
+        (check) => check.consumer === "chatgpt",
+      )!.conversationURL = conversationURL;
+      expect(
+        installedSearchAcceptanceSchema
+          .parse(data.value)
+          .checks.find((check) => check.consumer === "chatgpt")
+          ?.conversationURL,
+      ).toBe(conversationURL);
+      await data.save();
+      const result = await readInstalledSearchAcceptance(
+        root,
+        data.path,
+        async () => data.events,
+        { NODE_ENV: "test" },
+      );
+      expect(result).toMatchObject({ outcome: "passed", missing: [] });
+      expect(result.checks).toHaveLength(7);
+    },
+  );
+  it.each([
+    "http://chatgpt.com/c/operator-real-conversation",
+    "https://chatgpt.com.evil.example/c/operator-real-conversation",
+    "https://user@chatgpt.com/c/operator-real-conversation",
+    "https://chatgpt.com:443/c/operator-real-conversation",
+    "https://chatgpt.com/share/operator-real-conversation",
+    "https://chatgpt.com/g/g-example-assistant",
+    "https://chatgpt.com/g/unknown/c/operator-real-conversation",
+    "https://chatgpt.com/g/g-example/../c/operator-real-conversation",
+    "https://chatgpt.com/g/g-example%2Fother/c/operator-real-conversation",
+    "https://chatgpt.com/g/g-example/c/short",
+    "https://chatgpt.com/g/g-example/c/operator-real-conversation/extra",
+    "https://chatgpt.com/g/g-example/c/operator-real-conversation?x=1",
+    "https://chatgpt.com/g/g-example/c/operator-real-conversation#fragment",
+    "https://chatgpt.com/c/operator-real-conversation\n",
+    `https://chatgpt.com/g/g-${"x".repeat(129)}/c/operator-real-conversation`,
+  ])(
+    "отклоняет неподходящий URL диалога до чтения событий: %s",
+    async (conversationURL) => {
+      const data = await evidence();
+      data.value.checks.find(
+        (check) => check.consumer === "chatgpt",
+      )!.conversationURL = conversationURL;
+      await data.save();
+      const readEvents = vi.fn(async () => data.events);
+      expect(
+        await readInstalledSearchAcceptance(root, data.path, readEvents, {
+          NODE_ENV: "test",
+        }),
+      ).toMatchObject({
+        outcome: "incomplete",
+        reason: "installed_consumer_evidence_invalid",
+      });
+      expect(readEvents).not.toHaveBeenCalled();
+    },
+  );
   it("configured chatgpt consumer events alone never replace real external confirmation", async () => {
     const data = await evidence();
     const chatgpt = data.value.checks.find(

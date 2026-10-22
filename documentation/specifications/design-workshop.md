@@ -1,6 +1,6 @@
 # Мастерская дизайна Realize — продукт и агентский процесс
 
-Версия **0.10**, 2026-10-12. Статус: **W1a и первый UI установлены; Template SDK/Realize и переключение Admin внедрены; файловое ядро, durable jobs и capture preview реализованы в исходниках; выпуск пакетов из Мастерской остаётся целевым**.
+Версия **0.11**, 2026-10-19. Статус: **W1a и первый UI установлены; Template SDK/Realize и переключение Admin внедрены; файловое ядро, durable jobs и capture preview реализованы в исходниках; выпуск пакетов из Мастерской остаётся целевым**.
 Требования к общей Мастерской, трём каналам и предустановке заданы пользователем.
 Backend W1a и первый интерфейс установлены в основную локальную админку
 `http://localhost:3000/system/workshop`. Production bundle проверен на отдельной
@@ -38,20 +38,20 @@ Backend W1a и первый интерфейс установлены в осн�
 
 Проверено 2026-09-25 по коду и [контексту проекта](../project-context.md).
 
-| Возможность                 | Фактическое состояние                                                                                                                                                       | Как использовать                                                                                           |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| Мастерская в навигации      | `workshop` ведёт на `/system/workshop` и виден по умолчанию; `SystemAdminPayloadEntry` добавляет вход в Payload                                                             | Пользовательские настройки видимости сохраняются; скрытый пункт доступен через «Ещё»                       |
-| Первый интерфейс            | Каталог, создание, бриф/материалы/текстовые файлы, review/apply и история в `packages/payload-ai-plugin/src/admin/design-workshop/`                                         | Работает через W1a API; host подключает общий shell и auth; preview/AI-диалог ещё отсутствуют              |
-| Хранилище макетов W1a       | `packages/payload-ai-plugin/src/design-workshop/`: личные проекты, versioned snapshots, prepare/apply, CAS и durable receipts; migration применена локально                 | Общий backend для следующих Admin/MCP адаптеров; исходники макета хранятся в БД и не исполняются           |
-| Файловое ядро и capture W1b | `services/ai-execution-worker/src/design-workshop/`: exact revision, manifest, receipt/recovery, очередь с lease и React/Chromium capture; подключены к общему worker и API | Новая migration ещё не установлена в основной БД; UI-кнопки, MCP tools и интерактивный preview отсутствуют |
-| Task Manager                | Общий интерактивный референс в `src/components/admin/task-manager/reference/`; публичный и защищённый маршруты                                                              | Первый сценарий доработки; не выдавать fixtures за реальные задачи                                         |
-| Темы интерфейса             | UI-kit хранит default tokens/runtime, concrete shell/navigation palette — `packages/template-realize/`; Payload имеет отдельный host adapter    | Realize Admin `0.1.0` и Payload ↔ Realize внедрены; fixed reference сохранён; frontend renderer и Workshop package producer ещё не готовы |
-| Инструкции референсов       | Есть [reference-to-frontend workflow](../../.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md#reference-to-frontend)                                                  | Сохранить как процесс исследования и реализации UI                                                         |
-| Конфигурация AI             | Восемь типов артефактов, редактор workflow, validation, immutable AIConfigRelease, activation/rollback                                                                      | Расширять существующую модель и UI                                                                         |
-| Исполнение workflow         | `agent_turn`, `request_input`, `capability`, `check`, `branch`, `finish`; bounded graph без циклов; capability готовит DataOperation dry-run                                | Нужны новые зарегистрированные действия Мастерской, их исполнение и передача вложений                      |
-| Admin chat                  | Текущий agent turn анализирует контекст; отдельный Code Lane запускает Codex в worktree из HEAD                                                                             | Обычный чат пока не является исполнителем дизайн-правок                                                    |
-| Internal MCP / ChatGPT      | S1 и Repo/Git/Pages read; локальное облачное соединение проверено пользователем и tunnel-метриками                                                                          | GPT может читать инструкции; patch/write/preview tools ещё не зарегистрированы                             |
-| Code Lane / delivery        | Изолированное исполнение, проверки, review, preview; отдельное продвижение в GitHub branch/draft PR                                                                         | Переиспользовать владельцев, сохраняя отдельную авторизацию доставки                                       |
+| Возможность                 | Фактическое состояние                                                                                                                                                       | Как использовать                                                                                                                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Мастерская в навигации      | `workshop` ведёт на `/system/workshop` и виден по умолчанию; `SystemAdminPayloadEntry` добавляет вход в Payload                                                             | Пользовательские настройки видимости сохраняются; скрытый пункт доступен через «Ещё»                                                      |
+| Первый интерфейс            | Каталог, создание, бриф/материалы/текстовые файлы, review/apply и история в `packages/payload-ai-plugin/src/admin/design-workshop/`                                         | Работает через W1a API; host подключает общий shell и auth; preview/AI-диалог ещё отсутствуют                                             |
+| Хранилище макетов W1a       | `packages/payload-ai-plugin/src/design-workshop/`: личные проекты, versioned snapshots, prepare/apply, CAS и durable receipts; migration применена локально                 | Общий backend для следующих Admin/MCP адаптеров; исходники макета хранятся в БД и не исполняются                                          |
+| Файловое ядро и capture W1b | `services/ai-execution-worker/src/design-workshop/`: exact revision, manifest, receipt/recovery, очередь с lease и React/Chromium capture; подключены к общему worker и API | Новая migration ещё не установлена в основной БД; UI-кнопки, MCP tools и интерактивный preview отсутствуют                                |
+| Task Manager                | Общий интерактивный референс в `src/components/admin/task-manager/reference/`; публичный и защищённый маршруты                                                              | Первый сценарий доработки; не выдавать fixtures за реальные задачи                                                                        |
+| Темы интерфейса             | UI-kit хранит default tokens/runtime, concrete shell/navigation palette — `packages/template-realize/`; Payload имеет отдельный host adapter                                | Realize Admin `0.1.0` и Payload ↔ Realize внедрены; fixed reference сохранён; frontend renderer и Workshop package producer ещё не готовы |
+| Инструкции референсов       | Есть [reference-to-frontend workflow](../../.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md#reference-to-frontend)                                                  | Сохранить как процесс исследования и реализации UI                                                                                        |
+| Конфигурация AI             | Восемь типов артефактов, редактор workflow, validation, immutable AIConfigRelease, activation/rollback                                                                      | Расширять существующую модель и UI                                                                                                        |
+| Исполнение workflow         | `agent_turn`, `request_input`, `capability`, `check`, `branch`, `finish`; bounded graph без циклов; capability готовит DataOperation dry-run                                | Нужны новые зарегистрированные действия Мастерской, их исполнение и передача вложений                                                     |
+| Admin chat                  | Текущий agent turn анализирует контекст; отдельный Code Lane запускает Codex в worktree из HEAD                                                                             | Обычный чат пока не является исполнителем дизайн-правок                                                                                   |
+| Internal MCP / ChatGPT      | S1 и Repo/Git/Pages read; локальное облачное соединение проверено пользователем и tunnel-метриками                                                                          | GPT может читать инструкции; patch/write/preview tools ещё не зарегистрированы                                                            |
+| Code Lane / delivery        | Изолированное исполнение, проверки, review, preview; отдельное продвижение в GitHub branch/draft PR                                                                         | Переиспользовать владельцев, сохраняя отдельную авторизацию доставки                                                                      |
 
 Актуальные исходные контракты: [AI-layer](realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md),
 [MCP](internal-mcp.md), [Task Manager](task-management.md),
@@ -242,17 +242,17 @@ Task Manager проходит через его owner и реальные IDs; f
 выдавать за настоящую задачу. Foundation задач не подтверждает полный execution
 контур Мастерской.
 
-| Слой                             | Ответственность                                                                                                                                          |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `packages/ai-contracts`          | DTO, versioned commands, errors и manifests                                                                                                              |
-| `packages/change-engine`         | Общая policy, capability validation, prepare/apply semantics; без Transport/React                                                                        |
-| `packages/payload-ai-plugin`     | Installation persistence, API facade, actor/access, связи с Config/AIRun и chat UI                                                                       |
-| `services/internal-mcp`          | Схемы tools и адаптация к тому же facade                                                                                                                 |
-| Существующий execution worker    | Workspace lease, выполнение разрешённых jobs/checks, preview lifecycle и receipts                                                                        |
-| `packages/ui-kit`                | Reusable primitives, tokens, runtime активного UI adapter и объявленный default fallback; concrete shell принадлежит template package |
-| Template SDK и конкретные пакеты | `packages/template-contracts` — общий manifest/presentation контракт; `packages/template-realize` — первая внедрённая Admin реализация |
-| Общий менеджер расширений        | Целевой владелец install/update/replace/activation: один lifecycle из [ТЗ расширений](extension-management.md); не отдельный installer Мастерской        |
-| `.ai` / `.codex`                 | Канонические инструкции процесса / тонкий адаптер IDE                                                                                                    |
+| Слой                             | Ответственность                                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/ai-contracts`          | DTO, versioned commands, errors и manifests                                                                                                       |
+| `packages/change-engine`         | Общая policy, capability validation, prepare/apply semantics; без Transport/React                                                                 |
+| `packages/payload-ai-plugin`     | Installation persistence, API facade, actor/access, связи с Config/AIRun и chat UI                                                                |
+| `services/internal-mcp`          | Схемы tools и адаптация к тому же facade                                                                                                          |
+| Существующий execution worker    | Workspace lease, выполнение разрешённых jobs/checks, preview lifecycle и receipts                                                                 |
+| `packages/ui-kit`                | Reusable primitives, tokens, runtime активного UI adapter и объявленный default fallback; concrete shell принадлежит template package             |
+| Template SDK и конкретные пакеты | `packages/template-contracts` — общий manifest/presentation контракт; `packages/template-realize` — первая внедрённая Admin реализация            |
+| Общий менеджер расширений        | Целевой владелец install/update/replace/activation: один lifecycle из [ТЗ расширений](extension-management.md); не отдельный installer Мастерской |
+| `.ai` / `.codex`                 | Канонические инструкции процесса / тонкий адаптер IDE                                                                                             |
 
 Это распределение предполагает расширение существующих владельцев. Создание
 отдельного универсального workflow engine, Git delivery или secrets store
@@ -546,6 +546,14 @@ Accessibility проверяет keyboard/focus/labels/contrast/reduced motion �
 наличии соответствующего инструмента. Сохраняются origin, условия использования,
 alt и назначение. Сгенерированная картинка интерфейса служит направлением,
 но не заменяет редактируемый React-макет и проверку работающих контролов.
+
+### 11.5. Первый стандартный шаблон Realize-AI One
+
+[Состав первого релиза и переход](realize-ai-one-first-release.md) уточняет
+границы TASK-23 / ONE-04: развитие `realize` как плановой версии `0.2.0`,
+сохранение настоящего baseline `0.1.0`, глобальный Admin и отдельный frontend,
+auth/status, управление оформлением и gates интеграции. Это целевой план;
+текущий установленный срез описан выше и не объявляется готовым One.
 
 <a id="delivery"></a>
 

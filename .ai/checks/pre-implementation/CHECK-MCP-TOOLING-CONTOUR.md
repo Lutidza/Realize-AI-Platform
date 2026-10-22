@@ -28,6 +28,17 @@ required_output:
   connector, local tool или fallback.
 - Source of truth определён.
 - Availability проверена фактически или указан blocker.
+- Transport/auth failure отделён от ошибки конкретного инструмента или
+  зависимости. `TIMEOUT` и `FORBIDDEN` сами по себе не выданы за потерю связи;
+  код ответа сервера сохранён, если клиент обернул его в общую ошибку.
+- Filesystem и Git availability не смешаны; недоступность одного модуля
+  не выдана за непроверенную недоступность остальных.
+- `dirty:null`/`dirtyStatus:"not_checked"` не выданы за clean status;
+  лёгкий context или MCP snapshot не подменяют development commit fingerprint.
+- Запрет чтения `.git` сохранён; HEAD/branch получены через предоставленный
+  `repo_git_head` или разрешённый Git summary context, без обхода политики.
+  Git-команда в Context Pack не выдана за проверку checkout проекта; отсутствие
+  Git-инструмента явно обозначено без shell fallback.
 - Missing MCP не трактуется как скрытая причина пропуска проверки.
 - Fallback покрывает evidence need или задача останавливается.
 - При изменении MCP/tooling contour выполнен MCP self-scan:

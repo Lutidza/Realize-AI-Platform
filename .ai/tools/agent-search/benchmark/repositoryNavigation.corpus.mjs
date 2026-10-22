@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/benchmark/repositoryNavigation.corpus.mjs
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.1.1
+ * @date 2026-10-20
  * @description Задаёт независимые anchors 24 реальных задач навигации по репозиторию.
  */
 const observability = "packages/payload-ai-plugin/src/search-observability";
@@ -49,7 +49,7 @@ export const repositoryNavigationCorpus = [
     "UiButton",
     ui,
     `${ui}/button/UiButton.component.tsx`,
-    "export const UiButton = ({",
+    "export function UiButton(props:",
   ],
   [
     "confirmation-definition",

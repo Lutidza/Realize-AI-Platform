@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 2.4.0
- * @date 2026-10-05
+ * @version 2.5.0
+ * @date 2026-10-22
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
@@ -62,7 +62,12 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       this.options.search?.enabled &&
       item.server === "realize_repository" &&
       typeof item.tool === "string" &&
-      ["repo_search", "repo_read_file", "repo_list_files"].includes(item.tool),
+      [
+        "repo_search",
+        "repo_read_file",
+        "repo_list_files",
+        "repo_git_head",
+      ].includes(item.tool),
     );
   }
 
@@ -354,7 +359,10 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           if (item?.type === "mcpToolCall" && this.allowsRepositoryMcp(item)) {
             yield {
               type: "tool.started",
-              summary: "Поиск в файлах проекта начат.",
+              summary:
+                item.tool === "repo_git_head"
+                  ? "Чтение Git HEAD начато."
+                  : "Поиск в файлах проекта начат.",
             };
           }
           if (
@@ -418,7 +426,10 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             yield {
               type: "tool.completed",
               status: item.status === "completed" ? "completed" : "failed",
-              summary: "Поиск в файлах проекта завершён.",
+              summary:
+                item.tool === "repo_git_head"
+                  ? "Чтение Git HEAD завершено."
+                  : "Поиск в файлах проекта завершён.",
             };
           }
           continue;

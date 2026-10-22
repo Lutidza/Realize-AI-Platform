@@ -421,9 +421,16 @@ sources и `SEARCH_ACCEPTANCE_INSTALLED_EVIDENCE` — bounded strict JSON eviden
 и UUIDs действительно сохранённых событий. События сверяются read-only с рабочей
 БД: consumer, source/build, search → read, runID системных агентов. Ссылки Admin,
 MCP и ChatGPT повторно проверяются по actual file hash и строке. ChatGPT также
-требует URL реального диалога `https://chatgpt.com/c/...`; purpose credential
-или SDK запрос этого подтверждения не заменяет. Evidence оператора подтверждает
-выполнение пользовательского сценария; DB проверка доказывает доставку его событий.
+требует подтверждённый пользователем URL реального диалога в одном из форматов:
+`https://chatgpt.com/c/<id>` или `https://chatgpt.com/g/g-<slug>/c/<id>`.
+Evidence сохраняет точную исходную строку без переписывания URL проекта в
+обычный URL, trim или иной нормализации. Допустимы только HTTPS и точный host
+`chatgpt.com`, без credentials, порта, query, fragment и пробельных символов.
+Общая длина ограничена 256 символами; `<id>` содержит 8–128 ASCII букв, цифр
+или дефисов, `<slug>` — 1–128 таких символов после обязательного `g-`.
+Purpose credential или SDK запрос пользовательского подтверждения не заменяет.
+Evidence оператора подтверждает выполнение пользовательского сценария;
+read-only DB проверка доказывает доставку его событий с текущим source/build.
 При отсутствии обязательного контура итог — `incomplete`, exit 1 до тяжёлых checks.
 
 `npm run check:search:isolated` запускает только fixtures; итог `isolated_passed`

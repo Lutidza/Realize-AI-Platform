@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-protocol.int.spec.ts
- * @version 1.3.0
- * @date 2026-09-30
+ * @version 1.3.1
+ * @date 2026-10-20
  * @description Проверяет обе protocol eras настоящими SDK clients и Git на одноразовом checkout.
  */
 // @vitest-environment node
@@ -31,6 +31,7 @@ import { McpError } from "../../services/internal-mcp/src/Mcp.error";
 import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { MCP_REALIZE_TOOLS } from "../../packages/ai-contracts/src/mcpServer.config";
+import { MCP_SERVER_VERSION } from "../../services/internal-mcp/src/mcpToolCatalog.config";
 import type { McpRuntimeOptions } from "../../services/internal-mcp/src/McpRuntime.types";
 
 describe("MCP: loopback HTTP и read-only Git", () => {
@@ -147,6 +148,69 @@ describe("MCP: loopback HTTP и read-only Git", () => {
       arguments: { path: "src/oversized.ts" },
     });
     expect(file.isError).toBe(true);
+    const context = await client.callTool({
+      name: "realize_get_context",
+      arguments: {},
+    });
+    expect(context.isError).not.toBe(true);
+    expect(context.structuredContent).toMatchObject({
+      data: {
+        repository: { branch: "main", dirty: null, dirtyStatus: "not_checked" },
+        modules: expect.arrayContaining([
+          { id: "repository", status: "ready", reasonCode: null },
+          { id: "git", status: "ready", reasonCode: null },
+        ]),
+      },
+    });
+  });
+
+  it("Git-only отказ не скрывает доступные файлы и инструкции", async () => {
+    await rm(join(root, ".git"), { recursive: true, force: true });
+    const client = await connect("modern");
+    const context = await client.callTool({
+      name: "realize_get_context",
+      arguments: {},
+    });
+    expect(context.isError).not.toBe(true);
+    expect(context.structuredContent).toMatchObject({
+      data: {
+        repository: null,
+        modules: expect.arrayContaining([
+          { id: "repository", status: "ready", reasonCode: null },
+          {
+            id: "git",
+            status: "unavailable",
+            reasonCode: "DEPENDENCY_UNAVAILABLE",
+          },
+        ]),
+      },
+    });
+    const file = await client.callTool({
+      name: "repo_read_file",
+      arguments: { path: "src/a.ts" },
+    });
+    expect(file.isError).not.toBe(true);
+  });
+
+  it("HEAD доступен без чтения повреждённого индекса и состояния файлов", async () => {
+    const head = (await git.run(["rev-parse", "HEAD"])).trim();
+    await writeFile(join(root, ".git/index"), "invalid fixture index");
+    const client = await connect("modern");
+    const context = await client.callTool({
+      name: "realize_get_context",
+      arguments: {},
+    });
+    expect(context.isError).not.toBe(true);
+    expect(context.structuredContent).toMatchObject({
+      data: {
+        repository: {
+          head,
+          branch: "main",
+          dirty: null,
+          dirtyStatus: "not_checked",
+        },
+      },
+    });
   });
 
   it.each(["modern", "legacy"] as const)(
@@ -181,7 +245,13 @@ describe("MCP: loopback HTTP и read-only Git", () => {
       });
       expect(context.structuredContent).toMatchObject({
         ok: true,
-        data: { repository: { branch: "main", dirty: false } },
+        data: {
+          repository: {
+            branch: "main",
+            dirty: null,
+            dirtyStatus: "not_checked",
+          },
+        },
       });
       for (const [name, arguments_] of [
         ["repo_list_files", { path: "src" }],
@@ -239,7 +309,7 @@ describe("MCP: loopback HTTP и read-only Git", () => {
     ).toBe(413);
     expect(await (await fetch(`${running.origin}/health`)).json()).toEqual({
       status: "ok",
-      version: "1.3.0",
+      version: MCP_SERVER_VERSION,
     });
   });
   it("отзыв ключа закрывает следующий вызов после discovery", async () => {

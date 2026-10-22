@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/walkRepository.service.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.0.1
+ * @date 2026-10-20
  * @description Обходит разрешённые metadata репозитория с ограничением числа entries.
  */
 import { lstat, opendir } from "node:fs/promises";
@@ -9,6 +9,7 @@ import { basename, dirname, join } from "node:path";
 import { openRepositoryDirectory } from "./openRepositoryDirectory.adapter";
 import { RepositoryReadError } from "./RepositoryRead.error";
 import type {
+  RepositoryDirectory,
   RepositoryReadPolicy,
   RepositoryWalk,
   RepositoryWalkOptions,
@@ -48,6 +49,8 @@ export async function walkRepository(
     path: string,
     level: number,
     include = true,
+    heldParent?: RepositoryDirectory,
+    assertAncestorCheckouts?: () => Promise<void>,
   ): Promise<void> {
     assertRepositoryReadActive(options.signal);
     if (result.inspectedEntries >= limit) {
@@ -57,10 +60,13 @@ export async function walkRepository(
     result.inspectedEntries++;
     if (!isRepositoryPathAllowed(policy, path)) return;
     try {
-      const parent = await openRepositoryDirectory(
-        policy,
-        dirname(path) === "." ? "" : dirname(path),
-      );
+      // DFS удерживает проверенного родителя до завершения детей; повторное открытие цепочки не нужно.
+      const parent =
+        heldParent ??
+        (await openRepositoryDirectory(
+          policy,
+          dirname(path) === "." ? "" : dirname(path),
+        ));
       let stat;
       try {
         stat = await lstat(join(parent.descriptorPath, basename(path)), {
@@ -68,7 +74,7 @@ export async function walkRepository(
         });
         await parent.verify();
       } finally {
-        await parent.close();
+        if (!heldParent) await parent.close();
       }
       if (stat.isSymbolicLink()) return;
       const fingerprint = [
@@ -80,6 +86,28 @@ export async function walkRepository(
       ].join(":");
       if (stat.isDirectory()) {
         const held = await openRepositoryDirectory(policy, path);
+        const assertCheckouts = async () => {
+          await assertAncestorCheckouts?.();
+          const nestedGit = await lstat(
+            join(held.descriptorPath, ".git"),
+          ).catch((error: NodeJS.ErrnoException) => {
+            if (error.code === "ENOENT") return null;
+            throw error;
+          });
+          if (nestedGit)
+            throw new RepositoryReadError(
+              "FORBIDDEN",
+              "Вложенные репозитории недоступны.",
+            );
+        };
+        const guarded: RepositoryDirectory = {
+          ...held,
+          verify: async () => {
+            // Переиспользование descriptor не разрешает поздно появившийся вложенный checkout.
+            await assertCheckouts();
+            await held.verify();
+          },
+        };
         try {
           if (include)
             result.entries.push({
@@ -92,10 +120,16 @@ export async function walkRepository(
             const directory = await opendir(held.descriptorPath);
             for await (const child of directory) {
               if (result.truncated) break;
-              await visit(`${path}/${child.name}`, level + 1);
+              await visit(
+                `${path}/${child.name}`,
+                level + 1,
+                true,
+                guarded,
+                assertCheckouts,
+              );
             }
           }
-          await held.verify();
+          await guarded.verify();
         } finally {
           await held.close();
         }

@@ -1,17 +1,18 @@
 /**
  * @file .ai/tools/git-delivery/src/read/readGitMetadata.adapter.ts
- * @version 1.1.0
- * @date 2026-09-24
+ * @version 1.1.1
+ * @date 2026-10-20
  * @description Читает только имена, режимы и object IDs без содержимого исторических файлов.
  */
-import { Git, GitFailure } from "../Git.adapter.ts";
+import { Git } from "../Git.adapter.ts";
 import { RepositoryReadError } from "../../../../../services/ai-control-plane/src/RepositoryRead.error";
 import { hashRepositorySnapshot } from "../../../../../services/ai-control-plane/src/RepositoryCursor.service";
 import type { GitReadContext, GitReadEntry } from "./GitRead.types";
+import { readGitHead } from "./readGitHead.adapter";
 
 /** Проверяет Git dependency по ограниченным metadata, без обхода и хеширования файлов checkout. */
 export async function probeGitRead(context: GitReadContext): Promise<void> {
-  await readGitMetadata(context);
+  await readGitHead(context);
 }
 
 export async function readGitMetadata(context: GitReadContext) {
@@ -21,24 +22,7 @@ export async function readGitMetadata(context: GitReadContext) {
   });
   const run = (args: string[]) =>
     git.run(args, { machineRead: true, signal: context.signal });
-  if (
-    (await run(["rev-parse", "--show-toplevel"])).trimEnd() !==
-    context.policy.root
-  )
-    throw new RepositoryReadError(
-      "FORBIDDEN",
-      "Git root не совпадает с рабочей областью.",
-    );
-  const optional = async (args: string[]) => {
-    try {
-      return (await run(args)).trim();
-    } catch (error) {
-      if (error instanceof GitFailure && error.exitCode === 1) return null;
-      throw error;
-    }
-  };
-  const head = await optional(["rev-parse", "--verify", "--quiet", "HEAD"]);
-  const branch = await optional(["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  const { head, branch } = await readGitHead(context);
   const objectFormat = (
     await run(["rev-parse", "--show-object-format"])
   ).trim();

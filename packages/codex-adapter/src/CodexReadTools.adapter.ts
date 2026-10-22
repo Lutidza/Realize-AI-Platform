@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/CodexReadTools.adapter.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-10-22
  * @description Ограничивает server-owned dynamic tools чтением в пределах одного turn Codex.
  */
 
@@ -187,7 +187,12 @@ export class CodexReadTools {
         (historicalItem
           ? this.childTurns.get(threadID)?.has(turnID) === true
           : this.children.get(threadID) === turnID) &&
-        ["repo_search", "repo_read_file", "repo_list_files"].includes(name))
+        [
+          "repo_search",
+          "repo_read_file",
+          "repo_list_files",
+          "repo_git_head",
+        ].includes(name))
     );
   }
 

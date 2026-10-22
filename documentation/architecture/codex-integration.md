@@ -216,7 +216,13 @@ UTF-8, включая исходники. Доступны выбор файло
 штатным `localImage`; текстовые вложения и выбранные исходники включаются в
 контекст. Профиль `realize_chat_snapshot` разрешает чтение подготовленного
 снимка и минимальных системных файлов. Приватное хранилище вложений, `CODEX_HOME`
-и файлы WIF недоступны инструментам чата. Веб-поиск разрешён только при
+и файлы WIF недоступны инструментам чата. Рабочий каталог модели — временный
+Context Pack, а не Git checkout проекта; `.git` в него не копируется. Ошибка
+локальной команды Git в этом каталоге не описывает доступность Git проекта.
+Текущие HEAD/branch запрашиваются только через предоставленный сервером
+`repo_git_head`; без этого инструмента чат сообщает об отсутствии доступа к
+Git-метаданным, сохраняя отдельный результат проверки файлов.
+Веб-поиск разрешён только при
 `analysis-readonly` и явном
 `webSearch: true`; обычный чат по умолчанию, исполнитель кода и reviewer
 сохраняют отключённый поиск. Источники берутся из данных провайдера, проходят
@@ -308,6 +314,35 @@ read-only `agent_turn` с exact шаблоном шага; orchestration и chec
 принадлежат Payload/Change Engine. В обычном чате workflows не запускаются.
 Capability/check metadata не предоставляет полномочий и не подтверждает checks.
 Контракт сегментов и продолжения описан в [workflow runtime](../specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md#108-исполнение-workflow-сегментами).
+
+22 октября 2026 года в локальном `installation-config-v8` впервые активирован профиль
+`platform.engineering` — **«Инженер платформы»** (`ru-RU`). Он объединяет роль
+`platform.engineer`, правила `platform.engineering-evidence` и
+`platform.engineering-governed-changes`, навык `platform.repository-diagnosis`.
+Назначение — диагностика, проверка архитектуры и контрактов по текущим исходникам,
+подготовка последовательного плана изменений и соответствующих проверок.
+Выводы связываются с фактически прочитанными источниками, строками и sourceUrl;
+ограничения поиска и невыполненные проверки остаются явными.
+
+Профиль не добавляет tools или права: repository reader предоставляет server
+policy, а изменение кода и данных проходит существующие управляемые процессы.
+Capability/check/workflow bindings пусты — отдельные инженерные IDs в текущем
+system registry отсутствуют. Сохранены все 27 артефактов прежнего выпуска,
+включая дизайнера и контент-менеджера; добавлены пять инженерных артефактов.
+Конфигурация прошла штатные draft validation, release и pointer CAS; это не
+подменяет проверку поведения модели. Активация влияет на новый выбор профиля,
+исторические snapshots runs сохраняются.
+
+Текущее локальное состояние после обновления 22 октября: System AI `1.1.4`
+и `installation-config-v9`, pointer version `9`. Все 32 content hashes из v8
+сохранены, тексты инженерного профиля не менялись. Новый runtime различает
+Context Pack и рабочий репозиторий; `repo_git_head` читает Git metadata через
+серверный owner. Реальный run `102`, conversation `59`, завершился с exact
+snapshot инженера/v9/system `1.1.4`: подтверждены HEAD/branch, поиск и чтение
+исходника с sourceUrl и SHA-256. Проверка выполнена через зарегистрированные
+handlers и terminal SSE в режиме `direct`. Это не авторизованный browser E2E;
+остальные consumers проходят отдельную installed acceptance.
+Binding, hashes и границы приёмки — в [локальном runbook](../delivery/01-local-admin-ai.md).
 
 Снимок ограничен 2 000 000 сериализованных символов и 8 МиБ UTF-8, renderer —
 128 КиБ, итоговый JSON с `developerInstructions` и `prompt` — 256 КиБ UTF-8.
@@ -447,9 +482,20 @@ call одновременно и timeout 10 секунд. Продолжение
 Ссылка на строки `/api/realize-ai/chat/project-file` повторно проверяет chat ACL,
 право чтения инструкций и hash файла при открытии.
 
+`repo_git_head` с пустыми аргументами `{}` читает только `head`, `branch`,
+`detached` и `unborn` того же серверного workspace. Он использует ограниченный
+Git reader с общим deadline и проверкой согласованности HEAD/branch, без
+полного файлового снимка, status, diff, записи индекса или произвольных Git-команд.
+Инструмент подчинён существующему repository ACL, отмене и общему budget run;
+новых прав профиль инженера не выдаёт. `head:null` при `unborn:true` означает
+отсутствие первого коммита, а `branch:null` при `detached:true` — detached HEAD.
+Ответ не определяет чистоту рабочего дерева. Ошибки Git не закрывают доступный
+файловый reader и не подтверждают потерю связи с платформой.
+
 В direct используются dynamic functions родителя. Native child не наследует
 эти функции: на время run создаётся приватный loopback MCP `realize_repository`
-с тремя `repo_*` средствами и server-owned credential в отдельной env variable.
+с четырьмя `repo_*` средствами, включая `repo_git_head`, и server-owned credential
+в отдельной env variable.
 Credential не передаётся в prompt, argv или logs. Обычные CMS dynamic callbacks
 child запрещены; их notification binding не заменяет inherited MCP transport.
 Родитель и child используют общий budget и serial reader. После turn сервер

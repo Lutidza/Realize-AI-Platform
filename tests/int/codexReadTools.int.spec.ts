@@ -1,8 +1,8 @@
 /**
  * @file tests/int/codexReadTools.int.spec.ts
- * @version 1.2.0
- * @date 2026-10-05
- * @description Проверяет привязку read tools к turn и закрытый RPC без обращения к модели.
+ * @version 1.2.1
+ * @date 2026-10-22
+ * @description Проверяет привязку read tools, Git HEAD native child и закрытый RPC без обращения к модели.
  */
 
 // @vitest-environment node
@@ -87,11 +87,16 @@ const input: RunTurnInput = {
   runID: "fixture-run",
   sandboxProfile: "analysis-readonly",
 };
-const collect = async (readTools?: AgentReadTools, run = input) => {
+const collect = async (
+  readTools?: AgentReadTools,
+  run = input,
+  options: Partial<ConstructorParameters<typeof OpenAICodexAdapter>[0]> = {},
+) => {
   const events: AgentEvent[] = [];
   for await (const event of new OpenAICodexAdapter({
     environment: { NODE_ENV: "test", CODEX_HOME: "/fixture-profile" },
     readTools,
+    ...options,
   }).runTurn(run))
     events.push(event);
   return events;
@@ -109,11 +114,13 @@ beforeEach(() => {
   rpc.request
     .mockReset()
     .mockImplementation(async (method: string) =>
-      method.startsWith("thread/")
-        ? { thread: { id: params.threadId } }
-        : method === "turn/start"
-          ? { turn: { id: params.turnId } }
-          : {},
+      method === "thread/list"
+        ? { data: [], nextCursor: null }
+        : method.startsWith("thread/")
+          ? { thread: { id: params.threadId } }
+          : method === "turn/start"
+            ? { turn: { id: params.turnId } }
+            : {},
     );
   rpc.notifications = [
     {
@@ -132,84 +139,185 @@ beforeEach(() => {
 afterEach(() => vi.useRealTimers());
 
 describe("Codex server-owned read tools", () => {
-  it("даёт repo callbacks только подтверждённому native child; CMS, чужой parent и закрытый child запрещены", async () => {
-    const execute = vi.fn().mockResolvedValue({ ok: true });
-    const repository = { ...definitions[0], name: "repo_search" };
-    const tools = new CodexReadTools(
-      { definitions: [definitions[0], repository], execute },
-      true,
-    );
-    // Эти notifications могут прийти в одном chunk с turn/start до bind parent.
-    tools.observeNotification({
-      method: "thread/started",
-      params: {
-        thread: {
-          id: "child-thread",
-          source: {
-            subAgent: {
-              thread_spawn: { parent_thread_id: params.threadId, depth: 1 },
+  it.each(["repo_search", "repo_git_head"])(
+    "даёт %s только подтверждённому native child; CMS, чужой parent и закрытый child запрещены",
+    async (name) => {
+      const execute = vi.fn().mockResolvedValue({ ok: true });
+      const repository = { ...definitions[0], name };
+      const tools = new CodexReadTools(
+        { definitions: [definitions[0], repository], execute },
+        true,
+      );
+      // Эти notifications могут прийти в одном chunk с turn/start до bind parent.
+      tools.observeNotification({
+        method: "thread/started",
+        params: {
+          thread: {
+            id: "child-thread",
+            source: {
+              subAgent: {
+                thread_spawn: { parent_thread_id: params.threadId, depth: 1 },
+              },
             },
           },
         },
-      },
-    });
-    tools.observeNotification({
-      method: "turn/started",
-      params: { threadId: "child-thread", turn: { id: "child-turn" } },
-    });
-    tools.bind(params.threadId, params.turnId);
-    const child = {
-      ...params,
-      threadId: "child-thread",
-      turnId: "child-turn",
-      tool: "repo_search",
-    };
-    expect((await tools.handleRequest("item/tool/call", child)).success).toBe(
-      true,
-    );
-    await expect(
-      tools.handleRequest("item/tool/call", {
-        ...child,
-        callId: "cms-child-call",
-        tool: "pages_search",
-      }),
-    ).rejects.toThrow();
-    await expect(
-      tools.handleRequest("item/tool/call", {
-        ...child,
-        callId: "other-child-call",
-        threadId: "other-thread",
-      }),
-    ).rejects.toThrow();
-    tools.observeNotification({
-      method: "item/completed",
-      params: {
-        threadId: params.threadId,
-        item: {
-          type: "collabAgentToolCall",
-          tool: "closeAgent",
-          status: "completed",
-          receiverThreadIds: ["child-thread"],
+      });
+      tools.observeNotification({
+        method: "turn/started",
+        params: { threadId: "child-thread", turn: { id: "child-turn" } },
+      });
+      tools.bind(params.threadId, params.turnId);
+      const child = {
+        ...params,
+        threadId: "child-thread",
+        turnId: "child-turn",
+        tool: name,
+        arguments: name === "repo_git_head" ? {} : params.arguments,
+      };
+      expect((await tools.handleRequest("item/tool/call", child)).success).toBe(
+        true,
+      );
+      await expect(
+        tools.handleRequest("item/tool/call", {
+          ...child,
+          callId: "cms-child-call",
+          tool: "pages_search",
+        }),
+      ).rejects.toThrow();
+      await expect(
+        tools.handleRequest("item/tool/call", {
+          ...child,
+          callId: "other-child-call",
+          threadId: "other-thread",
+        }),
+      ).rejects.toThrow();
+      tools.observeNotification({
+        method: "item/completed",
+        params: {
+          threadId: params.threadId,
+          item: {
+            type: "collabAgentToolCall",
+            tool: "closeAgent",
+            status: "completed",
+            receiverThreadIds: ["child-thread"],
+          },
         },
-      },
-    });
-    await expect(
-      tools.handleRequest("item/tool/call", {
-        ...child,
-        callId: "closed-child-call",
-      }),
-    ).rejects.toThrow();
-    // Уже доставленные item notifications сохраняют binding после close в том же RPC chunk.
-    expect(
-      tools.allowsItem(
-        { id: "completed-child-item", tool: "repo_search" },
-        "child-thread",
-        "child-turn",
-      ),
-    ).toBe(true);
-    expect(execute).toHaveBeenCalledTimes(1);
-    tools.close();
-  });
+      });
+      await expect(
+        tools.handleRequest("item/tool/call", {
+          ...child,
+          callId: "closed-child-call",
+        }),
+      ).rejects.toThrow();
+      // Уже доставленные item notifications сохраняют binding после close в том же RPC chunk.
+      expect(
+        tools.allowsItem(
+          { id: "completed-child-item", tool: name },
+          "child-thread",
+          "child-turn",
+        ),
+      ).toBe(true);
+      expect(execute).toHaveBeenCalledTimes(1);
+      tools.close();
+    },
+  );
+
+  it.each(["parent", "child"])(
+    "принимает native Git HEAD lifecycle от %s без раскрытия raw результата",
+    async (owner) => {
+      const threadId = owner === "parent" ? params.threadId : "native-child";
+      const turnId = owner === "parent" ? params.turnId : "native-child-turn";
+      const item = {
+        type: "mcpToolCall",
+        id: "native-git-head",
+        server: "realize_repository",
+        tool: "repo_git_head",
+        status: "completed",
+        result: { privateResult: "fixture-raw-git-output" },
+      };
+      const completed = {
+        method: "turn/completed",
+        params: {
+          threadId,
+          turn: {
+            id: turnId,
+            status: "completed",
+            items: [item, { type: "agentMessage", text: "HEAD проверен." }],
+          },
+        },
+      };
+      rpc.notifications = [
+        ...["item/started", "item/completed"].map((method) => ({
+          method,
+          params: { threadId, turnId, item },
+        })),
+        completed,
+        ...(owner === "child" ? rpc.notifications : []),
+      ];
+      const events = await collect(undefined, input, {
+        repositoryMcpURL: "http://127.0.0.1:43111/mcp",
+        search: {
+          enabled: true,
+          mode: "subagent",
+          model: "fixture-search",
+          developerInstructions: false,
+        },
+      });
+      expect(events.some((event) => event.type === "run.failed")).toBe(false);
+      expect(
+        events.filter((event) => event.type === "assistant.completed"),
+      ).toEqual([
+        {
+          type: "assistant.completed",
+          content: owner === "parent" ? "HEAD проверен." : "Найдена страница.",
+        },
+      ]);
+      expect(events.filter((event) => event.type.startsWith("tool."))).toEqual(
+        owner === "parent"
+          ? [
+              { type: "tool.started", summary: "Чтение Git HEAD начато." },
+              {
+                type: "tool.completed",
+                summary: "Чтение Git HEAD завершено.",
+                status: "completed",
+              },
+            ]
+          : [],
+      );
+      expect(JSON.stringify(events)).not.toContain("fixture-raw-git-output");
+      expect(rpc.close).toHaveBeenCalledOnce();
+    },
+  );
+  it.each([
+    { server: "foreign_repository", tool: "repo_git_head", enabled: true },
+    { server: "realize_repository", tool: "repo_git_write", enabled: true },
+    { server: "realize_repository", tool: "repo_git_head", enabled: false },
+  ])(
+    "отклоняет native MCP вне допуска: $server/$tool enabled=$enabled",
+    async ({ server, tool, enabled }) => {
+      rpc.notifications.unshift({
+        method: "item/started",
+        params: {
+          threadId: "native-child",
+          turnId: "native-child-turn",
+          item: { type: "mcpToolCall", id: "untrusted-head", server, tool },
+        },
+      });
+      const events = await collect(undefined, input, {
+        repositoryMcpURL: "http://127.0.0.1:43111/mcp",
+        search: {
+          enabled,
+          mode: "subagent",
+          model: "fixture-search",
+          developerInstructions: false,
+        },
+      });
+      expect(events.at(-1)?.type).toBe("run.failed");
+      expect(events.some((event) => event.type === "assistant.completed")).toBe(
+        false,
+      );
+    },
+  );
   it("регистрирует точные function definitions только в новом experimental thread и сохраняет sandbox", async () => {
     const execute = vi
       .fn()

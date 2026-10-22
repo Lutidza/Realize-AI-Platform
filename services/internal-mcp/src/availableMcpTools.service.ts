@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/availableMcpTools.service.ts
- * @version 1.2.0
- * @date 2026-09-30
+ * @version 1.3.0
+ * @date 2026-10-22
  * @description Пересекает существующие регистрации с текущим principal и доверенной конфигурацией.
  */
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
@@ -17,9 +17,12 @@ export function availableMcpTools(
     return principal.repositoryRead
       ? principal.allowedTools.filter(
           (name) =>
-            ["repo_search", "repo_read_file", "repo_list_files"].includes(
-              name,
-            ) &&
+            [
+              "repo_search",
+              "repo_read_file",
+              "repo_list_files",
+              "repo_git_head",
+            ].includes(name) &&
             options.repositoryTools!.definitions.some(
               (tool) => tool.name === name,
             ),
