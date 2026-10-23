@@ -36,7 +36,9 @@ SQLite, monitor, bootstrap и отдельный coordinator для этого �
 2. Сохрани реальный handle после запуска. Выполняй независимую часть задачи,
    принимай сообщения и разрешай конфликты scope. Поиск можно вести напрямую;
    отдельный search-worker требуется только для полезного разделения работы.
-3. Дождись результата или остановки. Для external получи exit status и output;
+3. Дождись результата или остановки по
+   [правилу ожидания](../../../rules/worker-runtime/RULE-WORKER-CONTEXT-BUDGET-AND-REUSE.md#ожидание-процессов-и-воркеров).
+   Для external получи exit status и output;
    при отмене или blocker останови процесс либо передай его явному владельцу
    с причиной и следующим шагом. Запись статуса сама по себе процесс не останавливает.
 4. Проверь результат, существенный diff, границы и checks. Прими результат либо
@@ -72,6 +74,7 @@ SQLite, monitor, bootstrap и отдельный coordinator для этого �
    условием задания, доступен direct/native режим без synthetic state.
    Launch не стартует сервисы и не меняет порты; lifecycle сервисов принадлежит
    `.ai/workflows/ai-operations/agent-monitor-service-lifecycle/WORKFLOW.md`.
+
 5. После настоящего `codex exec` сохрани process handle и process record,
    затем `running`/`working`. Изменяй lifecycle/presence по фактическому состоянию.
    `process-upsert` и `operator-command-dispatch stop` не являются исполнителем

@@ -4,10 +4,22 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "24.18.x",
-    "npm": "11.15.x"
+    "node": "24.18.0",
+    "npm": "11.15.0"
   },
   "packageManager": "npm@11.15.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.18.0",
+      "onFail": "error"
+    },
+    "packageManager": {
+      "name": "npm",
+      "version": "11.15.0",
+      "onFail": "error"
+    }
+  },
   "workspaces": [
     "packages/*"
   ],

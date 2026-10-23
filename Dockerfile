@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
 # @file Dockerfile
-# @version 1.0.1
-# @date 2026-09-15
+# @version 1.0.3
+# @date 2026-10-23
 # @description Собирает общий runtime образ приложения и штатного Media worker.
 
 ARG NODE_IMAGE=node:24.18.0-bookworm-slim@sha256:6f7b03f7c2c8e2e784dcf9295400527b9b1270fd37b7e9a7285cf83b6951452d
@@ -21,11 +21,12 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="" \
     REALIZE_BUILD_WITHOUT_DATABASE=true
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 COPY packages ./packages
 COPY scripts/runtime/verify-runtime.mjs ./scripts/runtime/verify-runtime.mjs
+COPY scripts/runtime/readProjectRuntime.config.mjs scripts/runtime/verifyProjectRuntimePins.service.mjs ./scripts/runtime/
 COPY scripts/runtime/patches ./scripts/runtime/patches
-RUN npm run verify:runtime && npm ci
+RUN npm run verify:runtime -- --runtime-only && npm ci
 
 COPY . .
 RUN npm run build \

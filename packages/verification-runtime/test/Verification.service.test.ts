@@ -36,6 +36,13 @@ import type {
 async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), "realize-verification-test-"));
   t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({
+      engines: { node: process.versions.node, npm: "1.0.0" },
+      packageManager: "npm@1.0.0",
+    }),
+  );
   await writeFile(join(root, "one.txt"), "one");
   await writeFile(join(root, "two.txt"), "two");
   const check = (id: string): VerificationCheck => ({

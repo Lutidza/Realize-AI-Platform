@@ -7,6 +7,12 @@ skills и procedures. Активные проектные rules/checks/workflows
 При конфликте `.ai/**` имеет приоритет; `.codex/**` синхронизируется как
 adapter и не создаёт отдельный источник системных правил.
 
+Команды проекта и AI tooling выполняй из корня обычными `node`, `npm` и `npx`.
+Codex запускай в окружении с установленной закреплённой парой Node/npm по
+[правилу runtime](../.ai/rules/development/RULE-DEPENDENCY-VERSION-EVIDENCE-BEFORE-INSTALL.md#единый-runtime-проекта).
+Проверь её командой `npm run verify:runtime`; после изменения локальных настроек
+окружения открой новую сессию.
+
 ## Загрузка инструкций
 
 Структура активного слоя проверяется `npm run ai:quality:structure` по
@@ -58,14 +64,15 @@ runtime не запускается самим изменением локаль
 
 ## Git
 
-[Git-навык](skills/git-commit-push/SKILL.md) передаёт `inspect`, `commit`, `push`,
-`manage`, `fetch`, `pull` и `merge` отдельному ограниченному воркеру. Для `manage` контекст
+[Git-навык](skills/git-commit-push/SKILL.md) выполняет `inspect` через программный
+адаптер без модели. `commit`, `push`, `manage` (включая чтение), `fetch`, `pull`
+и `merge` передаются отдельному ограниченному модельному воркеру. Для `manage` контекст
 назначает одну операцию с remote, worktrees, веткой, log или diff; pull допускает
 только fast-forward. `merge` создаёт GitHub commit из проверенного candidate tree
 с двумя закреплёнными parents и обновляет только назначенную ref; локальная
 копия актуализируется отдельным `pull`. Обработчик использует общий
 `@realize/git-runtime` с платформой и GPT/MCP; `.ai` задаёт разрешения и критерии
-development-маршрута. Прямой импорт пакета не заменяет отдельного Git-воркера.
+development-маршрута. Прямой импорт пакета не заменяет разрешённый адаптер.
 Настройка GitHub из БД и авторизация CLI профиля
 воркера имеют разные владельцев; параметры подключения не передаются модели.
 
@@ -89,12 +96,14 @@ Managed instances управляются из «MCP-серверы» в Admin. �
 Режимы, инструменты S1 и fallback описаны в
 [MCP tooling](../documentation/architecture/mcp-tooling.md).
 
-`http_headers_helper` вызывает `scripts/runtime/readLocalMcpHeaders.controller.mjs`
-на exact Node локальной установки и получает ключ из `REALIZE_MCP_CLIENT_TOKEN`
+Stdio adapters используют `command = "npx"`; `http_headers_helper`
+запускает `node scripts/runtime/readLocalMcpHeaders.controller.mjs`
+из корня проекта и получает ключ из `REALIZE_MCP_CLIENT_TOKEN`
 или закрытого `~/.local/share/realize-ai-cms/internal-mcp.env`. Значение не
 хранится в TOML. На другой машине нужны собственные service/credential и
-актуальный путь runtime. Новые tools доступны после открытия новой Codex
-сессии; наличие config проверяется отдельно от фактического подключения.
+установленная закреплённая пара Node/npm в `PATH` запускающего клиента.
+Новые tools доступны после открытия
+новой Codex сессии; наличие config проверяется отдельно от фактического подключения.
 
 Availability проверяется фактически. Codex runtime может требовать зеркалировать
 project entries в активный user config, но session-provided tools/plugins не

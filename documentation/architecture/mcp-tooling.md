@@ -216,10 +216,16 @@ PostgreSQL query отменяется до возврата занятой sessi
 ```toml
 [mcp_servers.realize-internal]
 url = "http://127.0.0.1:4319/mcp"
-http_headers_helper = "\"$HOME/.local/share/realize-ai-cms/node-24.18.0/bin/node\" scripts/runtime/readLocalMcpHeaders.controller.mjs"
+http_headers_helper = "node scripts/runtime/readLocalMcpHeaders.controller.mjs"
 startup_timeout_sec = 20
 tool_timeout_sec = 30
 ```
+
+Клиент запускается из корня проекта с `PATH`, в котором выбрана точная пара
+Node/npm из root `package.json`, по
+[контракту runtime](../../.ai/rules/development/RULE-DEPENDENCY-VERSION-EVIDENCE-BEFORE-INSTALL.md#единый-runtime-проекта).
+Stdio adapters в том же config используют `command = "npx"`; helper использует
+`node` из окружения клиента. До запуска клиента выполни `npm run verify:runtime`.
 
 Helper читает `REALIZE_MCP_CLIENT_TOKEN` из client environment либо из
 `~/.local/share/realize-ai-cms/internal-mcp.env` и отдаёт JSON headers только
@@ -245,8 +251,9 @@ curl --fail http://127.0.0.1:4319/health
 ```
 
 На другой машине service, runtime и credential настраиваются отдельно;
-entry не создаёт их автоматически. После изменения config нужна новая Codex
-сессия. Автоматический probe подтвердил подключение и вызовы трёх S1 tools
+entry не создаёт их автоматически. После изменения config или локального
+окружения нужна новая Codex сессия. Прежний автоматический probe подтвердил
+подключение и вызовы трёх S1 tools
 через настоящий Codex app-server с ephemeral thread, без model turn;
 `AGENTS.md` совпал с прямым чтением по байтам и hash. Это не включает outbound
 MCP у продуктового execution worker.

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/verification/gitVerificationOptions.config.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.0.1
+ * @date 2026-10-23
  * @description Задаёт личное хранилище IDE receipts и обязательные исходники Git materializer для общего runner.
  */
 import type {
@@ -26,6 +26,7 @@ export function gitVerificationOptions(
       ".ai/tools/git-delivery/src/verification/runGitVerification.controller.ts",
       ".ai/tools/git-delivery/src/worker/verification",
       ".ai/tools/git-delivery/src/worker/runVerifiedGitWorker.service.ts",
+      ".ai/tools/git-delivery/src/worker/runGitInspect.service.ts",
       ".ai/tools/git-delivery/src/worker/loadGitWorkerContext.adapter.ts",
       ".ai/tools/git-delivery/src/GitJournal.repository.ts",
       ".ai/tools/git-delivery/src/GitJournal.types.ts",

@@ -1,12 +1,13 @@
 /**
  * @file packages/verification-runtime/src/readVerificationRuntime.adapter.ts
- * @version 1.1.0
- * @date 2026-10-22
- * @description Привязывает проверку к текущему Node и npm executable, а не к произвольному shell launcher.
+ * @version 1.2.0
+ * @date 2026-10-23
+ * @description Проверяет проектные версии Node/npm и связывает выбранные executable с evidence.
+ * @see documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md
  */
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
-import { realpath, stat } from "node:fs/promises";
+import { readFile, realpath, stat } from "node:fs/promises";
 import { dirname, resolve, delimiter, basename } from "node:path";
 import { PolicyError } from "@realize/git-runtime";
 import type {
@@ -60,9 +61,36 @@ async function executableIdentity(path: string): Promise<string> {
 }
 
 export async function readVerificationRuntime(
+  root: string,
   check: VerificationCheck,
   environment: NodeJS.ProcessEnv,
 ): Promise<VerificationRuntime> {
+  let expected;
+  try {
+    const manifest = JSON.parse(
+      await readFile(resolve(root, "package.json"), "utf8"),
+    );
+    const { node, npm } = manifest.engines ?? {};
+    if (
+      typeof node !== "string" ||
+      typeof npm !== "string" ||
+      !/^\d+\.\d+\.\d+$/.test(node) ||
+      !/^\d+\.\d+\.\d+$/.test(npm) ||
+      manifest.packageManager !== `npm@${npm}`
+    )
+      throw new Error("invalid runtime pins");
+    expected = { node, npm };
+  } catch {
+    throw new PolicyError(
+      "verification_runtime_manifest_invalid",
+      "Корневой package.json должен задавать точные согласованные engines.node, engines.npm и packageManager.",
+    );
+  }
+  if (process.versions.node !== expected.node)
+    throw new PolicyError(
+      "verification_node_version_mismatch",
+      `Нужен Node.js ${expected.node}; запущен ${process.versions.node}. Выберите проектный runtime и перезапустите IDE или worker.`,
+    );
   const executable = await realpath(process.execPath);
   const prefix: string[] = [];
   if (check.command[0] === "npm") {
@@ -98,6 +126,25 @@ export async function readVerificationRuntime(
         "verification_executable_invalid",
         "Раскладка npm не позволяет подтвердить всё установленное дерево.",
       );
+    // Читаем версию выбранного npm из его пакета: status не запускает даже npm --version.
+    let npmVersion;
+    try {
+      npmVersion = JSON.parse(
+        await readFile(resolve(dirname(npm), "../package.json"), "utf8"),
+      ).version;
+      if (typeof npmVersion !== "string" || !/^\d+\.\d+\.\d+$/.test(npmVersion))
+        throw new Error("invalid npm version");
+    } catch {
+      throw new PolicyError(
+        "verification_runtime_manifest_invalid",
+        "package.json выбранного npm должен содержать точную version.",
+      );
+    }
+    if (npmVersion !== expected.npm)
+      throw new PolicyError(
+        "verification_npm_version_mismatch",
+        `Нужен npm ${expected.npm}; выбран ${npmVersion}. Выберите проектный runtime и перезапустите IDE или worker.`,
+      );
     prefix.push(npm);
   }
   const identities = await Promise.all(
@@ -117,6 +164,7 @@ export async function readVerificationRuntime(
       prefix,
       identities,
       npmDependencies,
+      expected,
       version: process.version,
       versions: process.versions,
       platform: process.platform,

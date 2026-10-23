@@ -48,11 +48,20 @@ entries:
         .ai/checks/worker-runtime/CHECK-WORKER-CONTEXT-BUDGET-REUSE.md,
         .ai/checks/worker-runtime/CHECK-WORKER-ASSIGNMENT-SCOPE.md,
       ]
-    related_workflows: [.ai/workflows/core/worker-assignment/WORKFLOW.md]
-    related_codex_artifacts: []
+    related_workflows:
+      [
+        .ai/workflows/core/worker-assignment/WORKFLOW.md,
+        .ai/workflows/core/worker-session/WORKFLOW.md,
+        .ai/workflows/core/main-delivery/WORKFLOW.md,
+      ]
+    related_codex_artifacts:
+      [
+        .codex/skills/git-commit-push/SKILL.md,
+        .codex/skills/codex-external-worker-session/SKILL.md,
+      ]
     related_tools: []
-    routing_tags: [worker-runtime, context, reuse]
-    trigger: "Before reusing or spawning a worker session."
+    routing_tags: [worker-runtime, context, reuse, process-wait]
+    trigger: "Повторное использование/создание worker-сессии, передача контекста или ожидание асинхронного процесса основным агентом/worker-ом."
   - entry_id: worker-dialog-coordination
     entry_type: active_rule
     status: active

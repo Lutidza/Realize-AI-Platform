@@ -13,6 +13,21 @@ scope: dependency_install_update_or_recommendation
 
 Запускать перед package install/update/recommendation, framework/tooling
 upgrade, MCP/plugin/skill install or Docker/tooling image tag change.
+При обычном запуске команды проекта проверяется только единый runtime ниже;
+повторное evidence latest без изменения зависимостей не требуется.
+
+## Единый runtime проекта
+
+- Команда проекта или AI tooling использует обычные `node`, `npm`, `npx`
+  из окружения с точной парой Node.js/npm из root `package.json`.
+- Окружение выбрано при запуске терминала, IDE, Codex, MCP-клиента или службы;
+  после изменения локальных настроек открыта новая сессия.
+- Общий runner до запуска checks проверяет Node, а для npm-команд — также npm;
+  несовпадение отклоняется с диагностикой требуемых версий, guard не обходится.
+- При изменении пары подтверждена официальная совместимость, атомарно согласованы
+  manifests/lockfile, version files, CI, Docker и прямые consumers.
+- `npm run verify:runtime` подтверждает согласованность pins и исполняемых версий.
+- Закреплённые версии не названы latest без актуального внешнего evidence.
 
 ## Входы
 

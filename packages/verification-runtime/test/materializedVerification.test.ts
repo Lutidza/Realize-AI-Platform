@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/test/materializedVerification.test.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.0.1
+ * @date 2026-10-23
  * @description Проверяет reuse между эквивалентными worktrees, непрозрачность materializer и границы source inventory.
  */
 import assert from "node:assert/strict";
@@ -36,7 +36,16 @@ async function fixture(t: TestContext) {
   const host = join(base, "host"),
     first = join(base, "first"),
     second = join(base, "second");
-  for (const root of [host, first, second]) await mkdir(root);
+  for (const root of [host, first, second]) {
+    await mkdir(root);
+    await writeFile(
+      join(root, "package.json"),
+      JSON.stringify({
+        engines: { node: process.versions.node, npm: "1.0.0" },
+        packageManager: "npm@1.0.0",
+      }),
+    );
+  }
   await mkdir(join(host, "node_modules/pkg"), { recursive: true });
   await writeFile(join(host, "node_modules/pkg/index.js"), "module.exports=1");
   for (const root of [first, second])

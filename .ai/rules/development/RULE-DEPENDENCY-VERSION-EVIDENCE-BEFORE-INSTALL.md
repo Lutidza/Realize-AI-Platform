@@ -22,6 +22,7 @@ applies_to:
   - CLI tools
   - build/test/dev dependencies
   - Docker/tooling image tags
+  - project Node.js/npm runtime
 ```
 
 ## Назначение
@@ -37,6 +38,27 @@ applies_to:
 проекта: `latest compatible`, явно заданную пользователем версию или
 обоснованный pinned constraint.
 
+## Единый runtime проекта
+
+Приложение, проверки, AI tooling и проектные MCP adapters используют одну точную
+пару Node.js/npm; единственный источник версий — корневой `package.json`.
+Выбирай установленную пару в окружении при запуске терминала, IDE, Codex,
+MCP-клиента или службы. Из корня репозитория используй обычные `node`, `npm`
+и `npx`; `npm run verify:runtime` проверяет фактические версии и согласованность
+pins. После изменения локальных настроек окружения открой новую сессию.
+
+Общий runner `packages/verification-runtime` до запуска checks проверяет Node,
+а для npm-команд — также npm; при несовпадении возвращает диагностический отказ. Исправь
+окружение запуска; не обходи guard отключением проверок или изменением pins
+ради одной команды.
+Обычный запуск на закреплённой паре не является обновлением зависимостей и
+не требует повторной проверки latest.
+
+Обновляй пару атомарно после проверки официальной совместимости по этому правилу:
+согласуй root engines/devEngines и workspace manifests/lockfile, version files, CI, Docker и
+прямых consumers. `verify:runtime` должен подтвердить единый контракт.
+Закреплённая версия не объявляется latest без актуального внешнего evidence.
+
 ## Условие срабатывания
 
 Правило применяется до любого действия или рекомендации, которые:
@@ -49,7 +71,8 @@ applies_to:
   test runner, build tool, linter, formatter или adapter;
 - обновляют lock-файл как следствие dependency change;
 - предлагают пользователю поставить конкретный package/version;
-- меняют Docker/tooling image tag, если tag является versioned dependency.
+- меняют Docker/tooling image tag, если tag является versioned dependency;
+- меняют закреплённую пару Node.js/npm проекта.
 
 ## Обязательное evidence
 

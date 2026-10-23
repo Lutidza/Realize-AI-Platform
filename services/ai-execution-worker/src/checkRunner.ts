@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/checkRunner.ts
- * @version 2.0.0
- * @date 2026-10-22
+ * @version 2.1.0
+ * @date 2026-10-23
  * @description Передаёт server-approved проверки общему runtime и преобразует source-bound evidence в результат worker.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -33,7 +33,8 @@ export async function runExecutionCheck(
   const finished = new Date();
   const status =
     report.success && result?.status === "passed" ? "passed" : "failed";
-  const diagnostic = result?.evidence?.result.diagnostic ?? "";
+  const diagnostic =
+    result?.diagnostic ?? result?.evidence?.result.diagnostic ?? "";
   const process = result?.evidence?.result;
   const termination =
     status === "failed" && process

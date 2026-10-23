@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runVerifiedGitWorker.service.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-10-23
  * @description Собирает evidence explicit verification plan перед штатным Git-воркером и сохраняет подтверждённый commit proof.
  */
 import { PolicyError } from "@realize/git-runtime";
 import { loadGitWorkerContext } from "./loadGitWorkerContext.adapter.ts";
 import { loadGitWorkerSettings } from "./loadGitWorkerSettings.adapter.ts";
 import { runGitWorker } from "./runGitWorker.service.ts";
+import { runGitInspect } from "./runGitInspect.service.ts";
 import type {
   GitWorkerCommand,
   GitWorkerDependencies,
@@ -51,14 +52,8 @@ export async function runVerifiedGitWorker(
           planPath,
           signal,
           dependencies,
-          inspect: async (inspection) =>
-            run(
-              { action: "inspect" },
-              inspection,
-              await settings(repositoryRoot, "inspect"),
-              workerDependencies,
-              signal,
-            ),
+          inspect: (inspection) =>
+            runGitInspect(inspection, workerDependencies.deliver, signal),
         });
         return prepared.context;
       },

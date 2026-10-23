@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/loadGitWorkerSettings.adapter.ts
- * @version 1.3.1
- * @date 2026-10-22
+ * @version 2.0.0
+ * @date 2026-10-23
  * @description Читает конфигурацию Codex и действующие инструкции Git-воркера из проекта.
  */
 import { PolicyError } from "@realize/git-runtime";
@@ -12,11 +12,12 @@ import { join } from "node:path";
 import type { GitWorkerAction, GitWorkerSettings } from "./GitWorker.types.ts";
 import { isGitWorkerAction } from "./parseGitWorkerCommand.validator.ts";
 
+/** Inspect не читает профиль модели: его обслуживает отдельный программный маршрут. */
 export async function loadGitWorkerSettings(
   repositoryRoot: string,
   action: GitWorkerAction,
 ): Promise<GitWorkerSettings> {
-  if (!isGitWorkerAction(action)) {
+  if (!isGitWorkerAction(action) || action === "inspect") {
     throw new PolicyError(
       "worker_action_unavailable",
       "Действие воркера недоступно.",

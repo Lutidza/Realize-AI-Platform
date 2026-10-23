@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/verifyVerification.service.ts
- * @version 1.1.0
- * @date 2026-10-22
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Проверяет latest receipts по текущим inputs; не запускает команды и не создаёт файлы или lock.
  */
 import { realpath } from "node:fs/promises";
@@ -39,6 +39,17 @@ export function verificationReport(
 }
 export function verificationReason(error: unknown): string {
   return error instanceof PolicyError ? error.code : "verification_unavailable";
+}
+export function verificationDiagnostic(error: unknown): string | undefined {
+  // Только эти ошибки содержат проверенные номера версий или фиксированный текст, без путей/credentials.
+  return error instanceof PolicyError &&
+    [
+      "verification_runtime_manifest_invalid",
+      "verification_node_version_mismatch",
+      "verification_npm_version_mismatch",
+    ].includes(error.code)
+    ? error.message
+    : undefined;
 }
 export async function assertVerificationRoot(
   plan: VerificationPlan,
@@ -110,6 +121,7 @@ export async function verifyVerification(
         key: null,
         receiptId: null,
         reason: verificationReason(error),
+        diagnostic: verificationDiagnostic(error),
       })),
     );
   }
@@ -169,6 +181,7 @@ export async function verifyVerification(
         ...base,
         status: "blocked",
         reason: verificationReason(error),
+        diagnostic: verificationDiagnostic(error),
       });
     }
   }

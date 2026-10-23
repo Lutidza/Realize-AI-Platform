@@ -1,6 +1,6 @@
 # @file .codex/config.toml
-# @version 1.0.0
-# @date 2026-09-24
+# @version 1.0.2
+# @date 2026-10-23
 # @description Настраивает клиентские development MCP проекта без хранения секретов.
 # Project-local Codex adapter config.
 #
@@ -28,6 +28,6 @@ env = { NEXT_TELEMETRY_DISABLED = "1" }
 
 [mcp_servers.realize-internal]
 url = "http://127.0.0.1:4319/mcp"
-http_headers_helper = "\"$HOME/.local/share/realize-ai-cms/node-24.18.0/bin/node\" scripts/runtime/readLocalMcpHeaders.controller.mjs"
+http_headers_helper = "node scripts/runtime/readLocalMcpHeaders.controller.mjs"
 startup_timeout_sec = 20
 tool_timeout_sec = 30

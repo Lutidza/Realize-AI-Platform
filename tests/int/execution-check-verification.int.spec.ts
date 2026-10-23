@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/execution-check-verification.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-10-23
  * @description Проверяет общий verification runtime через platform adapter на реальных изолированных Node/npm процессах.
  */
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -20,6 +20,9 @@ const reason = "Проверка включена в одобренный пла
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "realize-execution-verification-"));
   roots.push(root);
+  const runtimeManifest = JSON.parse(
+    await readFile(new URL("../../package.json", import.meta.url), "utf8"),
+  );
   const repository = join(root, "repository");
   const workspaces = [join(root, "execution"), join(root, "promotion")];
   const counter = join(repository, "counter.txt");
@@ -44,6 +47,8 @@ async function fixture() {
         name: "verification-fixture",
         version: "1.0.0",
         private: true,
+        engines: runtimeManifest.engines,
+        packageManager: runtimeManifest.packageManager,
         scripts: Object.fromEntries(
           [
             "typecheck",
@@ -216,6 +221,23 @@ describe("platform verification adapter", () => {
       ).toBe("failed");
     }
     expect(await f.count()).toBe(2);
+  });
+
+  it("сообщает ожидаемую и текущую версию Node до создания процесса", async () => {
+    const f = await fixture();
+    const path = join(f.workspaces[0], "package.json");
+    const manifest = JSON.parse(await readFile(path, "utf8"));
+    manifest.engines.node = "0.0.0";
+    await writeFile(path, JSON.stringify(manifest));
+    const result = await f.run(f.workspaces[0]);
+    expect(result.status).toBe("failed");
+    expect(result.outputSummary).toContain(
+      "verification_node_version_mismatch",
+    );
+    expect(result.outputSummary).toContain(
+      `Нужен Node.js 0.0.0; запущен ${process.versions.node}`,
+    );
+    expect(await f.count()).toBe(0);
   });
 
   it("отклоняет неизвестную команду до создания процесса", async () => {

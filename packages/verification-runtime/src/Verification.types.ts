@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/Verification.types.ts
- * @version 1.1.0
- * @date 2026-10-22
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Контракты адресных проверок, проверяемых receipts и отчёта без полномочий Git.
  * @see documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md
  */
@@ -41,6 +41,8 @@ export type VerificationResult = {
   key: string | null;
   receiptId: string | null;
   reason?: string;
+  /** Безопасная диагностика несовместимого runtime до запуска; не является evidence проверки. */
+  diagnostic?: string;
   logPath?: string;
   evidence?: {
     startedAt: string;

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.service.ts
- * @version 1.3.1
- * @date 2026-10-22
+ * @version 2.0.0
+ * @date 2026-10-23
  * @description Ведёт ограниченную сессию Git-воркера и возвращает фактический результат Git-операции.
  */
 import { PolicyError } from "@realize/git-runtime";
@@ -45,7 +45,7 @@ async function requireModel(
   );
 }
 
-/** Контекст задаёт разрешённое действие; результат модели не заменяет результат Git-обработчика. */
+/** Модель ведёт назначенную операцию; inspect выполняет отдельный программный маршрут. */
 export async function runGitWorker(
   input: unknown,
   context: GitWorkerContext,
@@ -81,6 +81,12 @@ export async function runGitWorker(
   try {
     signal.throwIfAborted();
     const command = parseGitWorkerCommand(input);
+    if (command.action === "inspect") {
+      throw new PolicyError(
+        "worker_action_unavailable",
+        "Inspect выполняется без модельного воркера.",
+      );
+    }
     capability = new GitWorkerCapabilityService(
       { ...command, action: command.action },
       context,

@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/runVerification.service.ts
- * @version 1.1.0
- * @date 2026-10-22
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Выполняет только устаревшие checks, фиксирует running до spawn и перепроверяет inputs перед passed receipt.
  */
 import { randomUUID } from "node:crypto";
@@ -26,6 +26,7 @@ import { runVerificationProcess } from "./runVerificationProcess.adapter.ts";
 import {
   assertVerificationRoot,
   verificationReason,
+  verificationDiagnostic,
   verificationReport,
   verifyVerification,
 } from "./verifyVerification.service.ts";
@@ -173,6 +174,7 @@ export async function runVerification(
             ...base,
             status: options.signal?.aborted ? "cancelled" : "blocked",
             reason: verificationReason(error),
+            diagnostic: verificationDiagnostic(error),
           });
         }
       }
@@ -206,6 +208,7 @@ export async function runVerification(
         key: null,
         receiptId: null,
         reason: verificationReason(error),
+        diagnostic: verificationDiagnostic(error),
       })),
     );
   }

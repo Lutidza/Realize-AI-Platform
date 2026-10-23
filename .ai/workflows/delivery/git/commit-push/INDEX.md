@@ -19,6 +19,7 @@ codex_adapter:
 
 ## Назначение
 
-Чтение состояния, управление remote/worktrees/ветками и разрешённые
-commit/fetch/pull/push и GitHub merge проверенного дерева через отдельного Git-воркера.
+Программный inspect без модели; управление remote/worktrees/ветками и
+разрешённые commit/fetch/pull/push и GitHub merge проверенного дерева
+через отдельного модельного Git-воркера.
 Порядок и выбор проверок — [WORKFLOW.md](WORKFLOW.md).

@@ -30,8 +30,6 @@ entries:
     related_codex_artifacts:
       [
         .codex/skills/git-commit-push/SKILL.md,
-        .codex/agents/delivery/git/inspect.json,
-        .codex/prompts/workflows/delivery/git/inspect.md,
         .codex/agents/delivery/git/commit.json,
         .codex/prompts/workflows/delivery/git/commit.md,
         .codex/agents/delivery/git/push.json,

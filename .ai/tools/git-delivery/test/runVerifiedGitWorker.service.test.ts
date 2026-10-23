@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/runVerifiedGitWorker.service.test.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-10-23
  * @description Проверяет autoload receipts, границы разрешений и exact-OID proof без Git, Codex и внешних checks.
  */
 import assert from "node:assert/strict";
@@ -47,6 +47,13 @@ const key = "c".repeat(64);
 async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), "git-verification-worker-"));
   t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(
+    join(root, "package.json"),
+    JSON.stringify({
+      engines: { node: process.versions.node, npm: "1.0.0" },
+      packageManager: "npm@1.0.0",
+    }),
+  );
   const contextPath = join(root, "context.json");
   const planPath = join(root, "plan.json");
   const context: Context = {
@@ -140,8 +147,20 @@ async function fixture(t: TestContext) {
     createTransport() {
       throw new Error("Real transport must not run");
     },
-    async deliver() {
-      throw new Error("Real Git must not run");
+    async deliver(command, supplied) {
+      assert.deepEqual(command, { action: "inspect" });
+      validateGitWorkerContext("inspect", supplied);
+      events.push("inspect");
+      seen.push(structuredClone(supplied) as Context);
+      const inspected = events.filter((event) => event === "inspect").length;
+      return {
+        ...emptyResult(),
+        requestId: supplied.requestId,
+        action: "inspect",
+        status: "succeeded",
+        commit,
+        fingerprint: inspected % 2 ? state.inspected : state.after,
+      };
     },
   };
   const dependencies: GitWorkerVerificationDependencies = {
@@ -169,6 +188,11 @@ async function fixture(t: TestContext) {
       return receipt(selected as VerificationPlan, state.verifyKey);
     },
     async loadSettings(_root, action) {
+      assert.notEqual(
+        action,
+        "inspect",
+        "Снимок не загружает модельный профиль",
+      );
       return {
         model: "fixture-" + action,
         instructions: "fixture",
@@ -178,6 +202,7 @@ async function fixture(t: TestContext) {
     },
     async runWorker(input, supplied, settings, ports) {
       const command = parseGitWorkerCommand(input);
+      assert.notEqual(command.action, "inspect", "Снимок не запускает модель");
       assert.equal(ports, workerDependencies);
       assert.equal(settings.model, "fixture-" + command.action);
       validateGitWorkerContext(command.action, supplied);
@@ -318,6 +343,11 @@ test("IDE назначает одинаковую private storage policy и owne
   assert.ok(
     options.additionalInputs?.includes(
       ".ai/tools/git-delivery/src/verification/runGitVerification.controller.ts",
+    ),
+  );
+  assert.ok(
+    options.additionalInputs?.includes(
+      ".ai/tools/git-delivery/src/worker/runGitInspect.service.ts",
     ),
   );
 });

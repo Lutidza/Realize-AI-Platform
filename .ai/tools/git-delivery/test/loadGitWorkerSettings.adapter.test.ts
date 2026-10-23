@@ -1,13 +1,14 @@
 /**
  * @file .ai/tools/git-delivery/test/loadGitWorkerSettings.adapter.test.ts
- * @version 1.1.1
- * @date 2026-10-22
+ * @version 1.1.2
+ * @date 2026-10-23
  * @description Проверяет загрузку настроек и инструкций Git-воркера из временного проекта.
  */
 import { PolicyError } from "@realize/git-runtime";
 
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import fs, { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -15,28 +16,28 @@ import type { TestContext } from "node:test";
 
 import { loadGitWorkerSettings } from "../src/worker/loadGitWorkerSettings.adapter.ts";
 
-const configPath = ".codex/agents/delivery/git/inspect.json";
-const promptPath = ".codex/prompts/workflows/delivery/git/inspect.md";
-const prompt = "Вызови git_inspect один раз.\n";
+const configPath = ".codex/agents/delivery/git/commit.json";
+const promptPath = ".codex/prompts/workflows/delivery/git/commit.md";
+const prompt = "Вызови git_commit один раз.\n";
 const validConfig = {
   model: "gpt-5.3-codex-spark",
   reasoningEffort: "low",
   timeoutMs: 30000,
 };
 
-test("commit использует свой профиль и prompt, неизвестное действие запрещено", async (t) => {
+test("push использует свой профиль и prompt, неизвестное действие запрещено", async (t) => {
   const f = await fixture(t);
   await f.write(
-    ".codex/agents/delivery/git/commit.json",
+    ".codex/agents/delivery/git/push.json",
     JSON.stringify(validConfig),
   );
   await f.write(
-    ".codex/prompts/workflows/delivery/git/commit.md",
-    "Выполни локальный commit.",
+    ".codex/prompts/workflows/delivery/git/push.md",
+    "Отправь назначенные коммиты.",
   );
   assert.equal(
-    (await loadGitWorkerSettings(f.root, "commit")).instructions,
-    "Выполни локальный commit.",
+    (await loadGitWorkerSettings(f.root, "push")).instructions,
+    "Отправь назначенные коммиты.",
   );
   await assert.rejects(
     loadGitWorkerSettings(f.root, "../commit" as "commit"),
@@ -44,8 +45,25 @@ test("commit использует свой профиль и prompt, неизв�
   );
 });
 
+test("inspect отклоняется до чтения config и prompt", async (t) => {
+  const read = t.mock.method(fs, "readFile", async () => {
+    throw new Error("Чтение настроек inspect запрещено.");
+  });
+  syncBuiltinESMExports();
+  try {
+    await assert.rejects(
+      loadGitWorkerSettings("/fixture/repository", "inspect"),
+      policyError("worker_action_unavailable"),
+    );
+    assert.equal(read.mock.callCount(), 0);
+  } finally {
+    read.mock.restore();
+    syncBuiltinESMExports();
+  }
+});
+
 async function fixture(t: TestContext) {
-  const root = await mkdtemp(join(tmpdir(), "realize-git-inspect-settings-"));
+  const root = await mkdtemp(join(tmpdir(), "realize-git-commit-settings-"));
   t.after(async () => {
     await rm(root, { recursive: true, force: true });
   });
@@ -74,7 +92,7 @@ test("loader читает config и prompt без зависимости от о
     ...validConfig,
     instructions: prompt,
   };
-  assert.deepEqual(await loadGitWorkerSettings(f.root, "inspect"), expected);
+  assert.deepEqual(await loadGitWorkerSettings(f.root, "commit"), expected);
 
   for (const path of [
     "AGENTS.md",
@@ -83,7 +101,7 @@ test("loader читает config и prompt без зависимости от о
   ]) {
     await f.write(path, "Посторонний контекст.\n".repeat(32768));
   }
-  assert.deepEqual(await loadGitWorkerSettings(f.root, "inspect"), expected);
+  assert.deepEqual(await loadGitWorkerSettings(f.root, "commit"), expected);
 });
 
 test("loader принимает граничные timeout и поддерживаемые reasoningEffort", async (t) => {
@@ -91,7 +109,7 @@ test("loader принимает граничные timeout и поддержив
   for (const timeoutMs of [1000, 120000]) {
     for (const reasoningEffort of ["low", "medium", "high"]) {
       await f.config({ ...validConfig, timeoutMs, reasoningEffort });
-      const loaded = await loadGitWorkerSettings(f.root, "inspect");
+      const loaded = await loadGitWorkerSettings(f.root, "commit");
       assert.equal(loaded.timeoutMs, timeoutMs);
       assert.equal(loaded.reasoningEffort, reasoningEffort);
     }
@@ -124,7 +142,7 @@ test("loader отклоняет неизвестные поля и неверн�
       const f = await fixture(child);
       await f.config(entry.config);
       await assert.rejects(
-        loadGitWorkerSettings(f.root, "inspect"),
+        loadGitWorkerSettings(f.root, "commit"),
         policyError("worker_configuration_invalid"),
       );
     });
@@ -179,7 +197,7 @@ test("loader отклоняет неверные model, reasoningEffort и timeo
       const f = await fixture(child);
       await f.config({ ...validConfig, [entry.field]: entry.value });
       await assert.rejects(
-        loadGitWorkerSettings(f.root, "inspect"),
+        loadGitWorkerSettings(f.root, "commit"),
         policyError("worker_configuration_invalid"),
       );
     });
@@ -189,18 +207,18 @@ test("loader отклоняет неверные model, reasoningEffort и timeo
 test("loader не подменяет отсутствующую или повреждённую конфигурацию defaults", async (t) => {
   const f = await fixture(t);
   await rm(join(f.root, configPath));
-  await assert.rejects(loadGitWorkerSettings(f.root, "inspect"), {
+  await assert.rejects(loadGitWorkerSettings(f.root, "commit"), {
     code: "ENOENT",
   });
 
   await f.write(configPath, "{broken");
-  await assert.rejects(loadGitWorkerSettings(f.root, "inspect"), SyntaxError);
+  await assert.rejects(loadGitWorkerSettings(f.root, "commit"), SyntaxError);
 });
 
 test("loader отклоняет отсутствие обязательного prompt", async (t) => {
   const f = await fixture(t);
   await rm(join(f.root, promptPath));
-  await assert.rejects(loadGitWorkerSettings(f.root, "inspect"), {
+  await assert.rejects(loadGitWorkerSettings(f.root, "commit"), {
     code: "ENOENT",
   });
 });
@@ -210,11 +228,11 @@ test("loader отклоняет пустые и превышающие байт�
   for (const content of ["", " \n\t", "x".repeat(32769), "я".repeat(16385)]) {
     await f.write(promptPath, content);
     await assert.rejects(
-      loadGitWorkerSettings(f.root, "inspect"),
+      loadGitWorkerSettings(f.root, "commit"),
       policyError("worker_instructions_invalid"),
     );
   }
   await f.write(promptPath, "x".repeat(32768));
-  const loaded = await loadGitWorkerSettings(f.root, "inspect");
+  const loaded = await loadGitWorkerSettings(f.root, "commit");
   assert.equal(loaded.instructions, "x".repeat(32768));
 });

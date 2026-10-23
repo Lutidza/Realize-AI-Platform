@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorker.types.ts
- * @version 1.6.0
- * @date 2026-10-22
+ * @version 2.0.0
+ * @date 2026-10-23
  * @description Определяет контракты Git-воркеров, транспорта и подтверждённого отчёта.
  */
 
@@ -77,7 +77,8 @@ export type GitWorkerReport = {
   result: GitWorkerResult | null;
   command: GitWorkerCommand | null;
   worker: {
-    model: string;
+    /** null для программного inspect; usage содержит нули, сессия модели отсутствует. */
+    model: string | null;
     threadId: string | null;
     turnId: string | null;
     durationMs: number;

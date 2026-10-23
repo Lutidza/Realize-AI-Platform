@@ -21,13 +21,18 @@ content/data/schema/design/code/delivery от профильных commerce-мо
 - Backend/data: Payload CMS 3.88, PostgreSQL и versioned Payload migrations.
 - Schema push по умолчанию отключён во всех средах и разрешается явным
   `PAYLOAD_DB_PUSH=true` только для disposable local DB.
-- Runtime: Node.js 24.18.x и npm 11.15.x.
+- Runtime: Node.js 24.18.0 и npm 11.15.0 — единая закреплённая пара из
+  [package.json](../package.json) для приложения, проверок и AI tooling;
+  она выбирается в окружении при запуске терминала, IDE, Codex, MCP или службы.
+  Обычные команды `node`/`npm`/`npx` используют это окружение;
+  `npm run verify:runtime` проверяет фактические версии и согласованность pins.
 - Delivery: Docker/Compose, GitHub Actions, GHCR и exact-digest deployment на
   Linux VPS.
 - Tests/evidence: Vitest и Playwright.
 - Общий runtime проверок IDE и platform execution/preview:
   `packages/verification-runtime`; выбираются checks по изменению, успешные
-  receipts повторно используются при совпадении проверяемых входов. Source
+  receipts повторно используются при совпадении проверяемых входов. Runner
+  до запуска checks проверяет Node, а для npm-команд — также npm. Source
   contract — [ADR-0016](architecture/decisions/ADR-0016-development-git-delivery-handler.md#выполнение-и-достаточные-проверки);
   installed activation сверяется отдельно.
 - В execution worker MCP не является разрешённым runtime capability. В

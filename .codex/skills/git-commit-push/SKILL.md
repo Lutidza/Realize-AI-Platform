@@ -1,21 +1,38 @@
 ---
 name: git-commit-push
 description: >-
-  Передаёт Git-операции отдельному воркеру: чтение, управление remote/worktrees/ветками,
-  разрешённые commit, fetch, pull, push через HTTPS/SSH и GitHub merge проверенного дерева.
+  Выполняет inspect через программный адаптер без модели; остальные Git-операции
+  передаёт отдельному воркеру: manage, commit, fetch, pull, push и GitHub merge.
   Используй для Git рабочего слоя.
 ---
 
-# Git через воркера
+# Git через разрешённый адаптер
 
 Открой [порядок Git-операций](../../../.ai/workflows/delivery/git/commit-push/WORKFLOW.md)
 и указанные в нём инструкции только для выбранного действия.
 
+Команды проекта запускай из корня обычным `npm`, например:
+`npm run --silent git:worker -- inspect`.
+Окружение запуска должно использовать единую закреплённую пару Node/npm по
+[правилу runtime](../../../.ai/rules/development/RULE-DEPENDENCY-VERSION-EVIDENCE-BEFORE-INSTALL.md#единый-runtime-проекта).
+Проверка: `npm run verify:runtime`. При несовпадении исправь окружение запуска
+и открой новую сессию; отказ не разрешает обход guard.
+
 Обработчик IDE использует общий `@realize/git-runtime` с платформой и GPT/MCP.
 Границы этих входов определяет Git-правило: наличие общего пакета или machine
-read port не разрешает основному агенту обойти отдельного Git-воркера.
+read port не разрешает основному агенту обойти программный `inspect` или
+модельного воркера остальных действий. Прямой Git и произвольный shared executor
+не входят в этот маршрут.
 
 ## Передача задания
+
+- Запущенную Git-команду или проверку ожидай по
+  [общему правилу](../../../.ai/rules/worker-runtime/RULE-WORKER-CONTEXT-BUDGET-AND-REUSE.md#ожидание-процессов-и-воркеров).
+  Для пустого `write_stdin` задавай `yield_time_ms: 30000` или больше в пределах
+  среды; не используй повторяющийся `yield_time_ms: 1000` ради статуса процесса.
+  При `functions.exec` назначай его `yield_time_ms` не меньше внутреннего ожидания
+  с небольшим запасом в пределах среды. Возвращённый cell ID продолжай через
+  `functions.wait`; это не основание для второго Git-запуска или status-команды.
 
 - Выбери [рабочий контекст](../../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md#выбор-рабочего-контекста):
   короткая операция не создаёт TASK и не запускает task-workspace; продолжение
@@ -24,7 +41,8 @@ read port не разрешает основному агенту обойти �
   [README обработчика](../../../.ai/tools/git-delivery/README.md#короткая-операция-и-рабочий-контекст).
   Завершённое досье не переоткрывай молча ради доставки.
 
-- Для любого действия явно назначь в окружении запуска
+- Для `commit`, `push`, `manage` (включая чтение), `fetch`, `pull` и `merge`
+  явно назначь в окружении запуска
   `REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL. Каталог должен
   существовать и быть заранее авторизован оператором для Codex CLI. Например,
   из корня проекта, заменив placeholder на подготовленный путь:
@@ -40,9 +58,13 @@ read port не разрешает основному агенту обойти �
   авторизации описаны в [README обработчика](../../../.ai/tools/git-delivery/README.md#git-воркер).
 
 - Для обычного `inspect` выполни из корня проекта `npm run --silent git:worker -- inspect`.
-  Этот вход запускает отдельного воркера через Codex App Server; сам вызов
-  основным агентом является передачей задания, Git выполняет обработчик по
-  запросу воркера. Составление контекста и прямой вызов Git CLI не нужны.
+  Этот вход вызывает отдельный программный адаптер без модели через
+  `validateGitWorkerContext` → `deliverGitWorkerCommand` → `runDelivery` →
+  `@realize/git-runtime`. Codex CLI, App Server,
+  профиль, prompt и `REALIZE_GIT_CODEX_HOME` не нужны. Сохраняются проверка
+  typed-команды/root/scope/inputPaths, read-only права, ограниченная сводка и
+  fingerprint. Для адресного снимка передай доверенный `REALIZE_GIT_CONTEXT_FILE`
+  с нужными scope и `verification.inputPaths` по README обработчика.
 - Проверки, выбранные по изменению, запускай и сохраняй через
   `npm run git:verify -- run --plan /absolute/private-plan.json`; для чтения
   актуальности используй `status` вместо `run`. Формат плана, local reuse и
@@ -63,8 +85,8 @@ read port не разрешает основному агенту обойти �
   `REALIZE_GIT_VERIFICATION_PLAN=/absolute/private-plan.json` вместе с прежним
   `REALIZE_GIT_CONTEXT_FILE`. Authorization/scope/requiredChecks остаются в
   контексте. Missing/failed/stale selected checks выполняются до Git-действия,
-  receipts перепроверяются и связываются с текущим fingerprint через configured
-  worker inspect. Не вызывай Git или shared executor напрямую ради этой подготовки.
+  receipts перепроверяются и связываются с текущим fingerprint через
+  программный `inspect`. Не вызывай Git или shared executor напрямую ради этой подготовки.
 - Если пользователь явно запросил полный add/commit текущего состава,
   вызывающая среда может передать `scope: { mode: "all", includePartialIndex: true }`
   по [контракту commit](../../../.ai/tools/git-delivery/README.md#контекст-локального-commit).
@@ -106,31 +128,30 @@ read port не разрешает основному агенту обойти �
 - Доверенный контекст передаётся механизмом запуска, отдельно от текста задания:
   рабочая копия, разрешённая область и действия, сведения о проверках. Не включай
   историю диалога, пересказ каждого файла, комментарии с историей или секреты.
-- При native-запуске используй `fork_turns="none"` и фактически доступную
+- При модельном native-запуске используй `fork_turns="none"` и фактически доступную
   выбранную модель. Для внешнего `codex exec` применяй профильный навык только
   если этот способ запуска действительно настроен и нужен.
-- Получи отчёт воркера и передай существенный результат пользователю.
+- Получи фактический результат адаптера и передай существенный результат пользователю.
   Порядок Git-команд принадлежит обработчику, ограничения — связанному правилу.
 
 ## Доступность
 
-`inspect`, локальный `commit`, отдельный `push`, `manage`, `fetch`, `pull` и `merge` используют
-отдельные профили. Профили
-[чтения](../../agents/delivery/git/inspect.json),
+`inspect` выполняется программно и не загружает модельный профиль или prompt.
+Локальный `commit`, отдельный `push`, `manage`, `fetch`, `pull` и `merge` используют
+отдельные модельные профили. Профили
 [коммита](../../agents/delivery/git/commit.json) и
 [отправки](../../agents/delivery/git/push.json),
 [управления](../../agents/delivery/git/manage.json),
 [fetch](../../agents/delivery/git/fetch.json),
 [pull](../../agents/delivery/git/pull.json) и
 [merge](../../agents/delivery/git/merge.json) задают модель и предел времени;
-инструкции — [inspect](../../prompts/workflows/delivery/git/inspect.md),
-[commit](../../prompts/workflows/delivery/git/commit.md) и
+инструкции — [commit](../../prompts/workflows/delivery/git/commit.md) и
 [push](../../prompts/workflows/delivery/git/push.md),
 [manage](../../prompts/workflows/delivery/git/manage.md),
 [fetch](../../prompts/workflows/delivery/git/fetch.md),
 [pull](../../prompts/workflows/delivery/git/pull.md) и
 [merge](../../prompts/workflows/delivery/git/merge.md).
-Запуск возвращает фактический `result`, эффективную `command` и сведения о воркере.
+Запуск возвращает фактический `result`, эффективную `command` и сведения об исполнении.
 Успех требует `status: succeeded`; наличие текста модели его не доказывает.
 Для повтора commit сохраняй исходный контекст, requestId и сообщение из `command`.
 

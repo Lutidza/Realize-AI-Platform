@@ -1,8 +1,8 @@
 /**
  * @file .ai/tools/git-delivery/test/runGitWorker.service.test.ts
- * @version 1.2.0
- * @date 2026-10-12
- * @description Проверяет границы inspect и завершение оркестратора через управляемый транспорт без Git и Codex.
+ * @version 1.2.1
+ * @date 2026-10-23
+ * @description Проверяет ограничения и завершение модельного оркестратора через управляемый транспорт без Git и Codex.
  */
 
 import assert from "node:assert/strict";
@@ -24,7 +24,7 @@ const toolCall = {
   turnId,
   callId: "fixture-call",
   namespace: null,
-  tool: "git_inspect",
+  tool: "git_commit",
   arguments: {},
 };
 const completedEvent = {
@@ -32,7 +32,7 @@ const completedEvent = {
   params: { threadId, turn: { id: turnId, status: "completed" } },
 };
 
-function createHarness(action: "inspect" | "commit" = "inspect") {
+function createHarness(action: "inspect" | "commit" = "commit") {
   const command: GitWorkerCommand =
     action === "inspect"
       ? { action }
@@ -190,6 +190,25 @@ function createHarness(action: "inspect" | "commit" = "inspect") {
   };
 }
 
+test("inspect отклоняется до создания транспорта и запроса модели", async () => {
+  const harness = createHarness("inspect");
+  const report = await harness.run();
+  assert.equal(report.status, "blocked");
+  assert.equal(report.errorCode, "worker_action_unavailable");
+  assert.equal(report.result, null);
+  assert.equal(report.worker.threadId, null);
+  assert.equal(report.worker.turnId, null);
+  assert.equal(report.worker.handlerCalls, 0);
+  assert.deepEqual(harness.requests, []);
+  assert.deepEqual(harness.notifications, []);
+  assert.deepEqual(harness.counts, {
+    created: 0,
+    started: 0,
+    closed: 0,
+    delivered: 0,
+  });
+});
+
 test("commit_push отклоняется до создания транспорта", async () => {
   const harness = createHarness();
   const report = await runGitWorker(
@@ -269,7 +288,7 @@ test("активные MCP-инструменты блокируются до tu
   assert.equal(harness.counts.closed, 1);
 });
 
-test("текстовый финал без вызова обработчика не считается результатом inspect", async () => {
+test("текстовый финал без вызова обработчика не считается результатом commit", async () => {
   const harness = createHarness();
   harness.driver.events = () =>
     (async function* () {
@@ -414,7 +433,7 @@ test("отказ cleanup после успешного tool не теряет п
   assert.ok(!JSON.stringify(report).includes("private"));
 });
 
-test("аргументы server request за пределами пустого inspect не доходят до handler", async () => {
+test("аргументы server request за пределами назначенного commit не доходят до handler", async () => {
   const harness = createHarness();
   harness.driver.events = () =>
     (async function* () {

@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/readVerificationCheckpoint.adapter.ts
- * @version 1.1.0
- * @date 2026-10-22
+ * @version 1.1.1
+ * @date 2026-10-23
  * @description Сканирует общие inputs один раз на checkpoint, сохраняя отдельные ключи адресных проверок.
  */
 import { fileURLToPath } from "node:url";
@@ -56,7 +56,7 @@ export async function readVerificationCheckpoint(
 ): Promise<VerificationCheckpoint> {
   const environment = readVerificationEnvironment(check);
   const [runtime, inputs] = await Promise.all([
-    readVerificationRuntime(check, environment.values),
+    readVerificationRuntime(root, check, environment.values),
     hashVerificationInputs(root, check.inputs, check.excludeInputs),
   ]);
   return {

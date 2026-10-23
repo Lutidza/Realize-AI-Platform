@@ -12,7 +12,8 @@ Realize — AI Platform с инструментами ИИ для управле
 
 ## Требования
 
-- Node.js **24.18.0** и npm **11.15.0** — точные версии, проверяемые проектом.
+- Node.js **24.18.0** и npm **11.15.0** — единая закреплённая пара для приложения,
+  проверок и AI tooling. Источник версий — корневой [package.json](package.json).
 - PostgreSQL; в [Compose](compose.yaml) используется версия **15.18**.
 - Docker с Docker Compose — для запуска PostgreSQL или всего приложения в
   контейнерах.
@@ -22,6 +23,18 @@ Realize — AI Platform с инструментами ИИ для управле
 Все команды выполняются из корня репозитория. При использовании собственного
 PostgreSQL Docker для локальной разработки не требуется.
 
+Перед запуском терминала, IDE, Codex, MCP-клиента или службы выберите в их
+окружении установленную пару Node/npm из `package.json`. Для существующей
+локальной установки в текущем терминале:
+
+```bash
+export PATH="$HOME/.local/share/realize-ai-cms/node-$(cat .node-version)/bin:$PATH"
+```
+
+IDE, Codex и MCP-клиент должны наследовать это окружение. После изменения
+локальных настроек откройте новую сессию. Далее используйте обычные команды
+`node`, `npm` и `npx`.
+
 ### 1. Установка зависимостей
 
 ```bash
@@ -29,7 +42,11 @@ npm run verify:runtime
 npm ci
 ```
 
-Версия Node.js также указана в `.nvmrc` и `.node-version`.
+`verify:runtime` проверяет версии исполняемых Node/npm и согласованность pins
+в package/lock manifests, `.nvmrc`, `.node-version`, CI и Docker.
+Штатный `devEngines` в закреплённом npm также проверяет пару перед `install`,
+`ci` и `run`. Общий исполнитель проверок IDE/Admin проверяет версии до запуска
+команды и возвращает ожидаемую и фактическую версию при несовпадении.
 
 `npm ci` автоматически применяет патч `@payloadcms/ui` из
 `scripts/runtime/patches`: `autocomplete="off"` в SSR кнопок и checkbox предотвращает
