@@ -1,8 +1,8 @@
 /**
  * @file tests/int/searchSourceBinding.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-22
- * @description Проверяет включение общего Git executor и read policy в source binding с ограниченным обходом.
+ * @version 1.1.0
+ * @date 2026-10-23
+ * @description Проверяет включение общих Git/verification engines и read policy в ограниченный source binding.
  * @see documentation/architecture/repository-search.md
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -43,8 +43,12 @@ beforeEach(() => {
   fixture.directories.clear();
 });
 
-describe("Git dependencies in repository source binding", () => {
-  it.each(["packages/git-runtime/src", ".ai/tools/git-delivery/src/read"])(
+describe("Shared runtime dependencies in repository source binding", () => {
+  it.each([
+    "packages/git-runtime/src",
+    "packages/verification-runtime/src",
+    ".ai/tools/git-delivery/src/read",
+  ])(
     "учитывает изменение и добавление вложенного source в %s",
     async (owner) => {
       const directory = `${fixture.root}/${owner}`;
@@ -69,6 +73,7 @@ describe("Git dependencies in repository source binding", () => {
 
   it.each([
     "packages/git-runtime/package.json",
+    "packages/verification-runtime/package.json",
     ".ai/tools/git-delivery/src/commit/assertNoGitSecrets.validator.ts",
   ])("связывает прямую зависимость %s", async (path) => {
     const initial = await readSearchSourceVersion(fixture.root);
@@ -76,34 +81,42 @@ describe("Git dependencies in repository source binding", () => {
     expect(await readSearchSourceVersion(fixture.root)).not.toBe(initial);
   });
 
-  it("отклоняет symlink внутри нового Git owner", async () => {
-    fixture.directories.set(`${fixture.root}/packages/git-runtime/src`, [
-      { name: "outside", kind: "symlink" },
-    ]);
-    await expect(readSearchSourceVersion(fixture.root)).rejects.toThrow(
-      "search_source_binding_limit",
-    );
-  });
+  it.each(["packages/git-runtime/src", "packages/verification-runtime/src"])(
+    "отклоняет symlink внутри %s",
+    async (owner) => {
+      fixture.directories.set(`${fixture.root}/${owner}`, [
+        { name: "outside", kind: "symlink" },
+      ]);
+      await expect(readSearchSourceVersion(fixture.root)).rejects.toThrow(
+        "search_source_binding_limit",
+      );
+    },
+  );
 
-  it("ограничивает глубину и число entries до чтения полного дерева", async () => {
-    let directory = `${fixture.root}/packages/git-runtime/src`;
-    for (let depth = 0; depth < 9; depth++) {
-      fixture.directories.set(directory, [{ name: "next", kind: "directory" }]);
-      directory += "/next";
-    }
-    await expect(readSearchSourceVersion(fixture.root)).rejects.toThrow(
-      "search_source_binding_limit",
-    );
-    fixture.directories.clear();
-    fixture.directories.set(
-      `${fixture.root}/packages/git-runtime/src`,
-      Array.from({ length: 513 }, (_, index) => ({
-        name: `source-${index}.ts`,
-        kind: "file" as const,
-      })),
-    );
-    await expect(readSearchSourceVersion(fixture.root)).rejects.toThrow(
-      "search_source_binding_limit",
-    );
-  });
+  it.each(["packages/git-runtime/src", "packages/verification-runtime/src"])(
+    "ограничивает глубину и число entries внутри %s",
+    async (owner) => {
+      let directory = `${fixture.root}/${owner}`;
+      for (let depth = 0; depth < 9; depth++) {
+        fixture.directories.set(directory, [
+          { name: "next", kind: "directory" },
+        ]);
+        directory += "/next";
+      }
+      await expect(readSearchSourceVersion(fixture.root)).rejects.toThrow(
+        "search_source_binding_limit",
+      );
+      fixture.directories.clear();
+      fixture.directories.set(
+        `${fixture.root}/${owner}`,
+        Array.from({ length: 513 }, (_, index) => ({
+          name: `source-${index}.ts`,
+          kind: "file" as const,
+        })),
+      );
+      await expect(readSearchSourceVersion(fixture.root)).rejects.toThrow(
+        "search_source_binding_limit",
+      );
+    },
+  );
 });

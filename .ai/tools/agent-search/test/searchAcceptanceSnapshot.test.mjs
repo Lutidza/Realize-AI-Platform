@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/test/searchAcceptanceSnapshot.test.mjs
- * @version 1.0.0
- * @date 2026-10-18
+ * @version 1.0.1
+ * @date 2026-10-23
  * @description Проверяет полноту локальных импортов реального source snapshot и ограниченную область копирования.
  * @see documentation/architecture/repository-search.md
  */
@@ -51,6 +51,16 @@ test("snapshot содержит замкнутый граф локальных �
     readinessMarker: false,
   });
   const site = await realpath(snapshot.site);
+  for (const required of [
+    "packages/verification-runtime/package.json",
+    "packages/verification-runtime/src/verificationRuntime.server.index.ts",
+    "packages/verification-runtime/src/runVerification.service.ts",
+  ])
+    assert.equal(existsSync(join(site, required)), true, required);
+  assert.equal(
+    await realpath(join(site, "node_modules/@realize/verification-runtime")),
+    join(site, "packages/verification-runtime"),
+  );
   for (const excluded of [
     ".env",
     ".codex",

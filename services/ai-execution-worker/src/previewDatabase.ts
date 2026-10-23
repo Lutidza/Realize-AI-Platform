@@ -1,7 +1,10 @@
 /**
  * @file services/ai-execution-worker/src/previewDatabase.ts
+ * @version 1.0.0
+ * @date 2026-10-23
+ * @description Создаёт, очищает и удаляет отдельную PostgreSQL базу preview.
  * @owner services/ai-execution-worker
- * @purpose Clones, sanitizes and removes a preview-only PostgreSQL database.
+ * @see documentation/delivery/01-local-admin-ai.md
  */
 
 import { execFile } from "node:child_process";
@@ -148,6 +151,11 @@ const sanitizeDatabase = async (databaseURL: string): Promise<void> => {
       aiTables.rows.map((row) => row.table_name),
     );
     await truncateIfPresent(pool, [
+      // Рабочие токены, device flow и refresh history не должны действовать в клоне.
+      "access_credentials",
+      "access_device_requests",
+      "access_refresh_history",
+      "access_rate_limits",
       "addresses",
       "carts",
       "form_submissions",
@@ -163,7 +171,7 @@ const sanitizeDatabase = async (databaseURL: string): Promise<void> => {
   }
 };
 
-/** Creates a physical clone and removes PII, sessions and AI runtime records. */
+/** Создаёт физический клон без персональных данных, доступов и AI runtime; сбой очистки удаляет клон. */
 export const clonePreviewDatabase = async (input: {
   databaseName: string;
   databaseURL: string;
@@ -227,7 +235,7 @@ export const clonePreviewDatabase = async (input: {
   }
 };
 
-/** Terminates preview-only connections and drops one validated clone. */
+/** Завершает подключения preview и удаляет одну базу с проверенным именем. */
 export const dropPreviewDatabase = async (
   databaseURL: string,
   databaseName: string,

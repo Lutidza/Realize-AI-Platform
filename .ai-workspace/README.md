@@ -65,6 +65,12 @@ Git-контекст и его ограниченная очистка прин�
 Его журнал сохраняется независимо от временного контекста. Наличие файлов
 операции не разрешает общий cleanup или архивирование каталога.
 
+Общий verification runner хранит IDE receipts в
+`tasks/<taskId>/logs/git-verification`, а platform execution/preview receipts —
+в `runtime/verification` исходного host repository. Второй каталог назначает
+сервер; он находится вне изменяемых candidate worktrees и не создаёт локальную
+задачу. Формат и границы — [verification runtime](../packages/verification-runtime/README.md).
+
 ## Вход в lifecycle
 
 Создание, явное принятие legacy TASK, состояния, результаты, регистрация/settle,

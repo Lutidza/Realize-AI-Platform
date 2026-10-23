@@ -475,6 +475,90 @@ DTO/example — в [README](../../../.ai/tools/git-delivery/README.md#конте
 
 ## Выполнение и достаточные проверки
 
+Общая verification orchestration принадлежит `packages/verification-runtime`
+(`@realize/verification-runtime`). IDE CLI в
+`.ai/tools/git-delivery/src/verification/` и platform adapter
+`services/ai-execution-worker/src/checkRunner.ts` вызывают один runner, валидатор,
+расчёт ключей, хранилище receipts и владелец процессов. Вход IDE
+`npm run git:verify -- run|status --plan /absolute/private-plan.json` принимает
+явные selected checks, команды `node`/`npm`, inputs, профиль окружения, timeout,
+`reuse: local|never` и `extent: targeted|full`. Широкий/полный набор требует
+конкретной причины; orchestration не выводит набор checks автоматически.
+`run` сохраняет receipts и повторяет только missing/failed/stale selected checks;
+при `reuse: never` команда выполняется каждый раз. `status` не выполняет команды.
+
+Ключ отдельной проверки отличается от Git fingerprint: он связывает exact source
+bytes и состав входных каталогов, command/recipe, manifests/lockfiles, metadata
+установленных dependencies, runtime/platform и hash эффективного environment.
+Изменение HEAD или индекса само по себе не доказывает изменение этих входов.
+Результат применим только после повторной проверки ключа. Это консервативное
+доказательство локального filesystem-состояния; БД, browser и live runtime
+используют `reuse: never`. Независимый versioned external proof в текущий API
+не входит. Секреты и значения environment в receipts не записываются; прежние
+логи не импортируются как автоматически выполненные проверки.
+
+Receipts сохраняются атомарно через общий `PrivateJsonRepository`: ограниченный
+размер, запрет symlinks, descriptor IO и `fsync`. IDE использует namespace
+`tasks/<taskId>/logs/git-verification` внутри `.ai-workspace`; Git journals и
+OID proofs остаются у policy adapter `GitJournalRepository`. Платформа назначает
+`.ai-workspace/runtime/verification` в исходном host repository, вне candidate
+worktree. Адрес хранилища задаёт доверенный adapter, а не JSON-план.
+Verification lock отделена от Git lock: ожидание
+и выполнение тестов не блокирует общую Git-фазу. Новый сервис, БД и фоновый
+процесс для этой orchestration не нужны.
+
+Платформа получает checks из одобренного плана. `lint`, `format:check` и
+`typecheck` допускают reuse; `build`, БД, browser, integration tests и проверка
+секретов требуют выполнения. Сборке нужны выходные файлы, external checks зависят
+от внешнего состояния, а secrets check — ещё и от Git membership.
+Для статических checks учитывается всё дерево исходников, включая новые файлы
+верхнего уровня, с фиксированными исключениями runtime/build artifacts. Для
+typecheck дополнительно учитываются `.next/types` и `.next/dev/types`.
+
+Обычный receipt привязан к рабочему корню. Перенос результата между execution
+и preview разрешён только с capability, которую выдаёт общий materializer после
+реального копирования dependencies. Он проверяет исходный inventory до и после
+копирования и inventory копии; при использовании сверяет копию повторно.
+Переносимый ключ связывает происхождение dependencies и одинаковые source bytes,
+recipe, runtime и environment. Публичное поле с произвольным digest не заменяет
+эту capability. Разные project/task/approved plan не заимствуют результаты.
+Это cooperative filesystem contract, а не атомарный snapshot или sandbox.
+
+Публичный `WorkerCheckResult` и approvals сохраняют прежний контракт; безопасный
+`outputSummary` отмечает reuse, время и usage относятся к текущей операции.
+Общий runner завершает дочерние процессы при timeout/abort и ограничивает вывод.
+Product authorization, сохранение check results и usage остаются у execution
+и promotion owners; Git fingerprint и OID proofs остаются у IDE adapter.
+GPT/MCP использует тот же platform путь, когда запрос принят как одобренная
+execution job; repository read tools сами по себе проверки не запускают.
+
+`REALIZE_GIT_VERIFICATION_PLAN` включает этот этап перед `git:worker commit|push`.
+Контекст пользователя по-прежнему отдельно задаёт действие, scope, requiredChecks,
+inputPaths, identity и target; разрешения проверяются до команд и моделей.
+Пустые/отсутствующие results допустимы лишь на структурной стадии autoload,
+затем применяется полная проверка evidence. Все Git-чтения выполняются через
+настроенного отдельного воркера. Для commit receipts перепроверяются между двумя
+inspect и связываются с совпавшим текущим fingerprint; low-level handler
+повторно сверяет этот снимок под lock, не запуская тесты самостоятельно.
+Verification inputPaths могут включать дополнительно исходные файлы плана и
+обязательные входы runner; область авторизации commit при этом не меняется.
+Состав файлов повторно сверяется при подготовке. Это cooperative filesystem
+contract: handler проверяет включённые файлы, но атомарного snapshot dependencies,
+environment и последующего состава каталогов не создаёт.
+
+Proof для push появляется только после подтверждённого commit и связан с точным
+OID/check recipe. Отсутствующий proof старого OID нельзя получить запуском тестов
+нынешнего checkout. Recovery не превращает неподтверждённый или частичный commit
+в успешное evidence. Без verification-плана ручной контракт сохраняется.
+Selected check с `reuse: never` требует текущего запуска для commit и блокирует
+автоматический push с `verification_not_reusable` до модели и сети; сохранённый
+OID proof не доказывает актуальное внешнее состояние. Ручной маршрут с evidence
+точных OID остаётся доступен без verification-плана.
+Формат плана и команды — в
+[README обработчика](../../../.ai/tools/git-delivery/README.md#сохранение-и-повторное-использование-проверок).
+
+Далее low-level обработчик выполняет только разрешённую Git-операцию:
+
 1. Проверить вход и разрешение. Получить блокировку по общему каталогу Git
    для связанных worktree; индекс проверяется в конкретной рабочей копии.
 2. Прочитать ветку, HEAD, индекс и рабочие изменения. Зафиксировать состав,

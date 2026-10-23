@@ -9,6 +9,8 @@
   "scripts": {
     "run": "node src/runGitDelivery.controller.ts",
     "worker": "node --import tsx src/worker/runGitWorker.controller.ts",
+    "verify": "node --import tsx src/verification/runGitVerification.controller.ts",
+    "typecheck": "tsc --project tsconfig.json",
     "test": "node --import tsx --test test/*.test.ts"
   }
 }

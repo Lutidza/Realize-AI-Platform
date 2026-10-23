@@ -1,0 +1,15 @@
+{
+  "name": "@realize/verification-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/verificationRuntime.server.index.ts"
+  },
+  "dependencies": {
+    "@realize/git-runtime": "0.1.0"
+  },
+  "engines": {
+    "node": ">=24.18.0"
+  }
+}

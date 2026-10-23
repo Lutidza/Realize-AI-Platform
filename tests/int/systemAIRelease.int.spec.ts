@@ -1,7 +1,7 @@
 /**
  * @file tests/int/systemAIRelease.int.spec.ts
- * @version 1.1.4
- * @date 2026-10-22
+ * @version 1.1.5
+ * @date 2026-10-23
  * @description Проверяет происхождение release, runtime ceiling, связанный executor и защищённые пути.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
@@ -102,7 +102,16 @@ describe("trusted system AI release", () => {
     expect(Object.isFrozen(SYSTEM_AI_RELEASE.capabilities[0])).toBe(true);
   });
 
-  it.each(["1.0.0", "1.1.0", "1.1.1", "1.1.2", "1.1.3", "1.1.4"])(
+  it.each([
+    "1.0.0",
+    "1.1.0",
+    "1.1.1",
+    "1.1.2",
+    "1.1.3",
+    "1.1.4",
+    "1.1.5",
+    "1.1.6",
+  ])(
     "retains exact %s policy without substituting current instructions",
     async (version) => {
       const old = JSON.parse(
@@ -143,8 +152,8 @@ describe("trusted system AI release", () => {
         "utf8",
       ),
     );
-    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.5");
-    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.5");
+    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.7");
+    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.7");
     expect(SYSTEM_AI_RELEASE.instructions).toEqual(previous.instructions);
     expect(SYSTEM_AI_RELEASE.capabilities).toEqual(previous.capabilities);
     expect(SYSTEM_AI_RELEASE.checkIDs).toEqual(previous.checkIDs);

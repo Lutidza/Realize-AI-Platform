@@ -1,6 +1,6 @@
 /**
  * @file tests/int/codex-runtime-consumers.int.spec.ts
- * @version 1.5.0
+ * @version 1.5.1
  * @date 2026-10-22
  * @description Проверяет интеграцию, сохранение пояснений при отказе и границы отдельного этапа исполнения.
  */
@@ -24,6 +24,7 @@ const mock = vi.hoisted(() => ({
   turn: vi.fn(),
   capture: vi.fn(),
   check: vi.fn(),
+  dependencyLease: Object.freeze({}),
   verify: vi.fn(),
   searchAccess: vi.fn(),
   verifiedDiff: vi.fn(),
@@ -78,8 +79,8 @@ vi.mock("../../services/ai-execution-worker/src/workspaceDependencies", () => ({
   withWorkspaceDependencies: async (
     _root: string,
     _workspace: string,
-    operation: () => Promise<void>,
-  ) => operation(),
+    operation: (lease: object) => Promise<void>,
+  ) => operation(mock.dependencyLease),
 }));
 
 const fixture = () => {
@@ -509,6 +510,15 @@ describe("Codex implementation integration consumer", () => {
     await executeClaimedJob(test.executionInput);
     expect(test.repository.markValidating).toHaveBeenCalledTimes(1);
     expect(mock.check).toHaveBeenCalledTimes(1);
+    expect(mock.check).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verification: {
+          changeRequestID: test.executionInput.job.changeRequestID,
+          dependencyLease: mock.dependencyLease,
+          reason: `Проверка включена в одобренный план change:${test.executionInput.job.changeRequestID}, plan:${test.executionInput.job.planHash}.`,
+        },
+      }),
+    );
     expect(test.repository.addCheckResult).toHaveBeenCalledWith(
       test.executionInput.job,
       check,

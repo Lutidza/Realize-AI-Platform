@@ -1440,6 +1440,28 @@ Product owners проверяют CR/job, approval и evidence; IDE — разр
 и не объединяет эти разрешения. Developer hooks/signing и контролируемый
 service commit preview сохраняют разные профили.
 
+Проверки IDE и platform execution/preview используют общий
+`@realize/verification-runtime`. Сервер выбирает checks из одобренного плана и
+хранит receipts в `.ai-workspace/runtime/verification` исходного repository,
+вне candidate worktree. Неизменные `lint`, `format:check`, `typecheck` допускают
+повторное использование; source/config/environment/runtime/dependencies drift
+требует нового запуска. Между рабочими копиями нужен lease общего materializer,
+подтверждающий происхождение dependencies. Build выполняется для получения
+артефактов; БД, browser, integration tests и secrets check также выполняются
+заново. Usage измеряет текущую операцию; `outputSummary` явно отмечает reuse.
+Контракты approvals и `WorkerCheckResult` не расширены. Подробности —
+[verification runtime](../../packages/verification-runtime/README.md).
+
+Эта интеграция входит в исходный System AI release `realize-system-1.1.6`.
+Выпуск `realize-system-1.1.7` дополнительно связывает очистку preview-БД:
+после восстановления дампа удаляются credentials, device requests, refresh
+history и rate limits (`access_*`) вместе с остальными приватными runtime-данными.
+Очистка применяется только к созданному клону; ошибка прерывает preview и удаляет
+этот клон. Source binding установки включает manifest и все исходники
+`packages/verification-runtime/src`.
+Запись о source release не подтверждает активацию установленного runtime;
+её проверяют по действующему system binding и свежему execution/preview evidence.
+
 Изменения общего пакета и machine read ports меняют source binding. После
 сборки нужны отдельная активация и проверка установленного runtime; успешные
 проверки исходников и старые installed receipts не заменяют этот шаг.

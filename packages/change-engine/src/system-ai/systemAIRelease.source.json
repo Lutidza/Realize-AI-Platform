@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "releaseID": "realize-system-1.1.5",
-  "version": "1.1.5",
+  "releaseID": "realize-system-1.1.7",
+  "version": "1.1.7",
   "projectProfile": "e-commerce",
   "instructions": [
     {
@@ -88,7 +88,35 @@
     "services/ai-execution-worker/src/WorkerWorktree.types.ts",
     "services/ai-execution-worker/src/sourcePromotionGit.ts",
     "services/ai-execution-worker/src/SourcePromotionGit.types.ts",
-    "services/ai-execution-worker/src/SourcePromotionGitPolicy.error.ts"
+    "services/ai-execution-worker/src/SourcePromotionGitPolicy.error.ts",
+    "packages/verification-runtime/package.json",
+    "packages/verification-runtime/src/PrivateJson.repository.ts",
+    "packages/verification-runtime/src/PrivateJson.types.ts",
+    "packages/verification-runtime/src/Verification.types.ts",
+    "packages/verification-runtime/src/VerificationReceipt.repository.ts",
+    "packages/verification-runtime/src/assertVerificationOwner.adapter.ts",
+    "packages/verification-runtime/src/enumerateVerificationInputs.adapter.ts",
+    "packages/verification-runtime/src/hashVerificationDependencies.adapter.ts",
+    "packages/verification-runtime/src/hashVerificationInputs.adapter.ts",
+    "packages/verification-runtime/src/hashVerificationRecipe.util.ts",
+    "packages/verification-runtime/src/materializeVerificationDependencies.adapter.ts",
+    "packages/verification-runtime/src/readVerificationCheckpoint.adapter.ts",
+    "packages/verification-runtime/src/readVerificationEnvironment.adapter.ts",
+    "packages/verification-runtime/src/readVerificationRuntime.adapter.ts",
+    "packages/verification-runtime/src/redactVerificationOutput.util.ts",
+    "packages/verification-runtime/src/runVerification.service.ts",
+    "packages/verification-runtime/src/runVerificationProcess.adapter.ts",
+    "packages/verification-runtime/src/validateVerificationPlan.validator.ts",
+    "packages/verification-runtime/src/verificationInputs.constants.ts",
+    "packages/verification-runtime/src/verificationRuntime.server.index.ts",
+    "packages/verification-runtime/src/verifyVerification.service.ts",
+    "services/ai-execution-worker/src/checkRunner.ts",
+    "services/ai-execution-worker/src/workspaceDependencies.ts",
+    "services/ai-execution-worker/src/ExecutionVerification.types.ts",
+    "services/ai-execution-worker/src/executionVerificationPolicy.config.ts",
+    "services/ai-execution-worker/src/createExecutionCheckEnvironment.config.ts",
+    "services/ai-execution-worker/src/createExecutionVerificationPlan.config.ts",
+    "services/ai-execution-worker/src/previewDatabase.ts"
   ],
   "execution": {
     "protectedPrefixes": [

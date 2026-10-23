@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorker.types.ts
- * @version 1.5.0
- * @date 2026-10-13
+ * @version 1.6.0
+ * @date 2026-10-22
  * @description Определяет контракты Git-воркеров, транспорта и подтверждённого отчёта.
  */
 
@@ -18,6 +18,7 @@ import type {
   GitMergeContext,
   GitMergeResult,
 } from "../merge/GitMerge.types.ts";
+import type { GitVerificationWorkerContext } from "./verification/GitWorkerVerification.types.ts";
 
 export type GitWorkerAction = (typeof GIT_WORKER_ACTIONS)[number];
 export type GitWorkerCommand = { action: GitWorkerAction; message?: string };
@@ -90,7 +91,10 @@ export type GitWorkerReport = {
   };
 };
 
-/** Только получение настроенного автора; разрешения и проверки остаются у вызывающей среды. */
+/** Доверенные зависимости загрузчика не изменяют authorization и не доступны модели. */
 export type GitWorkerContextLoaderDependencies = {
-  resolveCommitAuthor(repositoryRoot: string): Promise<GitCommitAuthor>;
+  resolveCommitAuthor?(repositoryRoot: string): Promise<GitCommitAuthor>;
+  prepareVerification?(
+    context: GitVerificationWorkerContext,
+  ): Promise<GitVerificationWorkerContext>;
 };

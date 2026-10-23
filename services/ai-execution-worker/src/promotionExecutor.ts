@@ -1,6 +1,6 @@
 /**
  * @file services/ai-execution-worker/src/promotionExecutor.ts
- * @version 1.2.1
+ * @version 1.2.2
  * @date 2026-10-22
  * @description Проверяет принятый diff, выполняет независимый Codex review и запускает local preview.
  */
@@ -107,7 +107,7 @@ export const executeClaimedPromotion = async (input: {
     await withWorkspaceDependencies(
       input.config.repositoryRoot,
       workspace,
-      async () => {
+      async (dependencyLease) => {
         for (const [index, command] of input.job.requiredChecks.entries()) {
           const result = await input.usage.measureOperation(
             {
@@ -120,6 +120,11 @@ export const executeClaimedPromotion = async (input: {
               runExecutionCheck({
                 command,
                 repositoryRoot: input.config.repositoryRoot,
+                verification: {
+                  changeRequestID: input.job.changeRequestID,
+                  dependencyLease,
+                  reason: `Проверка включена в одобренный план change:${input.job.changeRequestID}, plan:${createHash("sha256").update(input.job.plan.trim()).digest("hex")}.`,
+                },
                 workspace,
               }),
             (result) => result.status === "passed",

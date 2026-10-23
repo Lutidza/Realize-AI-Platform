@@ -1,11 +1,15 @@
 /**
  * @file services/ai-execution-worker/src/workspaceDependencies.ts
- * @owner services/ai-execution-worker
- * @purpose Materializes trusted dependencies for isolated validation worktrees.
+ * @version 1.0.0
+ * @date 2026-10-22
+ * @description Управляет временем жизни подтверждённой копии зависимостей изолированного worktree.
  */
 
-import { constants } from "node:fs";
-import { cp, lstat, rm } from "node:fs/promises";
+import { lstat, rm } from "node:fs/promises";
+import {
+  materializeVerificationDependencies,
+  type VerificationDependencyLease,
+} from "@realize/verification-runtime";
 import { relative, resolve } from "node:path";
 
 const dependencyTarget = async (workspace: string): Promise<string> => {
@@ -21,46 +25,12 @@ const dependencyTarget = async (workspace: string): Promise<string> => {
   return target;
 };
 
-/** Copies installed dependencies into a real worktree-local directory. */
+/** Общий runtime копирует зависимости и выдаёт непрозрачное подтверждение этой копии. */
 export const materializeWorkspaceDependencies = async (
   repositoryRoot: string,
   workspace: string,
-): Promise<void> => {
-  const source = resolve(repositoryRoot, "node_modules");
-  const target = await dependencyTarget(workspace);
-  if (source === target) {
-    throw new Error("Repository and validation dependency roots must differ.");
-  }
-  const stats = await lstat(source);
-  if (!stats.isDirectory() || stats.isSymbolicLink()) {
-    throw new Error("Repository node_modules is unavailable for checks.");
-  }
-
-  await rm(target, { force: true, recursive: true });
-  try {
-    await cp(source, target, {
-      errorOnExist: true,
-      force: false,
-      mode: constants.COPYFILE_FICLONE,
-      recursive: true,
-      verbatimSymlinks: true,
-    });
-    const copied = await lstat(target);
-    if (!copied.isDirectory() || copied.isSymbolicLink()) {
-      throw new Error("Materialized node_modules is not a real directory.");
-    }
-  } catch (error) {
-    try {
-      await rm(target, { force: true, recursive: true });
-    } catch (cleanupError) {
-      throw new AggregateError(
-        [error, cleanupError],
-        "Dependency materialization and cleanup both failed.",
-      );
-    }
-    throw error;
-  }
-};
+): Promise<VerificationDependencyLease> =>
+  materializeVerificationDependencies(repositoryRoot, workspace);
 
 /** Removes only the worktree-local dependency materialization. */
 export const removeWorkspaceDependencies = async (
@@ -76,11 +46,14 @@ export const removeWorkspaceDependencies = async (
 export const withWorkspaceDependencies = async <T>(
   repositoryRoot: string,
   workspace: string,
-  operation: () => Promise<T>,
+  operation: (lease: VerificationDependencyLease) => Promise<T>,
 ): Promise<T> => {
-  await materializeWorkspaceDependencies(repositoryRoot, workspace);
+  const lease = await materializeWorkspaceDependencies(
+    repositoryRoot,
+    workspace,
+  );
   try {
-    return await operation();
+    return await operation(lease);
   } finally {
     await removeWorkspaceDependencies(workspace);
   }

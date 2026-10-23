@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.controller.ts
- * @version 1.3.2
+ * @version 1.4.0
  * @date 2026-10-22
  * @description Принимает Git-действие и передаёт его воркеру с контекстом вызывающей среды.
  */
@@ -14,6 +14,7 @@ import { createGitWorkerTransport } from "./createGitWorkerTransport.adapter.ts"
 import { loadGitWorkerSettings } from "./loadGitWorkerSettings.adapter.ts";
 import { loadGitWorkerContext } from "./loadGitWorkerContext.adapter.ts";
 import { runGitWorker } from "./runGitWorker.service.ts";
+import { runVerifiedGitWorker } from "./runVerifiedGitWorker.service.ts";
 import {
   isGitWorkerAction,
   parseGitWorkerCommand,
@@ -38,28 +39,38 @@ async function main(): Promise<void> {
   const repositoryRoot = await realpath(
     fileURLToPath(new URL("../../../../../", import.meta.url)),
   );
-  const context = await loadGitWorkerContext(
-    action,
-    repositoryRoot,
-    process.env.REALIZE_GIT_CONTEXT_FILE,
-  );
-  const settings = await loadGitWorkerSettings(repositoryRoot, action);
   const abort = new AbortController();
   const cancel = () => abort.abort();
   process.once("SIGINT", cancel);
   process.once("SIGTERM", cancel);
   try {
-    const report = await runGitWorker(
-      command,
-      context,
-      settings,
-      {
-        createTransport: (options) =>
-          createGitWorkerTransport(repositoryRoot, options),
-        deliver: deliverGitWorkerCommand,
-      },
-      abort.signal,
-    );
+    const dependencies = {
+      createTransport: (options) =>
+        createGitWorkerTransport(repositoryRoot, options),
+      deliver: deliverGitWorkerCommand,
+    } satisfies import("./GitWorker.types.ts").GitWorkerDependencies;
+    const planPath = process.env.REALIZE_GIT_VERIFICATION_PLAN;
+    const report =
+      planPath !== undefined && (action === "commit" || action === "push")
+        ? await runVerifiedGitWorker(
+            command,
+            repositoryRoot,
+            process.env.REALIZE_GIT_CONTEXT_FILE,
+            planPath,
+            dependencies,
+            abort.signal,
+          )
+        : await runGitWorker(
+            command,
+            await loadGitWorkerContext(
+              action,
+              repositoryRoot,
+              process.env.REALIZE_GIT_CONTEXT_FILE,
+            ),
+            await loadGitWorkerSettings(repositoryRoot, action),
+            dependencies,
+            abort.signal,
+          );
     process.stdout.write(JSON.stringify(report) + "\n");
     process.exitCode =
       report.status === "succeeded" ? 0 : report.status === "blocked" ? 2 : 1;

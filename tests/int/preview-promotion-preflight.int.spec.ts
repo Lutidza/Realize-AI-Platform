@@ -1,6 +1,6 @@
 /**
  * @file tests/int/preview-promotion-preflight.int.spec.ts
- * @version 1.1.1
+ * @version 1.1.2
  * @date 2026-10-22
  * @description Проверяет раннюю остановку promotion и сохранение evidence недоступного Chromium.
  */
@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   preflight: vi.fn(),
   prepare: vi.fn(),
   check: vi.fn(),
+  dependencyLease: Object.freeze({}),
   review: vi.fn(),
   commit: vi.fn(),
   start: vi.fn(),
@@ -58,8 +59,8 @@ vi.mock("../../services/ai-execution-worker/src/workspaceDependencies", () => ({
   withWorkspaceDependencies: async (
     _root: string,
     _workspace: string,
-    operation: () => Promise<void>,
-  ) => await operation(),
+    operation: (lease: object) => Promise<void>,
+  ) => await operation(mocks.dependencyLease),
 }));
 
 import { executeClaimedPromotion } from "../../services/ai-execution-worker/src/promotionExecutor";
@@ -105,6 +106,8 @@ const input = () =>
     usage,
     repository,
     job: {
+      changeRequestID: 41,
+      plan: "Approved fixture plan",
       allowedPaths: [referencePage],
       expectedPaths: [referencePage],
       requiredChecks: ["npm run build"],
@@ -176,6 +179,14 @@ describe("promotion Chromium preflight", () => {
     );
     expect(mocks.smoke).toHaveBeenCalledWith(
       "http://127.0.0.1:3200/reference/realize-ai",
+    );
+    expect(mocks.check).toHaveBeenCalledWith(
+      expect.objectContaining({
+        verification: expect.objectContaining({
+          changeRequestID: 41,
+          dependencyLease: mocks.dependencyLease,
+        }),
+      }),
     );
     expect(repository.complete).toHaveBeenCalledOnce();
     expect(repository.fail).not.toHaveBeenCalled();

@@ -87,6 +87,10 @@ runtime_sources:
   находятся в `.codex/`, общий транспорт — в `packages/codex-adapter/`.
   Общий Git process/lock owner для IDE, платформы и GPT/MCP находится в
   `packages/git-runtime/`; этот пакет не является источником инструкций модели.
+  `tools/git-delivery/src/verification/` содержит CLI-адаптер явно выбранных checks;
+  общий runner, ключи и receipts для IDE и execution/preview принадлежат
+  `packages/verification-runtime/`. Git proofs остаются в `worker/verification/`.
+  API описан в README инструмента и общего пакета.
 - `worker-profiles/` предназначен для необязательных повторно используемых
   профилей делегирования. Сейчас содержит только индекс, готовых профилей нет.
 - `agents-evolution/` хранит наблюдения, предложения и результаты изменения

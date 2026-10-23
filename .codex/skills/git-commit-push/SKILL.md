@@ -43,6 +43,15 @@ read port не разрешает основному агенту обойти �
   Этот вход запускает отдельного воркера через Codex App Server; сам вызов
   основным агентом является передачей задания, Git выполняет обработчик по
   запросу воркера. Составление контекста и прямой вызов Git CLI не нужны.
+- Проверки, выбранные по изменению, запускай и сохраняй через
+  `npm run git:verify -- run --plan /absolute/private-plan.json`; для чтения
+  актуальности используй `status` вместо `run`. Формат плана, local reuse и
+  обязательная причина широкого запуска описаны в
+  [README](../../../.ai/tools/git-delivery/README.md#сохранение-и-повторное-использование-проверок).
+  Внешнее состояние БД/browser/live runtime требует `reuse: "never"`.
+  CLI использует общий с platform execution/preview `@realize/verification-runtime`;
+  адрес receipts и дополнительные входы назначает IDE adapter.
+  Receipt не создаётся из прежнего лога или предположения о выполненной команде.
 - Для разрешённого локального `commit` вызывающая среда назначает
   `REALIZE_GIT_CONTEXT_FILE` и выполняет `npm run --silent git:worker -- commit`
   с необязательным сообщением одним следующим аргументом. Подготовка контекста и
@@ -50,6 +59,12 @@ read port не разрешает основному агенту обойти �
   Файл не заменяет пользовательское разрешение. Автор берётся из полей формы
   интеграции, если `identity` не передана явно. Без разрешения, проверок или
   настроенного автора вход блокируется.
+  Чтобы программно подготовить results, явно назначь
+  `REALIZE_GIT_VERIFICATION_PLAN=/absolute/private-plan.json` вместе с прежним
+  `REALIZE_GIT_CONTEXT_FILE`. Authorization/scope/requiredChecks остаются в
+  контексте. Missing/failed/stale selected checks выполняются до Git-действия,
+  receipts перепроверяются и связываются с текущим fingerprint через configured
+  worker inspect. Не вызывай Git или shared executor напрямую ради этой подготовки.
 - Если пользователь явно запросил полный add/commit текущего состава,
   вызывающая среда может передать `scope: { mode: "all", includePartialIndex: true }`
   по [контракту commit](../../../.ai/tools/git-delivery/README.md#контекст-локального-commit).
@@ -59,6 +74,10 @@ read port не разрешает основному агенту обойти �
   `npm run --silent git:worker -- push`. Состав контекста и настройки
   подключения — в [README обработчика](../../../.ai/tools/git-delivery/README.md#контекст-push).
   Подключение получает обработчик из БД; модель вызывает `git_push` без аргументов.
+  С verification-планом нужны сохранённые proofs точных OID и совпадающих check
+  recipes. Отсутствующий proof не заменяется тестами нынешнего checkout.
+  Selected check с `reuse: "never"` блокирует автоматический push до модели и сети.
+  Без плана сохраняется ручной контекст с фактическими результатами.
 - Для `manage` назначь `REALIZE_GIT_CONTEXT_FILE` с одной разрешённой операцией и
   выполни `npm run --silent git:worker -- manage`. Контекст и лимиты описаны в
   [README обработчика](../../../.ai/tools/git-delivery/README.md#контекст-manage).

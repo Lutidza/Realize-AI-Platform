@@ -125,6 +125,12 @@
       "sources": ["packages/git-runtime"]
     },
     {
+      "id": "verification-runtime",
+      "kind": "core-package",
+      "packagePath": "packages/verification-runtime/package.json",
+      "sources": ["packages/verification-runtime"]
+    },
+    {
       "id": "codex-provider-adapter",
       "kind": "provider-adapter",
       "packagePath": "packages/codex-adapter/package.json",

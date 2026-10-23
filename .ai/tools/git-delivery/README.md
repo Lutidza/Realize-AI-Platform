@@ -469,6 +469,153 @@ deployment и product SourcePromotion authority в действие не вхо�
 набором 588 Git regression tests. Реальная GitHub publication через модель
 требует отдельной эксплуатационной проверки; состояние отражено в ADR-0016.
 
+## Сохранение и повторное использование проверок
+
+`git:verify` сохраняет результаты выбранных проверок до Git-доставки. Он не
+определяет достаточный набор сам: вызывающая среда явно задаёт commands, inputs
+и требуемую область проверки. Команды запускаются без shell; Git-действия
+сохраняют вход через настроенного `git:worker`.
+
+CLI — IDE-адаптер общего `@realize/verification-runtime`, который также используют
+platform execution и preview. Он назначает storage и дополнительные inputs
+Git-инструмента; план проверки их не переопределяет. Общий API и перенос между
+рабочими копиями описаны в [README пакета](../../../packages/verification-runtime/README.md).
+
+```sh
+npm run git:verify -- run --plan /absolute/private-plan.json
+npm run git:verify -- status --plan /absolute/private-plan.json
+```
+
+`run` выполняет выбранные проверки, для которых нет пригодного успешного
+receipt, и сохраняет результат каждого запуска. Совпадающий `passed` с
+`reuse: "local"` используется повторно; missing/failed/stale запускаются заново.
+При `reuse: "never"` команда выполняется при каждом `run`.
+`status` читает receipts и актуальные входы, не запускает команды и не создаёт
+новые результаты. Частичный или прерванный запуск не считается успешным.
+Для `never` он может показать последний `passed` с `reused: false`; это не
+разрешает перенос внешнего состояния и не отменяет новый запуск перед commit.
+
+План — обычный личный JSON-файл текущего пользователя с правами `0600` по
+абсолютному пути. `repositoryRoot` после `realpath` совпадает с корнем инструмента.
+Пример адресной проверки шапки; placeholder корня нужно заменить своей рабочей
+копией:
+
+```json
+{
+  "version": 1,
+  "projectId": "realize-ai-platform",
+  "taskId": "verify-header",
+  "repositoryRoot": "/absolute/checkout",
+  "checks": [
+    {
+      "id": "headers",
+      "command": [
+        "node",
+        ".ai/tools/source-headers/src/checkSourceHeaders.controller.ts",
+        "next.config.ts"
+      ],
+      "inputs": ["next.config.ts", ".ai/tools/source-headers"],
+      "timeoutMs": 30000,
+      "reuse": "local",
+      "extent": "targeted"
+    }
+  ]
+}
+```
+
+Контракт check:
+
+| Поле                                | Назначение                                                                                                                                                                                                                             |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                                | Стабильный идентификатор, используемый в `requiredChecks` Git-контекста.                                                                                                                                                               |
+| `command`                           | Массив аргументов запуска `node` или `npm`; строка shell не принимается.                                                                                                                                                               |
+| `inputs`                            | Явные относительные пути значимых файлов и каталогов, без glob и корня репозитория. `.git`, `.ai-workspace` и `node_modules` не принимаются; dependencies учитываются отдельно. Состав каталогов, additions и deletions входят в ключ. |
+| `environment`, `inheritEnvironment` | Явно заданные несекретные значения и имена наследуемых переменных; существенное окружение входит в hash.                                                                                                                               |
+| `timeoutMs`                         | Предел выполнения команды: от 1 до 1 800 000 ms.                                                                                                                                                                                       |
+| `reuse`                             | `local` для проверяемого локального состояния; `never` требует нового запуска.                                                                                                                                                         |
+| `extent`, `reason`                  | `targeted` либо `full`; полный/широкий запуск требует конкретной причины. Известная широкая npm-команда не становится адресной из-за `targeted`.                                                                                       |
+
+План содержит до 64 checks, каждый — до 128 inputs. `reason`, когда задан,
+содержит от 8 до 1000 символов. По умолчанию окружение включает PATH текущего
+Node, фиксированные `NODE_ENV=test`, `CI`, locale/timezone и отключённые личные
+npm config. Остальные переменные задаются явно; имена `REALIZE_GIT_*` запрещены.
+
+Ключ проверки включает recipe/command, source hashes, package manifests и
+lockfiles, сведения об установленных зависимостях, runtime/platform и hash
+эффективного окружения. Входы повторно сверяются после выполнения и перед
+использованием. Metadata установленных dependencies, включая inode/ctime/size,
+обеспечивает консервативный local filesystem reuse; это не аттестация внешней
+среды и не защищённый от произвольного параллельного изменения snapshot.
+В dependency metadata исключены только cache-каталоги с именами `.cache`,
+`.vite`, `.vite-temp`; явные source inputs таких исключений не имеют.
+Значения environment и секреты в receipts не сохраняются. План не должен
+содержать credentials. Импорт старых логов в `passed` receipts не поддерживается.
+
+Для проверок БД, browser или live runtime назначай `reuse: "never"`.
+Совпадение локального кода не доказывает неизменность внешнего состояния;
+API независимого versioned proof этого состояния пока нет. Команды с изменением
+внешних данных требуют собственных полномочий; наличие плана их не выдаёт.
+
+Receipts хранятся в `.ai-workspace/tasks/<taskId>/logs/git-verification` через
+общий `PrivateJsonRepository`: личные bounded JSON, проверка путей без symlinks,
+атомарная запись с `fsync` и восстановление после обрыва. `GitJournalRepository`
+сохраняет policy размещения Git journals и OID proofs поверх того же storage owner.
+Отдельная verification
+lock координирует сохранение и запуск; общий Git lock во время тестов не занят.
+Отчёт различает фактический запуск (`executed`) и reuse (`reused`), содержит
+status, ключи recipe/input и идентификатор receipt. Он не является deployment или
+installed acceptance.
+`logPath` указывает на receipt с ограниченной очищенной диагностикой и хешами
+вывода; полный сырой stdout/stderr не сохраняется.
+
+### Подключение к commit и push
+
+```sh
+REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
+  REALIZE_GIT_CONTEXT_FILE=/absolute/context.json \
+  REALIZE_GIT_VERIFICATION_PLAN=/absolute/private-plan.json \
+  npm run --silent git:worker -- commit 'docs: уточнить инструкции'
+```
+
+`REALIZE_GIT_VERIFICATION_PLAN` явно включает подготовку evidence только для
+`commit` и `push`. Контекст разрешения остаётся отдельным: вызывающая среда
+задаёт `authorization`, scope, requiredChecks, inputPaths, identity и target
+для соответствующего действия. План может содержать дополнительные checks;
+при доставке выбираются только `requiredChecks` в порядке контекста.
+
+До любой проверки или inspect-модели orchestration проверяет структуру контекста,
+корень и разрешённое действие. Только этот режим допускает ещё пустые или
+отсутствующие `verification.results` на входе; затем обязательна полная проверка
+реальных результатов. План не создаёт разрешение и не меняет scope/target.
+Для доказательства проверенного содержимого orchestration может дополнить
+`verification.inputPaths` файлами selected plan inputs и обязательными входами
+runner. Это расширяет снимок evidence, сохраняя прежнюю область разрешённого
+commit. Перечень повторно сверяется во время подготовки; неполный или превышающий
+предел 2048 paths список нельзя молча усечь.
+
+Для commit orchestration выполняет недостающие selected checks или получает
+пригодные receipts, вызывает configured Git worker inspect, повторно сверяет
+receipts и получает второй inspect с тем же scope/inputPaths. Совпавшие Git
+fingerprints позволяют связать результаты с текущим снимком. Low-level handler
+сам тесты не запускает: он независимо сверяет evidence и включённые файлы под
+Git lock. Проверка рассчитана на стабильную локальную рабочую среду: атомарный
+snapshot dependencies, environment и последующих изменений состава каталогов
+не создаётся. После подтверждённого commit с reusable checks сохраняется proof
+точного OID. Для selected check с `reuse: "never"` commit принимает только
+текущий запуск и не создаёт proof для последующего автоматического push.
+
+Для push используются сохранённые proofs точных публикуемых OID с совпадающей
+recipe. Проверки текущего checkout не запускаются для доказательства старого
+commit. Отсутствующий или неподходящий proof блокирует автоматический маршрут;
+scope и назначение публикации остаются из исходного разрешения.
+Если среди selected checks есть `reuse: "never"`, автоматический push
+блокируется с `verification_not_reusable` до модели и сетевых действий:
+текущее внешнее состояние не переносится через сохранённый proof. Для такого
+случая остаётся отдельный ручной маршрут с фактическим evidence точных OID.
+
+Без `REALIZE_GIT_VERIFICATION_PLAN` прежний ручной формат контекста и проверки
+его evidence сохраняются. Hooks и CI действуют в обоих режимах.
+
 ## Контекст локального commit
 
 Вызывающая среда или основной агент обязаны иметь явный пользовательский запрос
@@ -499,12 +646,15 @@ scope, identity и непустой набор успешных проверок
 в форме интеграции. Явная `identity` имеет приоритет и не требует БД. Неполные
 или недоступные настройки блокируют commit до запуска модели.
 
-Для привязки проверок используй адресный `inspect` с этим же scope и
+Без verification-плана для привязки проверок используй адресный `inspect` с этим же scope и
 `verification.inputPaths`, действиями `["inspect"]`, без identity и с пустыми
 `requiredChecks`/`results`. Выполни нужные проверки между двумя одинаковыми
 fingerprint. Затем передай результаты в контексте commit; `identity` можно
 опустить, если автор настроен в интеграции.
 Старую проверку без такой привязки нельзя объявлять выполненной для снимка.
+Автоматическая подготовка receipts и fingerprint описана
+[выше](#сохранение-и-повторное-использование-проверок); она не меняет разрешения
+или финальный контракт обработчика.
 
 ```sh
 REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
@@ -591,7 +741,10 @@ REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
 входят также ранее созданные, ещё не опубликованные коммиты. Повторное использование
 результата для другого коммита допустимо после подтверждения одинаковых значимых
 входов проверки; одной замены OID недостаточно. Матрица фиксирует применимость
-результатов, не требует полного повторного прогона для каждого предка. Модель
+результатов, не требует полного повторного прогона для каждого предка. При
+`REALIZE_GIT_VERIFICATION_PLAN` используются только сохранённые exact-OID proofs;
+selected checks с `reuse: "never"` блокируют этот автоматический маршрут.
+Автоматического переноса результата нынешнего checkout на предков нет. Модель
 не выбирает проверки и не выполняет их.
 Обработчик сравнивает весь граф, не меняет индекс и не делает fetch.
 `refs/replace`, grafts и shallow-история блокируют push: усечённый или подменённый
@@ -723,7 +876,8 @@ REALIZE_GIT_CONTEXT_FILE=/absolute/context.json node .ai/tools/git-delivery/src/
 Для `inspect` авторство и результаты проверок не нужны. Снимок связывает HEAD,
 ветку, байты индекса, разрешённые изменённые файлы и `inputPaths`. Проверяющий
 исполнитель должен выполнить нужные проверки между двумя одинаковыми снимками
-и привязать успешные результаты к полученному `fingerprint`. Перед commit
+и привязать успешные результаты к полученному `fingerprint`; verification
+orchestration выполняет эту привязку программно при явно назначенном плане. Перед commit
 обработчик повторно сверяет этот снимок. Он не запускает тесты по произвольной
 команде и не назначает универсальный набор проверок; отсутствие действительных
 результатов возвращает конкретный блокер.
@@ -809,6 +963,7 @@ Commit без изменений также сохраняет результа�
 | [manage/](src/manage/)                                                                             | Контекст, локальное управление remote/worktrees/ветками и безопасное чтение   |
 | [sync/](src/sync/)                                                                                 | Закреплённые fetch/pull, fast-forward и восстановление этапов                 |
 | [merge/](src/merge/)                                                                               | GitHub approved-tree commit, точная область дерева и подтверждение target ref |
+| [verification/](src/verification/), [worker/verification/](src/worker/verification/)               | CLI общего runner, IDE inputs и привязка evidence к Git fingerprint/OID       |
 | [state.ts](src/state.ts), [GitJournal.repository.ts](src/GitJournal.repository.ts)                 | Журнал IDE-операций                                                           |
 
 `contracts.ts`, `safety.ts`, `state.ts` и `repository.ts` принадлежат адаптеру
@@ -823,7 +978,7 @@ push, fetch, pull, merge и загрузчик автора для commit без
 
 ```sh
 node --import tsx --test .ai/tools/git-delivery/test/*.test.ts
-node_modules/.bin/tsc -p .ai/tools/git-delivery/tsconfig.json
+npm --prefix .ai/tools/git-delivery run typecheck
 ```
 
 Тесты создают и удаляют собственные временные репозитории. Они не выполняют

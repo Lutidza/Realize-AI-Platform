@@ -25,6 +25,11 @@ content/data/schema/design/code/delivery от профильных commerce-мо
 - Delivery: Docker/Compose, GitHub Actions, GHCR и exact-digest deployment на
   Linux VPS.
 - Tests/evidence: Vitest и Playwright.
+- Общий runtime проверок IDE и platform execution/preview:
+  `packages/verification-runtime`; выбираются checks по изменению, успешные
+  receipts повторно используются при совпадении проверяемых входов. Source
+  contract — [ADR-0016](architecture/decisions/ADR-0016-development-git-delivery-handler.md#выполнение-и-достаточные-проверки);
+  installed activation сверяется отдельно.
 - В execution worker MCP не является разрешённым runtime capability. В
   project Codex adapter настроены отдельные development MCP для browser/UI/Next
   tooling и локального Realize Internal; Payload MCP endpoint сейчас отсутствует.

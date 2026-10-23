@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/src/searchSourceBinding.adapter.mjs
- * @version 1.2.0
- * @date 2026-10-22
+ * @version 1.3.0
+ * @date 2026-10-23
  * @description Хеширует явный bounded набор runtime sources без Git, секретов и persistent index.
  * @see documentation/architecture/repository-search.md
  */
@@ -18,6 +18,7 @@ export async function readSearchSourceVersion(root) {
     "src/app/(app)/api/health/live/route.ts",
     ".ai/tools/agent-search/package-lock.json",
     "packages/git-runtime/package.json",
+    "packages/verification-runtime/package.json",
     ".ai/tools/git-delivery/src/commit/assertNoGitSecrets.validator.ts",
     "packages/ai-contracts/src/mcpToolInputs.config.ts",
     "packages/ai-contracts/src/mcpToolOutputs.config.ts",
@@ -89,10 +90,11 @@ export async function readSearchSourceVersion(root) {
         .map((entry) => `${directory}/${entry.name}`),
     );
   }
-  // Git engine и typed read policy являются runtime dependencies всех repository consumers.
+  // Общие Git/verification engines и typed read policy входят в runtime repository consumers.
   // Рекурсивный bounded обход учитывает новые вложенные owners, но не захватывает IDE worker.
   const pending = [
     { directory: "packages/git-runtime/src", depth: 0 },
+    { directory: "packages/verification-runtime/src", depth: 0 },
     { directory: ".ai/tools/git-delivery/src/read", depth: 0 },
   ];
   let visited = 0;

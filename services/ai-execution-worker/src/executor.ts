@@ -1,6 +1,6 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.4.1
+ * @version 1.4.2
  * @date 2026-10-22
  * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
@@ -234,7 +234,7 @@ export const executeClaimedJob = async (input: {
     await withWorkspaceDependencies(
       input.config.repositoryRoot,
       workspace,
-      async () => {
+      async (dependencyLease) => {
         for (const [index, command] of input.job.checks.entries()) {
           const result = await input.usage.measureOperation(
             {
@@ -247,6 +247,11 @@ export const executeClaimedJob = async (input: {
               runExecutionCheck({
                 command,
                 repositoryRoot: input.config.repositoryRoot,
+                verification: {
+                  changeRequestID: input.job.changeRequestID,
+                  dependencyLease,
+                  reason: `Проверка включена в одобренный план change:${input.job.changeRequestID}, plan:${input.job.planHash}.`,
+                },
                 workspace,
               }),
             (result) => result.status === "passed",

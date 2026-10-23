@@ -152,6 +152,11 @@ Payload Git endpoint и machine read ports платформы/GPT. Провер�
 scope и evidence принадлежат соответствующим адаптерам; пакет не импортирует
 control plane и не предоставляет модели произвольный Git CLI. Детали —
 [ADR-0016](decisions/ADR-0016-development-git-delivery-handler.md).
+Общий владелец выполнения проверок и receipts — `packages/verification-runtime`
+(`@realize/verification-runtime`). IDE CLI и Git evidence adapters находятся в
+`.ai/tools/git-delivery/src/{verification,worker/verification}`; platform policy,
+mapper и подключение к execution/preview — в `services/ai-execution-worker/src`.
+Разрешения и публикация результатов принадлежат вызывающим адаптерам.
 Каталог capabilities принадлежит MCP adapter; локальный credential helper —
 `scripts/runtime/readLocalMcpHeaders.*.mjs`. Lifecycle и запуск описаны в
 [MCP tooling](mcp-tooling.md); эти ports не предоставляют worker-у новые права.
