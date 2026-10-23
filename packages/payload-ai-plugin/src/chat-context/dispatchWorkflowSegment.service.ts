@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/dispatchWorkflowSegment.service.ts
- * @version 1.2.0
- * @date 2026-10-04
+ * @version 1.3.0
+ * @date 2026-10-23
  * @description Повторяет точную отправку сохранённого шага модели без повторения серверных эффектов.
  */
 import {
@@ -15,6 +15,10 @@ import { EndpointError } from "../endpoints/http";
 import { getControlPlaneClient } from "../runtime/getControlPlaneClient";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import type { ChatRunContext } from "./ChatRunContext.types";
+import {
+  createOwnerEngineeringGrant,
+  requireOwnerEngineeringWorkflowProfile,
+} from "./ownerEngineeringAdmission.service";
 
 /** Run ID и весь transport остаются прежними при потере ответа / недоступном CP. */
 export const dispatchWorkflowSegment = async (
@@ -47,9 +51,24 @@ export const dispatchWorkflowSegment = async (
     context.workflow,
   );
   if (workflow.phase !== "running") return current;
+  requireOwnerEngineeringWorkflowProfile(
+    agentConfiguration.compiled.profile.key,
+    workflow.workflowKey,
+  );
+  // Ошибка права сохраняет исходный статус и не маскируется ошибкой транспорта.
+  const ownerEngineering = await createOwnerEngineeringGrant(
+    req,
+    options,
+    agentConfiguration,
+    String(current.id),
+    userID,
+  );
   try {
     await getControlPlaneClient(options).startRun({
-      repositoryAccess: context.repositoryAccess,
+      ...(ownerEngineering ? { ownerEngineering } : {}),
+      ...(ownerEngineering
+        ? {}
+        : { repositoryAccess: context.repositoryAccess }),
       runID: String(current.id),
       prompt: String(workflow.input.request),
       model: typeof current.model === "string" ? current.model : undefined,

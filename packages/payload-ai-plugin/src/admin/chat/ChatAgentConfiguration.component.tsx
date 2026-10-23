@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatAgentConfiguration.component.tsx
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.1.0
+ * @date 2026-10-23
  * @description Показывает профиль следующего запуска и доступный список активного выпуска.
  */
 
@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { UiBadge, UiButton, UiInput, UiNotice } from "@realize/ui-kit";
+import { OWNER_ENGINEERING_PROFILE_KEY } from "@realize/ai-contracts";
 import type { ChatAgentConfigurationProps } from "./ChatAgentConfiguration.types";
 import { useChatAgentConfigurationPicker } from "./useChatAgentConfigurationPicker.hook";
 import styles from "./ChatAgentConfiguration.module.css";
@@ -32,6 +33,19 @@ export const ChatAgentConfiguration = ({
   const selected = exactRelease
     ? catalog?.profiles.find((profile) => profile.key === selection?.profileKey)
     : undefined;
+  const ownerEngineeringSelected =
+    selection?.profileKey === OWNER_ENGINEERING_PROFILE_KEY;
+  const ownerTarget =
+    ownerEngineeringSelected && selected && !isLoading && !error
+      ? catalog?.ownerEngineering
+      : undefined;
+  const ownerExecutorUnavailable = Boolean(
+    ownerEngineeringSelected &&
+    catalog &&
+    !isLoading &&
+    !error &&
+    !catalog.ownerEngineering?.enabled,
+  );
   const stale = Boolean(selection && !selected);
   const title =
     selected?.title ||
@@ -76,7 +90,7 @@ export const ChatAgentConfiguration = ({
               {error}
             </UiNotice>
           )}
-          {stale && (
+          {stale && !ownerExecutorUnavailable && (
             <UiNotice role="status">
               Выбранный профиль больше не доступен в активном выпуске. Выберите
               профиль снова; сообщение сохранено.
@@ -171,7 +185,23 @@ export const ChatAgentConfiguration = ({
           ) : null}
         </div>
       </details>
-      {(!isReady || isLoading) && (
+      {ownerTarget?.enabled && (
+        <UiNotice className={styles.ownerTarget} role="status">
+          <div>Режим: инженерный доступ владельца</div>
+          <div>
+            Рабочая машина: {ownerTarget.hostname} · Пользователь:{" "}
+            {ownerTarget.osUser}
+          </div>
+          <div>Рабочая папка: {ownerTarget.workspaceRoot}</div>
+        </UiNotice>
+      )}
+      {ownerExecutorUnavailable && (
+        <UiNotice className={styles.ownerTarget} role="status">
+          Инженерный исполнитель владельца сейчас недоступен. Обновите профили
+          или выберите другой профиль; сообщение сохранено.
+        </UiNotice>
+      )}
+      {(!isReady || isLoading) && !ownerExecutorUnavailable && (
         <p className={styles.status} role="status">
           {isLoading
             ? "Обновляем профили…"

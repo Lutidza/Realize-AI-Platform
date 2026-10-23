@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/options.ts
- * @version 1.2.0
- * @date 2026-09-20
+ * @version 1.3.0
+ * @date 2026-10-23
  * @description Проверяет plugin options, включая source, release и integration security gates.
  */
 
@@ -131,6 +131,15 @@ export const sanitizeOptions = (
     runtime: {
       ...options.runtime,
       isolated: options.runtime.isolated ?? false,
+      ownerEngineering: {
+        enabled: options.runtime.ownerEngineering?.enabled ?? false,
+        osUser: options.runtime.ownerEngineering?.osUser || "",
+        repositoryRoot: resolve(
+          options.runtime.ownerEngineering?.repositoryRoot ||
+            options.execution?.repositoryRoot ||
+            process.cwd(),
+        ),
+      },
     },
     userCollection: options.userCollection || "users",
   };

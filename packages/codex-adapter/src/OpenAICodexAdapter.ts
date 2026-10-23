@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/OpenAICodexAdapter.ts
- * @version 2.5.0
- * @date 2026-10-22
+ * @version 2.7.0
+ * @date 2026-10-23
  * @description Выполняет изолированные сессии Codex App Server с выбранной политикой доступа.
  */
 
@@ -23,7 +23,9 @@ import { codexRecord as asRecord } from "./codexRecord.util";
 import { collectCodexChatSources } from "./collectCodexChatSources.mapper";
 import { validateCodexImageInputs } from "./validateCodexImageInputs.validator";
 import { createCodexChatPermissions } from "./createCodexChatPermissions.config";
+import { createCodexOwnerHostEnvironment } from "./createCodexOwnerHostEnvironment.config";
 import { CodexReadTools } from "./CodexReadTools.adapter";
+import { CodexOwnerProjectMcpPolicy } from "./CodexOwnerProjectMcpPolicy.validator";
 import { closeNativeSearchThreads } from "./closeNativeSearchThreads.service";
 import { readCodexUsage } from "./readCodexUsage.mapper";
 import type { ThreadStartResult, TurnStartResult } from "./protocol";
@@ -74,6 +76,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
   async cancelRun(runID: string): Promise<void> {
     const active = this.activeRuns.get(runID);
     if (!active) return;
+    if (active.ownerHost) active.cancelled = true;
 
     try {
       await active.client.request("turn/interrupt", {
@@ -82,6 +85,9 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       });
     } catch {
       await active.client.close();
+    } finally {
+      // У owner-host native commands и потомки не должны пережить подтверждённую отмену.
+      if (active.ownerHost) await active.client.close();
     }
   }
 
@@ -89,8 +95,36 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     if (this.activeRuns.has(input.runID))
       throw new Error("Run is already active.");
 
+    const ownerHost = input.sandboxProfile === "owner-host";
+    try {
+      if (
+        input.sandboxProfile !== undefined &&
+        ![
+          "analysis-readonly",
+          "code-workspace-write",
+          "review-readonly",
+          "owner-host",
+        ].includes(input.sandboxProfile)
+      )
+        throw new Error("codex_sandbox_profile_invalid");
+      if (ownerHost) {
+        if (this.options.readTools || this.options.repositoryMcpURL)
+          throw new Error("codex_owner_host_tools_invalid");
+        createCodexOwnerHostEnvironment(input.cwd, this.options.ownerHost);
+      } else if (this.options.ownerHost) {
+        throw new Error("codex_owner_host_profile_invalid");
+      }
+    } catch {
+      yield {
+        type: "run.failed",
+        message: "Серверный допуск к выбранному режиму Codex недействителен.",
+      };
+      return;
+    }
+
     const webSearch =
-      input.webSearch === true && input.sandboxProfile === "analysis-readonly";
+      input.webSearch === true &&
+      (input.sandboxProfile === "analysis-readonly" || ownerHost);
     if (
       this.options.readTools &&
       input.sandboxProfile !== "analysis-readonly"
@@ -120,7 +154,12 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
             this.options.search.mode === "subagent",
           ),
         );
-      images = await validateCodexImageInputs(input.cwd, input.images);
+      images = await validateCodexImageInputs(
+        ownerHost
+          ? (this.options.ownerHost?.attachmentRoot ?? input.cwd)
+          : input.cwd,
+        input.images,
+      );
       if (input.sandboxProfile === "analysis-readonly")
         chatPermissions = await createCodexChatPermissions(
           input.cwd,
@@ -136,7 +175,8 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     }
 
     const client = new JsonLineRPCClient({
-      ignoreProjectInstructions: true,
+      ignoreProjectInstructions: !ownerHost,
+      ...(ownerHost ? { ownerHost: this.options.ownerHost } : {}),
       codexBinary: chatPermissions?.binaryPath ?? this.options.codexBinary,
       environment: this.options.environment,
       signal: this.options.signal,
@@ -154,38 +194,61 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
     client.start();
 
     let active: ActiveRun | undefined;
+    let ownerMcp: CodexOwnerProjectMcpPolicy | undefined;
+    const allowsMcp = (item: Record<string, unknown>): boolean =>
+      ownerMcp ? ownerMcp.allows(item) : this.allowsRepositoryMcp(item);
+    const forbiddenToolMessage = (item: Record<string, unknown>): string =>
+      ownerHost && item.type === "mcpToolCall"
+        ? `Запрещён MCP-инструмент: ${CodexOwnerProjectMcpPolicy.label(item)}.`
+        : `Blocked forbidden tool type: ${String(item.type)}.`;
     let accumulatedMessage = "";
     let sources: ChatSourceDto[] = [];
-    const writable = input.sandboxProfile === "code-workspace-write";
+    const writable =
+      ownerHost || input.sandboxProfile === "code-workspace-write";
     const sandbox = writable ? "workspace-write" : "read-only";
     const machineCredential = Boolean(
       this.options.environment?.CODEX_ACCESS_TOKEN ||
       this.options.environment?.OPENAI_FEDERATION_RULE_ID,
     );
-    // WIF использует профиль с запретом чтения каталога assertion для любого инструмента.
-    const permissions = chatPermissions
+    // Owner переопределяет named default интеграции штатным full-access builtin;
+    // isolated WIF сохраняет запрет чтения каталога assertion.
+    const permissions = ownerHost
       ? {
           config: {
+            default_permissions: ":danger-full-access",
             web_search: webSearch ? "live" : "disabled",
-            default_permissions: "realize_chat_snapshot",
-            permissions: { realize_chat_snapshot: chatPermissions.profile },
           },
         }
-      : this.options.environment?.OPENAI_FEDERATION_RULE_ID
+      : chatPermissions
         ? {
             config: {
               web_search: webSearch ? "live" : "disabled",
-              default_permissions: writable
-                ? "realize_wif_workspace"
-                : "realize_wif_readonly",
+              default_permissions: "realize_chat_snapshot",
+              permissions: { realize_chat_snapshot: chatPermissions.profile },
             },
           }
-        : { sandbox, config: { web_search: webSearch ? "live" : "disabled" } };
+        : this.options.environment?.OPENAI_FEDERATION_RULE_ID
+          ? {
+              config: {
+                web_search: webSearch ? "live" : "disabled",
+                default_permissions: writable
+                  ? "realize_wif_workspace"
+                  : "realize_wif_readonly",
+              },
+            }
+          : {
+              sandbox,
+              config: { web_search: webSearch ? "live" : "disabled" },
+            };
 
     try {
       await client.request("initialize", {
         capabilities:
-          readTools || this.options.repositoryMcpURL
+          readTools ||
+          this.options.repositoryMcpURL ||
+          (ownerHost &&
+            this.options.search?.enabled &&
+            this.options.search.mode === "subagent")
             ? { experimentalApi: true }
             : null,
         clientInfo: {
@@ -196,9 +259,20 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       });
       client.notify("initialized");
 
-      // Resume не заменяет сохранённые dynamicTools: каждый запуск с tools получает точный новый набор.
+      if (ownerHost) {
+        ownerMcp = new CodexOwnerProjectMcpPolicy(
+          await client.request("config/read", {
+            cwd: input.cwd,
+            includeLayers: true,
+          }),
+          input.cwd,
+          this.options.ownerHost?.trustedProjectMcp === true,
+        );
+      }
+
+      // Resume сохраняет dynamicTools; owner-host начинает новый thread, чтобы не наследовать профиль чата.
       const thread =
-        input.threadID && !readTools
+        input.threadID && !readTools && !ownerHost
           ? await client.request<ThreadStartResult>("thread/resume", {
               approvalPolicy: "never",
               baseInstructions: null,
@@ -216,6 +290,9 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               model: input.model || null,
               ...(readTools ? { dynamicTools: readTools.definitions } : {}),
               ...permissions,
+              ...(ownerMcp
+                ? { config: { ...permissions.config, ...ownerMcp.config } }
+                : {}),
             });
 
       const turn = await client.request<TurnStartResult>("turn/start", {
@@ -231,6 +308,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
         client,
         threadID: thread.thread.id,
         turnID: turn.turn.id,
+        ...(ownerHost ? { ownerHost: true } : {}),
       };
       readTools?.bind(active.threadID, active.turnID);
       this.activeRuns.set(input.runID, active);
@@ -238,11 +316,15 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
       let observedModel: string | null = thread.model ?? input.model ?? null;
       let measurementSequence = 0;
       // Cumulative total старого thread включает предыдущие turns: без baseline не тарифицируем.
-      const freshThread = !input.threadID || Boolean(readTools);
+      const freshThread = ownerHost || !input.threadID || Boolean(readTools);
+      // Full-host shell может запускать внешние model workers: parent counters не доказывают их учёт.
       const childUsagePossible =
-        this.options.search?.enabled && this.options.search.mode === "subagent";
+        ownerHost ||
+        (this.options.search?.enabled &&
+          this.options.search.mode === "subagent");
 
       for await (const message of client.getNotifications()) {
+        if (active.cancelled) break;
         const params = message.params || {};
         if (
           message.method === "model/rerouted" &&
@@ -251,7 +333,8 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           observedModel = null;
 
         if (message.method === "realize/securityViolation") {
-          await this.cancelRun(input.runID);
+          if (ownerHost) await client.close();
+          else await this.cancelRun(input.runID);
           yield {
             message:
               "Codex requested a capability forbidden by non-interactive worker policy.",
@@ -324,13 +407,14 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           if (
             (!writable && item?.type === "fileChange") ||
             (!webSearch && item?.type === "webSearch") ||
-            (item?.type === "mcpToolCall" && !this.allowsRepositoryMcp(item)) ||
+            (item?.type === "mcpToolCall" && !allowsMcp(item)) ||
             (item?.type === "dynamicToolCall" &&
               !readTools?.allowsItem(item, params.threadId, params.turnId))
           ) {
-            await this.cancelRun(input.runID);
+            if (ownerHost) await client.close();
+            else await this.cancelRun(input.runID);
             yield {
-              message: `Blocked forbidden tool type: ${String(item.type)}.`,
+              message: forbiddenToolMessage(item),
               type: "run.failed",
             };
             break;
@@ -338,9 +422,11 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           if (!matchesActiveTurn(params, active)) continue;
           if (item?.type === "commandExecution") {
             yield {
-              summary: writable
-                ? "Isolated implementation command started."
-                : "Read-only repository inspection started.",
+              summary: ownerHost
+                ? "Команда владельца на локальной машине запущена."
+                : writable
+                  ? "Isolated implementation command started."
+                  : "Read-only repository inspection started.",
               type: "tool.started",
             };
           }
@@ -356,11 +442,12 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               summary: "Чтение разрешённых данных начато.",
             };
           }
-          if (item?.type === "mcpToolCall" && this.allowsRepositoryMcp(item)) {
+          if (item?.type === "mcpToolCall" && allowsMcp(item)) {
             yield {
               type: "tool.started",
-              summary:
-                item.tool === "repo_git_head"
+              summary: ownerHost
+                ? `MCP ${CodexOwnerProjectMcpPolicy.label(item)}: вызов начат.`
+                : item.tool === "repo_git_head"
                   ? "Чтение Git HEAD начато."
                   : "Поиск в файлах проекта начат.",
             };
@@ -379,13 +466,14 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           if (
             (!writable && item?.type === "fileChange") ||
             (!webSearch && item?.type === "webSearch") ||
-            (item?.type === "mcpToolCall" && !this.allowsRepositoryMcp(item)) ||
+            (item?.type === "mcpToolCall" && !allowsMcp(item)) ||
             (item?.type === "dynamicToolCall" &&
               !readTools?.allowsItem(item, params.threadId, params.turnId))
           ) {
-            await this.cancelRun(input.runID);
+            if (ownerHost) await client.close();
+            else await this.cancelRun(input.runID);
             yield {
-              message: `Blocked forbidden tool type: ${String(item.type)}.`,
+              message: forbiddenToolMessage(item),
               type: "run.failed",
             };
             break;
@@ -398,9 +486,11 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
                   ? item.durationMs
                   : undefined,
               status: item.status === "completed" ? "completed" : "failed",
-              summary: writable
-                ? "Isolated implementation command finished."
-                : "Read-only repository inspection finished.",
+              summary: ownerHost
+                ? "Команда владельца на локальной машине завершена."
+                : writable
+                  ? "Isolated implementation command finished."
+                  : "Read-only repository inspection finished.",
               type: "tool.completed",
             };
           }
@@ -422,12 +512,19 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               summary: "Чтение разрешённых данных завершено.",
             };
           }
-          if (item?.type === "mcpToolCall" && this.allowsRepositoryMcp(item)) {
+          if (item?.type === "mcpToolCall" && allowsMcp(item)) {
             yield {
               type: "tool.completed",
-              status: item.status === "completed" ? "completed" : "failed",
-              summary:
-                item.tool === "repo_git_head"
+              status:
+                item.status === "completed" &&
+                (!ownerHost ||
+                  (item.error == null &&
+                    asRecord(item.result)?.isError !== true))
+                  ? "completed"
+                  : "failed",
+              summary: ownerHost
+                ? `MCP ${CodexOwnerProjectMcpPolicy.label(item)}: вызов завершён.`
+                : item.tool === "repo_git_head"
                   ? "Чтение Git HEAD завершено."
                   : "Поиск в файлах проекта завершён.",
             };
@@ -465,8 +562,7 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
               items.some((value) => {
                 const item = asRecord(value);
                 return (
-                  (item?.type === "mcpToolCall" &&
-                    !this.allowsRepositoryMcp(item)) ||
+                  (item?.type === "mcpToolCall" && !allowsMcp(item)) ||
                   (!writable && item?.type === "fileChange") ||
                   (item?.type === "dynamicToolCall" &&
                     !readTools?.allowsItem(
@@ -477,16 +573,24 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
                 );
               })
             ) {
+              const forbiddenMcp = items
+                .map(asRecord)
+                .find(
+                  (item) => item?.type === "mcpToolCall" && !allowsMcp(item),
+                );
               yield {
                 type: "run.failed",
                 message:
-                  "Codex использовал инструмент вне разрешённого набора.",
+                  ownerHost && forbiddenMcp
+                    ? forbiddenToolMessage(forbiddenMcp)
+                    : "Codex использовал инструмент вне разрешённого набора.",
               };
               break;
             }
             if (!matchesActiveTurn(params, active, turnResult.id)) continue;
             if (
-              this.options.repositoryMcpURL &&
+              (this.options.repositoryMcpURL || ownerHost) &&
+              this.options.search?.enabled &&
               this.options.search?.mode === "subagent"
             ) {
               const closed = await closeNativeSearchThreads(
@@ -524,7 +628,12 @@ export class OpenAICodexAdapter implements CodingAgentAdapter {
           break;
         }
       }
+      if (active.cancelled) yield { type: "run.cancelled" };
     } catch (error) {
+      if (active?.cancelled || (ownerHost && this.options.signal?.aborted)) {
+        yield { type: "run.cancelled" };
+        return;
+      }
       yield {
         message: machineCredential
           ? "Не удалось выполнить запрос Codex. Проверьте подключение в разделе интеграций."

@@ -1,11 +1,14 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.16.0
- * @date 2026-10-22
+ * @version 2.17.0
+ * @date 2026-10-23
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
 export * from "./agent";
+export * from "./OwnerEngineering.types";
+export * from "./ownerEngineering.constants";
+export { encodeOwnerEngineeringGrant } from "./ownerEngineeringGrant.util";
 export type {
   UsageContext,
   UsageTokens,

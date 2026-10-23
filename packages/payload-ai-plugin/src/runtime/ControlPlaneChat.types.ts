@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/runtime/ControlPlaneChat.types.ts
- * @version 1.6.0
- * @date 2026-10-04
+ * @version 1.7.0
+ * @date 2026-10-23
  * @description Описывает серверный запрос запуска с непрозрачными ссылками на контекст.
  */
 import type {
@@ -13,8 +13,11 @@ import type {
   PageDraftContextDTO,
   PageDiscoveryGrant,
   RepositoryChatAccess,
+  OwnerEngineeringGrant,
 } from "@realize/ai-contracts";
 export type StartControlPlaneRunInput = {
+  /** Допуск создаёт сервер; он никогда не принимается из browser request. */
+  ownerEngineering?: OwnerEngineeringGrant;
   repositoryAccess?: RepositoryChatAccess;
   /** Закрытый допуск callback; никогда не входит в prompt или browser DTO. */
   pageDiscovery?: PageDiscoveryGrant;

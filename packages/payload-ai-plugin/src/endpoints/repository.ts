@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/repository.ts
- * @version 1.1.0
- * @date 2026-09-10
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Выполняет узкие Local API операции с явной проверкой владельца.
  */
 
@@ -96,7 +96,10 @@ export class AIRepository {
       requestedBy: input.requestedBy,
       requestHash: input.requestHash,
       turnContext: input.turnContext,
-      sandboxProfile: "analysis-readonly",
+      sandboxProfile:
+        input.turnContext?.ownerEngineering?.mode === "owner-host"
+          ? "owner-host"
+          : "analysis-readonly",
       status: "queued",
       threadID: input.threadID,
     });

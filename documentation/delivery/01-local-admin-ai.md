@@ -2,6 +2,7 @@
 
 - **Статус:** current implementation runbook
 - **Дата сверки:** 22 октября 2026 года (локальная активация исправления MCP/Git, TASK-52)
+- **Сверка owner-host:** 23 октября 2026 года (TASK-57: установлен, профиль активен; native run 119 и MCP run 123 прошли приёмку через Admin handlers)
 
 Этот runbook описывает существующий e-commerce baseline. Capability/config
 foundation, hidden Payload persistence и aggregate Config API уже реализованы.
@@ -10,7 +11,9 @@ foundation, hidden Payload persistence и aggregate Config API уже реали
 ролей, навыков, шаблонов инструкций, возможностей, проверок и рабочих процессов,
 создание и активация выпуска, rollback.
 Новый chat run сохраняет выбранный профиль активного выпуска; его инструкции
-применяются внутри действующей read-only policy. Явно выбранные рабочие процессы
+применяются внутри действующей read-only policy обычного чата. Отдельный
+`platform.owner-engineering` использует описанный ниже серверный owner-host допуск.
+Явно выбранные рабочие процессы
 выполняются сегментами в чате и сохраняют checkpoints между продолжениями.
 
 ## 1. Требования
@@ -182,6 +185,71 @@ Codex CLI берётся из `PATH` либо из `REALIZE_CODEX_BINARY`. По�
 серверного исполнения остаются инфраструктурой. Проверки и preview получают
 `REALIZE_AI_RUNTIME_ISOLATED=true`: копия БД не может включить в них агента.
 
+### Инженерный режим владельца
+
+`TASK-57` устанавливает `owner-host` для зарезервированного профиля
+`platform.owner-engineering`. Профиль «Инженер владельца» включён в
+`installation-config-v12` с System AI `1.1.9`; BUILD_ID `6a04Xe-n-ybaUUX8KJBuS`.
+Run `119` через штатные Admin handlers подтвердил write/read/delete в checkout
+и `.ai`, реальные версии Node/npm и запись usage. См.
+[runtime evidence](../../.ai-workspace/tasks/2026-10-23-owner-engineering/logs/owner-runtime-activate.json)
+и [приёмочный запуск](../../.ai-workspace/tasks/2026-10-23-owner-engineering/logs/runtime-smoke.json).
+Обновление MCP сохранило все 40 артефактов v11; run `123` подтвердил реальные
+`ai_capabilities_list` и `realize_get_context` через этот профиль.
+См. [активацию MCP](../../.ai-workspace/tasks/2026-10-23-owner-engineering/logs/owner-mcp-activate.json)
+и [MCP smoke](../../.ai-workspace/tasks/2026-10-23-owner-engineering/logs/mcp-smoke-discovery.json).
+Для локальной установки web и control plane должны получить одинаковые значения:
+
+```dotenv
+REALIZE_AI_RUNTIME_MODE=local-development
+REALIZE_AI_OWNER_ENGINEERING_ENABLED=true
+REALIZE_AI_OWNER_ENGINEERING_OS_USER=gio
+REALIZE_AI_WORKSPACE_ROOT=/home/gio/www/Realize-AI-Platform
+```
+
+Также согласуйте существующие `REALIZE_PLATFORM_OWNER_USER_IDS` и
+`REALIZE_AI_CONTROL_PLANE_TOKEN`. В `.env.example` новый режим выключен до
+явной настройки. Control plane должен фактически работать от `gio` в Linux;
+root, другой OS user, isolated runtime и некорректная явная настройка
+отклоняются. Env-переключатели применяются после обновления/перезапуска служб.
+В Admin нужны включённое подключение Codex и оба инструмента «Изменения кода»
+и «Операции с данными». Обычная роль admin не заменяет platform owner allowlist.
+
+Необязательный `REALIZE_AI_OWNER_ENGINEERING_STATE_ROOT` задаёт отдельный
+приватный каталог control plane вне checkout. По умолчанию это
+`/home/gio/.local/share/realize-ai-cms/owner-engineering`; каталог принадлежит
+OS user процесса, имеет права `0700` и не содержит symlink в canonical path.
+`runs/<runID>.json` хранит начало и итог, `active.json` блокирует параллельное
+инженерное исполнение. Журнал не содержит текста задания или HMAC grant.
+Его нельзя удалять для повтора run: после crash оператор сначала проверяет
+оставшиеся процессы и возможные изменения, сохраняет журнал и разбирает
+неизвестный исход. Автоматического восстановления такого запуска нет.
+
+После установки совместимых web/CP создайте и активируйте проверенный immutable
+release через `/admin/ai/settings`. Каталог `/config/runtime` показывает
+`ownerEngineering` только допущенному владельцу и сверяет реальную цель CP
+с настройками web. Выберите профиль: в «Следующий запуск» должны совпасть
+машина, `gio` и рабочая папка. Недоступный исполнитель блокирует отправку,
+сохраняя текст и возможность выбрать другой профиль. Обычное сообщение с этим
+профилем выполняется одним owner turn; workflow из пяти этапов выбирается отдельно
+и продолжает шаги по кнопке.
+
+Режим работает в настоящем checkout с полными правами `gio`, включая `.ai`,
+`.codex`, исходники и доступные пользовательские службы. Он не переводит процесс
+в root и не разрешает `sudo`, commit/push или deployment вне задания пользователя.
+Перезапуск обслуживающих текущий run web/CP передают оператору после завершения.
+Проектные MCP берутся из `.codex/config.toml` настоящего checkout: адаптер
+проверяет происхождение effective config и ограничения инструментов перед
+допуском. После изменения MCP config нужен новый run. Account/plugin
+connectors и MCP из пользовательского config этим режимом не разрешаются.
+Используются общие Git/verification механизмы и Admin usage ledger; отдельный
+импорт IDE/CLI отсутствует. Штатный ограниченный Git-воркер использует credential
+lease текущего запуска; покрытие его расхода и native subprocess может быть
+частичным и не объявляется полным по данным родительского turn.
+
+Подробный контракт допуска и проверки —
+[инженерный режим владельца](../architecture/codex-integration.md#инженерный-режим-владельца-целевой-контракт).
+
 ## 3. База данных
 
 Если Docker доступен, только PostgreSQL можно поднять отдельно:
@@ -233,9 +301,10 @@ worker остаётся активным. `REALIZE_AI_RUNTIME_ISOLATED=true` и�
 `npm start` и Compose сохраняют отдельную схему серверного запуска и не
 поднимают trusted local worker автоматически.
 
-Control plane намеренно разрешает bind только на `127.0.0.1` или `::1`,
-принимает bearer token, создаёт ограниченный Context Pack и запускает Codex в
-read-only sandbox. MCP, dynamic tools и file changes заблокированы adapter-ом.
+Control plane намеренно разрешает bind только на `127.0.0.1` или `::1`
+и принимает bearer token. Обычный чат создаёт ограниченный Context Pack
+и запускает Codex в read-only sandbox. Отдельный допущенный owner-host turn
+работает в реальном checkout с native filesystem/shell по контракту выше.
 Встроенный веб-поиск разрешается только для сообщения чата с явно включённым
 переключателем; code execution и reviewer сохраняют отключённый поиск.
 
@@ -1429,7 +1498,9 @@ release не переписывается; пока совместимый пр�
 с проверками ожидаемых system hash и pointer version. Изменять compatibility
 старого release вручную нельзя.
 
-Product runtime игнорирует AGENTS.md и project `.codex` как policy Codex.
+Обычный product runtime игнорирует AGENTS.md и project `.codex` как policy Codex.
+Owner-host читает действующие инструкции настоящего checkout; их изменение
+не заменяет серверный допуск владельца.
 Работа разработчика в IDE и отдельный Git worker сохраняют свой рабочий протокол.
 При этом оба входа и repository tools GPT/MCP используют общий программный
 Git executor `@realize/git-runtime` по

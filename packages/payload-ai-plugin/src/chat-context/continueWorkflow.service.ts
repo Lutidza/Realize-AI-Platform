@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/continueWorkflow.service.ts
- * @version 1.1.0
- * @date 2026-10-04
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Создаёт единственного потомка неизменяемого checkpoint с проверкой владельца и запроса.
  */
 import type { ContinueWorkflowInput } from "@realize/ai-contracts";
@@ -24,6 +24,7 @@ import type { CreateChatMessageResult } from "./ChatAttachment.types";
 import type { ChatRunContext } from "./ChatRunContext.types";
 import { prepareWorkflowSegment } from "./prepareWorkflowSegment.service";
 import { dispatchWorkflowSegment } from "./dispatchWorkflowSegment.service";
+import { resolveOwnerEngineeringMetadata } from "./ownerEngineeringAdmission.service";
 
 export const continueWorkflow = async (
   req: PayloadRequest,
@@ -133,6 +134,12 @@ export const continueWorkflow = async (
     idempotencyKey,
   );
   if (existing) return await replay(existing);
+  const ownerEngineering = await resolveOwnerEngineeringMetadata(
+    req,
+    options,
+    agentConfiguration,
+    userID,
+  );
   const content =
     input.content === undefined ? undefined : redactText(input.content);
   const resumed =
@@ -141,6 +148,7 @@ export const continueWorkflow = async (
       : resumeWorkflowInput(agentConfiguration, checkpoint, content);
   const nextContext: ChatRunContext = {
     ...context,
+    ...(ownerEngineering ? { ownerEngineering } : {}),
     agentConfiguration,
     workflow: {
       ...resumed,

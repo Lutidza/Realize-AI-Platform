@@ -4,6 +4,7 @@
 - **Дата сверки:** 12 октября 2026 года (Task Manager: Git/polling; установленные template packages, appearance и Payload ↔ Realize; прежние MCP и Мастерская сохранены)
 - **Сверка создания задач рабочего слоя:** 19 октября 2026 года (M33 и web активированы локально; CLI intake и отображение задачи проверены)
 - **Сверка доступов платформы:** 19 октября 2026 года (M34, production build и web активированы; live health/admission/device cancellation проверены)
+- **Сверка инженерного режима:** 23 октября 2026 года (TASK-57: owner-host установлен, профиль активен; native run 119 и MCP run 123 завершены)
 
 ## Цель проекта
 
@@ -171,13 +172,34 @@ Payload validators/hooks выполняются при записи; измен�
 
 ## Текущий Realize AI slice
 
-Диалоговый runtime остаётся read-only. Чат доступен в правой панели Admin,
+Обычный диалоговый runtime остаётся read-only. Чат доступен в правой панели Admin,
 контентной области `/admin/ai` и отдельном окне `/admin/ai/window`. Размещение,
 поведение диалога и ограничения инструментов настраиваются во вкладках
 интеграции GPT — Codex. Контракты,
 plugin и Codex adapter разделены по workspace packages; browser общается только
 с authenticated Payload API/SSE. Development control plane работает только на
-loopback и создаёт ограниченный Context Pack без secrets/binary/runtime state.
+loopback и создаёт ограниченный Context Pack без secrets/binary/runtime state
+для обычных профилей.
+
+Для зарезервированного `platform.owner-engineering` установлен
+отдельный `owner-host`: platform owner, явные настройки web/CP и HMAC grant
+на run разрешают native filesystem/shell в реальном checkout с полными правами
+заданного пользователя ОС. Локальная цель — `gio` и
+`/home/gio/www/Realize-AI-Platform`, включая `.ai`/`.codex`; root-процесс
+отклоняется, `sudo` требует отдельного разрешения. Приватный durable журнал
+блокирует параллельное исполнение и replay начатого run; неизвестный исход
+после crash требует разбора. UI показывает фактические машину, OS user и корень,
+а при отсутствии исполнителя сохраняет текст и блокирует отправку этого профиля.
+Активны System AI `1.1.9` и installation config `v12`; BUILD_ID
+`6a04Xe-n-ybaUUX8KJBuS`. Run `119` через штатные Admin handlers подтвердил
+создание, чтение и удаление временных файлов в `.ai-workspace` и `.ai`,
+закреплённые Node/npm и сохранение расхода. Публичный run сообщает `owner-host`.
+Run `123` подтвердил `ai_capabilities_list` и `realize_get_context` через
+проектный MCP: адаптер проверяет происхождение effective config реального
+`.codex`, server/tool и списки разрешённых инструментов. Account/plugin MCP
+не включаются. Все 40 артефактов v11 сохранены в v12; Code Mode discovery
+учитывается отдельно от команд терминала при read-only приёмке.
+Контракт и границы — [интеграция Codex](architecture/codex-integration.md#инженерный-режим-владельца-целевой-контракт).
 
 Блок ввода поддерживает приватные изображения и текстовые вложения, выбор
 безопасных файлов проекта и явное включение встроенного веб-поиска для сообщения.
@@ -465,7 +487,9 @@ ID проверки. Действия, области и лимит объект
 и повтор того же подтверждённого запроса сохраняют исходную конфигурацию.
 
 Control plane проверяет hashes и применяет профиль, прямые роли, правила,
-навыки и шаблоны `agent_instructions` внутри текущей read-only policy.
+навыки и шаблоны `agent_instructions` внутри read-only policy обычного чата.
+Допущенный owner-host применяет отдельную серверную policy и всегда начинает
+новый ephemeral thread.
 Provider thread используется повторно только при совпадении конфигурации,
 модели и серверной политики, если не подключены tools поиска страниц;
 с ними каждый run создаёт новый thread. Новый thread получает до 32 КиБ сохранённых
@@ -473,7 +497,8 @@ Provider thread используется повторно только при с
 в [интеграции Codex](architecture/codex-integration.md#конфигурация-агента-для-чата).
 
 Явно выбранный в чате workflow выполняется сегментами существующих AIRun.
-Сервер проходит условия, возможности и проверки до одного read-only agent turn,
+Сервер проходит условия, возможности и проверки до одного agent turn
+(read-only у обычных профилей, owner-host после отдельного допуска),
 вопроса пользователю или finish. Следующий сегмент запускается кнопкой;
 ответ на вопрос отправляется из обычного composer. Private JSON checkpoint
 сохраняет исторический config snapshot, путь, inputs/outputs и общий лимит шагов.
@@ -503,8 +528,9 @@ provider turn останавливается с ошибкой. Контракт
 База знаний, отдельные per-artifact endpoints и evals ещё не реализованы.
 Capability/check metadata не расширяют полномочия и сами по себе
 не подтверждают выполнение проверок.
-Payload Admin и Config API не редактируют системные `.ai/**`, `.codex/**`,
-license/security policy или executable registry.
+Редакторы конфигурации Payload Admin и Config API не редактируют системные
+`.ai/**`, `.codex/**`, license/security policy или executable registry.
+Owner-host работает с файлами checkout через отдельный инженерный допуск.
 
 ## Шаблонные пакеты и установленный Admin
 
@@ -681,6 +707,13 @@ compiled пакет Realize, включённые в активную сборк
 `ai-contracts`, точный расчёт — `change-engine`; CP/execution worker используют
 единый metering. Есть immutable цены, budgets/reservations, сверка, retries,
 частичные измерения и стоимость исполнения до проверенного preview.
+
+Учёт охватывает операции из Admin и агентов, запущенных платформой.
+Подключение внешних расходов IDE, CLI и development Git worker отменено;
+их измерения не поступают в usage ledger.
+Owner-host использует тот же Admin metering. Наблюдаемые native descendants
+связаны с parent run; отдельные subprocess, включая штатный Git-воркер,
+могут иметь неполное покрытие. Такой расход нельзя выдавать за полный.
 
 Дашборд показывает динамику по дням, сравнение с предыдущим равным периодом,
 наблюдаемые токены, вызовы моделей, задержку p95 и полноту измерений.

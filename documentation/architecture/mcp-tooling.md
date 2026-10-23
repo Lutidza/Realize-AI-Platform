@@ -262,6 +262,12 @@ MCP у продуктового execution worker.
 system writes, tools установки пакетов, deployment или публичный transport ChatGPT;
 эти контракты остаются отдельными S2–S5/B/P/C этапами.
 
+Когда клиент предоставляет MCP через deferred tool search и Code Mode,
+availability проверяют после раскрытия нужных определений. Отсутствие tool
+в начальном списке не означает потерю соединения. Ограниченный read-only smoke
+разрешает необходимую native discovery/Code Mode оркестрацию отдельно от
+запрета команд терминала и файловых изменений.
+
 ### Проверки
 
 S1 проверяют `resolveAiContext.service.int.spec.ts`,
@@ -286,8 +292,15 @@ MCP, общий budget и отсутствие Git-команд внутри в�
 Проверенная здесь PostgreSQL — 18.6;
 Compose baseline 15.18 отдельно не запускался. Детали приёмки — в плане A+G.
 
-Admin не заменяет `.codex/config.toml` и не включает outbound MCP встроенного
-Codex. Настройки и apply работают у hosted Realize adapter; отдельные внешние
+Admin не заменяет `.codex/config.toml`. Обычные продуктовые профили не получают
+проектные outbound MCP. Отдельный серверно допущенный `owner-host` читает
+effective config с layers реального checkout и разрешает включённые серверы
+только с project provenance его `.codex`. Guard проверяет server/tool,
+`enabled_tools`/`disabled_tools`; пользовательские, account/plugin подключения
+не дают разрешения. Пустая таблица `mcp_servers={}` не отключает наследование;
+без явного допуска серверы отключаются по именам. Авторизация самого MCP
+и ограничения задания сохраняются. См. [owner runtime](codex-integration.md#инженерный-режим-владельца-целевой-контракт).
+Настройки и apply работают у hosted Realize adapter; отдельные внешние
 executors проходят свои этапы G5/P4 по [плану](../specifications/internal-mcp-implementation-plan.md).
 
 ## Предустановленные MCP-серверы

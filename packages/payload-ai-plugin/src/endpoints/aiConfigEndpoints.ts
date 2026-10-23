@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/aiConfigEndpoints.ts
- * @version 1.0.1
- * @date 2026-10-12
+ * @version 1.0.2
+ * @date 2026-10-23
  * @description Регистрирует bounded installation configuration API surface.
  * @docref Realize — AI Platform v1.0 — API и streaming contracts
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
@@ -12,6 +12,7 @@ import type { Endpoint } from "payload";
 import { DEFAULT_API_ROUTE } from "../constants";
 import type { SanitizedRealizeAIPluginOptions } from "../types";
 import { createAIChatConfigurationHandler } from "../chat-context/aiChatConfigurationHandler.controller";
+import { withCodexRuntime } from "./withCodexRuntime.controller";
 import { createAIConfigActivationHandler } from "./aiConfigActivationHandler.controller";
 import { createAIConfigDraftHandlers } from "./aiConfigDraftHandlers";
 import { createAIConfigReadHandlers } from "./aiConfigReadHandlers";
@@ -29,7 +30,7 @@ export const createAIConfigEndpoints = (
   return [
     { handler: reads.bootstrap, method: "get", path: route },
     {
-      handler: createAIChatConfigurationHandler(options),
+      handler: withCodexRuntime(options, createAIChatConfigurationHandler),
       method: "get",
       path: `${route}/runtime`,
     },

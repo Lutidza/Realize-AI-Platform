@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/types.ts
- * @version 1.6.0
- * @date 2026-10-05
+ * @version 1.7.0
+ * @date 2026-10-23
  * @description Задаёт public plugin options для AI config, delivery и integrations.
  */
 
@@ -26,6 +26,8 @@ export type RealizeAIPluginOptions = {
     canPreviewDesignWorkshop?: RealizeAIAccessResolver;
     canManageIntegrations: RealizeAIAccessResolver;
     canUseChat: RealizeAIAccessResolver;
+    /** Исключительное право владельца; обычный admin и отсутствие callback его не дают. */
+    canUseOwnerEngineering?: RealizeAIAccessResolver;
     canViewRuns: RealizeAIAccessResolver;
     canViewUsage?: RealizeAIAccessResolver;
     canViewPlatformUsage?: RealizeAIAccessResolver;
@@ -60,6 +62,12 @@ export type RealizeAIPluginOptions = {
     enabled?: boolean;
   };
   runtime: {
+    /** Только deployment-конфигурация; браузер и AI-профиль не расширяют доступ к машине. */
+    ownerEngineering?: {
+      enabled: boolean;
+      repositoryRoot: string;
+      osUser: string;
+    };
     /** Техническая изоляция проверок и preview запрещает новый runtime независимо от интеграции. */
     isolated?: boolean;
     controlPlaneTokenEnv: string;

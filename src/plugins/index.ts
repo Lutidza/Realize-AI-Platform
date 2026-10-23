@@ -1,7 +1,7 @@
 /**
  * @file src/plugins/index.ts
- * @version 1.12.0
- * @date 2026-10-19
+ * @version 1.13.0
+ * @date 2026-10-23
  * @description Компонует Payload plugins; настройки агента читает из интеграции Admin.
  */
 
@@ -69,6 +69,7 @@ const realizeAI = realizeAIPlugin({
       Boolean(req.user && checkRole(["admin"], req.user)),
     canUseChat: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
+    canUseOwnerEngineering: ({ req }) => isPlatformOwner(req),
     canViewPlatformUsage: ({ req }) => isPlatformOwner(req),
     canViewUsage: ({ req }) =>
       Boolean(req.user && checkRole(["admin"], req.user)),
@@ -88,6 +89,11 @@ const realizeAI = realizeAIPlugin({
     encryptionKeyEnv: "REALIZE_INTEGRATIONS_ENCRYPTION_KEY",
   },
   runtime: {
+    ownerEngineering: {
+      enabled: process.env.REALIZE_AI_OWNER_ENGINEERING_ENABLED === "true",
+      osUser: process.env.REALIZE_AI_OWNER_ENGINEERING_OS_USER || "",
+      repositoryRoot: process.env.REALIZE_AI_WORKSPACE_ROOT || process.cwd(),
+    },
     controlPlaneTokenEnv: "REALIZE_AI_CONTROL_PLANE_TOKEN",
     controlPlaneURL: process.env.REALIZE_AI_CONTROL_PLANE_URL || undefined,
     mode:

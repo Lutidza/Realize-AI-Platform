@@ -96,6 +96,11 @@ Managed instances управляются из «MCP-серверы» в Admin. �
 Режимы, инструменты S1 и fallback описаны в
 [MCP tooling](../documentation/architecture/mcp-tooling.md).
 
+Инженерный `owner-host` в Admin использует ту же проектную MCP-конфигурацию
+после серверного допуска и проверки её происхождения. Контракт и ограничения —
+в [интеграции Codex](../documentation/architecture/codex-integration.md#инженерный-режим-владельца-целевой-контракт).
+Обычным профилям чата наличие этой записи не выдаёт новые полномочия.
+
 Stdio adapters используют `command = "npx"`; `http_headers_helper`
 запускает `node scripts/runtime/readLocalMcpHeaders.controller.mjs`
 из корня проекта и получает ключ из `REALIZE_MCP_CLIENT_TOKEN`

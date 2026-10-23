@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/AIChatConfiguration.types.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Разделяет выбор профиля, публичную сводку и закрытый снимок конфигурации запуска.
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
  */
@@ -44,6 +44,14 @@ export type AIChatConfigurationSnapshot = {
 export type AIChatConfigurationCatalogDTO = {
   activePointer: ActiveAIConfigPointer | null;
   release: { id: string; version: number; manifestHash: string } | null;
+  /** Цель доступного инженерного запуска; сервер раскрывает её только владельцу. */
+  ownerEngineering?: {
+    enabled: true;
+    mode: "owner-host";
+    hostname: string;
+    osUser: string;
+    workspaceRoot: string;
+  } | null;
   profiles: readonly {
     key: string;
     title: string;

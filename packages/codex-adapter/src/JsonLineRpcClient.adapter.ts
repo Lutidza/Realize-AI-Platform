@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.adapter.ts
- * @version 2.4.0
- * @date 2026-10-22
+ * @version 2.5.1
+ * @date 2026-10-23
  * @description Ограниченный JSONL RPC и завершение изолированного процесса Codex App Server.
  */
 
@@ -10,6 +10,7 @@ import { dirname, isAbsolute } from "node:path";
 
 import { AsyncQueue } from "./AsyncQueue";
 import { JsonLineRpcError } from "./JsonLineRpc.error";
+import { createCodexOwnerHostEnvironment } from "./createCodexOwnerHostEnvironment.config";
 import type {
   JsonLineRPCClientOptions,
   JsonLineRpcErrorCode,
@@ -76,18 +77,44 @@ const defaultArguments = (options: JsonLineRPCClientOptions): string[] => [
           `agents.default_subagent_model=${JSON.stringify(options.search.model)}`,
         ]
       : ["-c", "agents.enabled=false"]),
-  ...(process.platform === "linux"
+  ...(options.ownerHost
     ? [
         "-c",
-        // Без tool PATH Codex выбирает bundled bwrap без системного AppArmor-профиля.
-        // Разрешаем только текущий Node и системные инструменты, не окружение хоста.
-        `shell_environment_policy.set.PATH=${JSON.stringify(
-          [...new Set([dirname(process.execPath), "/usr/bin", "/bin"])].join(
-            ":",
-          ),
-        )}`,
+        "features.apps=false",
+        "-c",
+        "features.plugins=false",
+        "-c",
+        "features.skill_mcp_dependency_install=false",
+        "-c",
+        `projects={${JSON.stringify(options.workingDirectory)}={trust_level="trusted"}}`,
+        "-c",
+        `shell_environment_policy={inherit="none",ignore_default_excludes=false,set={${Object.entries(
+          {
+            ...createCodexOwnerHostEnvironment(
+              options.workingDirectory,
+              options.ownerHost,
+            ),
+            REALIZE_GIT_CODEX_HOME: options.environment.CODEX_HOME!,
+          },
+        )
+          .map(([name, value]) => `${name}=${JSON.stringify(value)}`)
+          .join(",")}}}`,
+        "-c",
+        "allow_login_shell=false",
+        ...(!options.search ? ["-c", "agents.enabled=false"] : []),
       ]
-    : []),
+    : process.platform === "linux"
+      ? [
+          "-c",
+          // Без tool PATH Codex выбирает bundled bwrap без системного AppArmor-профиля.
+          // Разрешаем только текущий Node и системные инструменты, не окружение хоста.
+          `shell_environment_policy.set.PATH=${JSON.stringify(
+            [...new Set([dirname(process.execPath), "/usr/bin", "/bin"])].join(
+              ":",
+            ),
+          )}`,
+        ]
+      : []),
 ];
 
 /** Обслуживает один процесс; повторный start после завершения не поддерживается. */
@@ -135,9 +162,24 @@ export class JsonLineRPCClient {
         (!options.codexBinary || options.codexBinary.includes("\0"))) ||
       options.args?.some(
         (argument) => typeof argument !== "string" || argument.includes("\0"),
-      )
+      ) ||
+      (options.ownerHost &&
+        (options.args ||
+          options.repositoryMcpURL ||
+          options.onRequest ||
+          options.ignoreProjectInstructions))
     ) {
       throw new JsonLineRpcError("codex_configuration_invalid");
+    }
+    if (options.ownerHost) {
+      try {
+        createCodexOwnerHostEnvironment(
+          options.workingDirectory,
+          options.ownerHost,
+        );
+      } catch {
+        throw new JsonLineRpcError("codex_configuration_invalid");
+      }
     }
   }
 

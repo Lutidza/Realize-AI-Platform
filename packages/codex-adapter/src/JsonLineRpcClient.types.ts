@@ -1,17 +1,20 @@
 /**
  * @file packages/codex-adapter/src/JsonLineRpcClient.types.ts
- * @version 2.3.0
- * @date 2026-10-04
+ * @version 2.4.0
+ * @date 2026-10-23
  * @description Контракты ограниченного транспорта Codex App Server и его безопасных ошибок.
  */
 
 import type { CodexRepositorySearchSettings } from "@realize/ai-contracts";
 import type { RPCMessage } from "./protocol";
+import type { CodexOwnerHostOptions } from "./OpenAICodex.types";
 
 /** Настройки доверенного запуска; args заменяет полный список аргументов процесса. */
 export type JsonLineRPCClientOptions = {
   /** Product runtime получает policy сервера; engineering/Git sessions не используют этот режим. */
   ignoreProjectInstructions?: boolean;
+  /** Допуск owner-host проверяется до spawn; несовместим с args, MCP и dynamic tools. */
+  ownerHost?: CodexOwnerHostOptions;
   codexBinary?: string;
   args?: readonly string[];
   /** Явный override штатного web_search; без настройки веб-поиск отключён. */

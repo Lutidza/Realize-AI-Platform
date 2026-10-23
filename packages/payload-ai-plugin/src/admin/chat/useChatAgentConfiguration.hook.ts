@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/useChatAgentConfiguration.hook.ts
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.1.0
+ * @date 2026-10-23
  * @description Загружает активные профили и сохраняет точный выбор при обновлении каталога.
  */
 
@@ -12,6 +12,7 @@ import type {
   AIChatConfigurationCatalogDTO,
   AIChatConfigurationSelection,
 } from "@realize/ai-contracts";
+import { OWNER_ENGINEERING_PROFILE_KEY } from "@realize/ai-contracts";
 import { requestRealizeAI } from "../realizeAIAPI";
 import type { ChatAgentConfigurationController } from "./ChatAgentConfiguration.types";
 import { CHAT_AGENT_CONFIGURATION_UPDATED_EVENT } from "./chatAgentConfiguration.constants";
@@ -117,11 +118,15 @@ export const useChatAgentConfiguration = (
         catalog.profiles.some((profile) => profile.key === selection.profileKey)
       : !selection),
   );
+  // Недоступный инженерный запуск блокирует отправку, сохраняя смену профиля.
+  const executorReady =
+    selection?.profileKey !== OWNER_ENGINEERING_PROFILE_KEY ||
+    catalog?.ownerEngineering?.enabled === true;
   return {
     catalog,
     selection,
     isLoading,
-    isReady: !isLoading && !error && matches,
+    isReady: !isLoading && !error && matches && executorReady,
     error,
     refresh,
     selectProfile,

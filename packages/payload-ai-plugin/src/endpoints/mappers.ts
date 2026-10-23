@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/endpoints/mappers.ts
- * @version 1.4.0
- * @date 2026-09-11
+ * @version 1.5.0
+ * @date 2026-10-23
  * @description Преобразует внутренние Payload records в явные публичные DTO.
  */
 
@@ -500,7 +500,8 @@ export const toRunDTO = (doc: Document): RunDTO => ({
   id: String(doc.id),
   model: typeof doc.model === "string" ? doc.model : undefined,
   provider: "openai-codex",
-  sandboxProfile: "analysis-readonly",
+  sandboxProfile:
+    doc.sandboxProfile === "owner-host" ? "owner-host" : "analysis-readonly",
   startedAt: typeof doc.startedAt === "string" ? doc.startedAt : undefined,
   status: doc.status as RunStatus,
   threadID: typeof doc.threadID === "string" ? doc.threadID : undefined,

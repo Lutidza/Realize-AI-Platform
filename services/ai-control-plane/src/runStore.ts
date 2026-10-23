@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/runStore.ts
- * @version 1.6.0
- * @date 2026-10-04
+ * @version 1.7.0
+ * @date 2026-10-23
  * @description Хранит runtime runs и повторяемые события с проверкой полного запроса.
  */
 
@@ -18,10 +18,13 @@ import type {
   PageDraftContextDTO,
   PageDiscoveryGrant,
   RepositoryChatAccess,
+  OwnerEngineeringGrant,
 } from "@realize/ai-contracts";
 
 /** Internal mutable run state owned by the loopback development service. */
 export type ControlPlaneRun = {
+  /** Подписанный сервером допуск; не выдаётся в publicRun или события. */
+  ownerEngineering?: OwnerEngineeringGrant;
   repositoryAccess?: RepositoryChatAccess;
   /** Private callback capability: never include in prompt, events or publicRun. */
   pageDiscovery?: PageDiscoveryGrant;
@@ -76,7 +79,23 @@ export class RunStore {
   create(
     input: Omit<ControlPlaneRun, "cancelRequested" | "events" | "status">,
   ): ControlPlaneRun {
-    const fingerprint = JSON.stringify(input);
+    // Повтор dispatch обновляет только срок и подпись уже проверенного сервером допуска.
+    // Actor, профиль, root и весь запрос остаются частью неизменяемой identity.
+    const fingerprint = JSON.stringify({
+      ...input,
+      ...(input.ownerEngineering
+        ? {
+            ownerEngineering: {
+              schemaVersion: input.ownerEngineering.schemaVersion,
+              actorID: input.ownerEngineering.actorID,
+              runID: input.ownerEngineering.runID,
+              profileKey: input.ownerEngineering.profileKey,
+              configurationHash: input.ownerEngineering.configurationHash,
+              workspaceRoot: input.ownerEngineering.workspaceRoot,
+            },
+          }
+        : {}),
+    });
     if (this.runs.has(input.id)) {
       if (this.fingerprints.get(input.id) !== fingerprint)
         throw new Error("Run ID is already bound to a different request.");

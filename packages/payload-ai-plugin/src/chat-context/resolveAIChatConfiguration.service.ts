@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/resolveAIChatConfiguration.service.ts
- * @version 1.1.0
- * @date 2026-09-11
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Разрешает активный immutable выпуск и фиксирует выбранный профиль для нового запуска.
  */
 import type {
@@ -20,6 +20,9 @@ import { AIConfigRepository } from "../endpoints/aiConfigRepository";
 import { toActiveAIConfigPointerDTO } from "../endpoints/aiConfigPointerMapper";
 import { toAIConfigReleaseDTO } from "../endpoints/aiConfigReleaseMapper";
 import { EndpointError } from "../endpoints/http";
+import { OWNER_ENGINEERING_PROFILE_KEY } from "@realize/ai-contracts";
+import type { SanitizedRealizeAIPluginOptions } from "../types";
+import { requireOwnerEngineeringAccess } from "./ownerEngineeringAdmission.service";
 
 const readActive = async (req: PayloadRequest) => {
   const repository = new AIConfigRepository(req.payload, req);
@@ -42,11 +45,33 @@ const readActive = async (req: PayloadRequest) => {
 /** Проекция доступна пользователю чата; содержимое drafts и инструкций не выдаётся. */
 export const readAIChatConfigurationCatalog = async (
   req: PayloadRequest,
+  options?: SanitizedRealizeAIPluginOptions,
 ): Promise<AIChatConfigurationCatalogDTO> => {
   const active = await readActive(req);
   if (!active) return { activePointer: null, release: null, profiles: [] };
+  let ownerEngineeringAllowed = false;
+  if (
+    active.release.artifacts.some(
+      ({ artifact }) =>
+        artifact.kind === "agent_profile" &&
+        artifact.key === OWNER_ENGINEERING_PROFILE_KEY &&
+        artifact.enabled,
+    )
+  ) {
+    try {
+      await requireOwnerEngineeringAccess(req, options);
+      ownerEngineeringAllowed = true;
+    } catch {
+      /* Недоступный профиль не раскрывается другим пользователям каталога. */
+    }
+  }
   const profiles = active.release.artifacts.flatMap(({ artifact }) => {
     if (artifact.kind !== "agent_profile" || !artifact.enabled) return [];
+    if (
+      artifact.key === OWNER_ENGINEERING_PROFILE_KEY &&
+      !ownerEngineeringAllowed
+    )
+      return [];
     try {
       compileAgentConfiguration({
         release: active.release,
@@ -66,12 +91,18 @@ export const readAIChatConfigurationCatalog = async (
         title: artifact.title,
         description: artifact.description,
         locale: artifact.locale,
-        ...(artifact.defaultWorkflowKey
+        ...(artifact.defaultWorkflowKey &&
+        (!artifact.defaultWorkflowKey.startsWith(
+          OWNER_ENGINEERING_PROFILE_KEY,
+        ) ||
+          artifact.key === OWNER_ENGINEERING_PROFILE_KEY)
           ? { defaultWorkflowKey: artifact.defaultWorkflowKey }
           : {}),
         workflows: active.release.artifacts.flatMap(({ artifact: workflow }) =>
           workflow.kind === "workflow_definition" &&
           workflow.enabled &&
+          (!workflow.key.startsWith(OWNER_ENGINEERING_PROFILE_KEY) ||
+            artifact.key === OWNER_ENGINEERING_PROFILE_KEY) &&
           artifact.workflowKeys.includes(workflow.key)
             ? [
                 {
@@ -101,7 +132,10 @@ export const resolveAIChatConfiguration = async (
   req: PayloadRequest,
   selection: AIChatConfigurationSelection | undefined,
   request: string,
+  options?: SanitizedRealizeAIPluginOptions,
 ): Promise<AIChatConfigurationSnapshot | undefined> => {
+  if (selection?.profileKey === OWNER_ENGINEERING_PROFILE_KEY)
+    await requireOwnerEngineeringAccess(req, options);
   const active = await readActive(req);
   if (!active) {
     if (selection)

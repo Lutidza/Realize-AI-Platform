@@ -1,6 +1,6 @@
 /**
  * @file packages/verification-runtime/test/VerificationRuntime.test.ts
- * @version 1.1.0
+ * @version 1.1.1
  * @date 2026-10-23
  * @description Проверяет runtime pins, npm layout и сохранение проверенного Node в окружении дочерних команд.
  */
@@ -53,9 +53,12 @@ test("runtime pins must be exact and agree with packageManager", async (t) => {
     { ...manifest, packageManager: "npm@2.0.0" },
   ]) {
     await writeFile(join(root, "package.json"), JSON.stringify(invalid));
-    await assert.rejects(readVerificationRuntime(root, check, {}), {
-      code: "verification_runtime_manifest_invalid",
-    });
+    await assert.rejects(
+      readVerificationRuntime(root, check, { NODE_ENV: "test" }),
+      {
+        code: "verification_runtime_manifest_invalid",
+      },
+    );
   }
 });
 
@@ -68,10 +71,13 @@ test("wrong Node blocks verification before executing the command", async (t) =>
       engines: { ...manifest.engines, node: "0.0.0" },
     }),
   );
-  await assert.rejects(readVerificationRuntime(root, check, {}), {
-    code: "verification_node_version_mismatch",
-    message: /Нужен Node\.js 0\.0\.0; запущен /,
-  });
+  await assert.rejects(
+    readVerificationRuntime(root, check, { NODE_ENV: "test" }),
+    {
+      code: "verification_node_version_mismatch",
+      message: /Нужен Node\.js 0\.0\.0; запущен /,
+    },
+  );
   const result = await runVerification(
     {
       version: 1,
@@ -95,7 +101,10 @@ test("wrong Node blocks verification before executing the command", async (t) =>
 
 test("node checks require no npm executable", async (t) => {
   const root = await fixture(t);
-  const runtime = await readVerificationRuntime(root, check, { PATH: root });
+  const runtime = await readVerificationRuntime(root, check, {
+    PATH: root,
+    NODE_ENV: "test",
+  });
   assert.equal(runtime.executable, process.execPath);
   assert.deepEqual(runtime.prefix, []);
 });

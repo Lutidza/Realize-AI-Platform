@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/chat/ChatAgentConfiguration.module.css
- * @version 1.0.0
- * @date 2026-09-10
+ * @version 1.0.1
+ * @date 2026-10-23
  * @description Размещает компактный выбор профиля с ограниченным прокручиваемым списком.
  */
 .picker {
@@ -108,4 +108,7 @@
   color: var(--ui-color-muted);
   font-size: 11px;
   line-height: 1.5;
+}
+.ownerTarget {
+  margin-top: var(--ui-space-2);
 }

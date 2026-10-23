@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/api.ts
- * @version 1.4.0
- * @date 2026-09-12
+ * @version 1.5.0
+ * @date 2026-10-23
  * @description Задаёт public API envelopes для чата, изменений, source promotion и integrations.
  */
 
@@ -194,7 +194,7 @@ export type MessageDTO = {
   usage?: UsageSummary;
 };
 
-/** Auditable read-only run projection exposed to an authorized admin. */
+/** Auditable run projection; execution mode comes from server admission. */
 export type RunDTO = {
   agentConfiguration?: AIChatConfigurationSummary;
   workflow?: WorkflowRunSummary;
@@ -205,7 +205,7 @@ export type RunDTO = {
   id: string;
   model?: string;
   provider: "openai-codex";
-  sandboxProfile: "analysis-readonly";
+  sandboxProfile: "analysis-readonly" | "owner-host";
   startedAt?: string;
   status: RunStatus;
   threadID?: string;

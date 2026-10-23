@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createWorkflowMessage.service.ts
- * @version 1.3.0
- * @date 2026-10-04
+ * @version 1.4.0
+ * @date 2026-10-23
  * @description Создаёт первый сегмент процесса и его исходное сообщение в одной транзакции.
  */
 import type { CreateMessageInput } from "@realize/ai-contracts";
@@ -24,6 +24,7 @@ import type { ChatRunContext } from "./ChatRunContext.types";
 import { resolveAIChatConfiguration } from "./resolveAIChatConfiguration.service";
 import { prepareWorkflowSegment } from "./prepareWorkflowSegment.service";
 import { dispatchWorkflowSegment } from "./dispatchWorkflowSegment.service";
+import { requireOwnerEngineeringWorkflowProfile } from "./ownerEngineeringAdmission.service";
 
 export const createWorkflowMessage = async (
   req: PayloadRequest,
@@ -34,6 +35,10 @@ export const createWorkflowMessage = async (
   input: CreateMessageInput,
 ): Promise<CreateChatMessageResult> => {
   if (!input.workflow) throw new Error("Workflow selection is required.");
+  requireOwnerEngineeringWorkflowProfile(
+    input.agentConfiguration?.profileKey || "",
+    input.workflow.key,
+  );
   if (
     input.attachmentIDs?.length ||
     input.projectFiles?.length ||
@@ -73,6 +78,7 @@ export const createWorkflowMessage = async (
     req,
     input.agentConfiguration,
     content,
+    options,
   );
   if (!agentConfiguration)
     throw new EndpointError(

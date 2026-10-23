@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/Agent.types.ts
- * @version 1.1.0
- * @date 2026-10-05
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Задаёт независимый от провайдера контракт запуска агента и нормализованных событий.
  */
 
@@ -19,7 +19,10 @@ export type RunTurnInput = {
   prompt: string;
   runID: string;
   sandboxProfile?:
-    "analysis-readonly" | "code-workspace-write" | "review-readonly";
+    | "analysis-readonly"
+    | "code-workspace-write"
+    | "review-readonly"
+    | "owner-host";
   threadID?: string;
   webSearch?: boolean;
 };

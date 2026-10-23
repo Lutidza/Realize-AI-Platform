@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/runtime/controlPlaneClient.ts
- * @version 1.2.0
- * @date 2026-09-30
+ * @version 1.3.0
+ * @date 2026-10-23
  * @description Передаёт серверные запросы и бинарные потоки авторизованному control plane.
  */
 
@@ -198,6 +198,16 @@ export class ControlPlaneClient {
       headers: { "Content-Type": "application/json" },
       method: "POST",
     });
+  }
+
+  /** Ответ остаётся unknown до проверяющего mapper владельца публичного контракта. */
+  async ownerEngineeringStatus(): Promise<unknown> {
+    return (
+      await this.fetch("/v1/status", {
+        method: "GET",
+        signal: AbortSignal.timeout(2_000),
+      })
+    ).json();
   }
 
   async streamRun(

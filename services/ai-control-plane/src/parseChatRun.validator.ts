@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/parseChatRun.validator.ts
- * @version 2.0.0
- * @date 2026-10-04
+ * @version 2.1.0
+ * @date 2026-10-23
  * @description Проверяет серверный запрос turn без браузерных путей к изображениям.
  */
 import {
@@ -9,9 +9,11 @@ import {
   parseCreateMessageInput,
   parsePageDraftContext,
   parsePageDiscoveryGrant,
+  OWNER_ENGINEERING_PROFILE_KEY,
 } from "@realize/ai-contracts";
 import type { ChatAssetReference } from "@realize/ai-contracts";
 import type { ControlPlaneRun } from "./runStore";
+import { parseOwnerEngineeringGrant } from "./owner-engineering/parseOwnerEngineeringGrant.validator";
 import {
   assertRuntimeAIConfiguration,
   requireSystemAIRelease,
@@ -39,6 +41,7 @@ export const parseChatRun = (
           "pageDraftContext",
           "pageDiscovery",
           "repositoryAccess",
+          "ownerEngineering",
         ].includes(key),
     )
   )
@@ -98,6 +101,23 @@ export const parseChatRun = (
     systemRelease,
     body.agentConfiguration,
   );
+  const ownerEngineering =
+    body.ownerEngineering === undefined
+      ? undefined
+      : parseOwnerEngineeringGrant(body.ownerEngineering);
+  if (
+    (agentConfiguration?.compiled.profile.key ===
+      OWNER_ENGINEERING_PROFILE_KEY) !==
+    Boolean(ownerEngineering)
+  )
+    throw new Error("owner_engineering_profile_grant_mismatch");
+  if (
+    ownerEngineering &&
+    (body.pageDraftContext !== undefined ||
+      body.pageDiscovery !== undefined ||
+      body.repositoryAccess !== undefined)
+  )
+    throw new Error("owner_engineering_product_tools_forbidden");
   const workflow =
     body.workflow === undefined
       ? undefined
@@ -130,6 +150,7 @@ export const parseChatRun = (
   )
     throw new Error("Invalid repository access.");
   return {
+    ...(ownerEngineering ? { ownerEngineering } : {}),
     systemRelease,
     ...(access === undefined
       ? {}

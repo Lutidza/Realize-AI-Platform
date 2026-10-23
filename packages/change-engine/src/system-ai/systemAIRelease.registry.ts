@@ -1,6 +1,6 @@
 /**
  * @file packages/change-engine/src/system-ai/systemAIRelease.registry.ts
- * @version 1.1.5
+ * @version 1.1.7
  * @date 2026-10-23
  * @description Разрешает только встроенные владельцем exact system AI releases.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
@@ -9,7 +9,9 @@ import type {
   SystemAIRelease,
   SystemAIReleaseReference,
 } from "@realize/ai-contracts";
-import published from "./releases/realize-system-1.1.7.generated.json";
+import published from "./releases/realize-system-1.1.9.generated.json";
+import retainedOwnerRuntime from "./releases/realize-system-1.1.8.generated.json";
+import retainedRuntime from "./releases/realize-system-1.1.7.generated.json";
 import retainedVerification from "./releases/realize-system-1.1.6.generated.json";
 import retainedGitRuntime from "./releases/realize-system-1.1.5.generated.json";
 import retainedReadTools from "./releases/realize-system-1.1.4.generated.json";
@@ -39,6 +41,8 @@ const verify = (artifact: unknown): SystemAIRelease => {
 // Историческая policy явно сохраняется владельцем; текущий runtime продолжает применять metering.
 const releases = [
   verify(published),
+  verify(retainedOwnerRuntime),
+  verify(retainedRuntime),
   verify(retainedVerification),
   verify(retainedGitRuntime),
   verify(retainedReadTools),

@@ -1,8 +1,8 @@
 /**
  * @file services/ai-control-plane/src/server.ts
- * @version 1.6.0
- * @date 2026-10-05
- * @description Предоставляет loopback control plane для read-only запуска выбранной интеграции Codex.
+ * @version 1.7.0
+ * @date 2026-10-23
+ * @description Предоставляет loopback control plane с изолированным чатом и отдельным допуском инженера владельца.
  */
 
 import { config as loadEnvironment } from "dotenv";
@@ -42,11 +42,16 @@ import { createContextSnapshot } from "./contextSnapshot";
 import { createCodexRuntime } from "./createCodexRuntime.config";
 import { RunStore, type ControlPlaneRun } from "./runStore";
 import { readControlPlaneConfig } from "./readControlPlaneConfig.config";
+import { readOwnerEngineeringConfiguration } from "./owner-engineering/readOwnerEngineeringConfiguration.config";
+import { executeOwnerEngineeringRun } from "./owner-engineering/executeOwnerEngineeringRun.service";
+import { verifyOwnerEngineeringGrant } from "./owner-engineering/verifyOwnerEngineeringGrant.validator";
 
 loadEnvironment({ path: ".env.local", quiet: true });
 loadEnvironment({ quiet: true });
 
 const { host, port, token, workspaceRoot } = readControlPlaneConfig();
+const ownerEngineeringConfiguration =
+  await readOwnerEngineeringConfiguration(workspaceRoot);
 const searchSourceVersion = await readSearchSourceVersion(workspaceRoot).catch(
   () => undefined,
 );
@@ -129,6 +134,18 @@ const executeRun = async (run: ControlPlaneRun): Promise<void> => {
   let repositoryBridge: RepositoryMcpBridge | undefined;
 
   try {
+    if (run.ownerEngineering) {
+      await executeOwnerEngineeringRun({
+        configuration: ownerEngineeringConfiguration,
+        token,
+        run,
+        runtime,
+        assets,
+        registerAdapter: (adapter) => activeAdapters.set(run.id, adapter),
+        onEvent: (event) => applyAgentEvent(run, event),
+      });
+      return;
+    }
     lease = await runtime.codex.acquire();
     const repositorySearch =
       run.repositoryAccess && lease.search.enabled ? lease.search : undefined;
@@ -371,6 +388,15 @@ const server = createServer(async (request, response) => {
       json(response, 200, {
         service: "realize-ai-control-plane",
         state: "ready",
+        ownerEngineering: ownerEngineeringConfiguration
+          ? {
+              enabled: true,
+              mode: "owner-host",
+              hostname: ownerEngineeringConfiguration.hostname,
+              osUser: ownerEngineeringConfiguration.osUser,
+              workspaceRoot: ownerEngineeringConfiguration.workspaceRoot,
+            }
+          : null,
       });
       return;
     }
@@ -379,6 +405,12 @@ const server = createServer(async (request, response) => {
       const input = parseChatRun(
         await readControlPlaneJSON(request, 8 * 1024 * 1024 + 64 * 1024),
       );
+      if (input.ownerEngineering)
+        verifyOwnerEngineeringGrant(
+          input,
+          ownerEngineeringConfiguration,
+          token,
+        );
       const existing = store.get(input.id);
       if (existing) {
         store.create(input);

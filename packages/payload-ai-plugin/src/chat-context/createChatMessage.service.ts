@@ -1,11 +1,14 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/createChatMessage.service.ts
- * @version 1.8.0
- * @date 2026-10-04
+ * @version 1.9.0
+ * @date 2026-10-23
  * @description Связывает полный запрос сообщения с владельцем, неизменяемыми файлами и одним run.
  */
 import { createHash, randomUUID } from "node:crypto";
-import { CHAT_ATTACHMENT_LIMITS } from "@realize/ai-contracts";
+import {
+  CHAT_ATTACHMENT_LIMITS,
+  OWNER_ENGINEERING_PROFILE_KEY,
+} from "@realize/ai-contracts";
 import {
   buildChatDeveloperInstructions,
   SYSTEM_AI_RELEASE_REFERENCE,
@@ -33,6 +36,10 @@ import { createWorkflowMessage } from "./createWorkflowMessage.service";
 import { PageDraftUpdate } from "../endpoints/pageDraftUpdate.service";
 import { requireDataManager } from "../endpoints/access";
 import { createPageDiscoveryGrant } from "./pageDiscoveryGrant.service";
+import {
+  createOwnerEngineeringGrant,
+  resolveOwnerEngineeringMetadata,
+} from "./ownerEngineeringAdmission.service";
 import type { ChatRunContext } from "./ChatRunContext.types";
 import type {
   ChatMessageContext,
@@ -105,7 +112,16 @@ export const createChatMessage = async (
     idempotencyKey,
   );
   if (existing) return replay(existing);
+  const ownerProfile =
+    input.agentConfiguration?.profileKey === OWNER_ENGINEERING_PROFILE_KEY;
+  if (ownerProfile && input.pageDraft)
+    throw new EndpointError(
+      "INVALID_REQUEST",
+      "Инженерный режим работает с проектом напрямую. Уберите выбранную CMS-страницу перед отправкой.",
+      400,
+    );
   const pageDiscoveryEnabled = Boolean(
+    !ownerProfile &&
     options.enabled &&
     options.pageDraft?.text &&
     (await options.access.canManageData({ req })),
@@ -129,6 +145,13 @@ export const createChatMessage = async (
     req,
     input.agentConfiguration,
     input.content,
+    options,
+  );
+  const ownerEngineering = await resolveOwnerEngineeringMetadata(
+    req,
+    options,
+    agentConfiguration,
+    userID,
   );
   const client = getControlPlaneClient(options);
   const attachmentRepository = new ChatAttachmentRepository(req);
@@ -195,6 +218,7 @@ export const createChatMessage = async (
   const conversationHistory = buildChatConversationHistory(detail.messages);
   const runContext: ChatRunContext = {
     ...context,
+    ...(ownerEngineering ? { ownerEngineering } : {}),
     pageDraftContext,
     pageDiscoveryEnabled,
     agentConfiguration,
@@ -246,8 +270,20 @@ export const createChatMessage = async (
       await attachmentRepository.link(attachment, runID);
     }
     await repository.touchConversation(conversationID);
+    const ownerEngineeringGrant = await createOwnerEngineeringGrant(
+      req,
+      options,
+      agentConfiguration,
+      runID,
+      userID,
+    );
     await client.startRun({
-      repositoryAccess: runContext.repositoryAccess,
+      ...(ownerEngineeringGrant
+        ? { ownerEngineering: ownerEngineeringGrant }
+        : {}),
+      ...(ownerEngineeringGrant
+        ? {}
+        : { repositoryAccess: runContext.repositoryAccess }),
       model: options.runtime.model,
       prompt: content,
       runID,

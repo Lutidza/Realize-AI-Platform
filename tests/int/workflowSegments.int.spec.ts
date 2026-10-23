@@ -1,8 +1,8 @@
 // @vitest-environment node
 /**
  * @file tests/int/workflowSegments.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Проверяет durable workflow-сегменты через реальные сервисы с изолированными storage и CP ports.
  */
 import type {
@@ -12,7 +12,12 @@ import type {
   WorkflowStep,
 } from "@realize/ai-contracts";
 import type { PayloadRequest } from "payload";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  CODEX_CHAT_SETTINGS_DEFAULTS,
+  OWNER_ENGINEERING_PROFILE_KEY,
+} from "@realize/ai-contracts";
+import * as chatSettings from "../../packages/payload-ai-plugin/src/integrations/codex/readCodexChatSettings.service";
 import {
   AI_CONFIG_ARTIFACTS,
   createAIConfigDraftFixture,
@@ -82,7 +87,9 @@ beforeEach(() => {
   ports.transactionTail = Promise.resolve();
 });
 
-const fixture = (questionFirst = true) => {
+afterEach(() => vi.unstubAllEnvs());
+
+const fixture = (questionFirst = true, ownerEngineering = false) => {
   const steps: WorkflowStep[] = [
     ...(questionFirst
       ? [
@@ -116,7 +123,9 @@ const fixture = (questionFirst = true) => {
           entryStepKey: steps[0].key,
           maxSteps: steps.length,
         }
-      : artifact,
+      : ownerEngineering && artifact.kind === "agent_profile"
+        ? { ...artifact, key: OWNER_ENGINEERING_PROFILE_KEY }
+        : artifact,
   );
   const release = createAIConfigReleaseFixture(
     createAIConfigDraftFixture(artifacts),
@@ -279,12 +288,31 @@ const fixture = (questionFirst = true) => {
     runtime: { model: "fixture-model" },
     access: { canManageAIConfiguration: () => false },
   } as unknown as SanitizedRealizeAIPluginOptions;
+  if (ownerEngineering) {
+    vi.stubEnv("OWNER_ENGINEERING_TEST_SECRET", "workflow-test-secret");
+    vi.spyOn(chatSettings, "readCodexChatSettings").mockResolvedValue({
+      ...CODEX_CHAT_SETTINGS_DEFAULTS,
+      tools: { codeChanges: true, dataOperations: true },
+    });
+    options.runtime = {
+      ...options.runtime,
+      mode: "local-development",
+      controlPlaneTokenEnv: "OWNER_ENGINEERING_TEST_SECRET",
+      ownerEngineering: {
+        enabled: true,
+        osUser: "gio",
+        repositoryRoot: process.cwd(),
+      },
+    };
+    options.access.canUseChat = () => true;
+    options.access.canUseOwnerEngineering = () => true;
+  }
   const input: CreateMessageInput = {
     content: "Разберите запрос",
     agentConfiguration: {
       releaseID: release.id,
       manifestHash: release.manifestHash,
-      profileKey: "admin",
+      profileKey: ownerEngineering ? OWNER_ENGINEERING_PROFILE_KEY : "admin",
     },
     workflow: { key: "catalog-edit", input: { subject: "Каталог" } },
   };
@@ -579,6 +607,78 @@ describe("workflow segment creation and continuation", () => {
     expect(test.records().runs).toHaveLength(1);
     expect(test.records().messages).toHaveLength(2);
     expect(ports.startRun).not.toHaveBeenCalled();
+  });
+});
+
+describe("owner engineering workflow admission", () => {
+  it("issues a fresh run-bound grant for each segment and persists no signature", async () => {
+    const test = fixture(false, true);
+    const first = await test.start();
+    const firstGrant = ports.startRun.mock.calls[0][0].ownerEngineering;
+    expect(ports.startRun.mock.calls[0][0]).not.toHaveProperty(
+      "repositoryAccess",
+    );
+    expect(firstGrant).toMatchObject({
+      runID: first.run.id,
+      actorID: "1",
+      profileKey: OWNER_ENGINEERING_PROFILE_KEY,
+    });
+    expect(test.context(first.run.id).ownerEngineering).toMatchObject({
+      mode: "owner-host",
+      actorID: "1",
+    });
+    expect(JSON.stringify(test.context(first.run.id))).not.toContain(
+      "signature",
+    );
+    await persistWorkflowAgentEvent(
+      test.req,
+      1,
+      test.completedEvent(first.run.id),
+    );
+    const second = await continueWorkflow(
+      test.req,
+      test.options,
+      1,
+      first.run.id,
+      test.continueInput(first.run.id),
+    );
+    const secondGrant = ports.startRun.mock.calls[1][0].ownerEngineering;
+    expect(secondGrant.runID).toBe(second.run.id);
+    expect(secondGrant.signature).not.toBe(firstGrant.signature);
+  });
+  it("rejects continuation after owner revocation before creating another run", async () => {
+    const test = fixture(true, true);
+    const first = await test.start();
+    test.options.access.canUseOwnerEngineering = () => false;
+    await expect(
+      continueWorkflow(
+        test.req,
+        test.options,
+        1,
+        first.run.id,
+        test.continueInput(first.run.id, "answer"),
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(test.records().runs).toHaveLength(1);
+    expect(ports.startRun).not.toHaveBeenCalled();
+  });
+  it("rejects queued retry after revocation while completed replay remains effect-free", async () => {
+    const test = fixture(false, true);
+    const first = await test.start();
+    ports.startRun.mockClear();
+    test.options.access.canUseOwnerEngineering = () => false;
+    await expect(test.start()).rejects.toMatchObject({ status: 403 });
+    expect(ports.startRun).not.toHaveBeenCalled();
+    await persistWorkflowAgentEvent(
+      test.req,
+      1,
+      test.completedEvent(first.run.id),
+    );
+    await expect(test.start()).resolves.toMatchObject({
+      run: { id: first.run.id, status: "completed" },
+    });
+    expect(ports.startRun).not.toHaveBeenCalled();
+    expect(test.records().runs).toHaveLength(1);
   });
 });
 

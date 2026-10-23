@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/chat-context/prepareWorkflowSegment.service.ts
- * @version 1.1.0
- * @date 2026-10-04
+ * @version 1.2.0
+ * @date 2026-10-23
  * @description Выполняет серверные шаги до одного вызова модели, вопроса или завершения.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
@@ -29,6 +29,10 @@ import { executeWorkflowCheck } from "../endpoints/executeWorkflowCheck.service"
 import { EndpointError } from "../endpoints/http";
 import { redactText } from "../endpoints/redaction";
 import type { WorkflowSegmentInput } from "./WorkflowSegment.types";
+import {
+  resolveOwnerEngineeringMetadata,
+  requireOwnerEngineeringWorkflowProfile,
+} from "./ownerEngineeringAdmission.service";
 
 /** Вызывается внутри транзакции создания run: preview, checkpoint и receipt коммитятся вместе. */
 export const prepareWorkflowSegment = async (input: WorkflowSegmentInput) => {
@@ -42,7 +46,18 @@ export const prepareWorkflowSegment = async (input: WorkflowSegmentInput) => {
     { releaseID: system.releaseID, manifestHash: system.manifestHash },
     configuration,
   );
+  // Запрет должен откатить транзакцию до capability/check, а не завершить её с частичным эффектом.
+  const ownerEngineering = await resolveOwnerEngineeringMetadata(
+    req,
+    options,
+    configuration,
+    userID,
+  );
   let checkpoint = parseWorkflowCheckpoint(configuration, context.workflow);
+  requireOwnerEngineeringWorkflowProfile(
+    configuration.compiled.profile.key,
+    checkpoint.workflowKey,
+  );
   let content = "";
   try {
     while (checkpoint.phase === "ready") {
@@ -116,7 +131,11 @@ export const prepareWorkflowSegment = async (input: WorkflowSegmentInput) => {
     checkpoint = blockWorkflow(configuration, checkpoint, reason);
     content = `Процесс остановлен: ${reason}`;
   }
-  const turnContext = { ...context, workflow: checkpoint };
+  const turnContext = {
+    ...context,
+    ...(ownerEngineering ? { ownerEngineering } : {}),
+    workflow: checkpoint,
+  };
   if (checkpoint.phase === "running")
     return await repository.updateRun(String(run.id), { turnContext });
 
