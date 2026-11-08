@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "releaseID": "realize-system-1.1.9",
-  "version": "1.1.9",
+  "releaseID": "realize-system-1.1.15",
+  "version": "1.1.15",
   "projectProfile": "e-commerce",
   "instructions": [
     {
@@ -108,6 +108,7 @@
     "packages/verification-runtime/src/runVerificationProcess.adapter.ts",
     "packages/verification-runtime/src/validateVerificationPlan.validator.ts",
     "packages/verification-runtime/src/verificationInputs.constants.ts",
+    "packages/verification-runtime/src/verificationMeasurement.util.ts",
     "packages/verification-runtime/src/verificationRuntime.server.index.ts",
     "packages/verification-runtime/src/verifyVerification.service.ts",
     "services/ai-execution-worker/src/checkRunner.ts",

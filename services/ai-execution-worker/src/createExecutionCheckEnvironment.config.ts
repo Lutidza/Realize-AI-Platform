@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/createExecutionCheckEnvironment.config.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.0.1
+ * @date 2026-11-07
  * @description Формирует allowlisted окружение проверки и обязательные ограничения isolated build.
  */
 import { EXECUTION_CHECK_ENVIRONMENT_NAMES } from "./executionVerificationPolicy.config";
@@ -20,7 +20,7 @@ export function createExecutionCheckEnvironment(
     if (process.env[name]) environment[name] = process.env[name];
   }
   for (const [name, value] of Object.entries(input.environment ?? {})) {
-    if (name.startsWith("REALIZE_GIT_")) continue;
+    if (name.startsWith("REALIZE_GIT_") || name === "NODE_OPTIONS") continue;
     if (value === undefined) delete environment[name];
     else environment[name] = value;
   }
@@ -32,5 +32,8 @@ export function createExecutionCheckEnvironment(
     environment.REALIZE_BUILD_WITHOUT_DATABASE = "true";
     environment.TURBO_TASKS_AVAILABLE_PARALLELISM = "2";
   } else delete environment.REALIZE_BUILD_WITHOUT_DATABASE;
+  // Бюджет принадлежит серверу и входит в recipe проверки вместе с окружением.
+  if (input.command === "npm run typecheck")
+    environment.NODE_OPTIONS = "--max-old-space-size=2048";
   return environment;
 }

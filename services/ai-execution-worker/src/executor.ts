@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.4.2
- * @date 2026-10-22
+ * @version 1.4.3
+ * @date 2026-11-07
  * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
 
@@ -15,13 +15,15 @@ import {
   assessExecutionScope,
   parseAIExecutionContext,
   hashCanonicalJSON,
-  buildRepositorySearchTaskPrompt,
   verifyExecutionCapability,
 } from "@realize/change-engine";
 import { OpenAICodexAdapter } from "@realize/codex-adapter";
 import type { CodexConnectionResolver } from "@realize/payload-ai-control/server/integration-runtime";
 
-import { buildExecutionInstructions } from "./buildExecutionInstructions.service";
+import {
+  buildExecutionInstructions,
+  buildExecutionTaskPrompt,
+} from "./buildExecutionInstructions.service";
 import { runExecutionCheck } from "./checkRunner";
 import type { ExecutionWorkerConfig } from "./config";
 import { ExecutionJobRepository } from "./jobRepository";
@@ -98,10 +100,7 @@ const runAgent = async (input: {
         // Дочернему поиску нужна история родителя; private lease удаляет её после закрытия процесса.
         ephemeral: false,
         model: lease.model,
-        prompt: buildRepositorySearchTaskPrompt(
-          `${input.job.originalRequest}\n\nApproved implementation plan:\n${input.job.plan}`,
-          lease.search,
-        ),
+        prompt: buildExecutionTaskPrompt(input.job, lease.search),
         runID: input.job.executionKey,
         sandboxProfile: "code-workspace-write",
       })) {

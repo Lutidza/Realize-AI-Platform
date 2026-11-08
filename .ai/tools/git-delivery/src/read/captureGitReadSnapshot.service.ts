@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/read/captureGitReadSnapshot.service.ts
- * @version 1.0.1
- * @date 2026-10-20
+ * @version 1.0.2
+ * @date 2026-11-08
  * @description Строит ограниченный снимок разрешённых Git путей без обновления индекса.
  */
 import { createHash } from "node:crypto";
@@ -21,11 +21,11 @@ import type {
 } from "./GitRead.types";
 import { readGitMetadata } from "./readGitMetadata.adapter";
 
-/** paths приходит только из строгого DTO; policy/principal/root задаёт composition. */
-export async function captureGitReadSnapshot(
+async function captureSnapshot(
   context: GitReadContext,
   paths?: string[],
-): Promise<GitReadSnapshot> {
+  baseline?: Awaited<ReturnType<typeof readGitMetadata>>,
+) {
   for (const path of paths ?? []) {
     parseRepositoryPath(path);
     if (!isRepositoryPathAllowed(context.policy, path))
@@ -34,7 +34,7 @@ export async function captureGitReadSnapshot(
         "Путь исключён политикой Git чтения.",
       );
   }
-  const metadata = await readGitMetadata(context);
+  const metadata = baseline ?? (await readGitMetadata(context));
   const scan = paths
     ? null
     : await walkRepository(context.policy, { signal: context.signal });
@@ -160,7 +160,7 @@ export async function captureGitReadSnapshot(
       file.conflicted,
     ]),
   ]);
-  return {
+  const snapshot: GitReadSnapshot = {
     branch: metadata.branch,
     head: metadata.head,
     unborn: metadata.head === null,
@@ -168,5 +168,21 @@ export async function captureGitReadSnapshot(
     files: included,
     snapshotHash,
     metadataHash: metadata.metadataHash,
+  };
+  return { snapshot, metadata };
+}
+
+/** paths приходит из строгого DTO; metadata удерживается только до повторной проверки этого снимка. */
+export async function captureGitReadSnapshot(
+  context: GitReadContext,
+  paths?: string[],
+) {
+  const selectedPaths = paths ? [...paths] : undefined;
+  const { snapshot, metadata } = await captureSnapshot(context, selectedPaths);
+  return {
+    ...snapshot,
+    // Повторное чтение bytes завершается свежим metadata check; промежуточный baseline не кэшируется между запросами.
+    revalidate: async (): Promise<GitReadSnapshot> =>
+      (await captureSnapshot(context, selectedPaths, metadata)).snapshot,
   };
 }

@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/system-ai/systemAIRelease.registry.ts
- * @version 1.1.7
- * @date 2026-10-23
+ * @version 1.1.13
+ * @date 2026-11-07
  * @description Разрешает только встроенные владельцем exact system AI releases.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
@@ -9,7 +9,13 @@ import type {
   SystemAIRelease,
   SystemAIReleaseReference,
 } from "@realize/ai-contracts";
-import published from "./releases/realize-system-1.1.9.generated.json";
+import published from "./releases/realize-system-1.1.15.generated.json";
+import retainedV1114 from "./releases/realize-system-1.1.14.generated.json";
+import retainedV1113 from "./releases/realize-system-1.1.13.generated.json";
+import retainedV1112 from "./releases/realize-system-1.1.12.generated.json";
+import retainedPrevious from "./releases/realize-system-1.1.11.generated.json";
+import retainedV1110 from "./releases/realize-system-1.1.10.generated.json";
+import retainedV119 from "./releases/realize-system-1.1.9.generated.json";
 import retainedOwnerRuntime from "./releases/realize-system-1.1.8.generated.json";
 import retainedRuntime from "./releases/realize-system-1.1.7.generated.json";
 import retainedVerification from "./releases/realize-system-1.1.6.generated.json";
@@ -41,6 +47,12 @@ const verify = (artifact: unknown): SystemAIRelease => {
 // Историческая policy явно сохраняется владельцем; текущий runtime продолжает применять metering.
 const releases = [
   verify(published),
+  verify(retainedV1114),
+  verify(retainedV1113),
+  verify(retainedV1112),
+  verify(retainedPrevious),
+  verify(retainedV1110),
+  verify(retainedV119),
   verify(retainedOwnerRuntime),
   verify(retainedRuntime),
   verify(retainedVerification),

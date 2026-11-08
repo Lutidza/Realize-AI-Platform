@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/Verification.types.ts
- * @version 1.2.0
- * @date 2026-10-23
+ * @version 1.3.0
+ * @date 2026-11-05
  * @description Контракты адресных проверок, проверяемых receipts и отчёта без полномочий Git.
  * @see documentation/architecture/decisions/ADR-0016-development-git-delivery-handler.md
  */
@@ -68,6 +68,19 @@ export type VerificationDependencyState = {
   source: string;
   copied: string;
 };
+
+/** Безопасный локальный span runtime; содержит длительность и bounded counts, но не paths или source bytes. */
+export type VerificationMeasurement = {
+  phase: string;
+  durationMs: number;
+  boundary: "inclusive";
+  outcome: "success" | "error" | "invalidated";
+  entries?: number;
+  files?: number;
+  directories?: number;
+  bytes?: number;
+};
+
 /** Host назначает хранилище и границы переносимости; план проверки не получает эти полномочия. */
 export type VerificationOptions = {
   storage: { root: string; directory: string };
@@ -75,6 +88,8 @@ export type VerificationOptions = {
   additionalInputs?: string[];
   dependencyLease?: VerificationDependencyLease;
   portability?: "workspace" | "content";
+  /** Необязательный локальный sink диагностики; события не попадают в receipts или итоговый report. */
+  onMeasurement?: (measurement: VerificationMeasurement) => void;
 };
 export type VerificationProcessResult = {
   status: "passed" | "failed" | "cancelled";

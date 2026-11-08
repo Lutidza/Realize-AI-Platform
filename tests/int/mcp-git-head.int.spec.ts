@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-git-head.int.spec.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-05
  * @description Проверяет привязку Git HEAD к descriptor корня, согласованность пары и общий deadline.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -96,6 +96,8 @@ describe("Git HEAD: привязанный корень и согласован�
     const read = vi.spyOn(fileReader, "readRepositoryFile");
     const originalRun = Git.prototype.run;
     const calls: string[][] = [];
+    let active = 0;
+    let maximumActive = 0;
     vi.spyOn(Git.prototype, "run").mockImplementation(async function (
       this: Git,
       args,
@@ -104,7 +106,13 @@ describe("Git HEAD: привязанный корень и согласован�
       expect(this.root).toMatch(new RegExp(`^/proc/${process.pid}/fd/\\d+$`));
       expect(options?.machineRead).toBe(true);
       calls.push([...args]);
-      return originalRun.call(this, args, options);
+      active++;
+      maximumActive = Math.max(maximumActive, active);
+      try {
+        return await originalRun.call(this, args, options);
+      } finally {
+        active--;
+      }
     });
     expect(await readGitHead(context)).toEqual({
       head,
@@ -112,13 +120,16 @@ describe("Git HEAD: привязанный корень и согласован�
       detached: false,
       unborn: false,
     });
-    expect(calls).toEqual([
-      ["rev-parse", "--show-toplevel"],
+    const pair = [
       ["rev-parse", "--verify", "--quiet", "HEAD"],
       ["symbolic-ref", "--quiet", "--short", "HEAD"],
-      ["rev-parse", "--verify", "--quiet", "HEAD"],
-      ["symbolic-ref", "--quiet", "--short", "HEAD"],
-    ]);
+    ];
+    expect(calls).toHaveLength(5);
+    expect(calls[0]).toEqual(["rev-parse", "--show-toplevel"]);
+    expect(calls.slice(1, 3)).toEqual(expect.arrayContaining(pair));
+    expect(calls.slice(3, 5)).toEqual(expect.arrayContaining(pair));
+    expect(maximumActive).toBe(2);
+    expect(active).toBe(0);
     expect(read).not.toHaveBeenCalled();
     expect(opened).toBe(1);
     expect(closed).toBe(1);
@@ -182,7 +193,7 @@ describe("Git HEAD: привязанный корень и согласован�
     expect(run).not.toHaveBeenCalled();
   });
 
-  it("отвергает смешанную пару при переключении ветки между HEAD и symbolic-ref", async () => {
+  it("отвергает изменение ветки между двумя раундами HEAD и symbolic-ref", async () => {
     await writeFile(join(root, "src/a.ts"), "main");
     await commit();
     await git.run(["checkout", "-b", "other"]);
@@ -196,11 +207,12 @@ describe("Git HEAD: привязанный корень и согласован�
       args,
       options,
     ) {
-      if (options?.machineRead && args[0] === "symbolic-ref" && !switched) {
+      const result = await originalRun.call(this, args, options);
+      if (options?.machineRead && args.includes("--verify") && !switched) {
         switched = true;
         await git.run(["checkout", "other"]);
       }
-      return originalRun.call(this, args, options);
+      return result;
     });
     await expect(readGitHead(context)).rejects.toMatchObject({
       code: "CONFLICT",
@@ -219,7 +231,7 @@ describe("Git HEAD: привязанный корень и согласован�
     ) {
       expect(options?.signal).toBeDefined();
       signals.add(options!.signal!);
-      await delay(600, undefined, { signal: options!.signal });
+      await delay(900, undefined, { signal: options!.signal });
       return originalRun.call(this, args, options);
     });
     const started = performance.now();

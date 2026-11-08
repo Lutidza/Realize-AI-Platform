@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/read/readGitDiff.service.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-08
  * @description Читает точные стороны diff и выдаёт полные hunks в одном проверяемом снимке.
  */
 import { createHash } from "node:crypto";
@@ -146,7 +146,7 @@ export async function readGitDiff(
         patch,
       });
   }
-  const after = await captureGitReadSnapshot(context, paths);
+  const after = await snapshot.revalidate();
   if (
     after.snapshotHash !== snapshot.snapshotHash ||
     after.metadataHash !== snapshot.metadataHash

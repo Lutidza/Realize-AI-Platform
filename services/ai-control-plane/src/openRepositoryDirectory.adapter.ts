@@ -1,7 +1,7 @@
 /**
  * @file services/ai-control-plane/src/openRepositoryDirectory.adapter.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.0.1
+ * @date 2026-11-05
  * @description Закрепляет каталог descriptor-ами без перехода по ссылкам и вложенным checkout.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -59,18 +59,31 @@ export async function openRepositoryDirectory(
     const descriptorPath = `/proc/self/fd/${handle.fd}`;
     const expectedPath = join(policy.root, path);
     const verify = async () => {
+      // Независимые probes читают те же identity; отказ ждёт все начатые операции до close.
+      const probes = await Promise.allSettled([
+        realpath(descriptorPath),
+        realpath(expectedPath),
+        lstat(expectedPath),
+        handle.stat(),
+      ]);
+      const [descriptor, canonical, named, held] = probes;
+      if (descriptor.status === "rejected") throw descriptor.reason;
+      if (canonical.status === "rejected") throw canonical.reason;
+      if (named.status === "rejected") throw named.reason;
+      if (held.status === "rejected") throw held.reason;
       if (
-        (await realpath(descriptorPath)) !== expectedPath ||
-        (await realpath(expectedPath)) !== expectedPath
+        descriptor.value !== expectedPath ||
+        canonical.value !== expectedPath
       ) {
         throw new RepositoryReadError(
           "CONFLICT",
           "Каталог изменился во время чтения.",
         );
       }
-      const named = await lstat(expectedPath);
-      const held = await handle.stat();
-      if (named.dev !== held.dev || named.ino !== held.ino)
+      if (
+        named.value.dev !== held.value.dev ||
+        named.value.ino !== held.value.ino
+      )
         throw new RepositoryReadError("CONFLICT", "Каталог заменён.");
     };
     await verify();

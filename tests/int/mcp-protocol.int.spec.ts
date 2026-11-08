@@ -1,11 +1,12 @@
 /**
  * @file tests/int/mcp-protocol.int.spec.ts
- * @version 1.3.2
- * @date 2026-10-22
+ * @version 1.3.3
+ * @date 2026-11-05
  * @description Проверяет обе protocol eras настоящими SDK clients и Git на одноразовом checkout.
  */
 // @vitest-environment node
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Git } from "@realize/git-runtime";
 import {
   mkdtemp,
   mkdir,
@@ -19,6 +20,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { request } from "node:http";
+import { performance } from "node:perf_hooks";
 import {
   Client,
   StreamableHTTPClientTransport,
@@ -42,6 +44,7 @@ describe("MCP: loopback HTTP и read-only Git", () => {
   let revoked: boolean;
   let token: string;
   const clients: Client[] = [];
+  const activeDiffScenarios = new Set<Promise<void>>();
   beforeEach(async () => {
     root = await mkdtemp(join(tmpdir(), "realize-mcp-protocol-"));
     await mkdir(join(root, "src"));
@@ -94,6 +97,7 @@ describe("MCP: loopback HTTP и read-only Git", () => {
     running = await createMcpHttpServer(options);
   });
   afterEach(async () => {
+    await Promise.allSettled([...activeDiffScenarios]);
     await Promise.allSettled(clients.splice(0).map((client) => client.close()));
     await running?.close();
     await rm(root, { recursive: true, force: true });
@@ -545,51 +549,161 @@ describe("MCP: loopback HTTP и read-only Git", () => {
   });
 
   it("собирает все полные hunks из порций и отвергает изменившийся cursor", async () => {
-    const context = {
-      policy: options.policy!,
-      principal: "fixture",
-      cursors: new RepositoryCursorService(),
-      responseBytes: 8192,
-    };
-    const source = Array.from(
-      { length: 300 },
-      (_, index) => `line ${index} ${"a".repeat(65)}`,
-    );
-    await writeFile(join(root, "src/paged.ts"), source.join("\n") + "\n");
-    await git.run(["add", "--", "src/paged.ts"]);
-    const changed = source.map((line, index) =>
-      index % 8 ? line : line + " changed",
-    );
-    await writeFile(join(root, "src/paged.ts"), changed.join("\n") + "\n");
-    const input = {
-      scope: "working_tree" as const,
-      paths: ["src/paged.ts"],
-      contextLines: 0,
-      limitBytes: 2048,
-    };
-    const patches: string[] = [];
-    let cursor: string | undefined;
-    const first = await readGitDiff(context, input);
-    expect(first.truncated).toBe(true);
-    do {
-      const portion = await readGitDiff(context, {
-        ...input,
-        ...(cursor ? { cursor } : {}),
-      });
-      patches.push(...portion.files.map((file) => file.patch));
-      cursor = portion.nextCursor ?? undefined;
-    } while (cursor);
-    expect(patches).toHaveLength(38);
-    expect(new Set(patches).size).toBe(38);
-    expect(
-      patches.every(
-        (patch) => patch.includes("@@") && patch.includes(" changed"),
-      ),
-    ).toBe(true);
-    await writeFile(join(root, "src/paged.ts"), "replacement\n");
-    await expect(
-      readGitDiff(context, { ...input, cursor: first.nextCursor! }),
-    ).rejects.toMatchObject({ code: "CONFLICT" });
+    const operation = (async () => {
+      const context = {
+        policy: options.policy!,
+        principal: "fixture",
+        cursors: new RepositoryCursorService(),
+        responseBytes: 8192,
+      };
+      const scenarioName =
+        "собирает все полные hunks из порций и отвергает изменившийся cursor";
+      const startedAt = performance.now();
+      let currentRead = "fixture";
+      let readNumber = 0;
+      const commands: Array<{
+        readId: string;
+        command: string;
+        durationMs: number;
+      }> = [];
+      const reads: Array<{
+        readId: string;
+        durationMs: number;
+        outcome: string;
+      }> = [];
+      const original = Git.prototype.runBytes;
+      const commandSpy = vi
+        .spyOn(Git.prototype, "runBytes")
+        .mockImplementation(async function (this: Git, args, options) {
+          const readId = currentRead;
+          const command =
+            args.find((arg) =>
+              [
+                "rev-parse",
+                "symbolic-ref",
+                "ls-files",
+                "ls-tree",
+                "cat-file",
+                "diff",
+                "add",
+              ].includes(arg),
+            ) ?? "other";
+          const commandStartedAt = performance.now();
+          try {
+            return await original.call(this, args, options);
+          } finally {
+            commands.push({
+              readId,
+              command,
+              durationMs: performance.now() - commandStartedAt,
+            });
+          }
+        });
+      const measuredDiff = async (input: Parameters<typeof readGitDiff>[1]) => {
+        const readId = `mcp-diff-${++readNumber}`;
+        currentRead = readId;
+        const callStartedAt = performance.now();
+        let outcome = "error";
+        try {
+          const result = await readGitDiff(context, input);
+          outcome = "success";
+          return result;
+        } finally {
+          reads.push({
+            readId,
+            durationMs: performance.now() - callStartedAt,
+            outcome,
+          });
+          currentRead = "fixture";
+        }
+      };
+      try {
+        const source = Array.from(
+          { length: 300 },
+          (_, index) => `line ${index} ${"a".repeat(65)}`,
+        );
+        await writeFile(join(root, "src/paged.ts"), source.join("\n") + "\n");
+        await git.run(["add", "--", "src/paged.ts"]);
+        const changed = source.map((line, index) =>
+          index % 8 ? line : line + " changed",
+        );
+        await writeFile(join(root, "src/paged.ts"), changed.join("\n") + "\n");
+        const input = {
+          scope: "working_tree" as const,
+          paths: ["src/paged.ts"],
+          contextLines: 0,
+          limitBytes: 2048,
+        };
+        const patches: string[] = [];
+        let cursor: string | undefined;
+        const first = await measuredDiff(input);
+        expect(first.truncated).toBe(true);
+        do {
+          const portion = await measuredDiff({
+            ...input,
+            ...(cursor ? { cursor } : {}),
+          });
+          patches.push(...portion.files.map((file) => file.patch));
+          cursor = portion.nextCursor ?? undefined;
+        } while (cursor);
+        expect(patches).toHaveLength(38);
+        expect(new Set(patches).size).toBe(38);
+        expect(
+          patches.every(
+            (patch) => patch.includes("@@") && patch.includes(" changed"),
+          ),
+        ).toBe(true);
+        await writeFile(join(root, "src/paged.ts"), "replacement\n");
+        await expect(
+          measuredDiff({ ...input, cursor: first.nextCursor! }),
+        ).rejects.toMatchObject({ code: "CONFLICT" });
+        expect(commands.length).toBeGreaterThan(0);
+      } finally {
+        const durationMs = performance.now() - startedAt;
+        commandSpy.mockRestore();
+        for (const read of reads) {
+          const invocations = commands.filter(
+            (command) => command.readId === read.readId,
+          );
+          console.info(
+            `[mcp-diff-phase] ${JSON.stringify({
+              scenarioId: "mcp-diff-pagination",
+              scenarioName,
+              phase: "readGitDiff",
+              ...read,
+              boundary: "inclusive",
+              gitInvocationCount: invocations.length,
+              gitInvocations: invocations.map(({ command, durationMs }) => ({
+                command,
+                durationMs,
+              })),
+            })}`,
+          );
+        }
+        console.info(
+          `[mcp-diff-phase] ${JSON.stringify({
+            scenarioId: "mcp-diff-pagination",
+            scenarioName,
+            phase: "scenario_total",
+            durationMs,
+            boundary: "inclusive",
+            reads: reads.length,
+            gitInvocationCount: commands.length,
+            runtimeNode: process.versions.node,
+            unmeasured: [
+              "file_descriptor_read_subphases",
+              "git_process_internals",
+            ],
+          })}`,
+        );
+      }
+    })();
+    activeDiffScenarios.add(operation);
+    try {
+      await operation;
+    } finally {
+      activeDiffScenarios.delete(operation);
+    }
   });
 
   it("проверяет исторический текст на секреты даже после удаления из working tree", async () => {

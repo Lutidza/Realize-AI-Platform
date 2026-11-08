@@ -29,6 +29,17 @@ Inputs `.` учитывают новые source-файлы верхнего ур
 не принимаются. `PrivateJsonRepository` обеспечивает bounded JSON, descriptor IO,
 запрет symlinks, atomic write, `fsync` и отдельную блокировку.
 
+Для контролируемой локальной диагностики вызывающий код может передать
+`options.onMeasurement`. Observer получает wall-clock spans с `phase`,
+`durationMs`, `boundary: "inclusive"`, `outcome` и при наличии ограниченные
+счётчики `entries`, `files`, `directories` и `bytes`. Сейчас spans покрывают
+валидацию, shared/check checkpoints, source inventory/hash, runtime identity,
+receipt/reuse, subprocess, revalidation и final verification. События не содержат
+paths, source contents или credentials, не сохраняются в receipts/report и не
+создаются по умолчанию. Исключение внутри observer не меняет результат проверки.
+Эти локальные spans предназначены для контролируемых замеров; они не являются
+production telemetry.
+
 | Adapter                                 | Дополнительная ответственность                                                                                             |
 | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | IDE `.ai/tools/git-delivery`            | CLI, scope/authorization, inputs самого Git-инструмента, fingerprint и proofs точных OID                                   |

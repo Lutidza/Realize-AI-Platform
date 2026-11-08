@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/verificationRuntime.server.index.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-11-05
  * @description Предоставляет общий серверный контракт проверок и защищённого локального evidence.
  */
 export { runVerification } from "./runVerification.service.ts";
@@ -21,4 +21,5 @@ export type {
   VerificationOptions,
   VerificationProcessResult,
   VerificationDependencyLease,
+  VerificationMeasurement,
 } from "./Verification.types.ts";

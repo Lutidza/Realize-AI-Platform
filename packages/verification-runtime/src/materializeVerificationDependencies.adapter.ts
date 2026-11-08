@@ -1,12 +1,12 @@
 /**
  * @file packages/verification-runtime/src/materializeVerificationDependencies.adapter.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.0.1
+ * @date 2026-11-04
  * @description Материализует зависимости и выдаёт непрозрачное подтверждение стабильного источника и созданной копии.
  */
 import { constants } from "node:fs";
-import { cp, lstat, realpath, rm } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { cp, lstat, readdir, realpath, rm } from "node:fs/promises";
+import { join, relative, resolve } from "node:path";
 import { PolicyError } from "@realize/git-runtime";
 import type {
   VerificationDependencyLease,
@@ -20,6 +20,80 @@ import { hashVerificationValue } from "./hashVerificationRecipe.util.ts";
 import { hashVerificationInputs } from "./hashVerificationInputs.adapter.ts";
 
 const leases = new WeakMap<object, VerificationDependencyState>();
+
+async function findMissingWorkspacePackageLinks(
+  repositoryRoot: string,
+  workspace: string,
+  source: string,
+): Promise<string[]> {
+  const missing: string[] = [];
+  let entries = 1;
+  const walk = async (directory: string): Promise<void> => {
+    for (const name of await readdir(directory)) {
+      const path = join(directory, name);
+      const relativePath = relative(source, path).split("\\").join("/");
+      const depth = relativePath.split("/").length;
+      if (++entries > 250000 || depth > 64)
+        throw new PolicyError(
+          "verification_dependencies_limit",
+          "Inventory зависимостей превышает предел.",
+        );
+      const stat = await lstat(path);
+      if (
+        stat.isDirectory() &&
+        [".cache", ".vite", ".vite-temp"].includes(name)
+      )
+        continue;
+      if (stat.isSymbolicLink()) {
+        const target = await realpath(path);
+        const local = relative(repositoryRoot, target);
+        const packagePath = local.split("\\").join("/").split("/");
+        if (
+          packagePath.length === 2 &&
+          packagePath[0] === "packages" &&
+          packagePath[1] !== "" &&
+          !packagePath.includes("..")
+        ) {
+          const targetPackage = join(workspace, local);
+          const workspacePackages = join(workspace, "packages");
+          const packagesStat = await lstat(workspacePackages).catch((error) => {
+            if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+            throw error;
+          });
+          if (
+            !packagesStat ||
+            (packagesStat.isDirectory() && !packagesStat.isSymbolicLink())
+          ) {
+            try {
+              await lstat(targetPackage);
+            } catch (error) {
+              if ((error as NodeJS.ErrnoException).code !== "ENOENT")
+                throw error;
+              const packageManifest = join(
+                repositoryRoot,
+                local,
+                "package.json",
+              );
+              const manifestStat = await lstat(packageManifest).catch(
+                (manifestError) => {
+                  if (
+                    (manifestError as NodeJS.ErrnoException).code === "ENOENT"
+                  )
+                    return;
+                  throw manifestError;
+                },
+              );
+              if (manifestStat?.isFile() && !manifestStat.isSymbolicLink())
+                missing.push(relative(source, path));
+            }
+          }
+        }
+      } else if (stat.isDirectory()) await walk(path);
+    }
+  };
+  await walk(source);
+  return missing;
+}
 
 /** Только этот owner копирует tree и подтверждает его идентичность; cleanup назначает вызывающий host. */
 export async function materializeVerificationDependencies(
@@ -46,6 +120,11 @@ export async function materializeVerificationDependencies(
       "Исходные зависимости должны быть обычным каталогом.",
     );
   const before = await hashVerificationDependencies(repositoryRoot);
+  const missingWorkspaceLinks = await findMissingWorkspacePackageLinks(
+    repositoryRoot,
+    workspace,
+    source,
+  );
   await rm(target, { force: true, recursive: true });
   try {
     await cp(source, target, {
@@ -55,6 +134,8 @@ export async function materializeVerificationDependencies(
       recursive: true,
       verbatimSymlinks: true,
     });
+    for (const path of missingWorkspaceLinks)
+      await rm(join(target, path), { force: true, recursive: true });
     const targetStat = await lstat(target);
     if (!targetStat.isDirectory() || targetStat.isSymbolicLink())
       throw new PolicyError(

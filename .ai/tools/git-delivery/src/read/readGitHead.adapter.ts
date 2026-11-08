@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/read/readGitHead.adapter.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-05
  * @description Читает HEAD и ветку без индекса, обхода и содержимого рабочего дерева.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -63,10 +63,17 @@ export async function readGitHead(
         throw error;
       }
     };
-    const read = async () => ({
-      head: await optional(["rev-parse", "--verify", "--quiet", "HEAD"]),
-      branch: await optional(["symbolic-ref", "--quiet", "--short", "HEAD"]),
-    });
+    const read = async () => {
+      // Пара независимых queries выполняется вместе; следующий раунд ждёт оба завершения.
+      // При отказе descriptor остаётся открыт до cleanup всех начатых Git процессов.
+      const [head, branch] = await Promise.allSettled([
+        optional(["rev-parse", "--verify", "--quiet", "HEAD"]),
+        optional(["symbolic-ref", "--quiet", "--short", "HEAD"]),
+      ]);
+      if (head.status === "rejected") throw head.reason;
+      if (branch.status === "rejected") throw branch.reason;
+      return { head: head.value, branch: branch.value };
+    };
     const before = await read();
     const after = await read();
     // Раздельные команды не дают атомарной пары: смена refs требует нового запроса.

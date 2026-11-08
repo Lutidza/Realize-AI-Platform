@@ -1,20 +1,22 @@
 /**
  * @file services/ai-execution-worker/src/checkRunner.ts
- * @version 2.1.0
- * @date 2026-10-23
+ * @version 2.2.0
+ * @date 2026-11-05
  * @description Передаёт server-approved проверки общему runtime и преобразует source-bound evidence в результат worker.
  * @see documentation/delivery/01-local-admin-ai.md
  */
 import { createHash } from "node:crypto";
 import { runVerification } from "@realize/verification-runtime";
+import type { VerificationMeasurement } from "@realize/verification-runtime";
 import type { ExecutionCheckInput } from "./ExecutionVerification.types";
 import { createExecutionVerificationPlan } from "./createExecutionVerificationPlan.config";
 import { sanitizeExecutionOutput } from "./sanitizeExecutionOutput.util";
 import type { WorkerCheckResult } from "./types";
 
-/** Общий runner владеет запуском, receipts, повторным использованием и завершением subprocess. */
+/** Запускает approved check; необязательный локальный observer получает bounded фазы verification runtime. */
 export async function runExecutionCheck(
   input: ExecutionCheckInput,
+  onMeasurement?: (measurement: VerificationMeasurement) => void,
 ): Promise<WorkerCheckResult> {
   const started = new Date();
   const plan = createExecutionVerificationPlan(input);
@@ -28,6 +30,7 @@ export async function runExecutionCheck(
     ...(input.command === "npm run typecheck"
       ? { additionalInputs: [".next/types", ".next/dev/types"] }
       : {}),
+    ...(onMeasurement ? { onMeasurement } : {}),
   });
   const result = report.checks[0];
   const finished = new Date();

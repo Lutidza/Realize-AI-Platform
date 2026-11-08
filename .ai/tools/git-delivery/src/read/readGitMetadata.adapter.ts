@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/read/readGitMetadata.adapter.ts
- * @version 1.1.2
- * @date 2026-10-22
+ * @version 1.1.3
+ * @date 2026-11-05
  * @description Читает только имена, режимы и object IDs без содержимого исторических файлов.
  */
 import { Git } from "@realize/git-runtime";
@@ -23,9 +23,19 @@ export async function readGitMetadata(context: GitReadContext) {
   const run = (args: string[]) =>
     git.run(args, { machineRead: true, signal: context.signal });
   const { head, branch } = await readGitHead(context);
-  const objectFormat = (
-    await run(["rev-parse", "--show-object-format"])
-  ).trim();
+  // HEAD уже подтверждён; остальные три metadata query независимы и не меняют repository.
+  // allSettled удерживает lifecycle до завершения каждого процесса, включая путь отказа.
+  const [formatResult, indexResult, treeResult] = await Promise.allSettled([
+    run(["rev-parse", "--show-object-format"]),
+    run(["ls-files", "--stage", "-z"]),
+    head
+      ? run(["ls-tree", "-r", "--full-tree", "-z", head])
+      : Promise.resolve(""),
+  ]);
+  if (formatResult.status === "rejected") throw formatResult.reason;
+  if (indexResult.status === "rejected") throw indexResult.reason;
+  if (treeResult.status === "rejected") throw treeResult.reason;
+  const objectFormat = formatResult.value.trim();
   if (!["sha1", "sha256"].includes(objectFormat))
     throw new RepositoryReadError(
       "FORBIDDEN",
@@ -57,10 +67,8 @@ export async function readGitMetadata(context: GitReadContext) {
       };
     });
   };
-  const index = parse(await run(["ls-files", "--stage", "-z"]), "index");
-  const tree = head
-    ? parse(await run(["ls-tree", "-r", "--full-tree", "-z", head]), "head")
-    : [];
+  const index = parse(indexResult.value, "index");
+  const tree = parse(treeResult.value, "head");
   return {
     git,
     head,

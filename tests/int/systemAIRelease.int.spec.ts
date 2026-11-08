@@ -1,7 +1,7 @@
 /**
  * @file tests/int/systemAIRelease.int.spec.ts
- * @version 1.1.7
- * @date 2026-10-23
+ * @version 1.1.13
+ * @date 2026-11-07
  * @description Проверяет происхождение release, runtime ceiling, связанный executor и защищённые пути.
  * @see documentation/specifications/realize-ai-commerce/v1.0/01-architecture/10-ai-codex-layer-integration.md
  */
@@ -95,6 +95,13 @@ describe("trusted system AI release", () => {
     expect(await publishSystemAIRelease(process.cwd())).toEqual(
       SYSTEM_AI_RELEASE,
     );
+    expect(SYSTEM_AI_RELEASE.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "packages/verification-runtime/src/verificationMeasurement.util.ts",
+        }),
+      ]),
+    );
     expect(SYSTEM_AI_RELEASE.instructions[0].text).toContain(
       "Админский профиль",
     );
@@ -152,8 +159,8 @@ describe("trusted system AI release", () => {
         "utf8",
       ),
     );
-    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.9");
-    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.9");
+    expect(SYSTEM_AI_RELEASE.releaseID).toBe("realize-system-1.1.15");
+    expect(SYSTEM_AI_RELEASE.version).toBe("1.1.15");
     expect(SYSTEM_AI_RELEASE.instructions).toEqual(previous.instructions);
     expect(SYSTEM_AI_RELEASE.capabilities).toEqual(previous.capabilities);
     expect(SYSTEM_AI_RELEASE.checkIDs).toEqual(previous.checkIDs);
@@ -161,6 +168,29 @@ describe("trusted system AI release", () => {
     expect(SYSTEM_AI_RELEASE.projectProfile).toBe(previous.projectProfile);
     expect(SYSTEM_AI_RELEASE.schemaVersion).toBe(previous.schemaVersion);
   });
+
+  it.each(["1.1.9", "1.1.10", "1.1.11", "1.1.12", "1.1.13", "1.1.14"])(
+    "retains the exact %s release reference",
+    async (version) => {
+      const previous = JSON.parse(
+        await readFile(
+          resolve(
+            `packages/change-engine/src/system-ai/releases/realize-system-${version}.generated.json`,
+          ),
+          "utf8",
+        ),
+      );
+      const reference = {
+        releaseID: previous.releaseID,
+        manifestHash: previous.manifestHash,
+      };
+      expect(requireSystemAIRelease(reference)).toEqual(previous);
+      expect(buildSystemAIInstructions(reference)).toContain(
+        previous.releaseID,
+      );
+      expect(requireSystemAIRelease(reference)).not.toBe(SYSTEM_AI_RELEASE);
+    },
+  );
 
   it("сохраняет execution snapshot 1.1.2 без перепривязки к текущему выпуску", async () => {
     const previous = JSON.parse(

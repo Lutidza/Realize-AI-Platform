@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-git-read-performance.int.spec.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.3
+ * @date 2026-11-08
  * @description Проверяет ограниченное параллельное чтение Git, неизменность snapshot и защиту обхода.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -22,8 +22,12 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { Git } from "@realize/git-runtime";
 import { disposableGitFixture } from "./fixtures/disposableGit.fixture";
 import { readGitStatus } from "../../.ai/tools/git-delivery/src/read/readGitStatus.service";
+import { readGitDiff } from "../../.ai/tools/git-delivery/src/read/readGitDiff.service";
+import * as patchReader from "../../.ai/tools/git-delivery/src/read/createGitReadPatch.adapter";
+import { readGitMetadata } from "../../.ai/tools/git-delivery/src/read/readGitMetadata.adapter";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { RepositoryReadError } from "../../services/ai-control-plane/src/RepositoryRead.error";
 import type { RepositoryQueryContext } from "../../services/ai-control-plane/src/RepositoryQueries.types";
@@ -72,6 +76,100 @@ describe("Git MCP: bounded snapshot без изменения политики",
   afterEach(async () => {
     vi.restoreAllMocks();
     await rm(root, { recursive: true, force: true });
+  });
+
+  it.each(["working", "index", "head", "branch", "new-path"] as const)(
+    "отвергает diff после изменения %s между снимком и финальной проверкой",
+    async (mutation) => {
+      await writeFile(join(root, "src/base.ts"), "edit\n");
+      const before = await stat(join(root, "src/base.ts"));
+      const originalPatch = patchReader.createGitReadPatch;
+      const git = disposableGitFixture(root);
+      let changed = false;
+      vi.spyOn(patchReader, "createGitReadPatch").mockImplementation(
+        async (...args) => {
+          const result = await originalPatch(...args);
+          if (changed) return result;
+          changed = true;
+          if (mutation === "working") {
+            await writeFile(join(root, "src/base.ts"), "race\n");
+            await utimes(join(root, "src/base.ts"), before.atime, before.mtime);
+          } else if (mutation === "index") {
+            await git.run(["add", "--", "src/base.ts"]);
+          } else if (mutation === "head") {
+            await git.run(
+              [
+                "-c",
+                "core.hooksPath=/dev/null",
+                "-c",
+                "commit.gpgsign=false",
+                "commit",
+                "--allow-empty",
+                "-m",
+                "fixture-race",
+              ],
+              {
+                env: {
+                  GIT_AUTHOR_NAME: "Fixture",
+                  GIT_AUTHOR_EMAIL: "fixture@example.invalid",
+                  GIT_COMMITTER_NAME: "Fixture",
+                  GIT_COMMITTER_EMAIL: "fixture@example.invalid",
+                },
+              },
+            );
+          } else if (mutation === "branch") {
+            await git.run(["branch", "-m", "renamed"]);
+          } else {
+            await writeFile(join(root, "src/new.ts"), "appeared\n");
+          }
+          return result;
+        },
+      );
+      await expect(
+        readGitDiff(context, {
+          scope: "working_tree",
+          paths: ["src/base.ts", "src/new.ts"],
+          contextLines: 0,
+          limitBytes: 32768,
+        }),
+      ).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(changed).toBe(true);
+    },
+  );
+
+  it("дожидается всех трёх metadata queries при отказе одного из них", async () => {
+    const original = Git.prototype.run;
+    let active = 0;
+    let started = 0;
+    vi.spyOn(Git.prototype, "run").mockImplementation(async function (
+      this: Git,
+      args,
+      options,
+    ) {
+      const measured =
+        args.includes("--show-object-format") ||
+        args[0] === "ls-files" ||
+        args[0] === "ls-tree";
+      if (!measured) return original.call(this, args, options);
+      active++;
+      started++;
+      try {
+        if (args.includes("--show-object-format"))
+          throw new RepositoryReadError(
+            "CONFLICT",
+            "Fixture metadata failure.",
+          );
+        await delay(15);
+        return await original.call(this, args, options);
+      } finally {
+        active--;
+      }
+    });
+    await expect(readGitMetadata(context)).rejects.toMatchObject({
+      code: "CONFLICT",
+    });
+    expect(started).toBe(3);
+    expect(active).toBe(0);
   });
 
   it("завершает большой checkout в RPC budget, читая ограниченное число файлов одновременно", async () => {

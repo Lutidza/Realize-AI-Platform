@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/hashVerificationInputs.adapter.ts
- * @version 1.1.0
- * @date 2026-10-22
+ * @version 1.2.0
+ * @date 2026-11-05
  * @description Хеширует реальные source bytes и состав каталогов через закреплённые descriptors без symlink.
  */
 import { createHash } from "node:crypto";
@@ -16,9 +16,18 @@ export async function readVerificationInputSnapshot(
   root: string,
   inputs: readonly string[],
   excludeInputs: readonly string[] = [],
-): Promise<{ digest: string; paths: string[] }> {
+): Promise<{
+  digest: string;
+  paths: string[];
+  entries: number;
+  files: number;
+  directories: number;
+  bytes: number;
+}> {
   let count = 0,
-    total = 0;
+    total = 0,
+    files = 0,
+    directories = 0;
   const rows: unknown[] = [];
   const paths = new Set<string>();
   const visited = new Set<string>();
@@ -64,6 +73,7 @@ export async function readVerificationInputSnapshot(
     try {
       const before = await file.stat({ bigint: true });
       if (before.isDirectory()) {
+        directories++;
         rows.push([relative || ".", "directory"]);
         for (const child of (await readdir(`/proc/self/fd/${file.fd}`)).sort())
           await walk(
@@ -74,6 +84,7 @@ export async function readVerificationInputSnapshot(
             rootScan,
           );
       } else if (before.isFile()) {
+        files++;
         if (before.size > BigInt(32) * BigInt(1024) * BigInt(1024))
           throw new PolicyError(
             "verification_input_limit",
@@ -176,6 +187,10 @@ export async function readVerificationInputSnapshot(
       ),
     ),
     paths: [...paths].sort(),
+    entries: count,
+    files,
+    directories,
+    bytes: total,
   };
 }
 

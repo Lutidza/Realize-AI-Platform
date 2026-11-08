@@ -1,7 +1,7 @@
 /**
  * @file tests/int/codex-runtime-consumers.int.spec.ts
- * @version 1.5.1
- * @date 2026-10-22
+ * @version 1.5.2
+ * @date 2026-11-07
  * @description Проверяет интеграцию, сохранение пояснений при отказе и границы отдельного этапа исполнения.
  */
 import type { CodingAgentAdapter } from "@realize/ai-contracts";
@@ -625,11 +625,17 @@ describe("Codex implementation integration consumer", () => {
     expect(input.prompt).toContain(
       "Do not delegate edits, validation commands",
     );
+    const taskData = input.prompt
+      .split("\n\n")
+      .find((section: string) => section.startsWith("{"));
+    expect(JSON.parse(taskData)).toEqual({
+      phase: "approved_code_execution",
+      originalRequest: "приступай",
+      approvedPlan: plan,
+    });
     expect(
-      input.prompt.endsWith(
-        `приступай\n\nApproved implementation plan:\n${plan}`,
-      ),
-    ).toBe(true);
+      input.prompt.indexOf("Current task: implement approvedPlan now"),
+    ).toBeGreaterThan(input.prompt.indexOf(taskData));
     expect(input.sandboxProfile).toBe("code-workspace-write");
     expect(input.developerInstructions).toContain(
       "separate from the earlier planning chat",

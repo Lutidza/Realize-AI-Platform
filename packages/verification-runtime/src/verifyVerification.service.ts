@@ -1,7 +1,7 @@
 /**
  * @file packages/verification-runtime/src/verifyVerification.service.ts
- * @version 1.2.0
- * @date 2026-10-23
+ * @version 1.3.0
+ * @date 2026-11-05
  * @description Проверяет latest receipts по текущим inputs; не запускает команды и не создаёт файлы или lock.
  */
 import { realpath } from "node:fs/promises";
@@ -24,6 +24,7 @@ import {
   verificationReceiptRepository,
   readVerificationReceipt,
 } from "./VerificationReceipt.repository.ts";
+import { measureVerificationMeasurement } from "./verificationMeasurement.util.ts";
 
 export function verificationReport(
   plan: VerificationPlan,
@@ -145,7 +146,11 @@ export async function verifyVerification(
         shared,
         options,
       );
-      const receipt = await readVerificationReceipt(plan, check, options);
+      const receipt = await measureVerificationMeasurement(
+        options,
+        "final_receipt_read_validation",
+        () => readVerificationReceipt(plan, check, options),
+      );
       const status = !receipt
         ? "missing"
         : receipt.status !== "passed"

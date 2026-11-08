@@ -1,11 +1,12 @@
 // @vitest-environment node
 /**
  * @file tests/int/execution-output-sanitizer.int.spec.ts
- * @version 1.1.2
- * @date 2026-10-22
+ * @version 1.1.3
+ * @date 2026-11-07
  * @description Проверяет безопасную диагностику worker и allowlisted окружение общего исполнителя проверок.
  */
 
+import { spawnSync } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { sanitizeExecutionOutput } from "../../services/ai-execution-worker/src/sanitizeExecutionOutput.util";
 import { createExecutionCheckEnvironment } from "../../services/ai-execution-worker/src/createExecutionCheckEnvironment.config";
@@ -131,14 +132,66 @@ describe("Безопасный вывод исполнителя", () => {
       );
       if (command === "npm run build")
         expect(environment.TURBO_TASKS_AVAILABLE_PARALLELISM).toBe("2");
+      expect(environment.NODE_OPTIONS).toBe(
+        command === "npm run typecheck"
+          ? "--max-old-space-size=2048"
+          : undefined,
+      );
       for (const name of [
         "OPENAI_API_KEY",
         "CODEX_HOME",
-        "NODE_OPTIONS",
         "REALIZE_GIT_CONTEXT_FILE",
       ])
         expect(environment).not.toHaveProperty(name);
     }
+  });
+
+  it.each([
+    "npm run typecheck",
+    "npm run build",
+    "npm run lint",
+    "npm run test:int",
+  ])(
+    "сохраняет серверный heap budget и исключает произвольный NODE_OPTIONS для %s",
+    (command) => {
+      vi.stubEnv("NODE_OPTIONS", "--inspect=1234 --max-old-space-size=8192");
+      for (const override of [
+        undefined,
+        "--require=/fixture/untrusted.cjs",
+        "--max-old-space-size=8192",
+      ]) {
+        const environment = createExecutionCheckEnvironment({
+          command,
+          environment: { NODE_OPTIONS: override },
+        });
+        expect(environment.NODE_OPTIONS).toBe(
+          command === "npm run typecheck"
+            ? "--max-old-space-size=2048"
+            : undefined,
+        );
+      }
+    },
+  );
+
+  it("передаёт серверный heap budget реальному Node subprocess", () => {
+    const environment = createExecutionCheckEnvironment({
+      command: "npm run typecheck",
+    });
+    const result = spawnSync(
+      process.execPath,
+      [
+        "-e",
+        "process.stdout.write(String(require('node:v8').getHeapStatistics().heap_size_limit))",
+      ],
+      {
+        env: { ...environment, NODE_ENV: "test" },
+        encoding: "utf8",
+      },
+    );
+    expect(result.status, result.stderr).toBe(0);
+    const heapLimit = Number(result.stdout);
+    expect(heapLimit).toBeGreaterThanOrEqual(2048 * 1024 * 1024);
+    expect(heapLimit).toBeLessThan(2304 * 1024 * 1024);
   });
 
   it.each([undefined, "false", "true"])(
