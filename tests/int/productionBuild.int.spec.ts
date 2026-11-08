@@ -1,13 +1,15 @@
 /**
  * @file tests/int/productionBuild.int.spec.ts
- * @version 1.2.1
- * @date 2026-10-18
+ * @version 1.2.2
+ * @date 2026-11-08
  * @description Проверяет последовательность production-сборки, обязательность TypeScript и остановку этапов.
  * @see documentation/delivery/01-local-admin-ai.md
  */
 
 import { EventEmitter } from "node:events";
+import { spawnSync } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { createExecutionCheckEnvironment } from "../../services/ai-execution-worker/src/createExecutionCheckEnvironment.config";
 import {
   runProductionBuild,
   VERIFIED_TYPES_ENVIRONMENT_NAME,
@@ -57,6 +59,61 @@ afterEach(() => {
 });
 
 describe("managed production build", () => {
+  it("задаёт реальному tsc child тот же heap, что и отдельному typecheck", async () => {
+    const environment: NodeJS.ProcessEnv = {
+      NODE_ENV: "test",
+      NODE_OPTIONS: "--max-old-space-size=1024",
+    };
+    const result = runProductionBuild(
+      process.cwd(),
+      new AbortController().signal,
+      environment,
+    );
+    await Promise.resolve();
+    for (let stage = 0; stage < 3; stage++) {
+      children[stage].emit("close", 0, null);
+      await Promise.resolve();
+    }
+    expect(await result).toBe(0);
+
+    const calls = mocked.spawn.mock.calls;
+    expect(
+      calls.map(([, args]) =>
+        args.some((arg: string) => arg.startsWith("--max-old-space-size=")),
+      ),
+    ).toEqual([false, true, false]);
+    const [, typecheckArgs, options] = calls[1];
+    expect(typecheckArgs).toEqual([
+      createExecutionCheckEnvironment({ command: "npm run typecheck" })
+        .NODE_OPTIONS,
+      expect.stringMatching(/[/\\]typescript[/\\]bin[/\\]tsc$/),
+      "--noEmit",
+    ]);
+    // Сохраняем сформированные Node flags, заменяя только TypeScript payload короткой heap-пробой.
+    const probe = spawnSync(
+      process.execPath,
+      [
+        ...typecheckArgs.slice(0, 1),
+        "-e",
+        "process.stdout.write(String(require('node:v8').getHeapStatistics().heap_size_limit))",
+      ],
+      { env: options.env, encoding: "utf8" },
+    );
+    expect(probe.status, probe.stderr).toBe(0);
+    const heapLimit = Number(probe.stdout);
+    expect(heapLimit).toBeGreaterThanOrEqual(2048 * 1024 * 1024);
+    expect(heapLimit).toBeLessThan(2304 * 1024 * 1024);
+    expect(calls.map(([, , value]) => value.env.NODE_OPTIONS)).toEqual([
+      environment.NODE_OPTIONS,
+      environment.NODE_OPTIONS,
+      environment.NODE_OPTIONS,
+    ]);
+    expect(environment).toEqual({
+      NODE_ENV: "test",
+      NODE_OPTIONS: "--max-old-space-size=1024",
+    });
+  });
+
   it("low-memory Next получает отдельный heap только после полной проверки типов", async () => {
     const environment: NodeJS.ProcessEnv = {
       NODE_ENV: "test",
@@ -116,11 +173,13 @@ describe("managed production build", () => {
     expect(mocked.writeBinding).toHaveBeenCalledOnce();
 
     const calls = mocked.spawn.mock.calls;
-    expect(calls.map(([, args]) => args.slice(1))).toEqual([
-      ["typegen"],
-      ["--noEmit"],
-      ["build", "--webpack"],
+    expect(calls[0][1].slice(1)).toEqual(["typegen"]);
+    expect(calls[1][1]).toEqual([
+      "--max-old-space-size=2048",
+      expect.stringMatching(/[/\\]typescript[/\\]bin[/\\]tsc$/),
+      "--noEmit",
     ]);
+    expect(calls[2][1].slice(1)).toEqual(["build", "--webpack"]);
     for (const [index, [binary, , options]] of calls.entries()) {
       expect(binary).toBe(process.execPath);
       expect(options).toMatchObject({

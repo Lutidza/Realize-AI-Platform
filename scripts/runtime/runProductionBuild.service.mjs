@@ -1,7 +1,7 @@
 /**
  * @file scripts/runtime/runProductionBuild.service.mjs
- * @version 1.2.1
- * @date 2026-10-18
+ * @version 1.2.2
+ * @date 2026-11-08
  * @description Последовательно генерирует типы, проверяет TypeScript и собирает Next.js отдельными процессами.
  * @see documentation/delivery/01-local-admin-ai.md
  */
@@ -73,7 +73,11 @@ export const runProductionBuild = async (
 
   const stages = [
     { label: "Генерация типов маршрутов", args: [nextCLI, "typegen"] },
-    { label: "Проверка TypeScript", args: [typeScriptCLI, "--noEmit"] },
+    {
+      label: "Проверка TypeScript",
+      // Heap только этого tsc соответствует отдельному typecheck; это не предел RSS процесса.
+      args: ["--max-old-space-size=2048", typeScriptCLI, "--noEmit"],
+    },
     {
       label: "Production-сборка Next.js",
       args: [nextCLI, "build", "--webpack"],
