@@ -32,6 +32,8 @@ Admin, ChatGPT и IDE. Реализацию ведёт вместе с Developer
 - интерфейс Payload Admin в `packages/payload-ai-plugin/**`;
 - Tailwind/shadcn/Radix/lucide UI work;
 - browser behavior, forms, responsive layout, rendered DOM or visual parity.
+- performance-sensitive browser/client scenarios where the frontend owns the
+  measured experience.
 
 ### Developer Backend
 
@@ -44,6 +46,8 @@ Admin, ChatGPT и IDE. Реализацию ведёт вместе с Developer
 - data resolvers, mutations and domain services;
 - migrations and PostgreSQL/PostGIS contracts;
 - search/indexing services and backend data shape for UI/API consumers.
+- performance-sensitive API, database, queue, cache and I/O paths owned by
+  backend services.
 
 ### Process Tools Operations
 

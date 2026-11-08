@@ -166,4 +166,28 @@ entries:
     related_tools: [rg, .ai/tools/agent-search/]
     routing_tags: [development, search, scope]
     trigger: "Before repository search for work_task prep, source of truth, owner-layer, similar implementation, drift or references."
+  - entry_id: performance-measurement
+    entry_type: active_rule
+    status: active
+    primary_artifact: .ai/rules/development/RULE-PERFORMANCE-MEASUREMENT.md
+    owner_layer: .ai/rules/development/
+    owner_roles:
+      [
+        .ai/roles/developer/frontend/INDEX.md,
+        .ai/roles/developer/backend/INDEX.md,
+      ]
+    enforcement_owner: .ai/roles/process-tools-operations/scope-contour-owner/INDEX.md
+    related_rules: []
+    related_checks:
+      [
+        .ai/checks/pre-implementation/CHECK-PERFORMANCE-MEASUREMENT-SCOPE.md,
+        .ai/checks/self-review/CHECK-PERFORMANCE-EVIDENCE.md,
+      ]
+    related_workflows:
+      [.ai/workflows/quality/performance-measurement/WORKFLOW.md]
+    related_codex_artifacts: []
+    related_tools: []
+    routing_tags:
+      [development, quality, performance, benchmark, observability]
+    trigger: "Задача оптимизирует производительность, расследует регрессию или меняет performance budget/критичный горячий путь."
 ```

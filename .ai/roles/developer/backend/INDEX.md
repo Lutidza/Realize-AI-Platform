@@ -7,6 +7,7 @@ owner_layer: .ai/roles/developer/backend/
 runtime_sources:
   - documentation/project-context.md
   - .ai/rules/development/RULE-DEVELOPMENT-STRICT-PRINCIPLES.md
+  - .ai/rules/development/RULE-PERFORMANCE-MEASUREMENT.md
   - .ai/rules/development/backend/
   - .ai/checks/development/backend/
   - .ai/registry/rules/development/backend/INDEX.md
@@ -15,6 +16,8 @@ related_skills:
   - .codex/skills/dto-contracts-first/SKILL.md
   - .codex/skills/code-comment-discipline/SKILL.md
   - .codex/skills/feature-decomposition-guard/SKILL.md
+related_workflows:
+  - .ai/workflows/quality/performance-measurement/WORKFLOW.md
 ```
 
 Владеет Payload schema/config, access/hooks/migrations и server/API logic:
@@ -30,6 +33,9 @@ related_skills:
   становиться новым публичным контрактом.
 - Search/cache/geo требования применяй только когда такой контур существует
   и затронут задачей; проверь его фактическую реализацию.
+- Для измерения API, services, database, queues или I/O используй общий
+  [performance workflow](../../../workflows/quality/performance-measurement/WORKFLOW.md)
+  и ставь замеры на границе фактического владельца работы.
 - При UI-visible изменении подключи frontend owner.
 
 Проверки выбирай по затронутому контракту: targeted test для существенной

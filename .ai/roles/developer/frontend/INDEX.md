@@ -6,11 +6,13 @@ artifact_type: ai-role-index
 owner_layer: .ai/roles/developer/frontend/
 runtime_sources:
   - documentation/project-context.md
+  - .ai/rules/development/RULE-PERFORMANCE-MEASUREMENT.md
   - .ai/rules/development/frontend/
   - .ai/checks/development/frontend/
 related_workflows:
   - .ai/workflows/frontend/next-react/guardrail/WORKFLOW.md
   - .ai/workflows/frontend/design-workshop/WORKFLOW.md
+  - .ai/workflows/quality/performance-measurement/WORKFLOW.md
 related_skills:
   - .codex/skills/next-react-frontend-architecture/SKILL.md
   - .codex/skills/dto-contracts-first/SKILL.md
@@ -32,6 +34,8 @@ related_skills:
 - Выбери проверки по риску через frontend-runtime-evidence skill. Rendering,
   CSS, interaction и visual parity требуют относящегося к задаче browser
   evidence; документация и нетронутые сценарии не требуют UI suite.
+- Для заявлений о производительности UI применяй performance workflow;
+  различай браузерный end-to-end результат и отдельные render/interaction spans.
 - Применяй boundary/reuse/reference rules только к затронутой границе.
 
 Роль не владеет schema/migrations/indexing или agent-monitor tooling.
