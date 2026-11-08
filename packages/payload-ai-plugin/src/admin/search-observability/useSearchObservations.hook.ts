@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/useSearchObservations.hook.ts
- * @version 1.3.0
- * @date 2026-09-30
+ * @version 1.4.0
+ * @date 2026-11-03
  * @description Автоматически обновляет видимую историю без перекрывающихся запросов и сброса данных.
  */
 "use client";
@@ -10,6 +10,7 @@ import type { SearchObservationPage } from "@realize/ai-contracts";
 import { requestRealizeAI } from "../realizeAIAPI";
 import type {
   SearchObservationFilters,
+  SearchObservationPeriod,
   SearchObservationResource,
 } from "./SearchObservations.types";
 
@@ -20,11 +21,11 @@ export function useSearchObservations(apiURL: string) {
     operation: "",
     outcome: "",
     hours: "24",
+    from: "",
+    to: "",
     slow: "",
     compareAt: "",
   });
-  const [comparisonDraft, setComparisonDraft] = useState("");
-  const [comparisonError, setComparisonError] = useState("");
   const [pages, setPages] = useState<string[]>([]);
   const [revision, setRevision] = useState(0);
   const params = new URLSearchParams(
@@ -39,6 +40,8 @@ export function useSearchObservations(apiURL: string) {
     let timer: ReturnType<typeof setTimeout> | undefined;
     let active: AbortController | undefined;
     let failures = 0;
+    let loaded = false;
+    const historical = new URLSearchParams(search).has("to");
     const refresh = async () => {
       if (abort.signal.aborted || active || document.hidden) return;
       if (timer) clearTimeout(timer);
@@ -57,6 +60,7 @@ export function useSearchObservations(apiURL: string) {
         );
         if (!signal.aborted) {
           failures = 0;
+          loaded = true;
           setResource({ key, data, updatedAt: Date.now() });
         }
       } catch (error: unknown) {
@@ -81,7 +85,9 @@ export function useSearchObservations(apiURL: string) {
         if (
           !abort.signal.aborted &&
           !document.hidden &&
-          (!search.includes("before=") || failures)
+          ((!historical && !search.includes("before=")) ||
+            failures ||
+            (historical && !loaded))
         ) {
           timer = setTimeout(
             () => void refresh(),
@@ -94,7 +100,7 @@ export function useSearchObservations(apiURL: string) {
       if (document.hidden) {
         if (timer) clearTimeout(timer);
         active?.abort();
-      } else {
+      } else if (!historical || !loaded) {
         void refresh();
       }
     };
@@ -112,46 +118,16 @@ export function useSearchObservations(apiURL: string) {
     data: resource?.key === key ? resource.data : undefined,
     error: resource?.key === key ? resource.error : undefined,
     updatedAt: resource?.key === key ? resource.updatedAt : undefined,
-    comparisonDraft,
-    comparisonError,
-    setComparisonDraft: (value: string) => {
-      setComparisonDraft(value);
-      setComparisonError("");
-    },
-    applyComparison: () => {
-      const splitAt = Date.parse(comparisonDraft);
-      const now = Date.now();
-      if (
-        !Number.isFinite(splitAt) ||
-        splitAt <= now - Number(filters.hours) * 3600000 ||
-        splitAt >= now
-      ) {
-        setComparisonError("Выберите дату и время внутри выбранного периода.");
-        return;
-      }
-      setComparisonError("");
-      setFilters((old) => ({
-        ...old,
-        compareAt: new Date(splitAt).toISOString(),
-      }));
+    historical: Boolean(filters.to),
+    applyPeriod: (period: SearchObservationPeriod) => {
+      setFilters((old) => ({ ...old, ...period }));
       setPages([]);
     },
-    clearComparison: () => {
-      setComparisonDraft("");
-      setComparisonError("");
-      setFilters((old) => ({ ...old, compareAt: "" }));
-      setPages([]);
-    },
-    filter: (name: keyof typeof filters, value: string) => {
-      setFilters((old) => ({
-        ...old,
-        [name]: value,
-        ...(name === "hours" ? { compareAt: "" } : {}),
-      }));
-      if (name === "hours") {
-        setComparisonDraft("");
-        setComparisonError("");
-      }
+    filter: (
+      name: "source" | "consumer" | "operation" | "outcome" | "slow",
+      value: string,
+    ) => {
+      setFilters((old) => ({ ...old, [name]: value }));
       setPages([]);
     },
     refresh: () => {

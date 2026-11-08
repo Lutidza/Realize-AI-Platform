@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/search-observability.e2e.spec.ts
- * @version 1.2.2
- * @date 2026-10-22
+ * @version 1.3.0
+ * @date 2026-11-03
  * @description Проверяет автоматическую диагностику CLI/MCP, retry, dedupe, настройки и очистку через настоящий Admin UI.
  * @see documentation/architecture/repository-search.md
  */
@@ -216,7 +216,10 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     await page
       .getByRole("combobox", { name: "Результат", exact: true })
       .selectOption("");
-    const dateInput = page.getByLabel("Дата и время оптимизации", {
+    await page
+      .getByRole("combobox", { name: "Сравнение", exact: true })
+      .selectOption("moment");
+    const dateInput = page.getByLabel("Момент изменения", {
       exact: true,
     });
     const localDate = await page.evaluate(
@@ -224,12 +227,12 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
         const date = new Date(timestamp);
         const part = (value: number) => String(value).padStart(2, "0");
         return (
-          date.getFullYear() +
-          "-" +
-          part(date.getMonth() + 1) +
-          "-" +
           part(date.getDate()) +
-          "T" +
+          "." +
+          part(date.getMonth() + 1) +
+          "." +
+          date.getFullYear() +
+          " " +
           part(date.getHours()) +
           ":" +
           part(date.getMinutes())
@@ -238,8 +241,9 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
       now - 12 * 3600000,
     );
     await dateInput.fill(localDate);
+    await page.keyboard.press("Escape");
     await page
-      .getByRole("button", { name: "Сравнить до и после", exact: true })
+      .getByRole("button", { name: "Применить период", exact: true })
       .click();
     await expect(
       comparison.getByRole("row", { name: /Среднее время/ }),
@@ -271,9 +275,96 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     });
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page
-      .getByRole("button", { name: "Сбросить дату", exact: true })
+      .getByRole("button", { name: "Сбросить период", exact: true })
       .click();
-    await expect(dateInput).toHaveValue("");
+    await expect(dateInput).toHaveCount(0);
+    // Исторический диапазон: календарь, клавиатура, фиксированные границы и отсутствие polling.
+    await page
+      .getByRole("combobox", { name: "Период", exact: true })
+      .selectOption("custom");
+    const start = page.getByLabel("Начало периода", { exact: true });
+    await start.click();
+    await expect(
+      page.getByRole("button", { name: "Предыдущий месяц", exact: true }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(start).toBeFocused();
+    await start.fill("31.02.2026 12:00");
+    await page.keyboard.press("Escape");
+    await expect(start).toHaveValue("31.02.2026 12:00");
+    await page
+      .getByRole("button", { name: "Применить период", exact: true })
+      .click();
+    await expect(start).toHaveAttribute("aria-invalid", "true");
+    await start.fill("01.01.2099 12:00");
+    await page.keyboard.press("Escape");
+    await page
+      .getByRole("button", { name: "Применить период", exact: true })
+      .click();
+    await expect(start).toHaveAttribute("aria-invalid", "true");
+    // Оба ввода используют timezone браузера; конец раньше now, точность до минуты.
+    const dates = await page.evaluate(
+      (timestamp) =>
+        [timestamp - 24 * 3600000, timestamp - 60000].map((time) => {
+          const date = new Date(time);
+          return new Intl.DateTimeFormat("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+            .format(date)
+            .replace(",", "");
+        }),
+      now,
+    );
+    await start.fill(dates[0]);
+    await page.getByLabel("Конец периода", { exact: true }).fill(dates[1]);
+    await page.keyboard.press("Escape");
+    await page
+      .getByRole("button", { name: "Применить период", exact: true })
+      .click();
+    await expect(
+      page.getByText("Фиксированный диапазон.", { exact: false }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Загружаем диагностику" }),
+    ).toHaveCount(0);
+    const diagnosticsRequests: string[] = [];
+    const observeRequest = (request: import("@playwright/test").Request) => {
+      if (
+        request.method() === "GET" &&
+        request.url().includes("/search-observations?")
+      )
+        diagnosticsRequests.push(request.url());
+    };
+    page.on("request", observeRequest);
+    await page.waitForTimeout(4500);
+    expect(diagnosticsRequests).toEqual([]);
+    page.off("request", observeRequest);
+    await start.click();
+    await page.screenshot({
+      path: testInfo.outputPath("date-range-desktop.png"),
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await start.click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth - window.innerWidth,
+        ),
+      )
+      .toBeLessThanOrEqual(0);
+    await page.screenshot({
+      path: testInfo.outputPath("date-range-mobile.png"),
+    });
+    await page.keyboard.press("Escape");
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page
+      .getByRole("button", { name: "Сбросить период", exact: true })
+      .click();
     await operation.selectOption("");
     await expect(history.locator("details")).toHaveCount(8);
 
@@ -369,6 +460,39 @@ test("CLI/MCP diagnostics arrive automatically, recover and remain consistent af
     await page.screenshot({
       path: testInfo.outputPath("codex-search-mobile.png"),
       fullPage: true,
+    });
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/admin/ai/search");
+    await page
+      .getByRole("combobox", { name: "Период", exact: true })
+      .selectOption("custom");
+    await page.getByLabel("Начало периода", { exact: true }).click();
+    await expect(
+      page.locator("[data-ui-theme=dark]").filter({
+        has: page.getByRole("form", { name: "Период диагностики" }),
+      }),
+    ).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("date-range-dark.png") });
+    await page.keyboard.press("Escape");
+    await page.goto("/admin/ai/runs");
+    const workflowFilters = page.getByRole("form", {
+      name: "Фильтры запусков",
+    });
+    await expect(workflowFilters).toBeVisible();
+    await workflowFilters
+      .getByLabel("Начало с, UTC", { exact: true })
+      .fill("01.11.2026");
+    await workflowFilters
+      .getByLabel("Начало по, UTC", { exact: true })
+      .fill("01.11.2026");
+    await page.keyboard.press("Escape");
+    await workflowFilters
+      .getByRole("button", { name: "Найти", exact: true })
+      .click();
+    await expect(page).toHaveURL(/createdFrom=2026-11-01T00%3A00%3A00.000Z/);
+    await expect(page).toHaveURL(/createdTo=2026-11-02T00%3A00%3A00.000Z/);
+    await page.screenshot({
+      path: testInfo.outputPath("workflow-date-range.png"),
     });
     expect(pageErrors).toEqual([]);
     await testInfo.attach("cli-process-timing", {

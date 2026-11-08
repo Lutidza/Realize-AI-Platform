@@ -1,13 +1,13 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/readSearchObservationAnalytics.repository.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-11-03
  * @description Агрегирует bounded историю PostgreSQL по времени, источнику и операции в том же снимке чтения.
  * @see documentation/architecture/repository-search.md
  */
 import type { PoolClient } from "pg";
 import type { SearchObservationQuery } from "@realize/ai-contracts";
-import { EndpointError } from "../endpoints/http";
+import { resolveSearchObservationWindow } from "./resolveSearchObservationWindow.service";
 import { mapSearchObservationAnalytics } from "./mapSearchObservationAnalytics.mapper";
 import type { SearchObservationAggregateRow } from "./SearchObservationAnalytics.types";
 
@@ -18,27 +18,8 @@ export async function readSearchObservationAnalytics(
   now: number,
   availableFrom: number,
 ) {
-  const from = now - Number(query.hours) * 3600000;
-  const splitAt = query.compareAt
-    ? Date.parse(query.compareAt)
-    : (from + now) / 2;
-  if (!Number.isFinite(splitAt) || splitAt <= from || splitAt >= now)
-    throw new EndpointError(
-      "INVALID_REQUEST",
-      "Дата сравнения должна находиться внутри выбранного периода.",
-      400,
-    );
-  const half = Math.min(splitAt - from, now - splitAt);
-  const window = {
-    from,
-    to: now,
-    availableFrom,
-    splitAt,
-    beforeFrom: splitAt - half,
-    afterTo: splitAt + half,
-    buckets: 24,
-    bucketMs: (now - from) / 24,
-  };
+  const window = resolveSearchObservationWindow(query, now, availableFrom);
+  const { from, to, splitAt } = window;
   const result = await client.query<SearchObservationAggregateRow>(
     `WITH selected AS (
       SELECT observed_at, outcome, duration_ms,
@@ -73,9 +54,9 @@ export async function readSearchObservationAnalytics(
     WHERE groups.key IS NOT NULL GROUP BY groups.key`,
     [
       new Date(from),
-      new Date(now),
+      new Date(to),
       window.bucketMs,
-      new Date(availableFrom),
+      new Date(window.availableFrom),
       new Date(window.beforeFrom),
       new Date(splitAt),
       new Date(window.afterTo),

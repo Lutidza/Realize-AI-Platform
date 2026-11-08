@@ -1,7 +1,7 @@
 /**
  * @file tests/int/search-observability-postgres.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-30
+ * @version 1.2.0
+ * @date 2026-11-03
  * @description Проверяет diagnostics schema, права, retention, dedupe и hard capacity на отдельной PostgreSQL.
  */
 // @vitest-environment node
@@ -44,6 +44,33 @@ describe.skipIf(!process.env.SEARCH_TEST_DATABASE_URI)(
     afterAll(async () => {
       await sql?.end();
       await payload?.destroy();
+    });
+
+    it("uses identical fixed bounds for history, summary and analytics, including cursor pages", async () => {
+      const end = Date.now() - 3600000;
+      const start = end - 3600000;
+      const events = Array.from({ length: 29 }, (_, index) =>
+        searchObservationFixture({
+          observedAt: new Date(
+            index === 0 ? start - 1 : index === 28 ? end : start + index,
+          ).toISOString(),
+        }),
+      );
+      await store.append(events, "import");
+      const query = {
+        from: new Date(start).toISOString(),
+        to: new Date(end).toISOString(),
+      };
+      const page = await store.list(query);
+      expect(page.summary.count).toBe(27);
+      expect(page.analytics.summary.count).toBe(27);
+      expect(page.items).toHaveLength(25);
+      const next = await store.list({ ...query, before: page.next! });
+      expect(next.items).toHaveLength(2);
+      expect(next.summary.count).toBe(27);
+      expect(next.analytics.summary.count).toBe(27);
+      await sql.query("DELETE FROM realize_ai_search_observations");
+      await sql.query("DELETE FROM realize_ai_search_state");
     });
 
     it("denies raw collection CRUD and persists only an explicit DTO", async () => {

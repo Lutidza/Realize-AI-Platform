@@ -1,49 +1,40 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/workflow-runs/WorkflowRunsFilters.component.tsx
- * @version 1.0.0
- * @date 2026-09-11
+ * @version 1.1.0
+ * @date 2026-11-03
  * @description Применяет фильтры реестра одним серверным запросом со сбросом страницы.
  */
 
 "use client";
 
-import { useState } from "react";
-import { UiButton, UiInput, UiSelect, UiNotice } from "@realize/ui-kit";
+import {
+  UiButton,
+  UiInput,
+  UiSelect,
+  UiNotice,
+  UiDatePicker,
+  parseUiCalendarDate,
+} from "@realize/ui-kit";
 import { Search } from "lucide-react";
-import type {
-  WorkflowRunsFiltersProps,
-  WorkflowRunsFilterValues,
-} from "./WorkflowRuns.types";
+import type { WorkflowRunsFiltersProps } from "./WorkflowRuns.types";
 import { WorkflowRunFilterOption } from "./WorkflowRunFilterOption.component";
 import { workflowStatusLabels } from "./workflowRunsPresentation.config";
-import {
-  workflowRunsFilterValues,
-  workflowRunsFilterQuery,
-} from "./workflowRunsFilters.util";
+import { useWorkflowRunsFilters } from "./useWorkflowRunsFilters.hook";
 import styles from "./WorkflowRuns.module.css";
 
 export const WorkflowRunsFilters = ({
   query,
   onApply,
 }: WorkflowRunsFiltersProps) => {
-  const [values, setValues] = useState(() => workflowRunsFilterValues(query));
-  const [error, setError] = useState<string>();
-  const change = <K extends keyof WorkflowRunsFilterValues>(
-    key: K,
-    value: WorkflowRunsFilterValues[K],
-  ) => setValues((current) => ({ ...current, [key]: value }));
+  const { values, change, changeDates, error, apply, reset, resetKey } =
+    useWorkflowRunsFilters({ query, onApply });
   return (
     <form
       className={styles.filters}
       aria-label="Фильтры запусков"
       onSubmit={(event) => {
         event.preventDefault();
-        try {
-          onApply(workflowRunsFilterQuery(values));
-          setError(undefined);
-        } catch (cause) {
-          setError(cause instanceof Error ? cause.message : "Проверьте даты.");
-        }
+        apply();
       }}
     >
       <label className={`${styles.field} ${styles.searchField}`}>
@@ -72,10 +63,7 @@ export const WorkflowRunsFilters = ({
           <UiSelect
             value={values.status}
             onChange={(event) =>
-              change(
-                "status",
-                event.target.value as WorkflowRunsFilterValues["status"],
-              )
+              change("status", event.target.value as typeof values.status)
             }
           >
             <option value="">Все состояния</option>
@@ -86,22 +74,18 @@ export const WorkflowRunsFilters = ({
             ))}
           </UiSelect>
         </label>
-        <label className={styles.field}>
-          <span>Начало с, UTC</span>
-          <UiInput
-            type="date"
-            value={values.createdFrom}
-            onChange={(event) => change("createdFrom", event.target.value)}
-          />
-        </label>
-        <label className={styles.field}>
-          <span>Начало по, UTC</span>
-          <UiInput
-            type="date"
-            value={values.createdThrough}
-            onChange={(event) => change("createdThrough", event.target.value)}
-          />
-        </label>
+        <UiDatePicker
+          label="Даты запуска, UTC"
+          mode="range"
+          startLabel="Начало с, UTC"
+          endLabel="Начало по, UTC"
+          value={[
+            parseUiCalendarDate(values.createdFrom),
+            parseUiCalendarDate(values.createdThrough),
+          ]}
+          onChange={changeDates}
+          key={resetKey}
+        />
       </div>
       <div className={styles.resultBar}>
         <p className={styles.muted}>
@@ -109,13 +93,7 @@ export const WorkflowRunsFilters = ({
           доступны в поиске.
         </p>
         <div className={styles.inline}>
-          <UiButton
-            variant="ghost"
-            onClick={() => {
-              setValues(workflowRunsFilterValues({ page: 1, pageSize: 25 }));
-              onApply({ page: 1, pageSize: 25 });
-            }}
-          >
+          <UiButton variant="ghost" type="button" onClick={reset}>
             Сбросить
           </UiButton>
           <UiButton type="submit">

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-ai-plugin/src/search-observability/SearchObservationStore.repository.ts
- * @version 1.4.0
- * @date 2026-09-30
+ * @version 1.5.0
+ * @date 2026-11-03
  * @description Хранит диагностику по действующей политике, сохраняя dedupe и границу очищенной истории.
  * @see documentation/architecture/repository-search.md
  */
@@ -26,6 +26,7 @@ import {
   retainSearchAggregateHistory,
   mapSearchAggregateHistory,
 } from "./retainSearchAggregateHistory.service";
+import { resolveSearchObservationWindow } from "./resolveSearchObservationWindow.service";
 import { mapSearchQualityHistory } from "./mapSearchQualityHistory.mapper";
 
 export class SearchObservationStore {
@@ -102,22 +103,29 @@ export class SearchObservationStore {
       async (client) => {
         const state = await this.control.load(client);
         const now = Date.now();
-        const oldest = Math.max(
-          now -
-            Math.min(Number(query.hours), state.settings.retentionDays * 24) *
-              3600000,
-          state.clearedBefore ? Date.parse(state.clearedBefore) : 0,
+        const window = resolveSearchObservationWindow(
+          query,
+          now,
+          Math.max(
+            now - state.settings.retentionDays * 86400000,
+            state.clearedBefore ? Date.parse(state.clearedBefore) : 0,
+          ),
         );
         const analytics = await readSearchObservationAnalytics(
           client,
           query,
           now,
-          oldest,
+          window.availableFrom,
         );
         analytics.history = mapSearchAggregateHistory(state);
         analytics.quality = mapSearchQualityHistory(state.qualityRuns);
-        const params: unknown[] = [new Date(oldest)];
+        const params: unknown[] = [new Date(window.availableFrom)];
         const conditions = ["observed_at >= $1"];
+        // Фиксированное окно исключает конец; скользящая история сохраняет допуск часов producer.
+        if (query.to) {
+          params.push(new Date(window.to));
+          conditions.push(`observed_at < $${params.length}`);
+        }
         for (const [column, value] of [
           ["source", query.source],
           ["outcome", query.outcome],

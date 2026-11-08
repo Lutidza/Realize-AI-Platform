@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/uiKit.index.ts
- * @version 2.0.0
- * @date 2026-10-12
+ * @version 2.1.0
+ * @date 2026-11-03
  * @description Экспортирует общие примитивы и тему интерфейса Realize.
  */
 
@@ -43,3 +43,13 @@ export { UiTemplateProvider } from "./template-runtime/UiTemplateProvider.compon
 export type { UiTemplateProviderProps } from "./template-runtime/UiTemplateRuntime.types";
 export { UiButtonPrimitive } from "./button/UiButtonPrimitive.component";
 export { UiInputPrimitive } from "./input/UiInputPrimitive.component";
+
+export { UiDatePicker } from "./date-picker/UiDatePicker.component";
+export type {
+  UiDatePickerProps,
+  UiDateRange,
+} from "./date-picker/UiDatePicker.types";
+export {
+  parseUiCalendarDate,
+  formatUiCalendarDate,
+} from "./date-picker/uiCalendarDate.util";

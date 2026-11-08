@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/searchObservation.schemas.ts
- * @version 1.3.0
- * @date 2026-09-30
+ * @version 1.4.0
+ * @date 2026-11-03
  * @description Проверяет обезличенную диагностику поиска без запросов, путей и фрагментов кода.
  * @see documentation/architecture/repository-search.md
  */
@@ -104,16 +104,46 @@ export const searchObservationSchema = z.strictObject({
   modelTokens: z.null(),
 });
 
-export const searchObservationQuerySchema = z.strictObject({
-  consumer: searchObservationSchema.shape.consumer,
-  source: z.enum(["cli", "mcp"]).optional(),
-  operation: searchObservationSchema.shape.operation.optional(),
-  compareAt: z.iso.datetime().optional(),
-  outcome: z.enum(["complete", "partial", "error", "cancelled"]).optional(),
-  hours: z.enum(["1", "24", "168"]).default("24"),
-  before: z
-    .string()
-    .regex(/^[1-9]\d{0,14}$/)
-    .optional(),
-  slow: z.enum(["true"]).optional(),
-});
+export const searchObservationQuerySchema = z
+  .strictObject({
+    consumer: searchObservationSchema.shape.consumer,
+    source: z.enum(["cli", "mcp"]).optional(),
+    operation: searchObservationSchema.shape.operation.optional(),
+    compareAt: z.iso.datetime().optional(),
+    outcome: z.enum(["complete", "partial", "error", "cancelled"]).optional(),
+    hours: z.enum(["1", "24", "168"]).optional(),
+    from: z.iso.datetime().optional(),
+    to: z.iso.datetime().optional(),
+    before: z
+      .string()
+      .regex(/^[1-9]\d{0,14}$/)
+      .optional(),
+    slow: z.enum(["true"]).optional(),
+  })
+  .superRefine((query, context) => {
+    if (
+      Boolean(query.from) !== Boolean(query.to) ||
+      (query.from && query.hours)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Use hours or a complete from/to range.",
+        path: ["from"],
+      });
+    }
+    if (
+      query.from &&
+      query.to &&
+      (Date.parse(query.from) >= Date.parse(query.to) ||
+        Date.parse(query.to) - Date.parse(query.from) > 7 * 86400000)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "Range must be positive and at most 7 days.",
+        path: ["to"],
+      });
+    }
+  })
+  .transform((query) =>
+    query.from ? query : { ...query, hours: query.hours ?? ("24" as const) },
+  );

@@ -1,22 +1,17 @@
 /**
  * @file packages/payload-ai-plugin/src/admin/search-observability/SearchObservationsClient.component.tsx
- * @version 1.4.0
- * @date 2026-09-30
+ * @version 1.5.0
+ * @date 2026-11-03
  * @description Показывает автоматически поступающие замеры, фильтры и действующие пределы поиска.
  */
 "use client";
-import {
-  UiButton,
-  UiInput,
-  UiNotice,
-  UiSelect,
-  UiSurface,
-} from "@realize/ui-kit";
+import { UiButton, UiNotice, UiSelect, UiSurface } from "@realize/ui-kit";
 import { AdminUiTheme } from "../AdminUiTheme.component";
 import type { SearchObservationsClientProps } from "./SearchObservations.types";
 import { useSearchObservations } from "./useSearchObservations.hook";
 import { SearchObservationDetails } from "./SearchObservationDetails.component";
 import { SearchObservationManagement } from "./SearchObservationManagement.component";
+import { SearchObservationPeriod } from "./SearchObservationPeriod.component";
 import { SearchObservationAnalytics } from "./SearchObservationAnalytics.component";
 import { SearchQualityHistoryPanel } from "./SearchQualityHistory.component";
 import { SearchAggregateHistoryPanel } from "./SearchAggregateHistory.component";
@@ -58,9 +53,11 @@ export function SearchObservationsClient({
           эту историю не попадают.
         </UiNotice>
         <p className={styles.muted}>
-          {history.hasPrevious
-            ? "Просмотр истории. Нажмите «Обновить», чтобы вернуться к новым событиям."
-            : "Автообновление каждые 2 секунды."}
+          {history.historical
+            ? "Фиксированный диапазон. Данные обновляются кнопкой «Обновить»."
+            : history.hasPrevious
+              ? "Просмотр истории. Нажмите «Обновить», чтобы вернуться к новым событиям."
+              : "Автообновление каждые 2 секунды."}
           {history.updatedAt
             ? ` Обновлено в ${new Date(history.updatedAt).toLocaleTimeString("ru-RU")}.`
             : ""}
@@ -112,60 +109,8 @@ export function SearchObservationsClient({
                 ))}
               </UiSelect>
             </label>
-            <label>
-              Период
-              <UiSelect
-                value={history.filters.hours}
-                onChange={(event) =>
-                  history.filter("hours", event.target.value)
-                }
-              >
-                <option value="1">Последний час</option>
-                <option value="24">24 часа</option>
-                <option value="168">7 дней</option>
-              </UiSelect>
-            </label>
           </div>
-          <form
-            className={styles.comparisonControls}
-            onSubmit={(event) => {
-              event.preventDefault();
-              history.applyComparison();
-            }}
-          >
-            <label>
-              Дата и время оптимизации
-              <UiInput
-                type="datetime-local"
-                value={history.comparisonDraft}
-                onChange={(event) =>
-                  history.setComparisonDraft(event.target.value)
-                }
-                aria-invalid={Boolean(history.comparisonError)}
-                aria-describedby="search-comparison-help"
-              />
-            </label>
-            <UiButton type="submit" variant="secondary">
-              Сравнить до и после
-            </UiButton>
-            <UiButton
-              type="button"
-              variant="secondary"
-              onClick={history.clearComparison}
-              disabled={!history.filters.compareAt && !history.comparisonDraft}
-            >
-              Сбросить дату
-            </UiButton>
-          </form>
-          <p id="search-comparison-help" className={styles.muted}>
-            Без даты сравниваются первая и вторая половины периода. С датой —
-            равные окна до и после неё.
-          </p>
-          {history.comparisonError ? (
-            <UiNotice tone="danger" role="alert">
-              {history.comparisonError}
-            </UiNotice>
-          ) : null}
+          <SearchObservationPeriod onApply={history.applyPeriod} />
           {history.error ? (
             <UiNotice tone="danger" role="alert">
               {history.error}
