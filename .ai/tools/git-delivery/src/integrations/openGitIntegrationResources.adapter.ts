@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/integrations/openGitIntegrationResources.adapter.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-11-08
  * @description Открывает общий реестр интеграций с локальными настройками среды и ограниченным Pool.
  */
 import { PolicyError } from "@realize/git-runtime";
@@ -10,7 +10,10 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parse } from "dotenv";
 import { Pool } from "pg";
-import { IntegrationRuntimeRepository } from "@realize/payload-ai-control/server/integration-runtime";
+import {
+  CodexConnectionService,
+  IntegrationRuntimeRepository,
+} from "@realize/payload-ai-control/server/integration-runtime";
 
 import type { GitIntegrationResources } from "./GitIntegrationResources.types.ts";
 
@@ -51,6 +54,11 @@ export async function openGitIntegrationResources(
   pool.on("error", () => {});
   return {
     repository: new IntegrationRuntimeRepository(pool),
+    codex: new CodexConnectionService({
+      pool,
+      encryptionKey: environment.REALIZE_INTEGRATIONS_ENCRYPTION_KEY,
+      sourceEnvironment: environment,
+    }),
     encryptionKey: environment.REALIZE_INTEGRATIONS_ENCRYPTION_KEY,
     sshProfilesPath: environment.REALIZE_GIT_SSH_PROFILES_FILE,
     close: () => pool.end(),

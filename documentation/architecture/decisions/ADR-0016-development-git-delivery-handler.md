@@ -116,23 +116,24 @@ validation, read-only права, ограниченная сводка и пр�
 `fetch`, `pull` или `merge`.
 
 Для `inspect` не требуются Codex CLI, App Server, `model/list`, модельные
-prompt/profile или `REALIZE_GIT_CODEX_HOME`. Для `commit`, `push`, `manage`
-(включая чтение), `fetch`, `pull` и `merge` вызывающая среда явно назначает
-`REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL к development-профилю
-Codex CLI. Каталог должен существовать и быть заранее авторизован оператором;
-проверка его существования и чтение содержимого credentials не входят в
-Git environment adapter. Примеры с безопасным placeholder пути приведены в
-[README обработчика](../../../.ai/tools/git-delivery/README.md#git-воркер).
+prompt/profile, БД или `REALIZE_GIT_CODEX_HOME`.
+Для остальных действий standalone Git CLI использует существующий
+`CodexConnectionService`: подключение `codex:primary` из Admin registry/vault,
+DB lock, isolated lease, корректный authMode и token refresh. Адаптер
+`openGitWorkerTransport.adapter.ts` владеет последовательностью process close →
+lease dispose → Pool close и связывает transport с registry cancellation.
+Доступность интеграции не добавляет Git permissions. Model/effort role остаются
+в проектных `.codex/agents/delivery/git/`.
 
-`src/worker/createGitWorkerEnvironment.adapter.ts` проверяет только явно
-переданное `source.REALIZE_GIT_CODEX_HOME` и формирует окружение
-`{ ...createCodexEnvironment(source), CODEX_HOME: source.REALIZE_GIT_CODEX_HOME }`.
-Отсутствующее, пустое, относительное или содержащее NUL значение вызывает
-`PolicyError` с кодом `worker_profile_invalid` до создания процесса. Выбор
-профиля из унаследованных `HOME`, `CODEX_HOME` или API keys не допускается;
-общий фильтр окружения не наследует `CODEX_HOME` и ключи. Этот adapter принадлежит
-development Git worker и не меняет авторизацию продуктовой интеграции или
-контракт общего транспорта, требующий явный `environment.CODEX_HOME`.
+`REALIZE_GIT_CODEX_HOME` остаётся совместимой ссылкой доверенной среды на уже
+авторизованный профиль, прежде всего для вложенного worker внутри Admin run.
+Родитель уже держит DB lock, поэтому такой запуск не получает второй lease и
+не удаляет чужой профиль. Пустое/относительное/с NUL explicit значение даёт
+`worker_profile_invalid`. Отсутствие override выбирает Admin integration, а не
+унаследованные `HOME`, `CODEX_HOME` или API keys. Missing/disabled/busy integration
+даёт безопасный `worker_connection_unavailable`; ошибка cleanup —
+`worker_connection_cleanup_failed`. Git report не содержит lease/credentials;
+ошибка cleanup не скрывает результат уже начатого Git-действия.
 
 Для каждого ограниченного модельного Git-действия модель получает краткий prompt и команду,
 без полных AGENTS, Git-правила, workflow, навыков и истории. Основной агент
@@ -390,7 +391,7 @@ reset/rebase/stash/force, PR и deployment не входят в расширен
 отказы, replay и границы capability. Реальная синхронизация рабочего upstream
 не запускается ради приёмки инструмента; SSH-сервер требует отдельного evidence.
 
-Авторизация модели в `REALIZE_GIT_CODEX_HOME` отделена от GitHub credential.
+Авторизация модели через `codex:primary` (либо выданный parent profile) отделена от GitHub credential.
 HTTPS-токен хранится зашифрованным в integration registry и расшифровывается
 общим vault по `REALIZE_INTEGRATIONS_ENCRYPTION_KEY`; env source precedence —
 process environment, `.env.local`, `.env`. SSH identity относится к Git transport,

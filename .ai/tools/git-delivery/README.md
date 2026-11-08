@@ -93,21 +93,30 @@ raw Git или произвольный shared executor. Операция сох
 без staging, обновления индекса, hooks, БД, сети и журнала доставки.
 
 Для `commit`, `push`, `manage` (включая чтение), `fetch`, `pull` и `merge`
-вызывающая среда обязана явно
-назначить `REALIZE_GIT_CODEX_HOME`: непустой абсолютный путь без NUL к каталогу
-development-профиля Codex CLI. `/absolute/authorized-codex-profile` в примерах —
-placeholder; оператор заменяет его на существующий каталог с заранее
-настроенной авторизацией. Adapter не проверяет существование каталога и не
-читает содержимое credentials.
+standalone CLI по умолчанию использует **Codex-интеграцию из админки**.
+[Lease adapter](src/worker/openGitWorkerTransport.adapter.ts) обращается к
+существующему `CodexConnectionService` через общий реестр и vault, получает
+`isolated` lease и передаёт его очищенное окружение общему RPC transport.
+Временный профиль и scoped auth принадлежат одному запуску: сначала закрывается
+процесс, затем сохраняется refresh/удаляется профиль и освобождается Pool.
+Потеря registry signal отменяет transport. Missing/disabled/busy integration
+блокирует запуск с `worker_connection_unavailable`, без ambient auth fallback.
+Ошибка очистки возвращает `worker_connection_cleanup_failed` и не скрывает
+подтверждённый Git result. Секреты не входят в command/report.
 
-[Git environment adapter](src/worker/createGitWorkerEnvironment.adapter.ts)
-формирует `{ ...createCodexEnvironment(source), CODEX_HOME: source.REALIZE_GIT_CODEX_HOME }`.
-Если значение отсутствует, пустое, относительное или содержит NUL, запуск
-блокируется до создания процесса с `PolicyError` / `worker_profile_invalid`.
-Профиль не выбирается из унаследованных `HOME`, `CODEX_HOME` или API keys;
-`CODEX_HOME` и ключи не наследуются общим фильтром окружения. Профиль относится
-к development Git worker; авторизация продуктовой интеграции остаётся у её
-владельца и не меняется этим adapter.
+При вложенном запуске доверенная среда родительского run может уже назначить
+`REALIZE_GIT_CODEX_HOME`. Тогда используется выданный профиль без повторного
+захвата того же DB lock; его жизненным циклом продолжает владеть родитель.
+Это также совместимый explicit override для заранее авторизованного профиля.
+Указанное, но пустое/относительное/с NUL значение отвергается как
+`worker_profile_invalid`, а не переключает credential. Adapter не ищет профиль
+в `HOME`, `CODEX_HOME` или API keys. Для обычного IDE/CLI запуска вручную
+указывать путь или повторно подключать GitHub не требуется.
+
+GitHub connection/автор по-прежнему берутся из `github:primary`; авторизация
+модели — из `codex:primary`. Это разные назначения в одном существующем реестре.
+Модель, effort и ограничения Git-role остаются в `.codex/agents/delivery/git/`;
+централизация подключения не меняет разрешения, scope, checks или выбор модели.
 
 Для модельных действий нужен установленный Codex CLI. Текущая модель —
 `gpt-5.6-luna`, уровень рассуждения — `low`; доступность проверяется через `model/list` перед запуском.
@@ -586,8 +595,7 @@ installed acceptance.
 ### Подключение к commit и push
 
 ```sh
-REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
-  REALIZE_GIT_CONTEXT_FILE=/absolute/context.json \
+REALIZE_GIT_CONTEXT_FILE=/absolute/context.json \
   REALIZE_GIT_VERIFICATION_PLAN=/absolute/private-plan.json \
   npm run --silent git:worker -- commit 'docs: уточнить инструкции'
 ```
@@ -672,8 +680,7 @@ fingerprint. Затем передай результаты в контекст�
 или финальный контракт обработчика.
 
 ```sh
-REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
-  REALIZE_GIT_CONTEXT_FILE=/absolute/context.json \
+REALIZE_GIT_CONTEXT_FILE=/absolute/context.json \
   npm run --silent git:worker -- commit 'docs: уточнить правила'
 ```
 
@@ -734,8 +741,7 @@ diff и может остановить такую операцию.
 ## Контекст push
 
 ```sh
-REALIZE_GIT_CODEX_HOME=/absolute/authorized-codex-profile \
-  REALIZE_GIT_CONTEXT_FILE=/absolute/push-context.json \
+REALIZE_GIT_CONTEXT_FILE=/absolute/push-context.json \
   npm run --silent git:worker -- push
 ```
 
@@ -814,7 +820,7 @@ commit без неё читает только настроенного авто
 GitHub-токен хранится в `credential_envelope` записи `github:primary` таблицы
 `realize_ai_integrations` и расшифровывается общим vault (AES-256-GCM).
 `REALIZE_INTEGRATIONS_ENCRYPTION_KEY` — ключ шифрования хранилища,
-`REALIZE_GIT_CODEX_HOME` — отдельный профиль авторизации Codex CLI для модели.
+`REALIZE_GIT_CODEX_HOME` — необязательная ссылка на уже выданный профиль Codex для вложенного/explicit запуска; standalone получает lease `codex:primary` из админки.
 Они не являются GitHub-токеном и не задают права репозитория. Для GitHub REST
 используется API credential общего resolver; SSH identity разрешает Git transport.
 Права выдаёт GitHub конкретному credential. Подтверждение repository permission

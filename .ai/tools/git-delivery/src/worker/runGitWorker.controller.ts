@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.controller.ts
- * @version 1.5.0
- * @date 2026-10-23
+ * @version 1.5.1
+ * @date 2026-11-08
  * @description Направляет inspect программному адаптеру, остальные Git-действия — модельному воркеру.
  */
 import { PolicyError } from "@realize/git-runtime";
@@ -10,7 +10,7 @@ import { realpath } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { deliverGitWorkerCommand } from "./deliverGitWorkerCommand.service.ts";
-import { createGitWorkerTransport } from "./createGitWorkerTransport.adapter.ts";
+import { openGitWorkerTransport } from "./openGitWorkerTransport.adapter.ts";
 import { loadGitWorkerSettings } from "./loadGitWorkerSettings.adapter.ts";
 import { loadGitWorkerContext } from "./loadGitWorkerContext.adapter.ts";
 import { runGitWorker } from "./runGitWorker.service.ts";
@@ -47,7 +47,7 @@ async function main(): Promise<void> {
   try {
     const dependencies = {
       createTransport: (options) =>
-        createGitWorkerTransport(repositoryRoot, options),
+        openGitWorkerTransport(repositoryRoot, options),
       deliver: deliverGitWorkerCommand,
     } satisfies import("./GitWorker.types.ts").GitWorkerDependencies;
     const planPath = process.env.REALIZE_GIT_VERIFICATION_PLAN;

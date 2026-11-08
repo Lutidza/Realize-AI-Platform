@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/runGitWorker.service.ts
- * @version 2.0.0
- * @date 2026-10-23
+ * @version 2.0.1
+ * @date 2026-11-08
  * @description Ведёт ограниченную сессию Git-воркера и возвращает фактический результат Git-операции.
  */
 import { PolicyError } from "@realize/git-runtime";
@@ -94,7 +94,7 @@ export async function runGitWorker(
     );
     report.command = capability.command;
     const boundCapability = capability;
-    client = dependencies.createTransport({
+    client = await dependencies.createTransport({
       signal,
       onRequest: async (method, params) => {
         if (method !== "item/tool/call")
@@ -319,10 +319,13 @@ export async function runGitWorker(
     turnReady.resolve();
     try {
       await client?.close();
-    } catch {
+    } catch (error) {
       // Ошибка транспорта не отменяет уже начавшуюся Git-операцию и не скрывает её результат.
       report.status = "failed";
-      report.errorCode ??= "worker_transport_cleanup_failed";
+      report.errorCode ??=
+        error instanceof PolicyError
+          ? error.code
+          : "worker_transport_cleanup_failed";
     }
     if (capability) {
       // Начавшаяся операция завершается по лимитам handler даже при обрыве модели.

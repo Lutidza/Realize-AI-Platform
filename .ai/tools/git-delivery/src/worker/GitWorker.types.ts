@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/GitWorker.types.ts
- * @version 2.0.0
- * @date 2026-10-23
+ * @version 2.1.0
+ * @date 2026-11-08
  * @description Определяет контракты Git-воркеров, транспорта и подтверждённого отчёта.
  */
 
@@ -63,7 +63,7 @@ export type GitWorkerDependencies = {
   createTransport: (options: {
     signal: AbortSignal;
     onRequest: (method: string, params: unknown) => Promise<unknown>;
-  }) => GitWorkerTransport;
+  }) => GitWorkerTransport | Promise<GitWorkerTransport>;
   deliver: (
     command: GitWorkerCommand,
     context: GitWorkerContext,

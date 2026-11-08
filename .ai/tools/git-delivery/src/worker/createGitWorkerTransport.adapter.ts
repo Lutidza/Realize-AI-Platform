@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/worker/createGitWorkerTransport.adapter.ts
- * @version 1.0.1
- * @date 2026-09-12
+ * @version 1.1.0
+ * @date 2026-11-08
  * @description Подключает общий транспорт Codex с ограничениями возможностей Git-воркера.
  */
 
@@ -17,10 +17,13 @@ export function createGitWorkerTransport(
   workingDirectory: string,
   options: Parameters<GitWorkerDependencies["createTransport"]>[0],
   sourceEnvironment: NodeJS.ProcessEnv = process.env,
+  integrationEnvironment?: NodeJS.ProcessEnv,
 ): GitWorkerTransport {
   return new JsonLineRPCClient({
     workingDirectory,
-    environment: createGitWorkerEnvironment(sourceEnvironment),
+    // Lease owner уже отфильтровал окружение и назначил scoped auth для выбранного authMode.
+    environment:
+      integrationEnvironment ?? createGitWorkerEnvironment(sourceEnvironment),
     args: [
       "app-server",
       "--listen",

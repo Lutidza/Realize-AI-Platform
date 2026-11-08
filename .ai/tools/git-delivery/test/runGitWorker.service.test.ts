@@ -1,12 +1,13 @@
 /**
  * @file .ai/tools/git-delivery/test/runGitWorker.service.test.ts
- * @version 1.2.1
- * @date 2026-10-23
+ * @version 1.2.2
+ * @date 2026-11-08
  * @description Проверяет ограничения и завершение модельного оркестратора через управляемый транспорт без Git и Codex.
  */
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { PolicyError } from "@realize/git-runtime";
 
 import type { Context, Result } from "../src/contracts.ts";
 import type {
@@ -429,6 +430,26 @@ test("отказ cleanup после успешного tool не теряет п
   assert.equal(report.errorCode, "worker_transport_cleanup_failed");
   assert.strictEqual(report.result, harness.result);
   assert.equal(report.worker.handlerCalls, 1);
+  assert.equal(harness.counts.closed, 1);
+  assert.ok(!JSON.stringify(report).includes("private"));
+});
+
+test("ошибка integration cleanup сохраняет код отказа и подтверждённый Git result", async () => {
+  const harness = createHarness();
+  harness.driver.closeError = new PolicyError(
+    "worker_connection_cleanup_failed",
+    "private cleanup details",
+  );
+  harness.driver.events = () =>
+    (async function* () {
+      await harness.runtime().onRequest("item/tool/call", toolCall);
+      yield completedEvent;
+    })();
+  const report = await harness.run();
+  assert.equal(report.status, "failed");
+  assert.equal(report.errorCode, "worker_connection_cleanup_failed");
+  assert.strictEqual(report.result, harness.result);
+  assert.equal(report.result.commitCreated, true);
   assert.equal(harness.counts.closed, 1);
   assert.ok(!JSON.stringify(report).includes("private"));
 });
