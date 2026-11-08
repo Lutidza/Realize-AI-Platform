@@ -1,48 +1,31 @@
 /**
  * @file .ai/tools/agent-search/src/syntaxImports.util.mjs
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.0.1
+ * @date 2026-10-29
  * @description Находит статические import/re-export и literal dynamic import/require без resolution.
  */
 import ts from "typescript";
+import { readSyntaxModuleReference } from "./readSyntaxModuleReference.util.mjs";
 
 export function findSyntaxImports(node, query, normalize) {
-  const isImport = ts.isImportDeclaration(node);
-  const isExport = ts.isExportDeclaration(node);
-  const isEquals = ts.isImportEqualsDeclaration(node);
-  const isType =
-    ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument);
-  const call =
-    ts.isCallExpression(node) &&
-    ((node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length >= 1) ||
-      (node.arguments.length === 1 &&
-        ts.isIdentifier(node.expression) &&
-        node.expression.text === "require"));
-  if (!isImport && !isExport && !isEquals && !isType && !call) return [];
-  const specifierNode =
-    isImport || isExport
-      ? node.moduleSpecifier
-      : isEquals && ts.isExternalModuleReference(node.moduleReference)
-        ? node.moduleReference.expression
-        : isType
-          ? node.argument.literal
-          : call
-            ? node.arguments[0]
-            : undefined;
+  const reference = readSyntaxModuleReference(node);
+  if (
+    !reference ||
+    reference.form === "require_property" ||
+    (reference.form === "require" && reference.argumentCount !== 1)
+  )
+    return [];
+  const specifierNode = reference.specifier;
   if (
     !specifierNode ||
     (!ts.isStringLiteral(specifierNode) &&
       !ts.isNoSubstitutionTemplateLiteral(specifierNode))
   )
     return [];
-  const kind = isExport
-    ? "export"
-    : call
-      ? node.expression.kind === ts.SyntaxKind.ImportKeyword
-        ? "dynamic_import"
-        : "require"
-      : "import";
+  const isImport = reference.form === "import";
+  const isExport = reference.form === "export";
+  const isEquals = reference.form === "import_equals";
+  const kind = reference.kind;
   const moduleSpecifier =
     specifierNode.text.length <= 4096
       ? { moduleSpecifier: specifierNode.text }

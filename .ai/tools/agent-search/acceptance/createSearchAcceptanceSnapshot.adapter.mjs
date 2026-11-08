@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/acceptance/createSearchAcceptanceSnapshot.adapter.mjs
- * @version 1.3.1
- * @date 2026-10-18
+ * @version 1.3.2
+ * @date 2026-10-29
  * @description Создаёт disposable source snapshot для Next: генерация и cache не затрагивают рабочий checkout.
  * @see documentation/architecture/repository-search.md
  */
@@ -45,6 +45,8 @@ export async function createSearchAcceptanceSnapshot(
     ".ai/tools/quality/instructionQuality.config.ts",
     ".ai/tools/quality/parseInstructionMetadata.mapper.ts",
     ".ai/tools/quality/readMarkdownLinks.util.ts",
+    ".ai/tools/quality/maskMarkdownCode.util.ts",
+    ".ai/tools/quality/MarkdownReference.types.ts",
     ".ai/tools/quality/InstructionQuality.types.ts",
     ".ai/tools/agent-search/src",
     ".ai/tools/agent-search/bin",

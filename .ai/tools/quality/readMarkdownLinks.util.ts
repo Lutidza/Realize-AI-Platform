@@ -1,31 +1,41 @@
 /**
  * @file .ai/tools/quality/readMarkdownLinks.util.ts
- * @version 1.0.0
- * @date 2026-10-05
+ * @version 1.1.0
+ * @date 2026-10-29
  * @description Извлекает локальные ссылки и GFM anchors из prose без примеров code fences.
  */
-const prose = (text: string): string =>
-  text
-    .replace(/^(`{3,}|~{3,})[^\n]*\n[\s\S]*?^\1\s*$/gm, "")
-    .replace(/^---\r?\n[\s\S]*?\r?\n---/u, "");
+import { maskMarkdownCode } from "./maskMarkdownCode.util.ts";
+import type { MarkdownLinkSpan } from "./MarkdownReference.types.ts";
+
+/** Один extractor для проверки и изменения: offsets указывают на исходный target без скобок. */
+export function readMarkdownLinkSpans(text: string): MarkdownLinkSpan[] {
+  const source = maskMarkdownCode(text);
+  const result: MarkdownLinkSpan[] = [];
+  const patterns = [
+    /(!?\[[^\]\n]*\]\()(?:<([^>\n]+)>|([^\s]+?))(?:\s+"[^"]*")?\)/gu,
+    /^(\s*\[[^\]\n]+\]:\s*)(?:<([^>\n]+)>|(\S+))/gm,
+  ];
+  for (const pattern of patterns)
+    for (const match of source.matchAll(pattern)) {
+      const group = match[2] === undefined ? 3 : 2;
+      const target = match[group];
+      if (/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(target)) continue;
+      // Prefix даёт точный offset даже при повторении target в label;
+      // отсутствие флага /d сохраняет совместимость с target приложения до ES2022.
+      const start = match.index + match[1].length + (group === 2 ? 1 : 0);
+      const end = start + target.length;
+      result.push({ target, start, end });
+    }
+  return result;
+}
 
 export function readMarkdownLinks(text: string): string[] {
-  const source = prose(text).replace(/`[^`\n]+`/g, "");
-  return [
-    ...[
-      ...source.matchAll(
-        /!?\[[^\]\n]*\]\((?:<([^>\n]+)>|([^\s]+?))(?:\s+"[^"]*")?\)/gu,
-      ),
-    ].map((x) => x[1] ?? x[2]),
-    ...[...source.matchAll(/^\s*\[[^\]\n]+\]:\s*(?:<([^>\n]+)>|(\S+))/gm)].map(
-      (x) => x[1] ?? x[2],
-    ),
-  ].filter((x) => !/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(x));
+  return readMarkdownLinkSpans(text).map(({ target }) => target);
 }
 
 /** Совпадающие заголовки получают суффиксы -1, -2; explicit HTML ids также доступны. */
 export function readMarkdownAnchors(text: string): Set<string> {
-  const source = prose(text);
+  const source = maskMarkdownCode(text, false);
   const result = new Set<string>();
   for (const match of source.matchAll(
     /<(?:a|h[1-6])\b[^>]*\b(?:id|name)=["']([^"']+)["']/gi,

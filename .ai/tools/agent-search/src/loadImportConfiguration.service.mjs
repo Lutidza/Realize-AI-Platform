@@ -1,23 +1,52 @@
 /**
  * @file .ai/tools/agent-search/src/loadImportConfiguration.service.mjs
- * @version 1.0.0
- * @date 2026-09-28
- * @description Загружает ближайший tsconfig и относительные extends только через разрешённый bounded reader.
+ * @version 1.1.0
+ * @date 2026-10-30
+ * @description Загружает явный или ближайший tsconfig и относительные extends только через разрешённый bounded reader.
  */
 import { posix } from "node:path";
 import ts from "typescript";
 import { IMPORT_RESOLUTION_LIMITS as limits } from "./importResolution.config.mjs";
 
-export async function loadImportConfiguration(context, fromPath) {
+import { runImportReadSteps } from "./runImportReadSteps.service.mjs";
+
+export async function loadImportConfiguration(context, fromPath, configPath) {
+  return runImportReadSteps(
+    loadImportConfigurationSteps(context, fromPath, configPath),
+  );
+}
+
+/** Тот же config interpretation для синхронного trusted host. */
+export function loadImportConfigurationSync(context, fromPath, configPath) {
+  return runImportReadSteps(
+    loadImportConfigurationSteps(context, fromPath, configPath),
+    true,
+  );
+}
+
+function* loadImportConfigurationSteps(context, fromPath, configPath) {
+  // Exact project selection не попадает в nearest cache и не имеет fallback.
+  if (configPath !== undefined) {
+    // Grant и canonical path проверяются до configCache, в том числе при warm selection.
+    const file = yield context.read(configPath, "config");
+    if (file.status !== "ok")
+      return {
+        reason:
+          file.status === "not_found"
+            ? "unsupported_configuration"
+            : file.status,
+      };
+    return yield* load(configPath, new Set());
+  }
   let directory = posix.dirname(fromPath);
   const key = `nearest:${directory}`;
   if (context.configCache.has(key)) return context.configCache.get(key);
   let result;
   for (let depth = 0; depth < 64; depth++) {
     const path = posix.join(directory, "tsconfig.json");
-    const file = await context.read(path, "config");
+    const file = yield context.read(path, "config");
     if (file.status === "ok") {
-      result = await load(path, new Set());
+      result = yield* load(path, new Set());
       break;
     }
     if (file.status !== "not_found") {
@@ -25,7 +54,7 @@ export async function loadImportConfiguration(context, fromPath) {
       break;
     }
     if (directory === ".") {
-      result = { settings: {} };
+      result = { settings: {}, configuration: null };
       break;
     }
     directory = posix.dirname(directory);
@@ -34,13 +63,19 @@ export async function loadImportConfiguration(context, fromPath) {
   context.configCache.set(key, result);
   return result;
 
-  async function load(path, visited) {
+  function* load(path, visited) {
     context.assertActive();
     if (visited.has(path) || visited.size >= limits.configDepth)
       return { reason: "unsupported_configuration" };
-    if (context.configCache.has(path)) return context.configCache.get(path);
+    if (context.configCache.has(path)) {
+      const cached = context.configCache.get(path);
+      // Прогретая base сохраняет полную глубину: cache hit не сокращает цепочку.
+      if (visited.size + cached.configuration.depth > limits.configDepth)
+        return { reason: "unsupported_configuration" };
+      return cached;
+    }
     const stack = new Set([...visited, path]);
-    const file = await context.read(path, "config");
+    const file = yield context.read(path, "config");
     if (file.status !== "ok")
       return {
         reason:
@@ -60,6 +95,8 @@ export async function loadImportConfiguration(context, fromPath) {
           : [parsed.config.extends];
     if (baseConfigs.length > limits.configDepth)
       return { reason: "unsupported_configuration" };
+    let depth = 1,
+      hasMultipleBases = baseConfigs.length > 1;
     for (const relative of baseConfigs) {
       if (
         typeof relative !== "string" ||
@@ -69,9 +106,11 @@ export async function loadImportConfiguration(context, fromPath) {
         return { reason: "unsupported_configuration" };
       let basePath = posix.normalize(posix.join(posix.dirname(path), relative));
       if (!basePath.endsWith(".json")) basePath += ".json";
-      const base = await load(basePath, stack);
+      const base = yield* load(basePath, stack);
       if (base.reason) return base;
       settings = { ...settings, ...base.settings };
+      depth = Math.max(depth, 1 + base.configuration.depth);
+      hasMultipleBases ||= base.configuration.hasMultipleBases;
     }
     const own = parsed.config.compilerOptions ?? {};
     if (!object(own)) return { reason: "unsupported_configuration" };
@@ -93,6 +132,7 @@ export async function loadImportConfiguration(context, fromPath) {
       settings.baseUrl = posix.normalize(
         posix.join(posix.dirname(path), own.baseUrl),
       );
+      settings.baseUrlSourcePath = path;
     }
     if (own.paths !== undefined) {
       if (!object(own.paths) || Object.keys(own.paths).length > 128)
@@ -112,6 +152,7 @@ export async function loadImportConfiguration(context, fromPath) {
           return { reason: "unsupported_configuration" };
       settings.paths = own.paths;
       settings.pathsDirectory = posix.dirname(path);
+      settings.pathsSourcePath = path;
     }
     if (own.moduleSuffixes !== undefined) {
       if (
@@ -139,7 +180,15 @@ export async function loadImportConfiguration(context, fromPath) {
         return { reason: "unsupported_configuration" };
       settings.conditions = own.customConditions;
     }
-    const result = { settings };
+    const result = {
+      settings,
+      configuration: {
+        path,
+        hasExtends: parsed.config.extends !== undefined,
+        depth,
+        hasMultipleBases,
+      },
+    };
     context.configCache.set(path, result);
     return result;
   }

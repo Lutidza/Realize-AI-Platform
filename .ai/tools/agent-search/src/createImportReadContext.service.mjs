@@ -1,15 +1,26 @@
 /**
  * @file .ai/tools/agent-search/src/createImportReadContext.service.mjs
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.1.0
+ * @date 2026-10-29
  * @description Ограничивает и переиспользует чтения одного запроса, сохраняя footprint для snapshot.
  */
 import { createHash } from "node:crypto";
 import { IMPORT_RESOLUTION_LIMITS as limits } from "./importResolution.config.mjs";
 import { SYNTAX_MAX_FILE_BYTES } from "./syntaxSearch.config.mjs";
 
+import { runImportReadSteps } from "./runImportReadSteps.service.mjs";
+
 /** @param {import('./ImportResolution.types.d.mts').ImportReadAdapter} adapter */
 export function createImportReadContext(adapter, assertActive = () => {}) {
+  return createContext(adapter, assertActive, false);
+}
+
+/** Общие budgets/cache/footprint; I/O обязан завершиться в текущем синхронном шаге. */
+export function createImportReadContextSync(adapter, assertActive = () => {}) {
+  return createContext(adapter, assertActive, true);
+}
+
+function createContext(adapter, assertActive, synchronous) {
   const files = new Map();
   const directories = new Map();
   const footprint = new Map();
@@ -55,12 +66,14 @@ export function createImportReadContext(adapter, assertActive = () => {}) {
     stats,
     footprint,
     assertActive,
-    read,
-    listDirectories,
+    read: (path, purpose) =>
+      runImportReadSteps(read(path, purpose), synchronous),
+    listDirectories: (path) =>
+      runImportReadSteps(listDirectories(path), synchronous),
     configCache: new Map(),
   };
 
-  async function read(path, purpose = "source") {
+  function* read(path, purpose = "source") {
     assertActive();
     // Проверка purpose происходит до cache lookup: config grant не становится source grant.
     if (!canonical(path) || !adapter.isAllowed(path, purpose)) {
@@ -79,7 +92,7 @@ export function createImportReadContext(adapter, assertActive = () => {}) {
       SYNTAX_MAX_FILE_BYTES,
       limits.bytes - stats.bytesRead,
     );
-    const result = await adapter.read(path, {
+    const result = yield adapter.read(path, {
       maximumBytes,
       onReadBytes(count) {
         bytes += count;
@@ -106,12 +119,12 @@ export function createImportReadContext(adapter, assertActive = () => {}) {
     return result;
   }
 
-  async function listDirectories(path) {
+  function* listDirectories(path) {
     assertActive();
     if (!canonical(path)) return { status: "forbidden" };
     if (directories.has(path)) return directories.get(path);
     if (!reserve()) return { status: "scan_budget" };
-    const result = await adapter.listDirectories(path, limits.directoryEntries);
+    const result = yield adapter.listDirectories(path, limits.directoryEntries);
     assertActive();
     if (result.status === "scan_budget") stats.exhausted = true;
     footprint.set(`directory:${path}`, result.fingerprint ?? result.status);

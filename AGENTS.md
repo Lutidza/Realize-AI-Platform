@@ -52,7 +52,9 @@
 | Расположение кода и владельцы                         | [Структура проекта](documentation/architecture/project-structure.md)                                                   |
 | Разработка и зависимости                              | [Общие правила разработки](.ai/registry/rules/development/INDEX.md)                                                    |
 | Интерфейс, React, браузерные проверки                 | [Frontend](.ai/registry/rules/development/frontend/INDEX.md)                                                           |
-| Payload, API, DTO, миграции, поиск                    | [Backend](.ai/registry/rules/development/backend/INDEX.md)                                                             |
+| Поиск по репозиторию: файлы, код, документация        | [Правило](.ai/rules/development/RULE-SEARCH-SCOPE-DISCIPLINE.md), [check](.ai/checks/pre-implementation/CHECK-SEARCH-SCOPE-DISCIPLINE.md) |
+| Поиск и выборка данных из БД (Payload/PostgreSQL)     | [Backend](.ai/registry/rules/development/backend/INDEX.md)                                                             |
+| Backend: API, DTO, миграции                           | [Backend](.ai/registry/rules/development/backend/INDEX.md)                                                             |
 | Документация и инструкции                             | [Правила](.ai/registry/rules/documentation/INDEX.md), [синхронизация](.codex/skills/skill-documentation-sync/SKILL.md) |
 | Область, перенос и удаление                           | [Scope control](.ai/registry/rules/scope-control/INDEX.md)                                                             |
 | Задачи, референсы и логи                              | [.ai-workspace](.ai-workspace/README.md)                                                                               |

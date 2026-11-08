@@ -1,12 +1,14 @@
 /**
  * @file tests/int/platformRelease.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-04
+ * @version 1.1.0
+ * @date 2026-11-04
  * @description Проверяет происхождение manifest, совместимость установки и разделение Git-полномочий.
  * @see documentation/delivery/02-ci-release-deploy.md
  */
 
 import { beforeAll, describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   exactVersionSchema,
   gitDeliveryBindingSchema,
@@ -48,6 +50,35 @@ const compare = (
   });
 
 describe("exact platform release", () => {
+  it("registers the private engineering workspace consistently in manifests and lockfile", async () => {
+    const [rootManifest, lockfile, workspaceManifest] = await Promise.all([
+      readFile(join(process.cwd(), "package.json"), "utf8").then(JSON.parse),
+      readFile(join(process.cwd(), "package-lock.json"), "utf8").then(
+        JSON.parse,
+      ),
+      readFile(
+        join(process.cwd(), "packages/engineering-runtime/package.json"),
+        "utf8",
+      ).then(JSON.parse),
+    ]);
+    const packageName = "@realize/engineering-runtime";
+
+    expect(workspaceManifest.private).toBe(true);
+    expect(rootManifest.dependencies[packageName]).toBe(
+      workspaceManifest.version,
+    );
+    expect(lockfile.packages[""].dependencies[packageName]).toBe(
+      workspaceManifest.version,
+    );
+    expect(lockfile.packages["packages/engineering-runtime"].version).toBe(
+      workspaceManifest.version,
+    );
+    expect(lockfile.packages[`node_modules/${packageName}`]).toEqual({
+      resolved: "packages/engineering-runtime",
+      link: true,
+    });
+  });
+
   it("binds real workspace versions, ordered migrations and workflows to the OCI source", () => {
     const installed = installedPlatformFixture(release);
     const result = compare(installed);

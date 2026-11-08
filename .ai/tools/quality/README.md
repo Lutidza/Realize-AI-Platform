@@ -13,6 +13,12 @@ Markdown-ссылки и anchors. История, шаблонные приме�
 Результат CLI — JSON с полным списком нарушений и hash просмотренных источников.
 При превышении бюджета нет частичного `passed`. Инструмент не меняет инструкции.
 
+Общий `readMarkdownLinkSpans` из `readMarkdownLinks.util.ts` возвращает локальные
+ссылки с UTF-16 offsets исходного текста. `readMarkdownLinks` и engineering
+rewrite используют один extractor; `maskMarkdownCode` исключает frontmatter,
+fenced/indented/inline примеры. API не читает файлы и не меняет содержимое.
+Смысловая полнота ссылок вне поддержанного Markdown требует отдельной проверки.
+
 ## Поведенческий baseline
 
 Trusted owner CLI использует текущую интеграцию платформы и общий ledger:

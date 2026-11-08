@@ -1,0 +1,19 @@
+{
+  "name": "@realize/engineering-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/engineeringRuntime.server.index.ts",
+    "./contracts": "./src/engineeringRuntime.contracts.index.ts"
+  },
+  "dependencies": {
+    "@realize/git-runtime": "0.1.0",
+    "zod": "4.6.5"
+  },
+  "engines": {
+    "node": "24.18.0",
+    "npm": "11.15.0"
+  },
+  "packageManager": "npm@11.15.0"
+}

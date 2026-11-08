@@ -1,7 +1,7 @@
 /**
  * @file next.config.ts
- * @version 1.5.4
- * @date 2026-10-22
+ * @version 1.5.5
+ * @date 2026-11-05
  * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
     ],
   },
   experimental: {
+    agentUpgrade: "security",
     // Next считает page-data/static workers через os.cpus(), независимо от affinity процесса.
     cpus: process.env.REALIZE_BUILD_LOW_MEMORY === "true" ? 1 : 2,
     // Payload добавляет webpack callback, поэтому отдельный compiler worker включается явно.

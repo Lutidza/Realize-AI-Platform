@@ -47,6 +47,12 @@ Control plane обслуживает хранилище и сообщает hear
 
 ## Экономная выдача
 
+Программные consumers используют общие чистые модули из `src/`:
+`parseSyntaxSource`, `readSyntaxModuleReference` и `getModuleFileCandidates`.
+Поисковая навигация и engineering move используют одну реализацию этих операций;
+I/O, полнота области и разрешения принадлежат consumer. Контракт и границы —
+[архитектура поиска](../../../documentation/architecture/repository-search.md#навигация-при-разработке).
+
 Команды ниже выполняются из корня проекта. Прямой запуск Node исключает
 служебный вывод npm; эквивалентный вход —
 `npm --prefix .ai/tools/agent-search run --silent search -- ...`.
@@ -233,6 +239,11 @@ npm --prefix .ai/tools/agent-search run --silent test
 Регрессии покрывают скрытые каталоги, согласованность glob между режимами,
 исключения явных скрытых файлов, сохранение ignore при `--within`, отбор до
 чтения содержимого и остановку обоих процессов.
+
+Внутренняя opt-in policy `relocation-exports` принимает `import`/`require` для
+одинаковых точных строковых workspace mappings. CommonJS profiles, manifest
+effects и runtime evidence описаны в [engineering §29](../../../documentation/architecture/engineering-operations.md#29-commonjs-через-точные-workspace-exports-четырнадцатый-срез-task-94).
+Navigation/DTO и запрещённые conditional/wildcard/legacy cases не расширяются.
 
 Полная приёмка из корня проекта:
 

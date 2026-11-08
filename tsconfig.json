@@ -30,5 +30,10 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "src/RealizeCore/**", "src/app/_realize/**"]
+  "exclude": [
+    "node_modules",
+    "packages/engineering-runtime/**",
+    "src/RealizeCore/**",
+    "src/app/_realize/**"
+  ]
 }
