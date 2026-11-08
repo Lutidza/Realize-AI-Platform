@@ -1,7 +1,7 @@
 /**
  * @file tests/int/extension-manager-client.int.spec.ts
- * @version 1.1.1
- * @date 2026-10-12
+ * @version 1.1.2
+ * @date 2026-11-08
  * @description Проверяет frozen mutation, lost response, concurrent submit и строгие appearance DTO клиента.
  * @see documentation/specifications/extension-management.md
  */
@@ -787,15 +787,13 @@ describe("Extension manager: installed inventory и защита чернови�
       ...snapshot.catalog.entries[0],
       manifest: { ...snapshot.catalog.entries[0].manifest, version: "2.0.0" },
     };
-    api.snapshot = vi
-      .fn()
-      .mockResolvedValue({
-        ...snapshot,
-        catalog: {
-          ...snapshot.catalog,
-          entries: [...snapshot.catalog.entries, second],
-        },
-      });
+    api.snapshot = vi.fn().mockResolvedValue({
+      ...snapshot,
+      catalog: {
+        ...snapshot.catalog,
+        entries: [...snapshot.catalog.entries, second],
+      },
+    });
     const { result } = renderHook(() => useExtensionManager(props, api));
     await waitFor(() => expect(result.current.loading).toBe(false));
     act(() => result.current.setSettings('{"width":350,"spacing":"compact"}'));
@@ -860,9 +858,7 @@ describe("Extension manager: installed inventory и защита чернови�
       onSettings,
     };
     const widget = render(createElement(InstalledTemplates, widgetProps));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Выбрать оболочку" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Выбрать оболочку" }));
     expect(result.current.shell.draft).toBe("native");
     fireEvent.click(
       screen.getByRole("button", { name: "Настройки и палитра" }),
@@ -904,15 +900,13 @@ describe("Extension manager: installed inventory и защита чернови�
       ...snapshot.catalog.entries[0],
       manifest: { ...snapshot.catalog.entries[0].manifest, version: "2.0.0" },
     };
-    api.snapshot = vi
-      .fn()
-      .mockResolvedValue({
-        ...snapshot,
-        catalog: {
-          ...snapshot.catalog,
-          entries: [...snapshot.catalog.entries, second],
-        },
-      });
+    api.snapshot = vi.fn().mockResolvedValue({
+      ...snapshot,
+      catalog: {
+        ...snapshot.catalog,
+        entries: [...snapshot.catalog.entries, second],
+      },
+    });
     const { result } = renderHook(() => useExtensionManager(props, api));
     await waitFor(() => expect(result.current.loading).toBe(false));
     act(() => result.current.setSettings('{"width":350,"spacing":"compact"}'));

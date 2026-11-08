@@ -1,7 +1,7 @@
 /**
  * @file tests/int/ownerEngineeringRunDTO.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-23
+ * @version 1.0.1
+ * @date 2026-11-08
  * @description Проверяет сохранение и публичную проекцию фактического режима исполнения.
  * @see documentation/architecture/codex-integration.md
  */
@@ -15,12 +15,14 @@ import type { ChatRunContext } from "../../packages/payload-ai-plugin/src/chat-c
 it.each(["analysis-readonly", "owner-host"] as const)(
   "сохраняет и возвращает %s без ложного readonly",
   async (mode) => {
-    const create = vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
-      id: 42,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      ...data,
-    }));
+    const create = vi.fn(
+      async ({ data }: { data: Record<string, unknown> }) => ({
+        id: 42,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        ...data,
+      }),
+    );
     const repository = new AIRepository(
       { create, db: { defaultIDType: "number" } } as unknown as Payload,
       {} as PayloadRequest,
