@@ -5,6 +5,7 @@
 - **Сверка создания задач рабочего слоя:** 19 октября 2026 года (M33 и web активированы локально; CLI intake и отображение задачи проверены)
 - **Сверка доступов платформы:** 19 октября 2026 года (M34, production build и web активированы; live health/admission/device cancellation проверены)
 - **Сверка инженерного режима:** 23 октября 2026 года (TASK-57: owner-host установлен, профиль активен; native run 119 и MCP run 123 завершены)
+- **Сверка инженерных filesystem mutations:** 29 октября 2026 года (ENG-09: exact-version edit; ENG-10: core move/quarantine и project move `source.util`/`ai.template` с metadata и поддержанными references в complete bounded host-области. Bounded directory move покрыт расширенной матрицей и принят пользователем. Case-only rename поддержан для отсутствующей цели в одном case-sensitive parent с сохранением project naming guards; его приёмка и общая приёмка TASK-68 ожидаются. Клиентские CLI/MCP/Admin tools не активированы)
 
 ## Цель проекта
 

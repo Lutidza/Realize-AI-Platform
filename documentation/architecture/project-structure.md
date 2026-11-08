@@ -1,7 +1,7 @@
 # Структура проекта (источник для AI-layer)
 
 - **Статус:** current implementation
-- **Дата сверки:** 12 октября 2026 года (Task Manager, установленные template packages, appearance и Admin shell inventory)
+- **Дата сверки:** 28 октября 2026 года (ENG-09: exact-version edit; ENG-10 частично: move/quarantine regular files и project move с metadata/references в complete host-области; прочие разделы сохраняют прежнюю область сверки)
 
 ## Активный продуктовый контур
 
@@ -276,6 +276,43 @@ dispatchers. Доступ к инструментам и approvals задают 
 - `AGENTS.md` — корневой entrypoint.
 - `documentation/project-context.md` — канонический контекст проекта.
 - `documentation/specifications/**` — нормативные product/architecture specs.
+
+Целевое расширение инженерных инструментов описано в
+[ADR-0019](decisions/ADR-0019-shared-engineering-operations.md): общий файловый
+runtime, project binding и наблюдение за архитектурой. Основание
+`packages/engineering-runtime` уже создано в ENG-07: `src/contracts` — strict
+browser-safe DTO, `src/runtime` — план/preview/state machine/recovery, `src/storage`
+— private SQLite journal и workspace lease; `test` — изолированные проверки.
+ENG-08 добавляет `src/artifacts` с generic descriptor port, `src/content` с
+immutable content, `src/filesystem` с create adapter; ENG-09 добавляет exact-version
+edit через atomic exchange и private backup; ENG-10 — core exact-version move и private
+quarantine authored files. Project move текущих profiles обновляет metadata пути и
+поддержанные references в одном frozen плане при явной complete host policy.
+Bounded directory move (до 32 объектов одного owner) и полный receipt покрыты
+расширенной матрицей границ, ACL и directory crash/recovery в
+`.ai/tools/engineering/test/directoryMoveFailures.test.ts`;
+этот срез TASK-68 принят пользователем 29 октября. Ограниченное изменение регистра
+basename использует тот же namespace guard и native rename; project naming guards
+сохраняются. Матрица `caseOnlyDirectoryMove.test.ts` принадлежит тому же test owner;
+приёмка расширения и всего ENG-10 ещё ожидается.
+Публичную проекцию changedArtifacts формирует
+`src/runtime/mapChangedArtifacts.mapper.ts`, tree version и durability —
+`src/filesystem/readFilesystemTree.service.ts` и `syncFilesystemTree.adapter.ts`.
+Каталоги `src/native` и `native` содержат загрузчик и
+исходник Linux Node-API primitive.
+Публичные входы — `engineeringRuntime.contracts.index.ts` и
+`engineeringRuntime.server.index.ts`. Готовность и ограничения —
+[протокол, §12–15](engineering-operations.md#15-перенос-и-quarantine-authored-файлов-eng-10).
+`.ai/tools/engineering/src/projectEngineering.index.ts` — project binding
+`source.util` / `ai.template`, folder policies, move resolvers и чистые renderers; API и
+ограничения описаны в [README](../../.ai/tools/engineering/README.md).
+Host activation и новые CLI/Admin/MCP clients ещё планируются; бинарник
+native backend собирается явно в private location вне checkout.
+Task Manager, доступы, Git и verification сохраняют существующих владельцев.
+
+Типы файлов, native metadata, назначение папок и границы authored/generated
+описаны в [контракте артефактов](engineering-artifacts.md) (ENG-03): широкий
+каталог остаётся целевым, §8 фиксирует два поддержанных profiles ENG-08.
 
 AI-layer audit от 2026-08-17 сохранён как historical evidence в
 `documentation/reports/AI-LAYER-FOREIGN-ARTIFACT-AUDIT.md`. Текущее

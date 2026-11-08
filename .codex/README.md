@@ -41,7 +41,8 @@ Codex собирает цепочку `AGENTS.md` при старте. Для п
 - корневой обзор — `.codex/README.md`;
 - структура — `.codex/STRUCTURE.md`;
 - project-specific MCP source of truth — `.codex/config.toml`;
-- вложенные directory entrypoints называются `INDEX.md`;
+- вложенные directory entrypoints называются `INDEX.md`; существующий каталог
+  навыков — [skills/README.md](skills/README.md), вход отдельного навыка — `SKILL.md`;
 - agent TOML содержит только поддерживаемые runtime fields;
 - workflow prompts повторяют доменную структуру связанного `.ai` workflow.
 

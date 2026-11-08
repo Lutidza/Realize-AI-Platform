@@ -31,8 +31,18 @@ Codex-адаптеры — в `.codex/**`.
 6. [Architecture Decision Log](architecture/decisions/INDEX.md).
 7. [Поиск для агентов и диагностика](architecture/repository-search.md) — CLI/MCP,
    измерения, история Admin и ограничения покрытия.
-8. [Доступы платформы и авторизация CLI](architecture/platform-access.md) —
+8. [Измерение производительности платформы](architecture/platform-performance-measurement.md) —
+   правила baseline, локальных benchmark, operational telemetry и этапность Admin аналитики.
+9. [Доступы платформы и авторизация CLI](architecture/platform-access.md) —
    личные/API токены, browser approval, scopes, сроки, отзыв и Secret Service.
+   [Целевые инженерные полномочия ENG-05](architecture/platform-access.md#единые-инженерные-полномочия-eng-05) —
+   identity/grants для IDE, Admin и GPT, персональный OAuth и границы native доступа.
+10. [Протокол инженерных операций ENG-06](architecture/engineering-operations.md) —
+   DTO, plan/preview/apply, блокировки, восстановление, генераторы и пределы проверок/очередей;
+   §12 — основание ENG-07; §13 — создание файлов/папок ENG-08; §§14–15 —
+   exact-version edit ENG-09 и bounded project/directory move ENG-10 с metadata,
+   ссылками и case-only ограничениями. §16 — план первого среза ENG-11 на
+   пользовательской проверке; клиентские tools ещё не активированы.
 
 Подключение аккаунта ChatGPT или API key и требования к исполнителям:
 [интеграция Codex](architecture/codex-integration.md).
@@ -54,6 +64,14 @@ Codex-адаптеры — в `.codex/**`.
 
 ## Проекты развития
 
+- [Общие инженерные операции для IDE, Admin и GPT](architecture/decisions/ADR-0019-shared-engineering-operations.md)
+  — целевая архитектура файловых операций, штатных генераторов, Task Manager
+  и архитектурного наблюдения; TASK-60 / ENG-02, реализация отдельными этапами.
+- [Типы инженерных артефактов и назначение папок](architecture/engineering-artifacts.md)
+  — целевой контракт descriptors, native metadata, наследования папок и
+  authored/generated-секций; §8 — начальный binding `source.util`/`ai.template`
+  TASK-66 / ENG-08; §9 — матрица фактической/целевой поддержки TASK-93.
+  Полный каталог и генераторы остаются целевыми.
 - [Краткий бриф для выбора стека интерфейсов и шаблонов](frontend-template-stack-review-brief.md)
   — цели, предварительное предложение и вопросы для независимой оценки.
 - [Мастерская дизайна](specifications/design-workshop.md)
@@ -63,7 +81,7 @@ Codex-адаптеры — в `.codex/**`.
   — контракт реализованных A+G+S1 и последующих S2–S5/B/P/C этапов MCP;
   [план реализации](specifications/internal-mcp-implementation-plan.md).
 - [Task manager для людей и ИИ-агентов](specifications/task-management.md)
-  — ТЗ 0.9 и интерактивный референс: рабочие среды, проекты, папки, списки,
+  — продуктовый контракт и интерактивный референс: рабочие среды, проекты, папки, списки,
   полный редактор задач, участники, чеклисты, связи и модель исполнения.
 - [Системный шаблон админки](architecture/system-admin-shell.md)
   — общая оболочка Realize, независимая от Payload CSS, host adapter и постепенный перенос.
@@ -72,6 +90,8 @@ Codex-адаптеры — в `.codex/**`.
   глобального назначения Admin и отдельного оформления сайта.
 - [Исполнение задач и интеграция с AI](specifications/task-management-execution.md)
   — техническая часть ТЗ: назначения, очереди, runtime adapters и восстановление.
+  [Целевой lifecycle ENG-04](specifications/task-management-execution.md#15-целевой-контракт-задач-eng-04)
+  определяет переходы, права, связи, результаты и совместимость v1/v2.
 - [Менеджер расширений Payload](specifications/extension-management.md)
   — черновик ТЗ каталога, установки, обновления и удаления через Admin.
 - [Медиатека: обработка изображений, загрузка и MediaBlock](specifications/media-management.md)

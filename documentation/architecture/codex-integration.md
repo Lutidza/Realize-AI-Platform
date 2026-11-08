@@ -361,6 +361,18 @@ developer instructions, включая web-search policy, и версией по
 
 ## Инженерный режим владельца: целевой контракт
 
+Границы общего файлового исполнителя и адаптеров IDE/Admin/GPT определяет
+[ADR-0019](decisions/ADR-0019-shared-engineering-operations.md). Он частично
+уточняет запреты ADR-0015 для отдельно допущенного инженера владельца.
+Typed file tools остаются целевыми: описанный ниже native owner-host пока
+не обеспечивает обязательное прохождение каждой OS-записи через общий journal.
+
+[ENG-05](platform-access.md#единые-инженерные-полномочия-eng-05) уточняет целевые
+identity/client grants, scopes, отзыв и границы local/remote/native. Текущий
+часовой HMAC run grant не является реализованным per-operation grant; отзыв
+доступа API сам по себе не прекращает OS-процесс. Новые lease/cancellation и
+персональная OAuth-привязка GPT требуют отдельного внедрения и приёмки.
+
 Задача `TASK-57` отделяет разработку платформы через Admin от ограниченного
 клиентского чата. На 23 октября 2026 года установлен отдельный
 `owner-host` runtime для зарезервированного `platform.owner-engineering`.

@@ -91,12 +91,14 @@ Bootstrap MCP, обычный `rg` и другие поисковые инстр
 ### Аналитика оптимизаций
 
 «Скорость и полнота выполнения» в той же странице строится сервером по всем
-сохранённым событиям выбранного периода (1 час, 24 часа или 7 дней). Источник
+сохранённым событиям выбранного периода: скользящие 1 час, 24 часа или 7 дней,
+либо фиксированный диапазон с датой и временем. Источник
 CLI/MCP, потребитель и операция сужают график и сравнение. Фильтры результата, длительности
 и cursor применяются только к истории: выбор «Ошибка» не меняет знаменатель
 полноты выполнения. Агрегаты, история и политика читаются в одной транзакции
 REPEATABLE READ; события из допустимого будущего не входят в аналитику до
-наступления их времени, но сохраняют видимость в истории. В ответе истории
+наступления их времени, но сохраняют видимость в скользящей истории.
+Фиксированный диапазон исключает правую границу также в истории и её summary. В ответе истории
 добавлен явный DTO `analytics`; событие и схема БД
 не меняются, миграции и повторное выполнение поиска не нужны.
 
@@ -115,7 +117,23 @@ REPEATABLE READ; события из допустимого будущего н�
 чтение. Точки доступны мышью и клавиатурой, даты отображаются в часовом поясе
 браузера. Пунктир отмечает `splitAt`.
 
-Без отметки сравниваются две половины периода. Необязательный ISO UTC
+Форма периода использует общий `UiDatePicker` из `@realize/ui-kit`, показывает
+часовой пояс браузера и применяет черновик только по кнопке «Применить период».
+Выбор дат сам по себе не вызывает запросов. При применении сбрасывается cursor,
+предыдущий запрос отменяется. Фиксированный диапазон обновляется вручную;
+скользящий период на первой странице автоматически обновляется каждые 2 секунды
+с прежним backoff после ошибки и остановкой в скрытой вкладке.
+
+GET `/api/realize-ai/search-observations` принимает либо `hours=1|24|168`
+(без параметров — 24), либо пару ISO UTC `from` / `to`. Смешение, неполная пара,
+нулевой/обратный период и длительность более 7 суток отклоняются. Конец не может
+быть в будущем. Единственный resolver `resolveSearchObservationWindow` задаёт
+границы выборки и сравнения; retention/очистка ограничивают доступность отдельно
+от запрошенного периода. Старые даты допустимы, но не восстанавливают удалённые
+замеры. Дневная история и quality runs сохраняют свои самостоятельные периоды.
+
+Сравнение выбирается отдельно: «Половины периода» или «До и после изменения» с
+полем «Момент изменения». Без отметки сравниваются две половины периода. Необязательный ISO UTC
 `compareAt` задаёт момент оптимизации строго внутри периода; до и после
 берутся одинаковые окна максимально возможной длительности в выбранном
 периоде. Событие на границе относится к окну после; правая граница исключается.
@@ -193,6 +211,23 @@ full preflight отдельно сверяет actual runtime с исходни�
 назвать новую runtime работу установленной сборкой.
 
 ## Навигация при разработке
+
+Общие чистые модули `.ai/tools/agent-search/src/` используются также инженерным
+move: `parseSyntaxSource` разбирает ограниченный текст, `readSyntaxModuleReference`
+выделяет module expression с исходным AST node, `getModuleFileCandidates` формирует
+кандидаты TS/JS. `syntaxImports` и `resolveModulePath` вызывают эти же модули.
+Extractor сохраняет computed и require-формы для явного отказа mutation consumer;
+обычная поисковая выдача по-прежнему включает только поддержанные literal формы.
+Ни parser, ни список кандидатов не подтверждают полноту consumer inventory.
+Поиск выбирает первый доступный кандидат по своей политике; move проверяет
+единственную цель в закрытой области. Общий API не предоставляет прав записи,
+не запускает CLI и не создаёт событие диагностики сам по себе. Граница переноса —
+[engineering operations §15.1](engineering-operations.md#151-контракт-project-move-с-metadata-и-ссылками).
+
+Для Markdown рабочего слоя общий `readMarkdownLinkSpans` в
+`.ai/tools/quality/readMarkdownLinks.util.ts` возвращает локальные targets и
+UTF-16 offsets. Проверка ссылок и rewrite используют одну маску code/frontmatter;
+она не подменяет advisory подбор инструкций через `ai_context_resolve`.
 
 | Задача                                        | CLI                                                          | MCP `repo_search`                                                         |
 | --------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------- |
@@ -287,6 +322,67 @@ globs дают `unsupported_configuration`. CommonJS assignments и `export =`
 не связываются с именованным символом (`unsupported_export`); literal require
 может разрешить сам файл. Вычисляемые imports не вычисляются. Это ограниченная
 статическая навигация, без обещания полной эквивалентности compiler resolution.
+
+Sync и async consumers используют один алгоритм `resolveModulePath` через
+`runImportReadSteps` и общий config loader. Синхронный `resolveModulePathSync`
+подключён к project move; policy `relocation` ограничивает mutation одним
+однозначным relative/exact/wildcard target. Линейная цепочка relative extends разрешена;
+несколько bases на любом уровне и workspaces не разрешают rewrite.
+Exact alias сохраняет identity; перенос его цели требует разрешённого config effect
+по [§19 инженерного протокола](engineering-operations.md#19-exact-aliases-и-config-effect-четвёртый-срез-task-94).
+Shared loader сохраняет `pathsSourcePath`/`baseUrlSourcePath` при наследовании и
+cache; override заменяет origin соответствующей option. Эти данные позволяют
+engineering проверить owner унаследованного paths без второго config resolver:
+[§20](engineering-operations.md#20-exact-paths-из-relative-extends-пятый-срез-task-94). Несколько nearest configs
+одного paths owner группируются engineering по [§21](engineering-operations.md#21-несколько-consumer-configs-общего-paths-owner-шестой-срез-task-94);
+resolution каждой группы до/после использует тот же общий adapter/cache.
+Необязательный exact `configPath` в loader/resolver выбирает зарегистрированный
+non-nearest project без nearest fallback. `loadImportProjectFilesSync` использует
+TypeScript config parser и его runtime export `matchFiles` на закрытом virtual
+inventory; своей selector/glob semantics нет. Host FS не читается. Это вычисление
+root files, а не полной программы: engineering консервативно проверяет references
+всего inventory в каждом project context и сохраняет root set по
+[§22](engineering-operations.md#22-явные-project-configs-седьмой-срез-task-94).
+Runtime matcher не имеет public TypeScript declaration; при его отсутствии
+операция отказывает, совместимость закреплена native compiler oracle тестами.
+Config metadata сохраняет полную глубину цепочки, поэтому cache hit не обходит
+предел восьми конфигураций. Navigation продолжает поддерживать несколько bases.
+`findModuleAliasSpecifiers` выполняет обратный mapping; engineering owner
+применяет текстовые edits и повторно проверяет цель в виртуальном дереве.
+`styleModuleTarget` общий для relative и alias relocation: сохраняет extensionless
+и явный TS/JS/TSX/JSX стиль. Helper формирует кандидата, а не подтверждает resolution;
+неоднозначность и несоответствие итоговой цели по-прежнему отклоняет общий resolver.
+Для whole-directory wildcard config effect engineering использует те же inverse,
+pattern selection и strict resolution для всех reachable members до/после move.
+В плане с wildcard config effect mutation policy сохраняет исходный pattern широкого alias, если он
+ещё применим и не затенён; иначе требуется единственный inverse mapping.
+Значения общих лимитов принадлежат `importResolution.config.mjs`, его `.d.mts`
+задаёт только типы для TypeScript consumers. Контракт —
+[§23](engineering-operations.md#23-перенос-wildcard-target-каталога-восьмой-срез-task-94).
+Отдельная opt-in policy `relocation-exports` разрешает точные workspace exports
+через прежний каталог и strict candidate resolution. Общий `readPackageExports`
+selector сохраняет navigation semantics; mutation принимает только root string
+или flat exact map с canonical targets и явным расширением. Success содержит
+внутреннее `packageExport` provenance (manifestPath/subpath/target), чтобы caller
+не спутал package с затеняющим paths alias. BaseUrl shadowing и невозможность
+проверить его отсутствие блокируют перенос. `relocation` остаётся прежней.
+Engineering даёт adapter каталога через native shallow namespace port без обхода
+всех workspace sources (см. [§25](engineering-operations.md#25-каталог-workspace-без-рекурсивного-source-scan-task-94)), проверяет все
+owner exports до/после и меняет только target literals одним dependent effect:
+[§24](engineering-operations.md#24-точные-workspace-exports-девятый-срез-task-94).
+`relocation-exports` принимает `import` и `require`: эти exact string mappings
+не имеют условных ветвей, поэтому target/provenance одинаковы. CommonJS writer
+profiles и проверки compiler/Node определяет engineering
+[§29](engineering-operations.md#29-commonjs-через-точные-workspace-exports-четырнадцатый-срез-task-94).
+Legacy fallback, conditional/wildcard exports и NodeNext/Node16 этим не включаются.
+Новый `.d.mts` syntaxSearch config объявляет существующую классификацию TS/JS;
+второго классификатора/сканера нет. Публичный search DTO не менялся.
+
+Navigation policy, публичный search DTO и поисковый порядок не расширяют write
+profile. Config/read cache отделяет purpose grants; отрицательные probes входят
+в footprint. Границы срезов описаны в [ENG-11](engineering-operations.md#16-первый-срез-eng-11-план-task-93)
+и [относительных extends](engineering-operations.md#17-относительная-цепочка-tsconfig-extends-task-94),
+расширение авторских исходников — в [source profiles](engineering-operations.md#18-source-profiles-третий-срез-task-94).
 
 Metadata читаются адресно через тот же reader; чтение конфигурации не выдаёт
 права читать её targets. CLI разрешает root `tsconfig.json`/`package.json`

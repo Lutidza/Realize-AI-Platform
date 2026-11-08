@@ -1,6 +1,6 @@
 # Task manager — контракт исполнения и интеграции с AI
 
-Версия: **0.15**, 2026-10-19. Статус: **проект технической части ТЗ с реализованными ограниченными срезами**.
+Версия: **0.18**, 2026-10-25. Статус: **проект технической части ТЗ с реализованными ограниченными срезами**.
 Читается вместе с [продуктовым ТЗ](task-management.md). Новые сущности,
 команды и состояния ниже — целевой контракт, кроме явно обозначенных
 реализованных срезов §8.1–8.3 и §12–14. Intake локального CLI описан отдельно
@@ -14,6 +14,14 @@ cutover описано в [продуктовом ТЗ §15](task-management.md#
 Граница первого bounded Foundation — §12; ограниченное чтение Git-фактов — §13.
 Долговечная синхронизация по явному запросу — §14.
 Остальные новые API остаются целевыми.
+
+Архитектура общих инженерных операций —
+[ADR-0019](../architecture/decisions/ADR-0019-shared-engineering-operations.md).
+Task Manager сохраняет собственные domain contracts, ACL, транзакции и replay;
+файловый journal хранит ссылки на задачи и результаты, без второй модели задач.
+Целевой lifecycle/relations/API уточнён в [§15](#15-целевой-контракт-задач-eng-04)
+(TASK-62 / ENG-04); реализация относится к ENG-16–20. Этот контракт не меняет
+перечисленные выше реализованные срезы.
 
 ## 1. Проверенное состояние и владельцы
 
@@ -266,6 +274,10 @@ exactly-once для любого внешнего сервиса. Durable commit
 Пользовательский status задачи имеет стабильный ID и категорию.
 `readiness`, `executionState`, `acceptanceState` и состояние delivery отдельны.
 Custom status не служит прямой записью в worker state.
+
+Операционные переходы, базовые status IDs, права и совместимость первого
+расширения Foundation конкретизированы в [§15](#15-целевой-контракт-задач-eng-04).
+Состояния runtime ниже остаются у исполнителей и не записываются UI как task status.
 
 | Состояние task execution/stage   | Семантика                                                                                |
 | -------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -1363,6 +1375,393 @@ Server receipt остаётся доступным по исходному кл�
   историческую ревизию, сохранность неудачных попыток и повтор unknown outcome
   с прежним ключом; внешний page layout, keyboard/focus и темы сохраняются.
 
-Полная Git observation поставка §15.2 остаётся открытой: server-owned event
+Полная Git observation поставка §15.2 продуктового ТЗ остаётся открытой: server-owned event
 ingestion, автономная сверка, расширенное покрытие истории/клиентских repository,
 release traceability и смена рабочего слоя здесь не реализуются.
+
+## 15. Целевой контракт задач ENG-04
+
+**Target specification, 24 октября 2026.** TASK-62 уточняет предметный слой
+для ENG-16–20. Producer — `packages/payload-task-manager`; consumers — его
+Admin, task-workspace CLI и будущие MCP/engineering adapters. Общие границы —
+[ADR-0019](../architecture/decisions/ADR-0019-shared-engineering-operations.md),
+файлы/материалы — [контракт артефактов](../architecture/engineering-artifacts.md).
+Ниже выбраны базовые правила первой поставки; расширенный scheduler, отдельная
+роль reviewer, quorum, custom fields и весь frontend reference этим не реализуются.
+
+### 15.1. Независимые состояния и базовые статусы
+
+| Измерение             | Контракт                                                                                                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`              | `{id, category}`: категория `open`, `active`, `done`, `closed`; status ID стабилен, подпись изменяема. Начальные IDs: `backlog → open`, `in_progress → active`, `review → active`, `done → done`, `closed → closed`. |
+| `readiness`           | Вычисляемые blockers, включая зависимости, assignment, authority и recovery. Не пользовательская запись «разрешить запуск».                                                                                          |
+| `execution`           | Ссылки на реальные owner/run/stage/attempt и их наблюдаемое состояние (§5). Без запуска — `null`, не синтетический succeeded.                                                                                        |
+| `acceptance`          | `required`, policy reference и `state: not_requested                                                                                                                                                                 | pending   | accepted  | rejected                                                                                                                            | stale   | not_required`; ссылка на неизменное решение и проверяемую версию результата. |
+| `delivery`            | Версионированные требования и observations по целям commit/push/merge/release/deploy. Сводка `not_required                                                                                                           | pending   | satisfied | failed                                                                                                                              | unknown | stale` вычисляется; успешный commit не подтверждает deploy.                  |
+| `outcome`, `closedAt` | Outcome `null                                                                                                                                                                                                        | succeeded | cancelled | exception`. Успех только после closure gates; cancelled/exception сохраняют причину и не выполняют зависимость на успешную приёмку. |
+| `archivedAt`          | Отдельная видимость/доступность для новой работы; архив не задаёт outcome и не удаляет историю.                                                                                                                      |
+
+`review` означает запрос разбора/работу над замечаниями, включая исторические
+карточки без typed result. В `done` переводит сдача полного долговечного
+результата; тестирование/приёмка ещё могут ожидаться. В `closed` переводит
+завершение согласованного процесса. Первая поставка использует эти фиксированные
+IDs; последующие custom statuses обязаны сохранять категории и выбранный
+active-return status. Старое `review` не становится `done` или `accepted` при миграции.
+
+### 15.2. Ревизии, результаты и evidence
+
+Task `revision` — CAS всей редактируемой карточки. Отдельно фиксируются версии
+критериев, acceptance policy и delivery requirements: перестановка в списке
+или исправление заголовка не делает пригодный результат устаревшим автоматически.
+Изменение цели/scope, критериев, обязательных checklist/children/dependencies,
+требований checks или замена результата меняет соответствующий fingerprint.
+Операция не может объявить смысловую правку косметической клиентским флагом.
+
+`TaskResult` — неизменяемый ID/revision, task/assignment/attempt refs при наличии,
+база требований, summary, выполненные критерии, ограничения и ссылки на:
+
+- Artifact ID/version/hash, назначение и владельца хранения. Путь в checkout
+  без сохранённой версии — наблюдение, а не гарантированно доступный результат.
+- Check receipt с recipe/input/runtime identity, coverage, исходом и freshness.
+  Общий verification owner проверяет пригодность; строка «тесты прошли» её не заменяет.
+- Engineering receipt либо явно обозначенное native observation; Git observation
+  или manual/unverified binding. Каждый источник сохраняет своё происхождение.
+
+Результат без файлов допустим: например решение или диагностика, сохранённые
+в server-owned result record. Для файла descriptor kind/hash не доказывает
+выполнение или приёмку. Raw logs/prompts, секреты и произвольные локальные пути
+не выдаются через DTO; ссылки открываются через ACL соответствующего владельца.
+Неуспешная публикация обязательных материалов оставляет submission pending.
+Task DB transaction не удерживается во время загрузки, проверки или процесса.
+
+`AcceptanceDecision` связывает task и `taskRevisionAtDecision`, result, criteria/check-policy fingerprints,
+обязательные child results/dependency pins, actor/delegation, verdict, причину
+и время. Результат или verdict не переписывается; новая запись явно заменяет
+текущее решение, сохраняя прежнее. Required checks должны быть passed и пригодны;
+unknown/missing/stale не равны passed. Семантический критерий имеет явный verdict
+ответственного лица; число файлов или зелёный CI его не подменяют.
+
+Решение о принятии по умолчанию принадлежит владельцу проекта или назначенному
+им принимающему. Это ответственность, а не обязательная новая роль, отдельный
+LLM или подтверждение каждого файла. `required: false` допускается только явной
+versioned policy с сохранением остальных closure gates. Self-acceptance запрещена,
+если policy требует независимости; автоматическое решение допустимо лишь в
+заранее разрешённой policy и не выдумывает отсутствующие evidence. `not_required`
+не равно `accepted`: зависимость с предикатом приёмки ждёт реального решения;
+явное принятие допустимо и при необязательной приёмке. Audit revision решения
+сохраняется, а его актуальность определяется значимыми fingerprints, не сменой
+заголовка или сортировки.
+
+### 15.3. Переходы и условия завершения
+
+Все переходы — предметные команды с CAS, idempotency и audit, одинаковые для
+формы, drag-and-drop, CLI, MCP и bulk. Обычный metadata update не записывает
+acceptance/delivery/execution напрямую. `E` в таблице означает разрешённого
+редактора задачи, `A` — назначенного принимающего, `O` — владельца проекта
+или его явно делегированную полномочную policy (§15.4).
+
+| Команда / переход                               | Кто                | Обязательные условия и эффект                                                                                                                                                                                   |
+| ----------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Create → `backlog/open`                         | E                  | Доступный активный Project/List, допустимый assignee, исходные criteria/policy; нет фиктивных execution/result/acceptance.                                                                                      |
+| Start/resume → `in_progress/active`             | E                  | Задача не архивна/closed; актуальная readiness и admission для запуска. Изменение статуса само не запускает агента.                                                                                             |
+| Request review → `review/active`                | E                  | Явный предмет разбора/ссылка на кандидат результата. Не означает полноты, прохождения checks или принятия.                                                                                                      |
+| Submit complete work → `done/done`              | E                  | Durable result, выполненные обязательные задания и доступные требуемые материалы; отсутствие известных failed required checks. Pending checks/приёмка явно видны. Подпись статуса не обходится без submission.  |
+| Record acceptance/rejection                     | A                  | Решение по текущим versions и criteria. Accepted требует пригодных обязательных checks/verdicts; rejected возвращает в `in_progress/active`, причина сохраняется.                                               |
+| Close successful: `done → closed`               | E                  | Текущая acceptance accepted либо явно not_required; все обязательные criteria/checklists/child results/checks/dependencies и delivery выполнены, нет активных writers/attempts или recovery. Outcome succeeded. |
+| Accept and close                                | A + E              | Одна явная атомарная команда с теми же gates; два отдельных клика не обязательны.                                                                                                                               |
+| Required check failed / material result changed | Domain service / E | Текущая приёмка stale или rejected; категория active, outcome/closedAt сброшены, прежняя история сохранена. Для редактирования принятого результата сначала reopen либо атомарный reopen-and-change с причиной. |
+| Return `active → open`                          | E                  | Явная причина перепланирования, нет активного исполнения/unknown side effect. Snapshot attempt не меняется; очередь сама не перезапускается.                                                                    |
+| Close cancelled / exception                     | O                  | Причина, явный verdict и подтверждённая остановка активной работы; exception не маскирует known failed как accepted. Закрытие не разрешает Git/deploy/удаление.                                                 |
+| Reopen `closed → active`                        | E                  | Причина, новая revision, прежний outcome/decision исторические; current acceptance stale/not_requested. Никакого автоматического retry старого attempt.                                                         |
+| Archive / restore                               | O                  | Отдельные правила §15.6; статус, результат и отсутствие приёмки не подменяются успехом.                                                                                                                         |
+
+Для обычного рабочего перехода сохраняется свобода остановиться и исправить
+результат. Из `done` в active разрешён возврат с причиной. Closed-задача не
+получает новый result, criteria или scope через обычный PATCH. Изменение текущих
+предпосылок закрытого родителя/зависимой задачи делает её acceptance stale и
+возвращает к пересмотру; обработка принадлежит task domain, не только UI.
+
+Обязательный deploy учитывается только при включении в criteria/delivery policy.
+Если приёмка относится к качеству работы до поставки, accepted + delivery pending
+допустимы, successful closure — нет. Если сам критерий требует deployment, до
+подтверждения нельзя принять и этот критерий. Commit/push/merge — отдельные
+разрешённые действия существующего Git-владельца.
+
+### 15.4. Операции проектов, списков и задач; права
+
+Membership/admission/scopes проверяются заново перед side effect и replay.
+Текущий host требует admin + membership; `E` сохраняет существующее право
+участника редактировать задачи, а не ограничивает его assignee/createdBy.
+`A/O` — новые предметные проверки, не новые полномочия существующего bearer.
+Целевая матрица scopes/grants определена в
+[ENG-05](../architecture/platform-access.md#единые-инженерные-полномочия-eng-05):
+новые `task-manager:accept` и `task-manager:govern` не добавляются старым токенам.
+UI/роль, ownership ОС и Git-доступ не заменяют предметный ACL. Generic Payload
+CRUD остаётся закрытым; действующий v1 admission этим документом не меняется.
+
+| Объект и команды                                               | Права и граница                                                                                                                                  |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Project: list/get/create                                       | Read по admission/membership; create по существующему projects permission. Создание атомарно включает default List «Задачи».                     |
+| Project: metadata/members/policy/archive/restore               | O; owner остаётся в members. Передача ownership — отдельная операция, не произвольное поле PATCH и не часть первой поставки.                     |
+| List: list/get/create/rename/order                             | Read или E своего проекта; принадлежность Project сохраняется. Перенос List между проектами не заменяет план task tree move.                     |
+| List: archive/restore                                          | O с проверкой всего выбранного содержимого; восстановление не запускает задачи.                                                                  |
+| Task: list/get/events, доступные results                       | Read по current ACL и ACL соответствующей исторической записи/артефакта. Cursor actor/scope-bound, raw documents не выдаются.                    |
+| Task: create/metadata/priority/assignee/parent/relations/order | E; assignment только действительному участнику. Структурные изменения дополнительно проверяют обе стороны/граф/CAS; status transitions отдельны. |
+| Task: move внутри проекта                                      | E исходного/целевого List, согласованная ветка и её revision snapshot.                                                                           |
+| Task: move между проектами                                     | O обеих сторон, explicit mapping и единый план; bulk не понижает требования.                                                                     |
+| Result / acceptance / exceptional close                        | E сдаёт результат; A принимает; O назначает policy и разрешает исключение. Требование независимости и делегирование проверяются отдельно.        |
+
+Priority сохраняет `low|normal|high|urgent`. Assignee `null` допустим для backlog.
+Удалённый участник/пользователь сохраняется как исторический ID, не получает
+доступа и не исчезает из авторства. В v2 не затрагивающий assignment PATCH может
+сохранить такой ID с диагностикой; новый запуск блокируется до переназначения.
+V1 full update сохраняет прежнюю validation; клиент должен явно исправить assignee.
+Назначение не выдаёт права и не создаёт runtime capacity.
+
+### 15.5. Parent, dependencies и порядок
+
+Parent/child — отдельная связь декомпозиции: один parent или null, один Project
+и тот же основной List. Начальный предел — 7 уровней от root; установка задаёт
+проверяемый limit, изменение лимита не обрезает старые деревья. Цикл/self-parent
+запрещены. По умолчанию дочерние результаты обязательны для успешного закрытия
+родителя; optional-child требует явного решения с причиной и новой версии условий.
+Архив ребёнка не снимает обязательность. Удаление/отключение обязательного ребёнка
+не сохраняет прежнюю acceptance родителя автоматически.
+
+`related` симметрична, пара уникальна и может входить в цикл. `depends_on`
+ориентирована consumer → predecessor; `blocks` — обратный вид той же записи.
+Default predicate — успешная актуальная приёмка конкретного результата.
+Cancelled/exception/archived-without-success не выполняют его. Для будущего
+результата constraint может быть unresolved; перед запуском planner фиксирует
+result/criteria/decision versions. Принятый attempt не следует молча за latest.
+
+Если у predecessor приёмка `not_required` и нет актуального accepted decision,
+создание default dependency отклоняется как несовместимое условие: сначала
+нужно явно принять результат либо изменить acceptance policy. Добровольная
+приёмка неизменного результата разрешена A и после закрытия с not_required,
+без переоткрытия и переписывания старого closure. Изменение required → false
+при уже существующих acceptance dependencies требует impact plan: сохранить
+действующее решение либо согласованно изменить связи/policy; тихое вечное
+ожидание не допускается. Иной predicate доступен только после реализации
+его проверки, а не как обход поля required.
+
+Parent-tree и dependency graph не допускают циклов. Для default acceptance
+dependencies проверяется также совокупный граф ожиданий: обязательный ребёнок
+создаёт prerequisite parent → child. Child → parent acceptance создала бы
+deadlock и отклоняется, даже если два отдельных графа ацикличны. Stage/artifact
+predicates расширяются лишь вместе с доказуемой проверкой такого графа;
+пока adapter не поддержан, команда возвращает unsupported.
+
+Межпроектные связи требуют управления связью и доступа с обеих сторон, без
+переноса ownership. После отзыва доступа UI возвращает безопасный blocker без
+закрытого названия/содержимого. Оценка predicate выполняется сервером в своём
+ограниченном scope; ссылка не добавляет данные predecessor в контекст агента.
+Изменение dependency активного attempt требует impact plan и подтверждённой
+остановки затронутого исполнения; неизменный независимый attempt сохраняется.
+
+Проверка существования/циклов и запись graph mutation атомарны. Для первой
+поставки graph mutation сериализуется общей task-domain graph lock установки;
+затем project locks берутся в стабильном порядке. Это охватывает конкурентные
+межпроектные рёбра и изменения обязательных children, без LLM/Git/FS под DB lock.
+Обход ограничен budget: неполная проверка отклоняет mutation, не разрешает её.
+
+Та же graph lock и порядок project locks обязательны для acceptance/closure и
+изменений result, criteria, policy, reopen, которые меняют пригодность prerequisites.
+Под блокировкой сверяется version vector всех обязательных children/dependencies/
+policies, а не только revision собственной задачи. Конкурентная правка до commit
+вызывает conflict; правка после принятия атомарно инвалидирует затронутые текущие
+decisions/closure и их зависимые summaries, сохраняя историю. Список затронутых
+задач вычисляется с budget до записи; неполный обход не оставляет частично
+действующую приёмку. Derived invalidation выполняет domain service с causation,
+не раскрывая инициатору закрытые задачи. UI cache и уведомления не являются gate.
+Внешние checks выполняются до DB transaction; внутри неё проверяются bindings,
+версии и freshness receipts. Это не обещает атомарности с изменяемым Git/CI/host:
+новое внешнее наблюдение запускает ту же проверяемую инвалидацию.
+
+Порядок задач принадлежит bucket `(projectId, listId, parentId)`; порядок Lists —
+Project. `move-before/after` принимает ID соседа/границу bucket и его orderRevision,
+а не вычисленный клиентом rank. Rank непрозрачен, назначается сервером; tie-breaker
+по стабильному ID, rebalance атомарен и не меняет порядок. Приоритет и порядок —
+разные поля; reorder не создаёт dependency и не обещает точную позицию в runtime queue.
+Read cursor включает bucket/orderRevision: изменённая сортировка требует reload,
+старый cursor не пропускает элементы молча.
+
+### 15.6. Перенос, архив и массовые операции
+
+Move сохраняет Task ID/key, authored history и старые execution snapshots.
+Перенос между Lists выполняется для выбранной ветки целиком; отдельного ребёнка
+сначала явно detach/reparent в совместимую ветку, все изменения атомарны.
+Требуются версии дерева, bucket и исходных/целевых контейнеров. Межпроектный plan
+содержит mapping статусов/criteria/участников/policy/bindings и контекста; отсутствие
+допустимого assignee разрешается только явным выбором нового или `null`.
+
+Активные attempts, writers, незавершённые handoffs и recovery блокируют apply.
+Task facade не останавливает внешнего исполнителя внутри DB transaction:
+операция ждёт подтверждённого quiescence и затем заново проверяет guards.
+Новые assignments/claims не должны возникнуть между проверкой и commit move:
+reservation/fence и повторный claim guard обязательны в ENG-06/17.
+Scope/grants/approvals исходного проекта не переносятся как действующие.
+Даже сохранённый accepted result требует проверки пригодности целевой policy;
+прежнее решение остаётся историческим, текущая приёмка — stale до такой проверки.
+
+Для успешно закрытой задачи move атомарно выбирает один из двух исходов:
+сохраняет closed/succeeded при подтверждённой совместимости result, evidence,
+принимающего и целевой policy либо возвращает в active со stale acceptance и
+сбрасывает current outcome/closedAt. План показывает этот эффект заранее;
+состояние closed/succeeded со stale acceptance недопустимо. Новое решение о
+приёмке не фабрикуется технической перепроверкой. Closed cancelled/exception
+сохраняет свой исторический исход и не превращается в succeeded при переносе.
+
+Archive допускает quiescent задачу независимо от категории и сохраняет её
+незавершённость. Архивная задача не получает новый запуск, assignment/result или
+обычный update до restore; разрешённые audit/correction команды — отдельны.
+Архив родителя требует уже архивных детей либо явной атомарной команды ветки.
+Active dependent work блокирует архив predecessor; совместный согласованный
+план сначала прекращает затронутую работу. Restore требует активных контейнеров/
+родителя либо их совместного восстановления, пересчитывает readiness и не
+подтверждает приёмку/запуск. Архив принятого immutable result не уничтожает evidence;
+новые ссылки на незавершённые архивные задачи запрещены.
+
+Project/List archive сначала обрабатывает всё выбранное содержимое по тем же
+правилам; архив контейнера не меняет outcome дочерних задач. API списка по
+умолчанию скрывает архив, явный фильтр читает его с тем же ACL.
+Hard delete, каскадное удаление history/results и автоматическая cleanup материалов
+не входят в эту поставку.
+
+Bulk использует один ограниченный plan и expected revisions всех затронутых
+объектов; результат — all-or-nothing. Ошибки указывают доступные объекты/поля,
+не раскрывая скрытые задачи. Большой набор сначала разбивается на явно видимые
+самостоятельные планы; это не выдаётся за одну атомарную операцию.
+
+### 15.7. API v2 и совместимость клиентов
+
+Текущий `/api/task-manager/**` остаётся v1 со строгими DTO/командами §12.
+Целевой `/api/task-manager/v2/**` использует те же services/transactions, отдельные
+contracts/mappers и versioned operation names. У v2 task DTO есть `schemaVersion: 2`,
+публичные ID/key/projectId/listId/parentId, revision, status/category, priority,
+assignee, order token, criteria/policy refs, result/acceptance/delivery summaries,
+outcome/closedAt/archivedAt и разрешённые audit refs. Связи, полные results/events
+читаются отдельными bounded страницами, без раздувания каждой карточки.
+Nullable значения явны; отсутствующий result/actor не подменяется пустым объектом.
+
+Versioned capabilities сообщают поддержанные команды, форматы и текущие server
+limits; discovery не предоставляет права. V2 metadata PATCH задаёт только
+изменяемые поля и expectedRevision; lifecycle/result/acceptance/move/relation/
+order/archive команды имеют отдельные схемы. Unknown fields отклоняются.
+Прежний полный v1 PATCH не превращается незаметно в partial update.
+
+V1 create сохраняет допустимый исходный выбор `backlog/in_progress/review` как
+ручного этапа, без выдуманных result/acceptance/execution. V2 create начинается
+с backlog; дальнейшие переходы явны. Старые status updates проходят тот же
+предметный transition guard, а не прямую запись нового lifecycle в storage.
+
+V1 read сохраняет прежнюю форму без новых полей: backlog/in_progress/review
+остаются как есть, done/closed дают консервативное `review`, не обещая приёмку.
+Archived скрыты из обычной выборки, detail по ID остаётся ACL-controlled.
+Такое чтение не является полноценным v2 интерфейсом. V1 записи допустимы только
+для совместимого подмножества задач без новых results/acceptance/relations/
+архива и изменений принадлежности; protected task получает `CONFLICT/409` с понятной
+ошибкой необходимости обновить клиент, без частичного изменения. Новые поля не
+теряются от присланного старым клиентом `status: review`.
+
+Границы первой поставки: custom statuses вне этих IDs требуют v2 и отдельной
+поддержки; silent mapping новой семантики на v1 write запрещён. UI/CLI/MCP
+переключаются по capabilities; недостаточная версия даёт объяснение/чтение,
+а не fallback на raw CRUD, shell/SQL или локальную вторую задачу.
+
+### 15.8. Миграция записей, replay и исторические права
+
+Storage decoder различает прежний и новый formats независимо от transport DTO.
+Строгий v2 parser нельзя применить к старым JSON task/receipt до миграции.
+Expand-миграция добавляет новые структуры, сохраняет UUID/key/revision/authors/
+memberships и immutable events/Git snapshots. `review` остаётся active с
+`acceptance: not_requested`, result/outcome/closedAt/archivedAt — null; parent —
+null, relations пусты. Начальный order детерминирован по прежнему storage order,
+а не случайной сортировке UUID. Default policy не создаёт задним числом verdicts.
+
+Обычный replay сохраняет `(actorId, operation, Idempotency-Key)` и точный
+normalized command hash, включая expectedRevision. Replay проверяется до нового
+CAS и возвращает прежний результат; тот же ключ с другим payload — conflict.
+V1 operation names/normalization не меняются. V2 commands имеют отдельный namespace;
+клиент не меняет API version посреди unresolved retry. Ротация credentials того
+же actor не создаёт новую операцию, другой actor обычный replay не наследует.
+No-op не увеличивает revision/event, но имеет устойчивый mutation receipt.
+
+До включения move обязательны две корректировки совместимости:
+
+1. **Command identity отделяется от текущего projectId.** У старых receipt
+   сохраняются оригинальный requestHash/result и исходная scope binding.
+   После move повтор ищет receipt по первоначальной identity и проверяет payload
+   с исходным scope, не пересчитывает его по новому проекту задачи. Отсутствующий
+   доказуемый binding восстанавливается проверяемой миграцией либо блокирует move;
+   hash не угадывается и история не переписывается.
+2. **Workspace intake хранит creation-command ledger.** `clientTaskId` и hash
+   исходной команды связаны с одним Task ID и исходными Project/List. Это не
+   проверка неизменности текущего расположения. Retry после move возвращает
+   текущую доступную задачу по исходной source identity, сохраняя защиту от другого
+   payload и нынешнюю возможность ротации actor для intake. Старые bindings
+   переводятся до разрешения move; неизвестный POST повторяется прежним ключом.
+
+Replay всегда заново проверяет текущий доступ к задаче и доступ к возвращаемым
+историческим полям. При его потере операция не повторяется под новой identity
+и не раскрывает сохранённый result. Для найденного authorized receipt replay
+предшествует v1 write guard; guard запрещает новое выполнение, а не повтор уже
+состоявшегося эффекта. Workspace intake возвращает current projection своего
+API version; mutation replay — прежний immutable result своего формата.
+
+Историческая запись сохраняет project scope момента события. После move
+timeline ищет записи по стабильному taskId, но фильтрует по current task ACL
+и исходному security scope. Новый member целевого проекта не получает автоматически
+старые descriptions, actors/PII, evidence и диалоги. Для недоступной истории —
+безопасная сводка/пропуск без закрытых данных, pagination не раскрывает скрытые
+storage IDs. Явный перенос разрешённого контекста создаёт новую проверенную
+projection со своей provenance; он не переписывает старые events/receipts.
+
+Миграция проходит на пустой и populated изолированной БД, с повторным upgrade,
+legacy receipt decoding и retry после move. Down не уничтожает новые данные;
+после v2 writes возврат к несовместимому старому binary блокируется. Перед rollout
+нужны backup/recovery и совместимый reader; schema push не заменяет миграцию.
+
+### 15.9. Локальный резерв
+
+Task Manager остаётся основным источником. Доступный сервер создаёт задачу без
+локального TASK/manifest. Разрешённый fallback §8.3 и
+[правило материалов](../../.ai/rules/scope-control/RULE-TASK-WORKSPACE-ARTIFACTS.md)
+сохраняются: ненастроенная платформа или доказанная недоступность до передачи
+POST, но не auth/validation/revision conflict/неизвестный исход запроса.
+
+Локальные open/active/done/closed и result manifests не являются серверной
+приёмкой. Intake сохраняет source identity; импорт материалов/results/verdicts
+идёт отдельным preview/reconcile с проверкой источника, прав и versions. Без
+проверяемой server acceptance локальный closed не мигрирует в successful closed.
+После подтверждённой связи server task authoritative, локальные status mutations
+блокируются; материалы сохраняются без автоматической очистки. Операционный
+журнал engineering-runtime не ведёт собственный task lifecycle.
+
+### 15.10. Сценарии контрактной приёмки
+
+Это требования к будущим проверкам, не выполненные runtime tests ENG-04.
+
+| Сценарий                                                  | Ожидаемый результат                                                                                                          |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Старые review задачи и receipts после upgrade             | ID/revision/history сохранены, категория active, без придуманной приёмки; v1 replay читается.                                |
+| Файл создан / агент написал «готово» / CI зелёный         | Без полноценного result/criteria/decision нет successful closure.                                                            |
+| Проверки подходят неизменным inputs                       | Receipt используется повторно по policy; старый/неполный check не становится passed.                                         |
+| Criteria/result изменены после acceptance                 | Старое решение историческое, current stale; повторная оценка только затронутых требований, closed возвращается к пересмотру. |
+| Обязательный ребёнок архивирован или закрыт с исключением | Родитель не получает успешную приёмку обходным путём.                                                                        |
+| Parent ждёт child, child зависит от acceptance parent     | Общий wait-cycle отклонён; related cycle допустим.                                                                           |
+| Два конкурентных cross-project dependency edges           | Оба не могут пройти проверку до записи и создать цикл; bounded incomplete scan отклоняется.                                  |
+| Move с активным attempt или неверным mapping              | Ни часть дерева, ни history/ACL не переносятся; старый attempt не переписывается.                                            |
+| Retry прежнего update/intake после move                   | Исходный эффект не дублируется; source identity сохранена, актуальные и исторические ACL проверены.                          |
+| У нового участника нет прав на исходный проект            | Старые private events/artifacts не раскрываются через moved task или receipt.                                                |
+| V1 full PATCH защищённой v2 задачи                        | Явная upgrade error, без потери результата, связей, status или acceptance.                                                   |
+| Reorder и изменение bucket во время pagination            | CAS/cursor conflict, reload; нет молчаливой потери/дублирования карточек.                                                    |
+| Removed assignee, revoked actor или changed grants        | История сохраняется; новое назначение/исполнение/replay content не обходят свежий admission.                                 |
+| Архив/restore и локальный sync                            | Нет ложного success, автоматического запуска/очистки или второго TASK.                                                       |
+
+ENG-16 реализует transitions/results; ENG-17 — иерархию, граф, move/order и
+совместимость исторических bindings; ENG-18 — v2 facade/DTO; ENG-19 — fallback/
+reconcile; ENG-20 — evidence/Git/result связи. [ENG-05](../architecture/platform-access.md#единые-инженерные-полномочия-eng-05)
+задаёт credentials/scopes, [ENG-06](../architecture/engineering-operations.md) —
+execution/recovery protocol и отдельную привязку результатов к задачам. §12–14 продолжают
+описывать текущий установленный контракт до фактической поставки и приёмки v2.

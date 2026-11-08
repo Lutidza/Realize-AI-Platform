@@ -20,8 +20,11 @@
 16. [ADR-0016 — Общий исполнитель Git и адаптеры доступа](ADR-0016-development-git-delivery-handler.md)
 17. [ADR-0017 — Внутренний MCP и управление экземплярами серверов](ADR-0017-internal-mcp-and-server-management.md)
 18. [ADR-0018 — Самодостаточные шаблонные пакеты и единый lifecycle](ADR-0018-self-contained-template-packages.md)
+19. [ADR-0019 — Общие инженерные операции для IDE, Admin и GPT](ADR-0019-shared-engineering-operations.md)
 
 ADR-0001, 0005, 0006, 0007, 0009–0013 имеют статус `accepted`.
-ADR-0002–0004, 0008, 0014–0018 имеют статус `accepted-as-target`.
+ADR-0002–0004, 0008, 0014–0019 имеют статус `accepted-as-target`.
+ADR-0019 частично supersedes ADR-0015 для отдельно допущенного инженера
+владельца и дополняет ADR-0017; остальные ограничения сохраняются.
 Исторические ADR не переписываются: изменение решения оформляется новым ADR с
 явной связью `supersedes/superseded by`.

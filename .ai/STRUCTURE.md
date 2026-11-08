@@ -45,12 +45,16 @@ runtime_sources:
 │   │   ├── agent-runtime-maintenance/WORKFLOW.md
 │   │   ├── agents-evolution/WORKFLOW.md
 │   │   └── mcp-tooling/WORKFLOW.md
+│   ├── quality/
+│   │   ├── INDEX.md
+│   │   └── performance-measurement/{INDEX.md,WORKFLOW.md}
 │   ├── delivery/
 │   │   └── git/commit-push/WORKFLOW.md
 │   └── frontend/
 │       ├── next-react/guardrail/WORKFLOW.md
 │       └── design-workshop/WORKFLOW.md
 ├── templates/
+│   ├── performance/{INDEX.md,TEMPLATE-PERFORMANCE-MEASUREMENT.md}
 │   └── task-workspace/TEMPLATE-TASK.md
 ├── tools/
 │   ├── agent-runtime/
@@ -58,6 +62,7 @@ runtime_sources:
 │   │   └── runtime/INDEX.md
 │   ├── agent-monitor/README.md
 │   ├── agent-search/README.md
+│   ├── engineering/README.md
 │   ├── git-delivery/README.md
 │   ├── quality/README.md
 │   ├── task-workspace/README.md
@@ -82,6 +87,11 @@ runtime_sources:
 - `tools/` содержит исходники и документацию локальных инструментов агентов.
 - `tools/quality/` проверяет metadata и связи активного слоя для CI;
   поведенческие evals используют продуктовый adapter через `scripts/runtime/evaluation/`.
+- `tools/engineering/` содержит project binding для `source.util` и
+  `ai.template`, trusted folder policies, native metadata validators и чистые
+  renderers. Публичный вход — `src/projectEngineering.index.ts`; filesystem,
+  journal и recovery принадлежат `packages/engineering-runtime`. Это программный
+  create/edit adapter ENG-08/09; CLI/MCP/Admin write capabilities ещё не подключены.
 - `tools/git-delivery/src/worker/` запускает Git-воркера для inspect, commit, push,
   manage, fetch, pull и GitHub merge проверенного дерева; настройки
   находятся в `.codex/`, общий транспорт — в `packages/codex-adapter/`.
@@ -103,6 +113,12 @@ runtime_sources:
 `RULE-*.md`, `CHECK-*.md`, `PROFILE.md` или другой согласованный входной документ.
 Наличие каталога само по себе не делает его источником правил. Пустые ветки
 для будущей реализации заранее не создаются.
+
+Целевой [контракт инженерных артефактов](../documentation/architecture/engineering-artifacts.md)
+определяет descriptors типов/папок, начальный binding ENG-08 (§8) и формат
+будущих generated-секций.
+Эта карта пока остаётся авторской; генератор и переход отдельных секций
+планируются в ENG-15, текущая metadata и правила не заменяются.
 
 ## Материалы задач
 

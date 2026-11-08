@@ -262,6 +262,19 @@ MCP у продуктового execution worker.
 system writes, tools установки пакетов, deployment или публичный transport ChatGPT;
 эти контракты остаются отдельными S2–S5/B/P/C этапами.
 
+Целевые владельцы файловых, task и generator tools определены в
+[ADR-0019](decisions/ADR-0019-shared-engineering-operations.md). Новый write surface
+потребует личного actor binding и соответствующих scopes/grants; существующий
+tunnel key или repository-read principal их не предоставляет. Этот ADR не
+меняет текущий каталог tools и не подтверждает готовность записи через GPT.
+
+Персональная identity, OAuth-привязка и раздельные grants определены в
+[целевом ENG-05](platform-access.md#единые-инженерные-полномочия-eng-05).
+Общий transport credential не удостоверяет каждого участника ChatGPT;
+engineering write требует персонального context до resource server. Контракт
+сохраняет текущие bootstrap, managed repository и Workshop права и не означает
+включения нового write route.
+
 Когда клиент предоставляет MCP через deferred tool search и Code Mode,
 availability проверяют после раскрытия нужных определений. Отсутствие tool
 в начальном списке не означает потерю соединения. Ограниченный read-only smoke

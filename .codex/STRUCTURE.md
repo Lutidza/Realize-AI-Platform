@@ -56,6 +56,10 @@ runtime_sources:
 endpoint не реализован. Stale MCP entries нельзя восстанавливать без MCP
 tooling workflow, security decision и runtime evidence.
 
+Типы Codex artifacts, native skill metadata и будущие generated-секции карты
+описаны в целевом [контракте артефактов](../documentation/architecture/engineering-artifacts.md).
+Текущая карта авторская; автоматическая генерация ещё не включена.
+
 Realize Internal MCP реализован отдельным процессом и Admin manager.
 Текущая client entry использует отдельный developer bootstrap, а не managed
 Admin instance. Запуск, доверенные профили и private credential helper описаны

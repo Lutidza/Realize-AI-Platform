@@ -24,6 +24,8 @@ runtime_sources:
 - Agent layer evolution and learning loop:
   `.ai/workflows/ai-operations/agents-evolution/`.
 - MCP/tooling contour: `.ai/workflows/ai-operations/mcp-tooling/`.
+- Performance measurement:
+  `.ai/workflows/quality/performance-measurement/`.
 - Next/React frontend guardrail:
   `.ai/workflows/frontend/next-react/guardrail/`.
 - Мастерская дизайна — бриф, направление, версии и передача между каналами:
@@ -40,7 +42,6 @@ Target-only workflow domains are not active until they contain `INDEX.md` or
 - `search/elasticsearch/*`;
 - `infrastructure/local-env/*`;
 - `documentation/*`;
-- `quality/*`;
 - `architecture/*`;
 - `frontend/shared/*`.
 
