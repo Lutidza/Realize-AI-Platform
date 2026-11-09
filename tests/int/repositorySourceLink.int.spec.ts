@@ -1,7 +1,7 @@
 /**
  * @file tests/int/repositorySourceLink.int.spec.ts
- * @version 1.0.1
- * @date 2026-11-08
+ * @version 1.0.2
+ * @date 2026-11-09
  * @description Защищает контракт построения проверяемых ссылок на исходники репозитория.
  */
 import { describe, expect, it } from "vitest";
@@ -44,13 +44,19 @@ describe("buildRepositorySourceLink", () => {
   it.each([
     ["http", "http://example.com", "http://example.com"],
     ["https", "https://example.com:8443/", "https://example.com:8443"],
+    ["ipv6", "http://[::1]:3000/", "http://[::1]:3000"],
+    ["http-default-port", "http://example.com:80/", "http://example.com"],
+    ["https-default-port", "https://example.com:443/", "https://example.com"],
   ])(
     "строит абсолютный URL для %s origin с нормализацией завершающего slash",
     (_name, base, origin) => {
       const link = buildRepositorySourceLink("src/file.ts", 4, sha256, base);
+      const parsed = new URL(link);
 
-      expect(new URL(link).origin).toBe(origin);
-      expect(new URL(link).pathname).toBe(endpoint);
+      expect(parsed.origin).toBe(origin);
+      expect(parsed.pathname).toBe(endpoint);
+      expect(parsed.searchParams.get("startLine")).toBe("4");
+      expect(parsed.searchParams.get("expectedSha256")).toBe(sha256);
     },
   );
 
