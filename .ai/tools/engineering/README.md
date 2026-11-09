@@ -17,6 +17,14 @@ native metadata и шаблонами Realize. Контракт —
 
 ## Поддержанные профили
 
+Срез авторинга агентов добавляет `codex.agent` для `.codex/agents/**/*.toml`:
+`renderCodexAgent` возвращает bytes, `validateCodexAgent` принимает только
+canonical TOML с name, description и developer_instructions. Проверки binding:
+`agent.native` и `folder.placement`; фактическая загрузка Codex, tools/skills и
+permissions ими не подтверждаются. Sandbox задаёт host родительской сессии.
+План и запись используют прежний engineering runtime; отдельного writer нет.
+Спецификация и границы: [авторинг агентов](../../../documentation/specifications/agent-authoring.md).
+
 | Kind          | Placement                                                                                        | Native metadata                                                                                                      | Фактически выполненные preflight checks                                                    |
 | ------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `source.util` | `<function>.util.ts` / `.mjs` / `.mts` / `.cjs` / `.cts` внутри зарегистрированного source owner | Начальный TSDoc: `@file`, `@version`, `@date`, `@description`; необязательный `@see` на documentation Markdown       | `source.header`, `source.syntax`, `source.naming`, `source.references`, `folder.placement` |

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/engineering/src/ProjectArtifactBinding.types.ts
- * @version 1.2.1
- * @date 2026-10-30
+ * @version 1.3.0
+ * @date 2026-11-09
  * @description Описывает доверенные owner policies, evidence reader и входы шаблонов проекта.
  * @see documentation/architecture/engineering-artifacts.md
  */
@@ -12,7 +12,8 @@ export type SupportedSourceKind =
   | "source.adapter"
   | "source.component"
   | "source.types";
-export type SupportedArtifactKind = SupportedSourceKind | "ai.template";
+export type SupportedArtifactKind =
+  SupportedSourceKind | "ai.template" | "codex.agent";
 export type ArtifactProvenance = "authored" | "generated" | "mixed" | "vendor";
 
 /** Root/owner приходят из host configuration, никогда из команды модели. */

@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/engineering/src/createProjectArtifactBinding.service.ts
- * @version 1.3.0
- * @date 2026-10-30
+ * @version 1.4.0
+ * @date 2026-11-09
  * @description Разрешает registered project artifact profiles с native guards и неизменной trusted policy identity.
  * @see documentation/architecture/engineering-artifacts.md
  */
+import { validateCodexAgent } from "./validateCodexAgent.validator.ts";
 import { posix } from "node:path";
 import { hashEngineeringValue } from "@realize/engineering-runtime";
 import type { ArtifactDescriptorPort } from "@realize/engineering-runtime";
@@ -82,6 +83,18 @@ export function createProjectArtifactBinding(
       ruleRefs: SOURCE_RULE_REFS,
       nativeSources: SOURCE_VALIDATOR_PATHS,
       template: SOURCE_HEADER_TEMPLATE,
+    },
+    agent: {
+      kindId: "codex.agent",
+      definitionVersion: 1,
+      checks: ["agent.native"],
+      ruleRefs: [],
+      nativeSources: [
+        ".ai/tools/engineering/src/validateCodexAgent.validator.ts",
+        ".ai/tools/engineering/src/renderCodexAgent.util.ts",
+        ".ai/tools/engineering/src/CodexAgent.types.ts",
+      ],
+      template: "documentation/specifications/agent-authoring.md",
     },
     template: {
       kindId: "ai.template",
@@ -162,16 +175,20 @@ export function createProjectArtifactBinding(
     const refs = collectArtifactReferences(readReference);
     [...bindingSourcePaths, ...policy.sourcePaths].forEach(refs.require);
     const profile =
-      kind === "ai.template"
-        ? profileIdentity.template
-        : profileIdentity.source;
+      kind === "codex.agent"
+        ? profileIdentity.agent
+        : kind === "ai.template"
+          ? profileIdentity.template
+          : profileIdentity.source;
     [
       ...profile.ruleRefs,
       ...profile.nativeSources,
       profile.template,
       "package.json",
     ].forEach(refs.require);
-    if (kind !== "ai.template") {
+    if (kind === "codex.agent") {
+      validateCodexAgent(source);
+    } else if (kind !== "ai.template") {
       validateSourceArtifact(path, source, policy.executionBoundary).forEach(
         (reference) => refs.rootedLink(path, source, reference),
       );
@@ -199,7 +216,12 @@ export function createProjectArtifactBinding(
       provenance: "authored" as const,
       folderPolicyRef: { id: policy.id, version: policy.version },
       metadataProfileRef: {
-        id: kind === "ai.template" ? "ai.template.native" : "source.tsdoc",
+        id:
+          kind === "codex.agent"
+            ? "codex.agent.native"
+            : kind === "ai.template"
+              ? "ai.template.native"
+              : "source.tsdoc",
         version: "1",
       },
       templateRef: { id: profile.template, version: "1" },

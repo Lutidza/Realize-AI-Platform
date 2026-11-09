@@ -1,7 +1,7 @@
 /**
  * @file tests/int/changePlanRouting.int.spec.ts
- * @version 2.0.1
- * @date 2026-09-15
+ * @version 2.0.2
+ * @date 2026-11-09
  * @description Проверяет явную область записи code plan, отделение источников и строгие отказы протокола.
  */
 
@@ -106,6 +106,17 @@ describe("explicit code plan routing", () => {
     ).toEqual([...paths].sort());
   });
 
+  it.each(["3.88.0", "3.91.0"])(
+    "preserves the exact patch-package path for version %s through plan routing",
+    (version) => {
+      const path = `scripts/runtime/patches/@payloadcms+ui+${version}.patch`;
+      const plan = block(proposal([entry(`./${path}`)]));
+      expect(parseCodePlan(plan)?.files).toEqual([entry(path)]);
+      expect(assessChangePlanReadiness(plan)).toEqual({ status: "ready" });
+      expect(derive(plan).affectedPaths).toEqual([path]);
+    },
+  );
+
   it.each([
     "/tmp/workspace/src/app/page.tsx",
     "https://example.test/src/app/page.tsx",
@@ -123,6 +134,12 @@ describe("explicit code plan routing", () => {
     "src/components/Header",
     "src/app//page.tsx",
     "src/app/%2e%2e/page.tsx",
+    "scripts/runtime/patches/../@payloadcms+ui+3.91.0.patch",
+    "scripts/runtime/patches/@payloadcms+ui+*.patch",
+    "https://example.test/@payloadcms+ui+3.91.0.patch",
+    "scripts/runtime/patches/@payloadcms+ui+3.91.0.patch?raw=1",
+    "scripts/runtime/patches/@payloadcms+ui+3.91.0.patch#heading",
+    "scripts/runtime//patches/@payloadcms+ui+3.91.0.patch",
   ])("rejects the whole scope for a non-exact or unsafe path: %s", (path) => {
     expectInvalid(block(proposal([entry("README.md"), entry(path)])));
   });
@@ -164,6 +181,22 @@ describe("explicit code plan routing", () => {
     {
       name: "normalized duplicate",
       value: proposal([entry("README.md"), entry("./README.md")]),
+    },
+    {
+      name: "normalized duplicate patch-package path",
+      value: proposal([
+        entry("scripts/runtime/patches/@payloadcms+ui+3.91.0.patch"),
+        entry("./scripts/runtime/patches/@payloadcms+ui+3.91.0.patch"),
+      ]),
+    },
+    {
+      name: "unknown root key beside a patch-package path",
+      value: {
+        ...proposal([
+          entry("scripts/runtime/patches/@payloadcms+ui+3.91.0.patch"),
+        ]),
+        targetedVerification: [],
+      },
     },
     { name: "non-object root", value: [proposal()] },
   ])("rejects malformed contracts atomically: $name", ({ value }) => {

@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/parseCodePlan.validator.ts
- * @version 1.0.0
- * @date 2026-09-15
+ * @version 1.1.0
+ * @date 2026-11-09
  * @description Проверяет один явный code-plan block, не превращая ссылки на источники в права записи.
  * @see documentation/specifications/realize-ai-commerce/v1.0/03-runtime-delivery-and-security/22-api-and-streaming-contracts.md
  */
@@ -35,8 +35,8 @@ const balancedSegment = (segment: string): boolean => {
 const parseExactFilePath = (value: unknown): string | null => {
   if (typeof value !== "string" || value.length > 240) return null;
   const path = value.startsWith("./") ? value.slice(2) : value;
-  // Разрешены Next route segments; Markdown links, URL, glob и управляющие символы исключены.
-  if (!/^[A-Za-z0-9@_./()[\]-]+$/.test(path) || /\]\(|\]\[/.test(path))
+  // Разрешены Next route segments и + в именах patch-package; Markdown links, URL и glob исключены.
+  if (!/^[A-Za-z0-9@_./()[\]+-]+$/.test(path) || /\]\(|\]\[/.test(path))
     return null;
   const segments = path.split("/");
   if (
