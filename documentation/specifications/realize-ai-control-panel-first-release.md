@@ -1,12 +1,12 @@
-# Realize-AI One — первый релиз и переход с Realize
+# RealizeAI Control Panel — первый релиз и переход с Realize
 
-Версия документа: **0.1**, 2026-10-19. Статус: **Target specification**.
+Версия документа: **0.2**, 2026-11-09. Статус: **Target specification**.
 Источник: TASK-23 / ONE-04 в составе TASK-9. Это состав будущей поставки;
-пакет One и описанный переход ещё не реализованы и не активированы.
+пакет RealizeAI Control Panel и описанный переход ещё не реализованы и не активированы.
 
 ## 1. Результат первого релиза
 
-**Realize-AI One** — первый стандартный шаблон платформы с качественной
+**RealizeAI Control Panel** — первый стандартный шаблон платформы с качественной
 оболочкой, общими элементами, собственными auth/status композициями и интерфейсом
 управления оформлением. Визуальная основа — референс Task Manager; его demo store
 и бизнес-логика не входят в шаблон.
@@ -19,7 +19,7 @@ collection/global/custom/module screens получают оформление ч
 
 Принятые границы заданы [ADR-0018](../architecture/decisions/ADR-0018-self-contained-template-packages.md)
 и [§11 Мастерской](design-workshop.md#11-темы-компоненты-и-качество).
-Этот документ определяет состав первого One и порядок перехода, не создаёт
+Этот документ определяет состав первого RealizeAI Control Panel и порядок перехода, не создаёт
 вторую систему SDK, установки или управления задачами.
 
 Основания по фактическому состоянию:
@@ -29,18 +29,29 @@ collection/global/custom/module screens получают оформление ч
 
 ## 2. Имя и версии
 
-| Поле                     | Текущая установка            | Первый One                                                       |
+С 9 ноября 2026 года название семейства шаблона — **RealizeAI Control Panel**.
+В дальнейшем у него могут появиться варианты, например **RealizeAI Control Panel Lite**,
+**RealizeAI Control Panel Standard** и **RealizeAI Control Panel Enterprise**.
+Это предварительные названия: состав возможностей, различия, лицензирование и способ
+поставки вариантов ещё не определены. Они не объявляются отдельными установленными
+пакетами, палитрами, тарифами или версиями. Первый каркас разрабатывается под общим
+названием без назначения ему варианта.
+
+Коды `ONE-01…ONE-32` сохраняются как исторические идентификаторы задач.
+Переименование не меняет template ID, package owner или версии существующих выпусков.
+
+| Поле                     | Текущая установка            | Первый RealizeAI Control Panel                                                       |
 | ------------------------ | ---------------------------- | ---------------------------------------------------------------- |
-| Display name             | `Realize`                    | `Realize-AI One`                                                 |
+| Display name             | `Realize`                    | `RealizeAI Control Panel`                                                 |
 | Template ID              | `realize`                    | `realize` — сохраняется семейство                                |
 | Package                  | `@realize/template-realize`  | Тот же package owner                                             |
 | Package/template version | `0.1.0`                      | **Плановая `0.2.0`**                                             |
-| Развиваемый source owner | `packages/template-realize`  | Тот же каталог; отдельный развиваемый fork One не создаётся      |
+| Развиваемый source owner | `packages/template-realize`  | Тот же каталог; отдельный развиваемый fork RealizeAI Control Panel не создаётся      |
 | Targets                  | Только `admin`               | `admin` и `frontend`, с отдельными assignments                   |
 | Старый выпуск            | Текущая workspace definition | Неизменяемый versioned артефакт `0.1.0` для reference и перехода |
 
 Новая версия отражает изменение состава и контрактов первого продукта.
-Название One не требует нового template ID. `1.0.0` не используется как обещание
+Название RealizeAI Control Panel не требует нового template ID. `1.0.0` не используется как обещание
 стабильности до соответствующей приёмки; alpha/beta suffix текущая schema не поддерживает.
 Версии manifest protocol, SDK/UI contract, settings schema и palette независимы
 от package version. Их изменения определяют TASK-25/26/30/31 по реальному diff.
@@ -56,11 +67,11 @@ palettes, CSS/assets и совместимые точные зависимост
 Одна запись `0.1.0`, указывающая на код `0.2.0`, недопустима.
 
 Способ хранения и подключения артефакта определяется в TASK-30 через существующий
-delivery owner; отдельный installer/engine ради One не создаётся. Готовность
+delivery owner; отдельный installer/engine ради RealizeAI Control Panel не создаётся. Готовность
 доказывается реальными imports обеих версий, сборкой, изоляцией CSS и browser
 сравнением reference. Архив прежнего выпуска не становится вторым редактируемым
 источником разработки. Пока baseline не обеспечен, изменение его identity/кода
-и активация One не проходят этот gate; остальные независимые работы продолжаются.
+и активация RealizeAI Control Panel не проходят этот gate; остальные независимые работы продолжаются.
 
 ## 3. Что входит
 
@@ -71,11 +82,11 @@ delivery owner; отдельный installer/engine ради One не созда
 | Верхняя панель             | Контекст, поиск/команды, создание, assistant entry, уведомления, профиль/preferences — при доступной capability | Общие элементы готовы; реальные данные/actions подключает host. Demo inbox/billing/actors не становятся платформенными сервисами |
 | Контекст страницы          | Breadcrumbs, heading, badge, назад, основные действия                                                           | Довести нейтральный presentation contract, включая responsive действия; не копировать task-specific CSS в страницы               |
 | Контент и footer           | Единый frame и общий footer slot; доступные состояния, длинный текст, dialogs/menus/portals                     | Содержимое и сообщения предоставляет модуль; «ТЗ 0.9» и demo notice не переносятся в рабочую оболочку                            |
-| Auth                       | Вход и выход, восстановление доступа, регистрация пользователя, bootstrap первого администратора                | Использовать существующие формы/API/политику; создать композиции One для соответствующих targets                                 |
+| Auth                       | Вход и выход, восстановление доступа, регистрация пользователя, bootstrap первого администратора                | Использовать существующие формы/API/политику; создать композиции RealizeAI Control Panel для соответствующих targets                                 |
 | Status/recovery            | Loading, empty, error, 404, forbidden и безопасное восстановление оформления                                    | Общие presentation components и независимый доступ к recovery при ошибке активного renderer                                      |
 | Управление оформлением     | Установленные версии, независимый выбор Admin/сайта, palette/mode/settings, preview, apply, history и recover   | Использовать существующий ExtensionManager lifecycle; обеспечить понятные unavailable/conflict/pending состояния                 |
 | Глобальный Admin host      | System Admin, native редакторы, media, AI/MCP/Usage, динамические views и overlays                              | Адаптировать оформление и UI contracts; сохранить schemas/controllers/commands/ACL и существующие бизнес-возможности             |
-| Frontend One               | Самостоятельный renderer, общие Header/main/Footer, auth/status и primitives для существующего сайта            | Подключить CMS pages, каталог/товар, cart/checkout/account и overlays к общему назначению, сохранив контент и поведение          |
+| Frontend RealizeAI Control Panel               | Самостоятельный renderer, общие Header/main/Footer, auth/status и primitives для существующего сайта            | Подключить CMS pages, каталог/товар, cart/checkout/account и overlays к общему назначению, сохранив контент и поведение          |
 | Реактивность               | Обновление разрешённого назначения, настроек и данных без потери состояния                                      | Controllers живут выше сменного renderer; SSR, hydration и portals получают согласованное оформление                             |
 | Переносимость и AI-процесс | Одна система контрактов/стека, workflow и skills до реализации, воспроизводимая приёмка                         | Использовать существующие SDK/UI/template owners, правила и delivery, без параллельной библиотеки                                |
 
@@ -85,7 +96,7 @@ delivery owner; отдельный installer/engine ради One не созда
 действия не имитируются. Наличие search trigger или demo notification в reference
 не подтверждает платформенную интеграцию.
 
-Применение One к сложному бизнес-экрану включает его общий chrome, используемые
+Применение RealizeAI Control Panel к сложному бизнес-экрану включает его общий chrome, используемые
 primitives, tokens и overlays. Таблицы, редакторы и формы сохраняют предметную
 композицию и возможности; их полный продуктовый редизайн не является условием.
 Экран со старой независимой темой внутри новой рамки не считается подключённым.
@@ -107,7 +118,7 @@ Template оформляет разрешённый host-сценарий, а н�
 Приглашения, заявки на доступ и новые правила выдачи ролей не входят в этот релиз.
 
 При выборе native Admin его доступность и возврат определяет host policy;
-One не создаёт копию Payload и не назначает ему фиктивный manifest.
+RealizeAI Control Panel не создаёт копию Payload и не назначает ему фиктивный manifest.
 Выключение native auth допустимо только после проверки самостоятельных auth/status
 процессов и восстановления. Payload backend, session и ACL сохраняются.
 
@@ -122,7 +133,7 @@ One не создаёт копию Payload и не назначает ему ф�
 | --------------------------------------- | --------------------------------------------------------------------------------------------------- |
 | `packages/template-contracts`           | Manifest/compatibility, public presentation и UI adapter contracts                                  |
 | `packages/ui-kit`                       | Общий foundation/runtime и явно наследуемые defaults; без импорта concrete template                 |
-| `packages/template-realize`             | One renderer для двух targets, layout, palette/settings/assets и собственные реализации             |
+| `packages/template-realize`             | RealizeAI Control Panel renderer для двух targets, layout, palette/settings/assets и собственные реализации             |
 | Host и adapters в `src` / plugin owners | Routes, session/ACL, dynamic navigation/capabilities, global assignment resolution и безопасные DTO |
 | Business modules                        | Controllers, данные, формы, submit, draft, revision, pending UUID и outcome                         |
 | `packages/payload-extension-manager`    | Каталог, подготовка/применение, revisions/CAS, immutable receipts, recovery                         |
@@ -148,7 +159,7 @@ reload не считается заменой этой границы. Неиз�
 | ------------------------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | 1. Контракты                    | TASK-24…27                                     | Стек, host/screens, styles/slots и lifecycle/UI; критерии global coverage и baseline совместимости        |
 | 2. AI-инструкции                | TASK-28/29                                     | Workflow/skills/checks поддерживают тот же стек и границы до начала реализации                            |
-| 3. Зафиксировать основу         | TASK-30, затем TASK-31…33                      | Настоящий baseline 0.1.0, SDK/пакет One, tokens, primitives, dialogs и общие состояния                    |
+| 3. Зафиксировать основу         | TASK-30, затем TASK-31…33                      | Настоящий baseline 0.1.0, SDK/пакет RealizeAI Control Panel, tokens, primitives, dialogs и общие состояния                    |
 | 4. Проверить трудную интеграцию | TASK-44, до массового подключения native views | Ограниченный native-adapter spike на реальных сложных формах и динамическом view; критерии ниже           |
 | 5. Host и оболочка              | TASK-34…38                                     | Реактивная общая граница, navigation/header/content/footer и сохранность controllers; выводы spike учтены |
 | 6. Auth и управление            | TASK-39…42                                     | Действующие auth-процессы и интерфейс назначения с preview/apply/recover                                  |
@@ -180,7 +191,7 @@ TASK-44 выполняется после TASK-25/30/33 как ранняя пр
    настройки требуют явного решения в preview, без тихой подстановки defaults.
    Apply с expected revision добавляет receipt и переносит прежний current в previous.
 5. **Frontend candidate** готовится и принимается отдельно. Исходное `null`
-   не превращается в активный One вследствие Admin apply. До первого frontend
+   не превращается в активный RealizeAI Control Panel вследствие Admin apply. До первого frontend
    назначения проверяется возврат к исходной storefront-конфигурации; нынешний
    recover требует non-null previous и этот сценарий пока не обеспечивает.
    Нужный initial-assignment recovery contract входит в TASK-27/42/48/49.
@@ -216,16 +227,16 @@ push, миграцию или deployment. Их порядок принадлеж
 | Переносимость        | Пакет подключается через public API к двум совместимым hosts без копирования исходников; fixture renderer проверяет сменность composition/primitives                                                                        |
 
 Рабочий native fallback сохраняет эксплуатацию при незавершённой интеграции,
-но не закрывает gate глобального One. Неподключённый экран или потерянная функция
+но не закрывает gate глобального RealizeAI Control Panel. Неподключённый экран или потерянная функция
 фиксируются как незавершённая работа первого релиза. Проверочные preview-сборки
 до этих gates не называются готовой первой поставкой.
 
 ## 9. Последующие этапы
 
-За пределами первого One: общий installer/update/uninstall нового кода через
+За пределами первого RealizeAI Control Panel: общий installer/update/uninstall нового кода через
 Admin, marketplace, Workshop-to-package producer и release bridge; новые
 commerce/CRM/AI/Task Manager функции, inbox/billing backend, приглашения и новая
-политика выдачи ролей. Интерфейс управления установленными шаблонами входит в One,
+политика выдачи ролей. Интерфейс управления установленными шаблонами входит в RealizeAI Control Panel,
 а работа с новым кодом подключается позже к тому же Extension Manager lifecycle.
 
 **Следующая задача — TASK-24:** выбрать и зафиксировать единый стек по фактическим

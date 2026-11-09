@@ -1,19 +1,22 @@
-# Референс Task Manager → Realize-AI One — TASK-22 / ONE-03
+# Референс Task Manager → RealizeAI Control Panel — TASK-22 / ONE-03
+
+Название шаблона актуализировано 9 ноября 2026 года. Дата, результаты исходного
+исследования, коды задач и пути evidence сохранены.
 
 Дата: 19 октября 2026 года. Родитель: TASK-9. Тип результата: исследование и
-передача следующему шагу; target — оболочка Admin и общие элементы One.
+передача следующему шагу; target — оболочка Admin и общие элементы RealizeAI Control Panel.
 
 ## Результат и бриф
 
 Референс уже использует общий `SystemAdminShell` из `template-realize`.
-Рабочий renderer использует тот же компонент. Основа One — эта композиция и
+Рабочий renderer использует тот же компонент. Основа RealizeAI Control Panel — эта композиция и
 её взаимодействия с дальнейшим развитием нейтрального host-контракта.
 Копирование всего Task Manager вместе с fixtures и controllers не требуется.
 
 Для администраторов с разным набором модулей сохраняется одно глобальное
 назначение Admin. Пункты меню, содержимое, права и доступные действия приходят
 от host/modules; перечень разделов демонстрации не становится фиксированным
-списком экранов One. Сайт имеет самостоятельное назначение и композицию.
+списком экранов RealizeAI Control Panel. Сайт имеет самостоятельное назначение и композицию.
 
 В этом шаге зафиксированы каркас, верхняя и боковые панели, footer, общие
 компоненты, состояния и переносимые решения. Выполнены browser/screenshot
@@ -56,11 +59,11 @@
 Повторная матрица защищённого route в этой задаче не выполнялась. Public reference
 показал `--ui-layout-gap: 16px`, control token `42px`; в evidence рабочих страниц
 TASK-21 recorded gap был `12px`. Причина различия здесь не установлена.
-Перенос конкретных размеров в One требует сравнения host adapters/CSS в TASK-26/51.
+Перенос конкретных размеров в RealizeAI Control Panel требует сравнения host adapters/CSS в TASK-26/51.
 
 ## Карта композиции
 
-| Зона               | Что есть в образце                                                                  | Что переносится в One и кому принадлежит                                                                          |
+| Зона               | Что есть в образце                                                                  | Что переносится в RealizeAI Control Panel и кому принадлежит                                                                          |
 | ------------------ | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Общая сетка        | 100dvh, header, rail, sidebar, main со своей прокруткой, отдельный footer           | Template владеет геометрией, overflow и адаптивностью; host предоставляет content/slots                           |
 | Brand              | Знак `r•`, фиолетовый и бирюзовый акценты                                           | Brand slot и существующие assets; текущий знак — часть образца, branding релиза уточняется в TASK-23              |
@@ -100,7 +103,7 @@ content подключается через `navigationItem.panel`.
 | ------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | Context       | Выбор demo workspace, переход в каталог/настройки                                                | Host задаёт допустимые контексты; template не вводит обязательный Workspace для любого модуля               |
 | Search        | Ctrl/⌘K, начальный focus в combobox, фильтрация, выбор стрелками/Enter, empty state, Escape      | Паттерн готов; текущий поиск охватывает локальные fixtures и команды, не серверный глобальный индекс        |
-| Create        | Палитра видов создания и формы; search command открывает composer                                | В One отображаются только реальные разрешённые команды; формы и submit принадлежат modules                  |
+| Create        | Палитра видов создания и формы; search command открывает composer                                | В RealizeAI Control Panel отображаются только реальные разрешённые команды; формы и submit принадлежат modules                  |
 | Assistant     | Настоящий переход на `/admin/ai`                                                                 | Это ссылка; она не подтверждает встроенный assistant в shell или наследование его оформления                |
 | Notifications | Demo события, unread badge, локальное «прочитать все»; после reload снова 5 непрочитанных        | Переиспользуется меню; реальный inbox/persistence/ACL здесь отсутствуют                                     |
 | Account       | Имя из `prototypeActors`; account/profile/logout ведут на `/account`, `/account#name`, `/logout` | Нужны реальные actor и auth actions от host; переходы storefront не являются готовым Admin account contract |
@@ -118,7 +121,7 @@ content подключается через `navigationItem.panel`.
 
 | Слой               | Текущее положение                                                                             | Передача следующему шагу                                                                           |
 | ------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| Foundation         | UI-kit задаёт Geist/mono, базовые semantic colors, spacing, radii, focus, motion и light/dark | Сохранить единый источник; определить владение One tokens в TASK-26/31                             |
+| Foundation         | UI-kit задаёт Geist/mono, базовые semantic colors, spacing, radii, focus, motion и light/dark | Сохранить единый источник; определить владение RealizeAI Control Panel tokens в TASK-26/31                             |
 | Palette Realize    | Navigation colors/gradient и scrollbars поверх foundation                                     | Это частичная palette, не полная самостоятельная визуальная система                                |
 | Settings           | `density` и `panelWidth`; compact проецирует размеры в CSS variables                          | Не заменяет token schema; размер header context сейчас 280/210 px, независим от panelWidth         |
 | Сменные primitives | SDK adapter предоставляет Button/Input; Realize оборачивает UI-kit defaults                   | Расширение обязательных slots обсуждается в TASK-25/30/32, а не объявляется готовым                |
@@ -154,7 +157,7 @@ duration — 160 ms. Это фиксация текущей системы, не
 | Auth/registration/общие status screens | Не представлены этим sample; нужны отдельные композиции и проверки                                                                                     |
 | Полная доступность                     | `unverified`: нет полного аудита контраста, screen reader, zoom, всех targets и reduced-motion                                                         |
 
-## Сравнение с рабочим host и недостающие части One
+## Сравнение с рабочим host и недостающие части RealizeAI Control Panel
 
 | Расхождение                                                                                | Текущий аналог / владелец                                                                        | Продолжение и способ проверки                                                                             |
 | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
@@ -165,7 +168,7 @@ duration — 160 ms. Это фиксация текущей системы, не
 | Футер — опциональный slot, содержимое различается                                          | Reference demo notice; рабочий Task Manager notice; home без footer                              | TASK-23/38: согласовать содержание первого релиза, проверить длинный текст и отсутствие наложения         |
 | Auth layout существует, но reference login/register не показывает                          | `RealizeAdminAuthLayout`, host auth forms                                                        | TASK-39/40: вход, восстановление, регистрация/получение доступа с реальной политикой                      |
 | Status layout существует отдельно от task footer                                           | `RealizeAdminStatusLayout`; consumer appearance preview status                                   | TASK-49: общая матрица loading/error/404/forbidden/recovery                                               |
-| Mode menu не управляет пакетами                                                            | Рабочий `/system/appearance` и `ExtensionManager`                                                | TASK-27/41/42: использовать существующие prepare/preview/apply/recover, спроектировать presentation в One |
+| Mode menu не управляет пакетами                                                            | Рабочий `/system/appearance` и `ExtensionManager`                                                | TASK-27/41/42: использовать существующие prepare/preview/apply/recover, спроектировать presentation в RealizeAI Control Panel |
 | Native Payload, AI/MCP и сайт не покрыты одним renderer                                    | Выводы ONE-01/02 и их host adapters                                                              | TASK-44…48/50/51: глобальное покрытие, сохранность состояния и отдельная приёмка                          |
 
 Адресные аналоги:
@@ -211,11 +214,11 @@ migrations, commit/push и deployment не запускались.
 Применены [workshop review](../../.ai/checks/development/frontend/CHECK-DESIGN-WORKSHOP-REVIEW.md)
 и [reference pattern check](../../.ai/checks/development/frontend/CHECK-REFERENCE-PATTERN-SCAN-BEFORE-IMPLEMENTATION.md).
 Источники и owner map сверены отдельными агентами; browser evidence собран
-основным агентом. Оценка относится к исследованию, не к готовности One.
+основным агентом. Оценка относится к исследованию, не к готовности RealizeAI Control Panel.
 
 ## Следующий шаг
 
-**TASK-23 / ONE-04 — состав первого Realize-AI One и план перехода.** Использовать
+**TASK-23 / ONE-04 — состав первого RealizeAI Control Panel и план перехода.** Использовать
 карту выше для небольшого release scope: shell/header/navigation/content/footer,
 auth и управление оформлением; связать каждый блок с готовым owner либо
 конкретной доработкой. Затем TASK-24 — стек, TASK-25 — host/screens,

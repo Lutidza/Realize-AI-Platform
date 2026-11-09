@@ -1,5 +1,8 @@
 # Карта глобального применения шаблонов — TASK-20 / ONE-01
 
+Название шаблона актуализировано 9 ноября 2026 года. Дата, результаты исходного
+исследования, коды задач и пути evidence сохранены.
+
 Дата: 19 октября 2026 года. Родитель: TASK-9, «Самодостаточные шаблоны и управление оформлением».
 Срез исходников: `main`, `53e938d4a80d1d60b7d06d3ec73d70981854b3a8`.
 
@@ -43,7 +46,7 @@
 Admin `workspace/auth/status`. [SDK](../../packages/template-contracts/src/templateManifest.schemas.ts)
 предусматривает frontend `page`, однако текущий
 [RealizeTemplate](../../packages/template-realize/src/RealizeTemplate.component.tsx)
-отклоняет frontend target. Это существующий Realize, не готовый Realize-AI One.
+отклоняет frontend target. Это существующий Realize, не готовый RealizeAI Control Panel.
 
 Сохранённое назначение проверяется относительно каталога и hash;
 [resolver](../../packages/payload-extension-manager/src/server/resolveStoredExtensionAssignment.service.ts)

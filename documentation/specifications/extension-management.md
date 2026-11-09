@@ -240,7 +240,7 @@ records. Lifetime ledger не очищается. Поэтому старый ap
 
 ### Экран, SSR и границы поставки
 
-Целевой [первый релиз Realize-AI One](realize-ai-one-first-release.md)
+Целевой [первый релиз RealizeAI Control Panel](RealizeAI Control Panel-first-release.md)
 использует этот lifecycle для перехода `realize@0.1.0 → 0.2.0` и независимых
 Admin/frontend assignments. Для него отдельно требуется реальный baseline старого
 выпуска и возврат первого frontend назначения при исходном `null`;

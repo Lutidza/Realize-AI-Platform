@@ -4,11 +4,11 @@
 
 ## Ответственность и границы
 
-Целевая первая поставка **Realize-AI One** и последовательность перехода
-зафиксированы в [release scope](../specifications/realize-ai-one-first-release.md).
+Целевая первая поставка **RealizeAI Control Panel** и последовательность перехода
+зафиксированы в [release scope](../specifications/RealizeAI Control Panel-first-release.md).
 Он развивает существующего владельца, сохраняет reference baseline и задаёт
 gates глобального покрытия. Описанная ниже реализация `0.1.0` остаётся текущим
-срезом, а не подтверждением готовности One.
+срезом, а не подтверждением готовности RealizeAI Control Panel.
 
 `packages/template-realize/src/layouts/admin/` владеет компоновкой Realize: глобальная
 панель модулей, дополнительная навигация раздела, шапка/действия, рабочая область,

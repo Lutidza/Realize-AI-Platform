@@ -552,14 +552,14 @@ Payload ↔ Realize переключается, прямые native/template rou
 значения восстановлены, receipts сохранены. Глобальный live switch этим не реализован.
 
 [Разбор референса TASK-22 / ONE-03](reports/2026-10-19-realize-one-reference-breakdown.md)
-зафиксировал основу One: reference и рабочий renderer уже используют общий
+зафиксировал основу RealizeAI Control Panel: reference и рабочий renderer уже используют общий
 `SystemAdminShell`; различаются данные, capabilities и наполнение slots.
 Публичный reference проверен на 1440/768/390 px в light/dark, включая поиск,
 диалоги и мобильную навигацию. Demo store и бизнес-логика остаются в модуле.
 Auth/registration, общие status screens и управление шаблонами требуют отдельной
-композиции и интеграции; готовность One этим исследованием не заявлена.
+композиции и интеграции; готовность RealizeAI Control Panel этим исследованием не заявлена.
 
-TASK-23 / ONE-04 зафиксировала [состав первого Realize-AI One и переход](specifications/realize-ai-one-first-release.md):
+TASK-23 / ONE-04 зафиксировала [состав первого RealizeAI Control Panel и переход](specifications/RealizeAI Control Panel-first-release.md):
 плановая версия `realize@0.2.0` в существующем package owner, настоящий
 неизменяемый baseline `0.1.0`, общий Admin host и самостоятельный frontend
 renderer. Native adapter и сохранность controllers проверяются до полной

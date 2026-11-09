@@ -89,7 +89,7 @@ skills, оценка, улучшение и сравнение результа�
   полный редактор задач, участники, чеклисты, связи и модель исполнения.
 - [Системный шаблон админки](architecture/system-admin-shell.md)
   — общая оболочка Realize, независимая от Payload CSS, host adapter и постепенный перенос.
-- [Первый релиз Realize-AI One](specifications/realize-ai-one-first-release.md)
+- [Первый релиз RealizeAI Control Panel](specifications/RealizeAI Control Panel-first-release.md)
   — целевой состав, identity/version, reuse, безопасный переход и критерии
   глобального назначения Admin и отдельного оформления сайта.
 - [Исполнение задач и интеграция с AI](specifications/task-management-execution.md)
@@ -106,7 +106,7 @@ skills, оценка, улучшение и сравнение результа�
 
 ## Исторические материалы
 
-[Разбор референса для Realize-AI One, 2026-10-19](reports/2026-10-19-realize-one-reference-breakdown.md)
+[Разбор референса для RealizeAI Control Panel, 2026-10-19](reports/2026-10-19-realize-one-reference-breakdown.md)
 — TASK-22 / ONE-03: композиция, общие элементы, состояния, desktop/mobile и
 light/dark; границы повторного использования и отличия от рабочего host.
 
