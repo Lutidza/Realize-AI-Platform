@@ -1,9 +1,9 @@
 /**
  * @file src/app/(control-panel-preview)/reference/control-panel/document/documentReadingPreview.fixture.ts
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Предоставляет локальный документ для проверки экрана чтения без CMS и сохранений.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 import type { DocumentReadingScreenProps } from "@/components/admin/documents/DocumentReadingScreen.types";
 

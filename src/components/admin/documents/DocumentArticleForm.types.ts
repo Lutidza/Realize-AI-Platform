@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/DocumentArticleForm.types.ts
- * @version 1.1.0
+ * @version 1.1.1
  * @date 2026-11-24
  * @description Определяет вход и результаты серверных действий формы создания статьи.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 
 export type DocumentArticleInput = {

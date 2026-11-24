@@ -1,9 +1,9 @@
 /**
  * @file src/app/(system-admin)/system/documents/page.tsx
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Открывает защищённый список документов в выбранном макете Control Panel.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/list.md
  */
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";

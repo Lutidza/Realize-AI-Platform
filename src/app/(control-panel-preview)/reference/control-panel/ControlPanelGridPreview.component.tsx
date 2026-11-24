@@ -1,9 +1,9 @@
 /**
  * @file src/app/(control-panel-preview)/reference/control-panel/ControlPanelGridPreview.component.tsx
- * @version 1.2.0
- * @date 2026-11-22
+ * @version 1.2.1
+ * @date 2026-11-24
  * @description Компонует grid demo и переход к экрану чтения внутри reference preview.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/shell/content-grid.md
  */
 import {
   UiContainer,

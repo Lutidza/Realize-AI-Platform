@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/documentArticleInput.validator.ts
- * @version 1.0.0
- * @date 2026-11-23
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Проверяет данные формы статьи и возвращает адресные сообщения для полей.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 import { z } from "zod";
 import { isDocumentSlug } from "@/collections/Documents/documentIdentifiers";

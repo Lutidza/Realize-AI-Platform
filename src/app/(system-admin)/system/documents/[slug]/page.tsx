@@ -1,9 +1,9 @@
 /**
  * @file src/app/(system-admin)/system/documents/[slug]/page.tsx
- * @version 1.1.0
- * @date 2026-11-22
+ * @version 1.1.1
+ * @date 2026-11-24
  * @description Показывает разрешённый документ в Control Panel с отдельной проверкой сессии и URL макета.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";

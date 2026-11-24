@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/documentListScreen.registry.config.ts
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Связывает описание списка с владельцем проекта и ссылкой на renderer.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/list.md
  */
 import { getElementIdentityKey } from "@realize/element-registry";
 import { resolveElementOwner } from "@realize/element-registry/server";

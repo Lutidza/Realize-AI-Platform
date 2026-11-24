@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/DocumentListScreen.component.tsx
- * @version 1.1.1
+ * @version 1.1.2
  * @date 2026-11-24
  * @description Показывает страницу документов и ссылки списка в общем содержимом панели.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/list.md
  */
 import { UiSurface } from "@realize/ui-kit";
 import type { DocumentListPage } from "./DocumentList.types";

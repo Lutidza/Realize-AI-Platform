@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/DocumentReadingScreen.component.tsx
- * @version 1.2.0
+ * @version 1.2.1
  * @date 2026-11-24
  * @description Отображает один документ в общей поверхности и контейнере для чтения.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 import { UiContainer, UiSurface } from "@realize/ui-kit";
 import type { DocumentReadingScreenViewProps } from "./DocumentReadingScreen.types";

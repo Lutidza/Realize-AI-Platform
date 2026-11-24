@@ -1,9 +1,9 @@
 /**
  * @file src/app/(control-panel-preview)/reference/control-panel/document/page.tsx
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Подключает экран чтения к существующему preview shell без обращения к БД.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";

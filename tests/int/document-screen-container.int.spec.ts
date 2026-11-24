@@ -1,9 +1,9 @@
 /**
  * @file tests/int/document-screen-container.int.spec.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-24
  * @description Проверяет общий внешний контейнер списка документов, создания и чтения статьи.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/shell/content-grid.md
  */
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";

@@ -1,10 +1,10 @@
 // @vitest-environment node
 /**
  * @file tests/int/documents-collection.int.spec.ts
- * @version 1.0.1
- * @date 2026-11-22
+ * @version 1.0.2
+ * @date 2026-11-24
  * @description Проверяет закрытый доступ к документам и регрессии явных идентификаторов и частичных обновлений.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/collection-and-access.md
  */
 import type {
   Access,

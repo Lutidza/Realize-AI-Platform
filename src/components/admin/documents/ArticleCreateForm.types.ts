@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/ArticleCreateForm.types.ts
- * @version 1.0.0
- * @date 2026-11-23
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Описывает UI-состояние черновика статьи и входные свойства формы.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 import type { ControlPanelPreviewState } from "../control-panel-preview/ControlPanelPreview.types";
 import type { useArticleCreateForm } from "./useArticleCreateForm.hook";

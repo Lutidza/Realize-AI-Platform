@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/DocumentReadingScreen.types.ts
- * @version 1.1.0
- * @date 2026-11-22
+ * @version 1.1.1
+ * @date 2026-11-24
  * @description Определяет данные простого экрана чтения документа без связи с хранилищем.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 import type { ReactNode } from "react";
 

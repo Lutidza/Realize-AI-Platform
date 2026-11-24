@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/suggestDocumentIdentifier.util.ts
- * @version 1.0.0
- * @date 2026-11-23
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Предлагает общие значения slug и anchor из заголовков статьи и разделов.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 
 const cyrillic: Record<string, string> = {

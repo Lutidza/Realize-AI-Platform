@@ -1,9 +1,9 @@
 /**
  * @file src/collections/Documents/index.ts
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Определяет закрытую коллекцию административных документов с упорядоченными разделами.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/collection-and-access.md
  */
 import type { CollectionConfig } from "payload";
 import { adminOnly } from "@/access/adminOnly";

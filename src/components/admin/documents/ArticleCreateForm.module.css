@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/ArticleCreateForm.module.css
- * @version 1.2.0
+ * @version 1.2.1
  * @date 2026-11-24
  * @description Размещает поля, подсказки и действия формы поверх токенов UI-кита.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 
 .title {

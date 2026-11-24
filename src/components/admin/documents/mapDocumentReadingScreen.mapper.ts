@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/mapDocumentReadingScreen.mapper.ts
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Преобразует разрешённый документ Payload в узкий DTO экрана чтения без служебных полей.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 import { isDocumentSlug } from "@/collections/Documents/documentIdentifiers";
 import type {

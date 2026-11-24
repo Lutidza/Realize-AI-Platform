@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/ArticleCreateForm.component.tsx
- * @version 1.1.0
+ * @version 1.1.1
  * @date 2026-11-24
  * @description Показывает форму создания статьи в обоих макетах Control Panel.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 "use client";
 

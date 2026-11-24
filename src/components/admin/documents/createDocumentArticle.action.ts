@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/createDocumentArticle.action.ts
- * @version 1.1.1
+ * @version 1.1.2
  * @date 2026-11-24
  * @description Создаёт статью от имени администратора и проверяет неизвестный результат записи.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 "use server";
 

@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/documentRoutes.util.ts
- * @version 1.1.0
- * @date 2026-11-23
+ * @version 1.1.1
+ * @date 2026-11-24
  * @description Канонизирует адреса раздела документов с параметрами предпросмотра.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/list.md
  */
 import type { ControlPanelPreviewState } from "../control-panel-preview/ControlPanelPreview.types";
 import { SYSTEM_DOCUMENTS_ROUTE } from "../system-shell/systemAdmin.routes";

@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/DocumentSectionLink.component.tsx
- * @version 1.1.0
- * @date 2026-11-23
+ * @version 1.1.1
+ * @date 2026-11-24
  * @description Создаёт обычную ссылку внутри раздела с актуальными параметрами макета и темы.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/list.md
  */
 "use client";
 

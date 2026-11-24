@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/ArticleCreateSectionFields.component.tsx
- * @version 1.0.0
- * @date 2026-11-23
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Показывает поля раздела статьи и действия с порядком разделов и абзацев.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 import { UiButton } from "@realize/ui-kit";
 import { ArticleCreateField } from "./ArticleCreateField.component";

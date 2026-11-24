@@ -84,8 +84,8 @@ Container-query уровни `md: 48rem` и `lg: 64rem` определены **�
 Demo принадлежит route preview, а не template renderer, не содержит бизнес-данных
 и не сохраняется как редакторская композиция.
 
-Граница текущего среза и критерии —
-[§3.12 Control Panel](../specifications/realize-ai-control-panel-first-release.md#312-внутренняя-сетка-содержимого).
+Границы этого среза и критерии приёмки описаны в
+[контракте внутренней сетки Control Panel](../specifications/realize-ai-control-panel/shell/content-grid.md#content-grid).
 Browser-проверка 2026-11-12 прошла: 14 сценариев на восьми ширинах 320…1920px,
 оба макета и light/dark. Подтверждены ближайший query container, spans,
 отдельные gutters, сужение зазора до 19px в слоте 228px и отсутствие overflow.

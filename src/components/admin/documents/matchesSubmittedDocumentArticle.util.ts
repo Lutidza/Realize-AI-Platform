@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/matchesSubmittedDocumentArticle.util.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-24
  * @description Сверяет полученную статью с нормализованным черновиком после потери ответа.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 import type { DocumentArticleInput } from "./DocumentArticleForm.types";
 

@@ -1,10 +1,10 @@
 // @vitest-environment node
 /**
  * @file tests/int/document-article-actions.int.spec.ts
- * @version 1.1.1
+ * @version 1.1.2
  * @date 2026-11-24
  * @description Проверяет серверную границу формы статьи и восстановление после сбоя сохранения.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 import { ValidationError } from "payload";
 import { beforeEach, describe, expect, it, vi } from "vitest";

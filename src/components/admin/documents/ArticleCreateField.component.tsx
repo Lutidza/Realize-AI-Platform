@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/ArticleCreateField.component.tsx
- * @version 1.0.0
- * @date 2026-11-23
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Связывает поля статьи с подписями, адресами и ошибками.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/creation.md
  */
 import { UiInput, UiTextarea } from "@realize/ui-kit";
 import type { ArticleFieldProps } from "./ArticleCreateForm.types";

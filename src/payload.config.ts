@@ -1,12 +1,12 @@
 /**
  * @file src/payload.config.ts
- * @version 1.5.0
- * @date 2026-11-22
+ * @version 1.5.1
+ * @date 2026-11-24
  * @description Настраивает Payload, обработку Media и переходы к самостоятельным системным разделам.
  * @see documentation/specifications/media-management.md
  * @see documentation/specifications/task-management.md
  * @see documentation/specifications/design-workshop.md
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/collection-and-access.md
  */
 
 import { postgresAdapter } from "@payloadcms/db-postgres";

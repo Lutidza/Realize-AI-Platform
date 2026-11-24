@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/DocumentReadingScreen.module.css
- * @version 1.2.0
+ * @version 1.2.1
  * @date 2026-11-24
  * @description Задаёт отступы и типографику документа поверх общих токенов UI-kit.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 
 .navigation {

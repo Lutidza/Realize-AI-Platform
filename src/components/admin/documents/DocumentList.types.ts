@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/DocumentList.types.ts
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Определяет узкие данные списка административных документов.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/list.md
  */
 
 /** Строка списка содержит только данные для ссылки и её краткого описания. */

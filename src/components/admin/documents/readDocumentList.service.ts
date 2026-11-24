@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/readDocumentList.service.ts
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Читает страницу списка через текущую cookie-сессию и ACL коллекции.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/list.md
  */
 import "server-only";
 import type { Document } from "@/payload-types";

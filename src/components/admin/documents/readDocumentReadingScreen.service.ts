@@ -1,9 +1,9 @@
 /**
  * @file src/components/admin/documents/readDocumentReadingScreen.service.ts
- * @version 1.0.1
- * @date 2026-11-22
+ * @version 1.0.2
+ * @date 2026-11-24
  * @description Читает один документ через текущую cookie-сессию и collection ACL без передачи raw Payload в UI.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/reading.md
  */
 import "server-only";
 import { isDocumentSlug } from "@/collections/Documents/documentIdentifiers";

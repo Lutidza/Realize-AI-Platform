@@ -1,9 +1,9 @@
 /**
  * @file src/collections/Documents/documentIdentifiers.ts
- * @version 1.0.0
- * @date 2026-11-22
+ * @version 1.0.1
+ * @date 2026-11-24
  * @description Проверяет явные адреса документов и стабильные anchors разделов.
- * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ * @see documentation/specifications/realize-ai-control-panel/documents/collection-and-access.md
  */
 
 /** Slug и anchor используют один строгий формат без автоматического переименования. */
