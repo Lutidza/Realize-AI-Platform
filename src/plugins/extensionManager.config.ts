@@ -1,20 +1,18 @@
 /**
  * @file src/plugins/extensionManager.config.ts
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.3.0
+ * @date 2026-11-12
  * @description Компонует trusted каталог и права Realize для независимого менеджера расширений.
  * @see documentation/specifications/extension-management.md
  */
 import { createHash } from "node:crypto";
 import type { ExtensionManagerOptions } from "@realize/payload-extension-manager";
-import { realizeTemplateManifest } from "@realize/template-realize/manifest";
-import settingsSchema from "@realize/template-realize/settings.schema.json";
-import { resolveRealizeSettings } from "@realize/template-realize/settings";
 import { checkRole } from "@/access/utilities";
 import { isPlatformOwner } from "@/access/platformOwner.policy";
 import { adminAppearanceConfig } from "@/components/admin/system-shell/adminAppearance.config";
 import { readAdminShellPolicy } from "@/components/admin/system-shell/readAdminShellPolicy.service";
 import { readTemplateRuntimeInstallation } from "@/components/admin/system-shell/readTemplateRuntimeInstallation.service";
+import { extensionTemplateCatalog } from "./extensionTemplateCatalog.config";
 
 const identity = `${process.env.REALIZE_INSTALLATION_ID ?? "local"}:${process.env.REALIZE_PROJECT_ID ?? "realize"}`;
 
@@ -28,13 +26,7 @@ export const extensionManagerOptions: ExtensionManagerOptions = {
     selection: adminAppearanceConfig.selection,
     settings: adminAppearanceConfig.settings,
   },
-  catalog: [
-    {
-      manifest: realizeTemplateManifest,
-      settingsSchema,
-      resolveSettings: resolveRealizeSettings,
-    },
-  ],
+  catalog: extensionTemplateCatalog,
   runtimeBuildId: async () =>
     (await readTemplateRuntimeInstallation())?.buildId ?? null,
   runtimeInstallation: readTemplateRuntimeInstallation,

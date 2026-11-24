@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/SystemAdminTemplateProvider.types.ts
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.3.0
+ * @date 2026-11-11
  * @description Определяет нейтральный context выбранного compiled Admin шаблона.
  */
 
@@ -28,6 +28,9 @@ export type SystemAdminTemplateProviderProps = PropsWithChildren<{
   selection?: AdminTemplateSelection;
   settings?: TemplateSettings;
   initialMode?: TemplateMode;
+  /** Controlled mode нужен preview/editor; без него сохраняется прежнее локальное состояние. */
+  mode?: TemplateMode;
+  onModeChange?: (mode: TemplateMode) => void;
   /** Host capability передаётся сервером и наследуется вложенным candidate provider. */
   nativeAdminEnabled?: boolean;
 }>;

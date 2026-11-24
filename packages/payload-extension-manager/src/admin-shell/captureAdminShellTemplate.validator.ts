@@ -1,13 +1,14 @@
 /**
  * @file packages/payload-extension-manager/src/admin-shell/captureAdminShellTemplate.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Фиксирует exact Admin assignment и readonly CAS/catalog guard для custom оболочки.
  * @see documentation/specifications/extension-management.md
  */
 import { ExtensionManagerError } from "../appearance/ExtensionManager.error";
 import { parseExtensionAppearanceStore } from "../appearance/parseExtensionAppearanceStore.validator";
 import { hashExtensionValue } from "../appearance/hashExtensionValue.server";
+import { assertExtensionAssignmentReady } from "../catalog/assertExtensionAssignmentReady.validator";
 import { resolveExtensionAssignment } from "../catalog/resolveExtensionAssignment.validator";
 import type {
   AdminShellAppearance,
@@ -30,6 +31,7 @@ export function captureAdminShellTemplate(
       selection: state.current.selection,
       settings: state.current.settings,
     });
+    assertExtensionAssignmentReady(appearance.catalog, assignment.selection);
     if (hashExtensionValue(assignment) !== hashExtensionValue(state.current))
       throw new ExtensionManagerError("SHELL_UNAVAILABLE");
   } catch {

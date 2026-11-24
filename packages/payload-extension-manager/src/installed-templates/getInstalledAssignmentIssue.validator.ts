@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/installed-templates/getInstalledAssignmentIssue.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Выявляет недоступный saved assignment без переписывания версии или нормализованных settings.
  * @see documentation/specifications/extension-management.md
  */
@@ -11,6 +11,7 @@ import type {
 } from "@realize/template-contracts";
 import type { ExtensionAssignment } from "../appearance/ExtensionAppearance.types";
 import type { ExtensionCatalog } from "../catalog/ExtensionCatalog.types";
+import { assertExtensionAssignmentReady } from "../catalog/assertExtensionAssignmentReady.validator";
 import { resolveExtensionAssignment } from "../catalog/resolveExtensionAssignment.validator";
 import type { InstalledTemplateUnavailableAssignmentDto } from "./InstalledTemplates.types";
 import { getInstalledCompatibleTargets } from "./getInstalledCompatibleTargets.validator";
@@ -49,9 +50,14 @@ export function getInstalledAssignmentIssue(
     });
     if (
       resolved.manifestHash !== assignment.manifestHash ||
-      canonicalJson(resolved.settings) !== canonicalJson(assignment.settings)
+      canonicalJson(resolved.settings) !== canonicalJson(assignment.settings) ||
+      (resolved.layout === undefined) !== (assignment.layout === undefined) ||
+      (resolved.layout !== undefined &&
+        assignment.layout !== undefined &&
+        canonicalJson(resolved.layout) !== canonicalJson(assignment.layout))
     )
       return "invalid_assignment";
+    assertExtensionAssignmentReady(catalog, resolved.selection);
     return null;
   } catch {
     return "invalid_assignment";

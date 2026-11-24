@@ -1,0 +1,14 @@
+/**
+ * @file src/components/admin/documents/DocumentScreenContainer.module.css
+ * @version 1.0.0
+ * @date 2026-11-24
+ * @description Согласует отступы раздела документов с областями макета и кнопкой предпросмотра.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+.container {
+  padding-block: var(--ui-space-4);
+}
+
+:global([data-control-panel-layout="without-topbar"]) .container {
+  padding-block-start: var(--panel-topbar-height);
+}

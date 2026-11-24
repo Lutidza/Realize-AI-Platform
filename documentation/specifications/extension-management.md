@@ -1,6 +1,6 @@
 # Менеджер расширений Payload — контракт и этапы реализации
 
-Версия: **0.7**, 2026-10-19. Статус: **установленные шаблоны, appearance lifecycle и переключение Payload ↔ Realize доставлены в основную локальную установку; общий installer нового кода остаётся целевым**.
+Версия: **0.14**, 2026-11-21. Статус: **установленные шаблоны, appearance lifecycle и переключение Payload ↔ Realize доставлены в основную локальную установку; общий installer нового кода остаётся целевым**.
 Целевой менеджер устанавливает и управляет совместимыми расширениями из Admin.
 Шаблонные пакеты следуют [единому контракту Мастерской](design-workshop.md#111-единый-контракт-самодостаточного-шаблона)
 и [ADR-0018](../architecture/decisions/ADR-0018-self-contained-template-packages.md).
@@ -95,6 +95,245 @@ appearance операция не запускает npm, Git, миграции �
 совместимого пакета, а сервер отклоняет неподдержанное назначение. Workshop
 starter/producer, выпуск DesignPackage в этот каталог и delivery integration
 остаются целевыми. Полная приёмка installer по AC-EM-02/06/14/17 не выполнена.
+
+### Допуск preview-only шаблона к штатным настройкам
+
+Исходный срез от 2026-11-12 подключает `realizeai-control-panel@0.1.0` к
+штатному редактору настроек и защищённому предпросмотру, сохраняя запрет
+рабочей активации. Это ограниченная интеграция имеющегося исследуемого
+appearance-механизма, а не утверждение его текущей цепочки операций в качестве
+доктрины будущей системы установки.
+
+Host-owned registration compiled каталога допускает optional
+`readiness: "ready" | "preview-only"`. Отсутствие поля сохраняет прежнюю
+семантику ready для legacy-регистраций. Политика задаётся host, не шаблоном и
+не пользовательским body. Она входит в `catalogHash`, но не меняет
+`manifestHash` неизменённого manifest и не записывается в assignment/history.
+
+Control Panel предоставляет server-safe публичный export `/settings`; host
+регистрирует manifest/settings schema/validator с `readiness: "preview-only"`.
+Readiness присутствует в readonly catalog DTO и производном preview-plan DTO,
+но не становится полем сохраняемого плана или receipt. При изменении host
+policy проверка актуальности использует новый catalog hash.
+
+| Операция                                                | Поведение для preview-only                                                        |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Чтение каталога и settings                              | Доступны в пределах прежних ACL/storage/runtime gates                             |
+| Prepare appearance и actor-bound preview                | Разрешены после штатных проверок actor, TTL, revision, catalog и settings         |
+| Новое применение назначения, включая recover            | Отклоняется серверным `TEMPLATE_PREVIEW_ONLY`                                     |
+| Использование как current/bootstrap рабочего назначения | Запрещено; preview-only не является рабочим fallback                              |
+| Активация пакетной оболочки                             | Проверяет readiness и не допускает preview-only assignment                        |
+| Replay ранее успешно выполненной операции               | Возвращает прежний receipt, не создавая нового применения и не переписывая ledger |
+
+Read-only inventory возвращает `select: false` и причину `preview_only`, когда
+применим именно readiness gate; остальные причины недоступности и прежние
+ограничения остаются действующими. Настройки сохраняют отдельную доступность —
+запрет select не должен автоматически закрывать разрешённый settings/preview.
+Наличие записи в compiled каталоге не заменяет подтверждение runtime установки.
+Карточка доступного preview-only пакета показывает «Для предпросмотра» даже
+при `runtime_unverified`; отдельная причина ограничения действий при этом
+сохраняется, неподтверждённая установка не объявляется подтверждённой.
+
+UI использует generic readiness, без исключений по конкретному template ID.
+Apply недоступен в плане и в клиентском command controller; серверная проверка
+обязательна независимо от UI. Защищённый preview передаёт preview-only renderer
+пустую функциональную модель без рабочей навигации, capabilities и page actions;
+локальное содержимое остаётся явно проверочным. Это не рабочий экран платформы.
+
+Общий settings editor для optional enum показывает «По умолчанию» как
+наследование: выбор удаляет key из settings, а не сохраняет пустую строку или
+литерал `default` вместо отсутствия. Required enum и остальные параметры
+сохраняют свои правила. Layout/mode/schema проверяются существующим validator.
+
+Срез не требует миграции БД, не переключает рабочие assignments, не меняет
+legacy-навигацию и не реализует новый installer.
+
+Приёмка исходного среза 2026-11-13 проведена на dev `127.0.0.1:3001` через
+`/system/appearance` с реальной admin fixture session. Каталог показывает
+preview-only Control Panel; optional layout enum проходит путь
+without-topbar → «По умолчанию» → plan.settings без `layoutId`. Actor-bound
+preview стандартного макета меняет light→dark без потери введённого текста;
+локальная проверочная форма работает. Второй план использует without-topbar,
+compact и panelWidth 240: на desktop 1440px sidebar равен 240px, mobile 390px
+light не создаёт overflow. Прямой API apply возвращает ожидаемый
+`409 TEMPLATE_PREVIEW_ONLY`.
+
+Хеш рабочего targets/history до и после совпал: admin revision 2 с legacy
+`realize`, frontend revision 0, history length 2. Prepare использует прежний
+store планов/replay; утверждение о сохранности относится к активным назначениям
+и apply history, а не к отсутствию любой служебной записи. Основная служба
+3000 не обновлялась, dev runtime inventory остаётся unverified.
+
+Для локального dev origin используется
+`PAYLOAD_PUBLIC_SITE_URL=http://127.0.0.1:3001`: иначе штатная Payload POST
+origin-проверка не принимает cookie для этого адреса. ACL, session и origin
+защита не ослаблялись. Подтверждённая browser-проверка dev не равна deployment
+или подтверждению установки нового кода в основную службу.
+
+Host fallback дополнительно проверяется чистым
+`resolveSystemAdminFallbackAppearance`: source и явно заданный recovery
+проходят compatibility/settings/readiness без БД, preview-only не может стать
+рабочим default через обход service reader. Явный reference-контекст остаётся
+проверочным исключением и не является рабочей активацией. Сессия/роль по-прежнему
+проверяются `requireSystemAdmin`. Финальная адресная сводка: 16 Vitest suites,
+317 tests passed, включая 33 host fallback tests; полный typecheck и адресный
+ESLint прошли. Сценарий не заменяет полный production build/deployment.
+
+После logout временный admin удалён; проверка по точным fixture ID/email
+подтвердила отсутствие записи. Локальные fixture credentials/source очищены;
+защищённый каталог после logout вернул ожидаемый 401. Ожидаемые 409 admission
+и 401 после logout не являются ошибками renderer.
+
+Протокол текущей приёмки —
+`.ai-workspace/tasks/2026-11-11-control-panel-first-slice/logs/appearance-runtime.json`,
+снимки — `screenshots/appearance/` в том же досье.
+Сценарий Control Panel — [§3.13](realize-ai-control-panel-first-release.md#313-подключение-к-штатным-настройкам-без-активации).
+
+### Точная версия макета: сначала совместимое чтение
+
+Согласовано 18 ноября 2026 года: server-derived фиксация макета хранится в
+`ExtensionAssignment.layout`, отдельно от пользовательского намерения
+`settings.layoutId`. Строгий контракт принадлежит Template SDK:
+
+```ts
+layout?: {
+  schemaVersion: "1.0";
+  localId: string;
+  reference: LayoutVersionedRef;
+  catalogHash: string;
+};
+```
+
+`reference` содержит global identity и точную definition version; `catalogHash`
+относится к каталогу макетов конкретного выпуска. Чтение проверяет форму,
+строгие ключи, SemVer и формат hash. Оно не доказывает наличие ссылки в каталоге,
+происхождение hash, совместимость target/profile, доступность renderer или ACL.
+Если binding присутствует, явный `settings.layoutId` обязан совпадать с
+`layout.localId`; отсутствие key сохраняет наследование. `null` невалиден.
+Для старого назначения без binding частные settings не переосмысливаются.
+
+Первый этап расширил только reader: общие типы, DTO, строгие схемы и codec
+планов/receipts принимают новый optional binding. Отсутствие поля сохраняется
+буквально, без defaults, `null` или обогащения исторических записей. Старые
+hashes и успешные replay receipts не пересчитываются. На первом этапе resolver/prepare
+создавали прежнюю форму без binding; catalog hashes не менялись.
+Новую запись, регистрацию layout catalogs в appearance и runtime execution
+этот этап не включает. Source-код reader не означает его доставку в службу.
+
+Второй source-срез ниже подключает доверенный release catalog и формирует binding
+после нормализации settings. Наследование получает точный effective pin без
+записи default в settings. Preview/apply/recover, inventory и runtime должны
+проверять одну фиксацию; отсутствие обязательного каталога или pin у layout-aware
+выпуска не заменяется legacy fallback. Проверка успешного apply replay должна
+оставаться до свежих catalog/layout/readiness checks, включая server orchestration.
+Control Panel сохраняет независимый запрет активации `preview-only`.
+
+Новый reader читает старые записи, но прежний strict reader не понимает новые
+поля даже внутри pending prepare/immutable receipt. Поэтому запись включается
+после доставки совместимых readers и определения минимально совместимой сборки
+отката. Отсутствие новых SQL columns не означает rollback compatibility.
+На первом этапе Payload collections/migrations/generated types не меняются,
+данные рабочей БД и старые receipts не переписываются.
+
+Первый reader-only этап реализован в исходниках и проверен 18 ноября:
+[SDK schema](../../packages/template-contracts/src/layouts/layoutAssignmentBinding.schemas.ts),
+[bounded parser](../../packages/template-contracts/src/layouts/parseLayoutAssignmentBinding.validator.ts)
+и [общая assignment schema](../../packages/payload-extension-manager/src/appearance/extensionAppearance.schemas.ts).
+Codec и DTO mappers используют этот общий контракт, включая nested Admin Shell
+assignment. Runtime pin validation и новая запись остаются следующим этапом.
+
+[Адресный reader suite](../../tests/int/extension-layout-binding-reader.int.spec.ts)
+содержит 31 проверку: fixed legacy hashes/wire, старый replay, nested plans и
+receipts/DTO, неизменность catalog hash при прежних входах, отсутствие нового
+writer и отклонение binding injection в команды. SDK parser также проверен на
+getters, JSON bounds, безопасные error paths и deep freeze. Прогон первого этапа с
+регрессиями — **10 suites / 259 tests passed**; полный typecheck, адресные
+ESLint/Prettier и headers **8/8** прошли. Использовались чистые операции, codec
+и изолированные HTTP/client fixtures; это не PostgreSQL transaction acceptance,
+не обновление установленной службы и не подтверждение новых записей в БД.
+
+### Каталог макетов и закрытая запись точного binding
+
+Второй source-срез от 18 ноября подключает `registration.layouts` с явным
+`templateIdentity` и trusted catalog. Server compiler проверяет SDK schema,
+claimed SHA-256, global mapping, точную версию выпуска и заявленные target/screen.
+Global ID не вычисляется из native manifest ID. Compiled entry и catalog DTO
+содержат optional `layoutCatalog`; browser reader проверяет граф и форму hash,
+не заменяя server verification. Host Control Panel получает mapping из общего
+owner/source registry, а каталог — из проверенного server entry.
+
+`createExtensionCatalog` включает optional `layoutCatalogHash` в существующий
+hash каталога. Для legacy registration сериализация остаётся прежней;
+`manifestHash` не меняется. Добавление Control Panel layout catalog меняет общий
+host catalog hash и устаревает все прежние pending plans этого каталога, включая
+legacy. Исторические assignments/receipts не обогащаются и не пересчитываются.
+
+Pure resolver всегда формирует exact binding для layout-aware записи после
+нормализации settings. Default разрешается только в binding, не записывается в
+settings. Неизвестный alias, чужой target или неполный заявленный каталог
+отклоняются. Recover принимает прежнюю exact фиксацию либо отказывает при
+отсутствующем/устаревшем binding; он не создаёт историю задним числом. Проверка
+inventory учитывает полную layout фиксацию, а не только manifest/settings.
+
+Новая запись остаётся закрыта: `layoutAssignmentWrites?: "disabled" | "enabled"`
+принадлежит server operation, default — `disabled`. Это не поле HTTP command,
+settings, DTO или codec. Все четыре durable вызова appearance/Admin Shell
+prepare/apply явно передают `disabled`; новых UI/env переключателей нет.
+Pure fixtures могут явно использовать `enabled` для неперсистентных проверок.
+
+Общий guard проверяет весь новый store: оба targets current/previous, планы,
+assignment в prepare/apply receipts и nested shell bindings. Shell apply также
+проверяет исходный consumed plan до удаления: apply receipt не содержит assignment.
+Без разрешения новый результат с binding отклоняется кодом
+`409 LAYOUT_BINDING_WRITES_DISABLED` до возврата в persistence. Недопустим
+fallback к неполному legacy назначению вместо binding. Bootstrap другого target
+также не может незаметно попасть в новую запись.
+
+Receipt replay выполняется до write guard и сохраняет прежний snapshot;
+prepare replay сохраняет свой TTL. В appearance service остаётся прежняя
+граница: catalog/bootstrap строятся до lookup receipt в repository. Поэтому
+этот срез не обещает replay при невалидной host-конфигурации каталога;
+новый write gate в создание каталога не помещён.
+
+Source reader поддерживает обе формы данных. Первоначальная проверка доставки **2026-11-21**
+подтвердила: actual compiled reader прежней сборки `AyXRiXXlnvldA_M5iEDBF` принимает
+legacy assignment, но отклоняет root `layout` как `unrecognized_keys`.
+Первичный bounded inventory локального `.next` нашёл один distinct BUILD_ID;
+совместимая rollback build для будущих bindings на этом этапе не была подтверждена.
+В текущей разработке durable
+запись выключена; новый gate не приписывается прежней сборке.
+До подтверждения доставки readers и rollback build включение writer не разрешено.
+Evidence и границы —
+[аудит от 21 ноября](../reports/2026-11-21-layout-reader-delivery-rollback-audit.md).
+Позднее проверен локальный кандидат `lVEkQyOl_Fc34MI5N_840`: 20 server +
+5 client compiled-reader checks и runtime smoke восстановленного архива passed.
+Четыре compiled durable callsites статически связаны с `disabled`.
+На этапе подготовки installed build ещё не переключался; writer не включался.
+UI hydration/exact-pin rendering и полный
+production rollback этим не подтверждаются. Evidence и ограничения —
+[отчёт о локальном кандидате](../reports/2026-11-21-layout-reader-rollback-candidate.md).
+**Доставка 2026-11-21 выполнена:** `realize-web.service` работает на
+`lVEkQyOl_Fc34MI5N_840`, actual PID/BUILD_ID и live/readiness подтверждены.
+Actual compiled codecs в READ ONLY PostgreSQL проверили два точных scope:
+2 state rows и 23 ledger receipts сохранили fingerprints, bindings 0,
+revisions Admin/frontend/shell — 2/0/8. Это не authenticated HTTP/UI acceptance.
+Четыре compiled durable calls остаются `disabled`; rollback `--check` готов
+без mutations, старый artifact допускается только при отсутствии bindings.
+Глобальная minimum rollback build и включение writer не подтверждены.
+Evidence — [отчёт доставки](../reports/2026-11-21-layout-reader-deployment.md).
+SQL schema и проверенные назначения не менялись; установка renderer, полное UI исполнение exact pin и активация
+Control Panel не объявляются выполненными. `preview-only` остаётся отдельным gate.
+
+Проверки второго source-среза: **13 suites / 310 tests passed**, включая
+[29 новых проверок](../../tests/int/extension-layout-prepare.int.spec.ts).
+Полный typecheck, адресные ESLint/Prettier и headers **23/23** прошли. Проверены
+наследование и exact pins, drift default/version/catalog hash, recover,
+full-store guard с bootstrap другого target, consumed shell plan, inventory и
+настоящие HTTP services с изолированным in-memory repository. Новый формат не
+записывался в PostgreSQL; счётчик commits при disabled prepare/apply оставался 0.
+Независимый Node import фактического host source вернул два шаблона, один
+layout-aware entry, inherited `default@0.1.0` и ожидаемый отказ закрытого writer.
+Это source evidence, не receipt установленного build и не PostgreSQL acceptance.
 
 ### Выбор штатной и пакетной оболочки Admin
 
@@ -240,9 +479,12 @@ records. Lifetime ledger не очищается. Поэтому старый ap
 
 ### Экран, SSR и границы поставки
 
-Целевой [первый релиз RealizeAI Control Panel](RealizeAI Control Panel-first-release.md)
-использует этот lifecycle для перехода `realize@0.1.0 → 0.2.0` и независимых
-Admin/frontend assignments. Для него отдельно требуется реальный baseline старого
+Целевой [первый релиз RealizeAI Control Panel](realize-ai-control-panel-first-release.md)
+развивается отдельным пакетом `template-realizeai-control-panel` с ID
+`realizeai-control-panel`; legacy `realize@0.1.0` сохраняется. Текущий срез
+подключения нового пакета допускает только settings/preview по readiness policy,
+без рабочего назначения. Независимые Admin/frontend assignments и будущий
+процесс установки уточняются отдельно. Для него отдельно требуется реальный baseline старого
 выпуска и возврат первого frontend назначения при исходном `null`;
 текущий recover с non-null previous не доказывает этот сценарий.
 Общий installer нового кода остаётся последующим этапом.

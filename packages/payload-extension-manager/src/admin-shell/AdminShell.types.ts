@@ -1,15 +1,19 @@
 /**
  * @file packages/payload-extension-manager/src/admin-shell/AdminShell.types.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Разделяет native/custom выбор host и неизменяемые template assignments.
  * @see documentation/specifications/extension-management.md
  */
 import type {
   ExtensionAssignment,
   ExtensionAppearanceStore,
+  ExtensionLayoutAssignmentWritePolicy,
 } from "../appearance/ExtensionAppearance.types";
-import type { ExtensionCatalog } from "../catalog/ExtensionCatalog.types";
+import type {
+  ExtensionCatalog,
+  ExtensionTemplateReadiness,
+} from "../catalog/ExtensionCatalog.types";
 
 export type AdminShellMode = "native" | "template";
 /** Native version — metadata установленной CMS, не версия собственного template package. */
@@ -60,6 +64,8 @@ export type AdminShellPlan = {
   expiresAt: string;
 };
 export type AdminShellPlanDto = {
+  /** Текущая политика exact template binding; не сохраняется в immutable shell plan. */
+  readiness?: ExtensionTemplateReadiness;
   planId: string;
   planHash: string;
   action: "select" | "recover";
@@ -127,6 +133,7 @@ export type AdminShellAppearance = {
   catalog: ExtensionCatalog;
 };
 export type AdminShellOperationContext = {
+  layoutAssignmentWrites?: ExtensionLayoutAssignmentWritePolicy;
   store: AdminShellStore;
   policy: AdminShellPolicy;
   appearance: AdminShellAppearance | null;

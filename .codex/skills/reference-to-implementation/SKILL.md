@@ -18,13 +18,21 @@ behavior.
 Подробный маршрут от брифа и проверенных источников до интерактивной вёрстки,
 проверки и передачи исполнителю находится в разделе
 [«От референса к интерфейсу»](../../../.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md#reference-to-frontend).
-Он также описывает границы админского агента и Code Lane. Используй его вместе
-с краткими шагами ниже; этот skill не вводит отдельный workflow или новые права.
+Он также описывает границы админского агента и Code Lane. Читай относящиеся
+к текущему этапу шаги, используя уже полученные диапазоны без повторного чтения.
+Не загружай весь workflow: при неизвестных границах найди заголовки, затем
+извлеки выбранные шаги ограниченными диапазонами. Например, brief и текстовая
+передача без оформления плана Code Lane не требуют разделов реализации.
+Этот skill не вводит отдельный workflow или новые права.
 
 ## Что открыть
 
+Выбери недостающие источники по текущему этапу. Тексты из контекста, включая
+переданные другим skill, не загружай заново; ссылка или metadata сами по себе
+не заменяют чтение.
+
 - reference artifact из задачи;
-- `documentation/project-context.md`;
+- нужный раздел `documentation/project-context.md` о затронутом владельце;
 - `.ai/roles/developer/frontend/INDEX.md`, если task is frontend;
 - `.ai/rules/development/frontend/RULE-REFERENCE-PATTERN-SCAN-BEFORE-IMPLEMENTATION.md`;
 - `.codex/skills/frontend-runtime-evidence/SKILL.md`, если нужен browser or

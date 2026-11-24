@@ -1,0 +1,48 @@
+/**
+ * @file packages/ui-kit/src/layout/UiLayout.module.css
+ * @version 1.0.0
+ * @date 2026-11-12
+ * @description Владеет контейнерами, gutters и container-query уровнями общей сетки.
+ * @see documentation/architecture/ui-kit.md
+ */
+.container {
+  box-sizing: border-box;
+  inline-size: 100%;
+  min-inline-size: 0;
+  margin-inline: auto;
+}
+.container[data-ui-container="contained"] {
+  max-inline-size: var(--ui-container-contained-max, 80rem);
+}
+.container[data-ui-container="reading"] {
+  max-inline-size: var(--ui-container-reading-max, 72ch);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  /* В узком слоте gutters не могут занять больше всей ширины 12 треков. */
+  column-gap: min(
+    var(--ui-grid-column-gap, var(--ui-space-4)),
+    calc(100% / 12)
+  );
+  row-gap: var(--ui-grid-row-gap, var(--ui-space-4));
+  min-inline-size: 0;
+  min-block-size: 0;
+  container: ui-grid / inline-size;
+}
+.item {
+  min-inline-size: 0;
+  min-block-size: 0;
+  grid-column: span var(--ui-grid-span-base);
+}
+/* Единственный источник thresholds: CSS, без копии в React и без hydration-перекомпоновки. */
+@container ui-grid (min-width: 48rem) {
+  .item {
+    grid-column: span var(--ui-grid-span-md);
+  }
+}
+@container ui-grid (min-width: 64rem) {
+  .item {
+    grid-column: span var(--ui-grid-span-lg);
+  }
+}

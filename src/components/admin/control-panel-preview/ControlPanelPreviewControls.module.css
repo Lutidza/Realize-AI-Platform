@@ -1,0 +1,28 @@
+/**
+ * @file src/components/admin/control-panel-preview/ControlPanelPreviewControls.module.css
+ * @version 2.1.0
+ * @date 2026-11-22
+ * @description Размещает внешний preview trigger и поля без локальных стилей кнопок и списков.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+.controls.controls {
+  position: fixed;
+  inset-block-start: calc(
+    (var(--panel-topbar-height) - var(--panel-topbar-action-height)) / 2
+  );
+  inset-inline-end: 8px;
+  z-index: 20;
+  width: fit-content;
+}
+.fields {
+  display: grid;
+  gap: var(--ui-space-4);
+}
+.field {
+  display: grid;
+  gap: var(--ui-space-2);
+}
+.field label {
+  font-size: 12px;
+  color: var(--ui-color-muted);
+}

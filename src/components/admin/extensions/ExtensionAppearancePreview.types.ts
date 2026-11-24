@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/extensions/ExtensionAppearancePreview.types.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-12
  * @description Описывает проверенное назначение и actor для appearance и shell предпросмотров.
  */
 import type { ExtensionAssignment } from "@realize/payload-extension-manager/contracts";
@@ -13,6 +13,8 @@ import type { TemplateAdminStatusProps } from "@realize/template-contracts/react
 export type ExtensionAppearancePreviewProps = {
   assignment: ExtensionAssignment;
   expiresAt: string;
+  /** Readiness берётся из текущего каталога; отсутствие сохраняет обычный preview. */
+  readiness?: "ready" | "preview-only";
   currentActor: SystemAdminContext["currentActor"];
 };
 export type ExtensionAppearancePreviewStatusProps = {

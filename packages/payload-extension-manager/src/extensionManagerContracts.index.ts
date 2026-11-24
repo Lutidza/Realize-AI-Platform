@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/extensionManagerContracts.index.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.3.0
+ * @date 2026-11-18
  * @description Экспортирует browser-safe contracts/schemas/maps без Node, React, Payload и AI.
  * @see documentation/specifications/extension-management.md
  */
@@ -81,6 +81,7 @@ export type {
   ExtensionHttpErrorCode,
 } from "./ExtensionManager.types";
 export type {
+  ExtensionTemplateReadiness,
   ExtensionCatalogRegistration,
   ExtensionCatalogEntry,
   ExtensionCatalog,
@@ -91,6 +92,7 @@ export type {
 } from "./catalog/ExtensionCatalog.types";
 export type {
   ExtensionAssignment,
+  ExtensionLayoutAssignmentWritePolicy,
   ExtensionTargetState,
   PrepareExtensionAppearanceInput,
   ApplyExtensionAppearanceInput,

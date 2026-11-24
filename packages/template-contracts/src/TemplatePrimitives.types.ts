@@ -1,7 +1,7 @@
 /**
  * @file packages/template-contracts/src/TemplatePrimitives.types.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Задаёт native API заменяемых примитивов template-пакета.
  */
 
@@ -10,6 +10,8 @@ import type { ComponentProps, ComponentType } from "react";
 /** Сохраняет native props/ref; disabledAppearance не отменяет нативный disabled. */
 export type TemplateButtonProps = ComponentProps<"button"> & {
   variant?: "primary" | "secondary" | "ghost" | "danger";
+  /** Семантическое представление; геометрию toolbar определяет активный шаблон. */
+  appearance?: "default" | "toolbar";
   size?: "default" | "icon" | "small";
   disabledAppearance?: "muted" | "preserved";
 };

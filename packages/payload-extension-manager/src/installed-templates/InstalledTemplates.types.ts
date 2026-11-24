@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/installed-templates/InstalledTemplates.types.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Определяет read-only inventory runtime и отдельные состояния выбора, активности и defaults.
  * @see documentation/specifications/extension-management.md
  */
@@ -14,7 +14,10 @@ import type {
   ExtensionAssignment,
   ExtensionAppearanceStore,
 } from "../appearance/ExtensionAppearance.types";
-import type { ExtensionCatalog } from "../catalog/ExtensionCatalog.types";
+import type {
+  ExtensionTemplateReadiness,
+  ExtensionCatalog,
+} from "../catalog/ExtensionCatalog.types";
 
 /** Host проверяет receipt против BUILD_ID именно работающего процесса до передачи mapper. */
 export type InstalledTemplateRuntimeReceipt = {
@@ -40,7 +43,11 @@ export type InstalledTemplatePaletteDto = {
   modes: TemplateMode[];
 };
 export type InstalledTemplateActionReason =
-  "read_only" | "requires_schema" | "runtime_unverified" | "unavailable";
+  | "read_only"
+  | "requires_schema"
+  | "runtime_unverified"
+  | "unavailable"
+  | "preview_only";
 export type InstalledTemplateActionsDto = {
   settings: boolean;
   select: boolean;
@@ -72,6 +79,7 @@ export type InstalledTemplateEntryDto =
     })
   | (InstalledTemplateEntryFields & {
       kind: "package";
+      readiness?: ExtensionTemplateReadiness;
       packageName: string;
       palettes: InstalledTemplatePaletteDto[];
     });

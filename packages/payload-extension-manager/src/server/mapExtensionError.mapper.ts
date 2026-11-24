@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/server/mapExtensionError.mapper.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.3.0
+ * @date 2026-11-18
  * @description Проецирует только allowlist кодов и понятных сообщений, исключая provider exception.
  * @see documentation/specifications/extension-management.md
  */
@@ -10,6 +10,10 @@ import type { ExtensionManagerErrorCode } from "../appearance/ExtensionAppearanc
 import { ExtensionManagerHttpError } from "./ExtensionManagerHttp.error";
 
 const messages: Record<ExtensionManagerErrorCode, string> = {
+  LAYOUT_BINDING_WRITES_DISABLED:
+    "Подготовка нового формата назначения пока недоступна. Требуется совместимое обновление установки.",
+  TEMPLATE_PREVIEW_ONLY:
+    "Шаблон доступен для настройки и предпросмотра. Рабочее применение пока недоступно.",
   INVALID_POLICY: "Конфигурация оболочек требует проверки оператором.",
   POLICY_CHANGED: "Доступность оболочек изменилась. Подготовьте новый план.",
   SHELL_UNAVAILABLE: "Выбранная оболочка недоступна в этой установке.",

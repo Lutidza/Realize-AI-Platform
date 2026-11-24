@@ -1,11 +1,12 @@
 /**
  * @file packages/payload-extension-manager/src/admin-shell/adminShell.schemas.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Проверяет строгие shell commands, immutable records и browser-safe DTO.
  * @see documentation/specifications/extension-management.md
  */
 import { z } from "zod";
+import { extensionTemplateReadinessSchema } from "../catalog/templateReadiness.schemas";
 import {
   extensionActorKeySchema,
   extensionAssignmentSchema,
@@ -113,6 +114,7 @@ export const adminShellPlanSchema = z
   .refine(coherentPlan, { message: "Plan mode or expiry mismatch" });
 export const adminShellPlanDtoSchema = z
   .strictObject({
+    readiness: extensionTemplateReadinessSchema.optional(),
     ...planFields,
     planId: extensionRequestIdSchema,
     planHash: extensionHashSchema,

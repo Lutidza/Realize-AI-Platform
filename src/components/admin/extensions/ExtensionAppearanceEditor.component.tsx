@@ -1,16 +1,23 @@
 /**
  * @file src/components/admin/extensions/ExtensionAppearanceEditor.component.tsx
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Отображает активное назначение и управляемый черновик без исполнения mutation.
  */
-import { UiBadge, UiButton, UiSelect, UiSurface } from "@realize/ui-kit";
+import {
+  UiBadge,
+  UiButton,
+  UiNotice,
+  UiSelect,
+  UiSurface,
+} from "@realize/ui-kit";
 import type { ExtensionAppearanceEditorProps } from "./ExtensionManagerUi.types";
 import {
   extensionTemplateKey,
   findExtensionDraftEntry,
 } from "./extensionAppearanceDraft.util";
 import { readExtensionSettings } from "./extensionSettingsFields.util";
+import { EXTENSION_PREVIEW_ONLY_MESSAGE } from "./extensionReadiness.constants";
 import { ExtensionSettingsFields } from "./ExtensionSettingsFields.component";
 import styles from "./ExtensionManager.module.css";
 
@@ -55,6 +62,9 @@ export function ExtensionAppearanceEditor({
             </span>
           )}
         </div>
+        {entry?.readiness === "preview-only" && (
+          <UiNotice role="status">{EXTENSION_PREVIEW_ONLY_MESSAGE}</UiNotice>
+        )}
         <form
           onSubmit={(event) => {
             event.preventDefault();

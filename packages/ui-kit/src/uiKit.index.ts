@@ -1,7 +1,7 @@
 /**
  * @file packages/ui-kit/src/uiKit.index.ts
- * @version 2.1.0
- * @date 2026-11-03
+ * @version 2.3.0
+ * @date 2026-11-12
  * @description Экспортирует общие примитивы и тему интерфейса Realize.
  */
 
@@ -53,3 +53,24 @@ export {
   parseUiCalendarDate,
   formatUiCalendarDate,
 } from "./date-picker/uiCalendarDate.util";
+
+export { UiPopover } from "./popover/UiPopover.component";
+export type { UiPopoverProps } from "./popover/UiPopover.types";
+export { UiSelectMenu } from "./select/UiSelectMenu.component";
+export type {
+  UiSelectMenuProps,
+  UiSelectMenuOption,
+} from "./select/UiSelectMenu.types";
+
+export { UiContainer } from "./layout/UiContainer.component";
+export { UiGrid } from "./layout/UiGrid.component";
+export { UiGridItem } from "./layout/UiGridItem.component";
+export type {
+  UiContainerVariant,
+  UiContainerProps,
+  UiGridProps,
+  UiGridStyle,
+  UiGridSpan,
+  UiGridResponsiveSpan,
+  UiGridItemProps,
+} from "./layout/UiLayout.types";

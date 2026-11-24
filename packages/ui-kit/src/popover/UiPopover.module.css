@@ -1,0 +1,82 @@
+/**
+ * @file packages/ui-kit/src/popover/UiPopover.module.css
+ * @version 1.0.1
+ * @date 2026-11-12
+ * @description Оформляет общий floating-слой через токены UI-kit.
+ * @see documentation/architecture/ui-kit.md
+ */
+.portal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+.content {
+  box-sizing: border-box;
+  width: var(--ui-popover-width, 296px);
+  max-inline-size: calc(100vw - 16px);
+  pointer-events: auto;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  box-shadow: var(--ui-shadow-surface);
+  animation: enter 160ms ease-out;
+}
+.scrollBody {
+  max-block-size: var(--ui-popover-available-height, calc(100dvh - 24px));
+  overflow: auto;
+  border-radius: inherit;
+}
+.arrow {
+  position: absolute;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  fill: var(--ui-color-surface);
+  stroke: var(--ui-color-border);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-2) var(--ui-space-3) 0 var(--ui-space-4);
+}
+.header h2 {
+  font-size: var(--ui-menu-font-size, 14px);
+  font-weight: 600;
+}
+.close.close {
+  width: 32px;
+  min-height: 32px;
+  padding: 4px;
+}
+.body {
+  padding: var(--ui-popover-body-padding, var(--ui-space-4));
+}
+/* Без transform: вложенный fixed Select остаётся в системе координат viewport. */
+@keyframes enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    animation: none;
+  }
+}
+@media (pointer: coarse) {
+  .trigger {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+  .close.close {
+    width: 44px;
+    min-height: 44px;
+  }
+}

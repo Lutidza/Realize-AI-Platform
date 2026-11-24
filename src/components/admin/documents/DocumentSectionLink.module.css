@@ -1,0 +1,19 @@
+/**
+ * @file src/components/admin/documents/DocumentSectionLink.module.css
+ * @version 1.0.0
+ * @date 2026-11-22
+ * @description Оформляет ссылки раздела токенами активной темы.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+
+.link {
+  color: var(--ui-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  overflow-wrap: anywhere;
+}
+
+.link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}

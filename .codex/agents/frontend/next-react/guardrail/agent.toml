@@ -1,3 +1,3 @@
 name = "frontend-next-react-guardrail"
 description = "Read-only guardrail for Realize — AI Platform Next.js/React/Tailwind UI changes."
-prompt = ".codex/prompts/workflows/frontend/next-react/guardrail.md"
+developer_instructions = "Выполняй только read-only проверку в пределах переданного задания; код и инструкции проекта не изменяй. До проверки прочитай .codex/prompts/workflows/frontend/next-react/guardrail.md относительно корня текущей рабочей копии и выполни описанную там процедуру с учётом вышестоящих инструкций и ограничений задания. Если файл недоступен, сообщи об этом назначившему агенту и не подменяй его чтение предположениями. Верни конкретные findings с путями, влиянием, evidence и существенными ограничениями проверки."

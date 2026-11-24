@@ -1,10 +1,12 @@
 /**
  * @file packages/payload-extension-manager/src/appearance/mapExtensionAppearancePlan.mapper.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Возвращает allowlist плана без actor/request metadata.
  * @see documentation/specifications/extension-management.md
  */
+import type { ExtensionCatalog } from "../catalog/ExtensionCatalog.types";
+import { getExtensionTemplateReadiness } from "../catalog/assertExtensionAssignmentReady.validator";
 import type {
   ExtensionAssignment,
   ExtensionAppearancePlan,
@@ -15,8 +17,13 @@ import type {
 export function mapExtensionAppearancePlan(
   plan: ExtensionAppearancePlan,
   current: ExtensionAssignment | null,
+  catalog?: ExtensionCatalog,
 ): ExtensionAppearancePlanDto {
+  const readiness =
+    catalog &&
+    getExtensionTemplateReadiness(catalog, plan.desiredAssignment.selection);
   return {
+    ...(readiness === undefined ? {} : { readiness }),
     planId: plan.id,
     planHash: plan.hash,
     action: plan.action,

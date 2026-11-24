@@ -178,6 +178,61 @@ Commit, push, fetch, pull, merge и изменяющий manage использу
 с разными схемами; inspect и читающий manage его не создают.
 Дополнительные БД, сессия для продолжения и Markdown-отчёт на каждый вызов не нужны.
 
+### Компактная сводка inspect
+
+Если нужны metadata и число изменений без списка путей, результат стандартного
+адаптера можно передать readonly renderer. Git-действие и его контекст сохраняются:
+
+```bash
+set -o pipefail
+npm run --silent git:worker -- inspect | node --import=tsx/esm .ai/tools/git-delivery/src/worker/renderGitInspectSummary.controller.ts
+```
+
+Renderer читает только stdin и пишет stdout. Только согласованный успешный
+программный inspect получает `projection: {kind: "git-inspect-summary", version: 1}`.
+Все исходные поля report/result сохраняются, кроме `result.changes.items`:
+вместо списка добавляются `reportedCount`, `statusCounts`, `totalCount` и
+`pathsOmitted: true`; `truncated` сохраняется. Counts относятся только к выданным
+записям проверенной области. При `truncated: true` точный `totalCount` неизвестен
+и равен `null`; projection не заменяет полный ответ для анализа конкретных путей.
+
+Blocked/failed/partial, конфигурационные ошибки, неизвестные envelopes, неверный
+JSON или UTF-8 проходят побайтно без изменений. До 64 KiB stdin накапливается
+для проверки; при превышении renderer передаёт накопленные и последующие байты
+потоком с backpressure. Stderr производителя не перенаправляется, а `pipefail`
+сохраняет его ненулевой exit. Сам renderer не вызывает Git, процессы, сеть или
+файловые операции; ошибка его потока завершается кодом `1`.
+
+### Диагностика расхода вызывающего Codex
+
+Программный `inspect` не делает запросов к модели. Его нулевой `worker.usage`
+не включает расход вызывающего Codex на инструкции, историю и результаты команд.
+Повторные inspect одной задачи выполняй из совместимого существующего контекста;
+для внешнего Codex порядок resume описан в
+[skill сессии](../../../.codex/skills/codex-external-worker-session/SKILL.md#продолжение-внешней-сессии).
+Каждый запрос свежего состояния всё равно запускает новый inspect.
+
+В Codex CLI `0.162.1` обычная root-сессия использует `session_id` как
+`prompt_cache_key`; при ChatGPT-auth тот же ключ передаётся в `session-id`
+для cache affinity по upstream. Фактическая маршрутизация сервером не измерялась.
+Новый `exec` меняет ключ, `exec resume` сохраняет identity. Это не гарантирует
+cache hit. Поддержанного CLI-параметра retention для этой версии нет;
+произвольные `-c prompt_cache_*` не подтверждают применение таких параметров.
+Источник поведения ключа —
+[upstream client.rs версии 0.162.1](https://github.com/openai/codex/blob/rust-v0.162.1/codex-rs/core/src/client.rs#L581-L603).
+
+Для A/B закрепи CLI/model/config, задание, hashes источников и scope. Сохрани
+порядок и все оплаченные попытки, включая невалидные, без скрытого прогрева.
+Сравнение fresh/resume включает историю, reuse инструкций и affinity вместе.
+В append-only журнале считай usage новых turn по точному `turn_id`;
+CLI resume может выдавать накопительный итог thread. `input - cached` измеряет
+uncached tokens, а не деньги. `cached=0` само по себе не оправдывает повтор.
+Хеши сообщений из rollout не доказывают стабильность полного provider payload
+или причину miss; raw request/reasoning и секреты ради диагностики не сохраняй.
+Для отдельной задачи наблюдения фактических запросов используй
+[hash-only инструмент](../codex-request-diagnostics/README.md) с его границами
+TLS relay, ephemeral history и проверкой coverage.
+
 ## Короткая операция и рабочий контекст
 
 Выбор между короткой операцией, продолжением задачи и новым досье принадлежит

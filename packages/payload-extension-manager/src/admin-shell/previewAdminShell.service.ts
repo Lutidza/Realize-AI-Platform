@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/admin-shell/previewAdminShell.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Проверяет native/custom кандидат без переключения host или изменения settings.
  * @see documentation/specifications/extension-management.md
  */
@@ -23,5 +23,5 @@ export function previewAdminShell(
   const plan = store.plans.find((candidate) => candidate.id === input.planId);
   if (!plan) throw new ExtensionManagerError("PLAN_NOT_FOUND");
   assertAdminShellPlanCurrent({ ...input, store, plan });
-  return mapAdminShellPlan(plan);
+  return mapAdminShellPlan(plan, input.appearance?.catalog);
 }

@@ -1,0 +1,102 @@
+/**
+ * @file src/components/admin/documents/DocumentListScreen.module.css
+ * @version 1.1.1
+ * @date 2026-11-24
+ * @description Размещает строки и пагинацию списка в области содержимого панели.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+
+.section {
+  display: grid;
+  gap: var(--ui-space-4);
+  min-inline-size: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw + 1rem, 2rem);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.surface {
+  --document-list-padding: clamp(var(--ui-space-4), 3vw, var(--ui-space-8));
+  min-inline-size: 0;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  gap: var(--ui-space-2) var(--ui-space-6);
+  padding: var(--ui-space-4) var(--document-list-padding);
+}
+
+.row + .row,
+.pagination {
+  border-block-start: 1px solid var(--ui-color-border);
+}
+
+.summary {
+  display: grid;
+  gap: var(--ui-space-1);
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.documentTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.description,
+.updatedAt {
+  margin: 0;
+  color: var(--ui-color-muted);
+  line-height: 1.5;
+}
+
+.description {
+  font-size: 0.875rem;
+}
+
+.updatedAt {
+  font-size: 0.8125rem;
+}
+
+.empty {
+  margin: 0;
+  padding: var(--document-list-padding);
+  color: var(--ui-color-muted);
+}
+
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-4);
+  padding: var(--ui-space-3) var(--document-list-padding);
+  font-size: 0.875rem;
+}
+
+@media (width > 1024px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+}

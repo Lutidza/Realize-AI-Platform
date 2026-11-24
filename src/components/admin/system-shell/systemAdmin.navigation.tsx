@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/systemAdmin.navigation.tsx
- * @version 1.11.0
- * @date 2026-10-19
+ * @version 1.12.0
+ * @date 2026-11-22
  * @description Задаёт порядок, названия, иконки и доступные переходы общей навигации Realize.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -33,6 +33,7 @@ import {
   SYSTEM_AI_ANALYTICS_ROUTE,
   SYSTEM_APPEARANCE_ROUTE,
   SYSTEM_ACCESS_ROUTE,
+  SYSTEM_DOCUMENTS_ROUTE,
 } from "./systemAdmin.routes";
 import { SYSTEM_ADMIN_ANALYTICS_NAVIGATION } from "./systemAdminAnalytics.navigation";
 import { SYSTEM_ADMIN_WORKSHOP_NAVIGATION } from "./systemAdminWorkshop.navigation";
@@ -165,6 +166,7 @@ export function getSystemAdminNavigation({
       label: "Документация",
       icon: <BookOpenText {...iconProps} />,
       description: "Руководства и справочные материалы по работе с системой.",
+      href: SYSTEM_DOCUMENTS_ROUTE,
     },
   ];
 }

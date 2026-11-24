@@ -34,7 +34,9 @@ related_tools:
 - Для разрешённой правки использовать direct route
   [процесса развития](../../../workflows/ai-operations/agents-evolution/WORKFLOW.md).
   Для отложенного или ещё не разрешённого решения полезен отдельный proposal;
-  его dedup/fingerprint не обязателен для каждой правки.
+  его dedup/fingerprint не обязателен для каждой правки. Материалы `gates/`
+  открывай по выбранному proposal route, без загрузки всего каталога для direct
+  change.
 - Согласовать владельца, checks, registry, роли и adapters без копирования
   полного требования. Проверить навигацию и отсутствие противоречий.
 - Product code и runtime tools изменять только при соответствующем задании

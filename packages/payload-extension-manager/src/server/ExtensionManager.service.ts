@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/server/ExtensionManager.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-18
  * @description Авторизует каталог и appearance планы; новый код не попадает в ложную install очередь.
  * @see documentation/specifications/extension-management.md
  */
@@ -115,6 +115,8 @@ export class ExtensionManagerService {
       async (store) => {
         await this.authorize("appearance");
         const result = prepareExtensionAppearance({
+          // Включение записи требует отдельной подтверждённой доставки readers и rollback build.
+          layoutAssignmentWrites: "disabled",
           store,
           catalog,
           actorKey,
@@ -167,6 +169,7 @@ export class ExtensionManagerService {
       async (store) => {
         await this.authorize("appearance");
         const result = applyExtensionAppearance({
+          layoutAssignmentWrites: "disabled",
           store,
           catalog,
           actorKey,

@@ -1,13 +1,15 @@
 # Системный шаблон админки Realize
 
-Версия: 0.47, 2026-10-19. Потребители — Task Manager Foundation, reference и Мастерская.
+Версия: 0.54, 2026-11-13. Потребители — Task Manager Foundation, reference и Мастерская.
 
 ## Ответственность и границы
 
 Целевая первая поставка **RealizeAI Control Panel** и последовательность перехода
-зафиксированы в [release scope](../specifications/RealizeAI Control Panel-first-release.md).
-Он развивает существующего владельца, сохраняет reference baseline и задаёт
-gates глобального покрытия. Описанная ниже реализация `0.1.0` остаётся текущим
+зафиксированы в [release scope](../specifications/realize-ai-control-panel-first-release.md).
+Новый продукт принадлежит `packages/template-realizeai-control-panel`
+(`@realize/template-realizeai-control-panel`, ID `realizeai-control-panel`).
+`packages/template-realize` сохраняется как legacy/reference с ID `realize`;
+прежние назначения и потребители не переносятся автоматически. Описанная ниже реализация `0.1.0` остаётся текущим
 срезом, а не подтверждением готовности RealizeAI Control Panel.
 
 `packages/template-realize/src/layouts/admin/` владеет компоновкой Realize: глобальная
@@ -18,6 +20,82 @@ React и общие primitives; он не импортирует Next, Payload, 
 Общий dialog/portal и варианты tabs принадлежат UI-kit. Базовые компоненты
 сохраняют самостоятельное использование; в template host Button/Input разрешаются
 через выбранный adapter, без зависимости UI-kit от конкретного Realize package.
+
+## Целевой контракт Control Panel от 2026-11-09
+
+Канонические решения будущего каркаса, сетки, компонентов и редактора находятся
+в [§3.1–3.8 release specification](../specifications/realize-ai-control-panel-first-release.md#31-согласованный-фокус-и-границы-первого-каркаса).
+Это target contract, а не описание уже внедрённых изменений:
+
+- layout находится внутри шаблона; система компоновки включает каркас CSS Grid,
+  адаптивную 12-колоночную сетку содержимого и локальные Grid/Flex-композиции;
+  токены, gutters и правила адаптивности согласованы на всех уровнях;
+- публичные области — `rail`, `topbar`, `sidebar`, `panel-content`, `footer`;
+  пустые области сохраняются, mobile-композиция включается при ширине ≤1024px;
+- геометрия референса сохраняется через семантические токены; округление размеров
+  ради шкалы 4/8px не требуется. Корректировки допускаются при конкретной
+  структурной проблеме с объяснением пользы и согласованием; эталонный выпуск
+  не переписывается;
+- навигация для Admin/frontend и элементы topbar подключаются по контрактам;
+  выбор формы их поставки выполняется отдельно от чистого каркаса;
+- поддерживаются только совместимые компоненты, объявленные overrides/base
+  представления и отдельная возможность изменения структуры layout;
+- ориентир — собственный редактор Realize с сериализуемой композицией и общими
+  операциями для человека и агента; runtime React props не являются persistence.
+
+Согласованный [контракт настроек](../specifications/realize-ai-control-panel-first-release.md#37-согласованный-контракт-настроек-и-приоритеты)
+разделяет оформление, layout, композицию и runtime-состояние. Первоначальные
+поля — `paletteId`, `mode`, `density`, `panelWidth`, `layoutId`; палитра и режим
+не дублируются в settings. Приоритет: defaults версии → назначение → разрешённые
+личные mode/density. Контейнер и сетку выбирает экран внутри `panel-content`.
+Layout по-русски называется **«Макет»**. Версия шаблона объявляет каталог и
+`defaultLayoutId`; явный выбор хранится в `settings.layoutId`, не в `selection`.
+Отсутствие поля сохраняет наследование default, неизвестный ID вызывает ошибку.
+Первые Admin-макеты — `default` и `without-topbar`; отсутствие topbar во втором
+является свойством макета, а пустой topbar в первом сохраняется. Настройки и
+recovery должны быть доступны также без верхней панели.
+Выбор макета через рабочую админку и density preferences требуют реализации
+и совместимости с текущими schemas. Текущий preview-шаг переключения описан
+отдельно ниже и не является сохранением назначения.
+
+Ниже сохранён фактический legacy-срез `0.1.0`, в том числе 74/52/280px, mobile
+boundary 900px, прежнее имя workspace и встроенная навигация. Новый пакет
+разрабатывается независимо: первый MVP-срез — manifest/definition, пустой
+`default` и preview `/reference/control-panel` с минимумом footer 36px и mobile boundary
+≤1024px. Рабочее назначение и БД не меняются. После проверки первого макета
+текущий исходный срез поддерживает `without-topbar` и переключение в preview. Полное ядро, installer, редактор и новая схема коллекций
+не являются условиями этого среза. Текущий Extension Manager и его инструменты
+проверяются как существующие реализации, а не заранее утверждённая архитектура
+нового процесса установки. Preview проверен на восьми размерах 320…1440px,
+включая 1024/1025px, и в desktop dark; legacy identity и геометрия сохранены.
+Текущий review-server — `http://127.0.0.1:3001/reference/control-panel`;
+это исходный preview, не deployment основной службы.
+
+Исходный первый пакет имеет собственную версию `0.1.0`, manifest protocol `1.0`
+и только `admin/workspace`. Его package-owned typed каталог макета не расширяет
+общий manifest protocol. Отдельный preview root не использует legacy provider;
+новая definition не добавляется в серверный installed catalog автоматически.
+В первом срезе пакет проверял `density`, `panelWidth` и optional
+`layoutId: "default"`; compact не меняет геометрию shell. Текущий шаг расширяет
+layoutId до `"default" | "without-topbar"` с сохранением отсутствующего выбора. Точная граница —
+[§3.9 спецификации](../specifications/realize-ai-control-panel-first-release.md#39-граница-реализации-первого-исходного-среза).
+
+Текущий согласованный шаг —
+[§3.10: второй макет и переключение в preview](../specifications/realize-ai-control-panel-first-release.md#310-второй-макет-и-переключение-в-preview).
+В `without-topbar` header отсутствует, нижняя часть занимает освободившуюся
+высоту; brand rail остаётся 52px, прочие размеры областей сохраняются.
+Фиксированная панель вне макета выбирает наследование/default/without-topbar и
+light/dark. Выбор находится в URL `layout`/`mode`, не в БД или рабочей cookie;
+панель не меняет CSS Grid и геометрию shell. Server installed catalog,
+assignments и protocol `1.0` этим срезом не расширяются. Browser-приёмка обоих
+макетов и URL-навигации требуется отдельно после реализации.
+
+Проверка двух макетов: 60 адресных tests и TypeScript/ESLint прошли; браузер
+подтвердил отсутствие header и прирост main/sidebar на 52px, footer 36px,
+границу 1024/1025px и light/dark на desktop/mobile. Нативная GET-форма сохраняет
+проверочный выбор в URL и восстанавливает его при reload/back/forward; панель
+доступна с клавиатуры. Неизвестный layout или неподдерживаемый mode возвращает 404, без подмены default.
+Новый пакет всё ещё не включён в рабочее назначение и installed catalog.
 
 ## Штатный и пакетный интерфейсы Admin
 
@@ -584,6 +662,18 @@ props. `/system/task-manager` использует тот же gate и shell с 
 Next определяет зависимость защищённого экрана от запроса до подключения к БД.
 Это позволяет штатной production-сборке без DB credentials пропустить
 prerender защищённых страниц; сессия и роль проверяются при реальном запросе.
+При отсутствии разрешённого runtime assignment source config не передаётся
+renderer напрямую. `resolveSystemAdminFallbackAppearance` чисто, без запросов
+БД, проверяет source и явно заданный recovery против compiled manifests,
+совместимости, settings и readiness. Рабочий контекст исключает preview-only;
+невалидный source может выбрать только проверенный host recovery с
+`requiresRecovery: true`, а не случайный пакет. Если оба невалидны, возвращается
+`ADMIN_APPEARANCE_UNAVAILABLE`. Явное `appearance: "reference"` проверяет recovery
+как отдельный reference-preview и не активирует его; auth/session/роль сохраняют
+проверку `requireSystemAdmin`. 33 адресных host tests от 2026-11-13 подтвердили
+эту границу. Dev-приёмка штатного preview описана в
+[§3.13 Control Panel](../specifications/realize-ai-control-panel-first-release.md#313-подключение-к-штатным-настройкам-без-активации).
+
 Центр `/system/access` и подтверждение CLI `/system/access/device` используют
 тот же template host с режимом `cookieOnly`: непустая Users cookie, отключённый
 autoLogin, проверенная `local-jwt` strategy и отсутствие Authorization header.

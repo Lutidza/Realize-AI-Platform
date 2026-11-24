@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/catalog/createExtensionCatalog.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Собирает bounded compiled каталог и hash metadata/host/runtime без installation.
  * @see documentation/specifications/extension-management.md
  */
@@ -16,6 +16,8 @@ import type {
 } from "./ExtensionCatalog.types";
 import { ExtensionManagerError } from "../appearance/ExtensionManager.error";
 import { hashExtensionValue } from "../appearance/hashExtensionValue.server";
+import { extensionTemplateReadinessSchema } from "./templateReadiness.schemas";
+import { compileExtensionLayoutCatalog } from "./compileExtensionLayoutCatalog.validator";
 
 /** Перестановка registry не меняет hash; функции не сериализуются и не считаются artifact digest. */
 export function createExtensionCatalog(
@@ -37,6 +39,13 @@ export function createExtensionCatalog(
     const entries = input.entries
       .map((registration) => {
         const manifest = parseTemplateManifest(registration.manifest);
+        const layoutCatalog = compileExtensionLayoutCatalog(
+          registration.layouts,
+          manifest,
+        );
+        const readiness = extensionTemplateReadinessSchema
+          .optional()
+          .parse(registration.readiness);
         if (
           !isTemplateSettings(registration.settingsSchema) ||
           typeof registration.resolveSettings !== "function" ||
@@ -44,6 +53,8 @@ export function createExtensionCatalog(
         )
           throw new ExtensionManagerError("INVALID_CATALOG");
         return {
+          ...(layoutCatalog === undefined ? {} : { layoutCatalog }),
+          ...(readiness === undefined ? {} : { readiness }),
           manifest,
           settingsSchema: structuredClone(registration.settingsSchema),
           manifestHash: hashExtensionValue(manifest),
@@ -74,6 +85,12 @@ export function createExtensionCatalog(
       entries: entries.map((entry) => ({
         manifest: entry.manifest,
         settingsSchema: entry.settingsSchema,
+        ...(entry.layoutCatalog === undefined
+          ? {}
+          : { layoutCatalogHash: entry.layoutCatalog.catalogHash }),
+        ...(entry.readiness === undefined
+          ? {}
+          : { readiness: entry.readiness }),
       })),
     });
     return {

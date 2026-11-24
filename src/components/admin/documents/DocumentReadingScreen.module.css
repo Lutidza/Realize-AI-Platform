@@ -1,0 +1,75 @@
+/**
+ * @file src/components/admin/documents/DocumentReadingScreen.module.css
+ * @version 1.2.0
+ * @date 2026-11-24
+ * @description Задаёт отступы и типографику документа поверх общих токенов UI-kit.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+
+.navigation {
+  margin-block-end: var(--ui-space-4);
+}
+
+.article > .prose {
+  display: grid;
+  margin-inline: 0;
+  gap: var(--ui-space-8);
+  padding: clamp(var(--ui-space-4), 4vw, var(--ui-space-8));
+  overflow-wrap: anywhere;
+}
+
+.header {
+  display: grid;
+  gap: var(--ui-space-3);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw + 1rem, 2rem);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+
+.description {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.updatedAt {
+  margin: 0;
+  color: var(--ui-color-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.sections {
+  display: grid;
+  gap: var(--ui-space-8);
+}
+
+.section {
+  display: grid;
+  gap: var(--ui-space-4);
+  scroll-margin-block-start: var(--ui-space-6);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.paragraphs {
+  display: grid;
+  gap: var(--ui-space-3);
+}
+
+.paragraph {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.75;
+}

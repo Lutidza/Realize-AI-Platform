@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/extensions/ExtensionAppearancePlan.component.tsx
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Показывает immutable appearance plan, preview и разрешённое применение.
  */
 import {
@@ -13,12 +13,14 @@ import {
 } from "@realize/ui-kit";
 import type { ExtensionAppearancePlanProps } from "./ExtensionManagerUi.types";
 import { systemAppearancePreviewRoute } from "../system-shell/systemAdmin.routes";
+import { EXTENSION_PREVIEW_ONLY_MESSAGE } from "./extensionReadiness.constants";
 import styles from "./ExtensionManager.module.css";
 
 export function ExtensionAppearancePlan({
   plan,
   disabled,
   invalidReason,
+  readiness,
   onApply,
   onDiscard,
 }: ExtensionAppearancePlanProps) {
@@ -51,6 +53,9 @@ export function ExtensionAppearancePlan({
         >
           {JSON.stringify(desired.settings, null, 2)}
         </pre>
+        {readiness === "preview-only" && (
+          <UiNotice role="status">{EXTENSION_PREVIEW_ONLY_MESSAGE}</UiNotice>
+        )}
         {invalidReason && (
           <UiNotice tone="danger" role="alert">
             {invalidReason}
@@ -69,7 +74,9 @@ export function ExtensionAppearancePlan({
             Предпросмотр
           </a>
           <UiButton
-            disabled={disabled || Boolean(invalidReason)}
+            disabled={
+              disabled || Boolean(invalidReason) || readiness === "preview-only"
+            }
             onClick={onApply}
           >
             Применить план

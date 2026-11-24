@@ -7,13 +7,16 @@ description: >-
 
 # Проверка frontend поведения
 
-Используй матрицу `.ai/rules/global/RULE-GLOBAL-PROJECT-GUARDRAILS.md`
-и фактический owner из `documentation/project-context.md`. Уже прочитанные
-правила и контекст повторно не загружай.
+Выбирай проверки по
+[маршрутизации DoD](../../../.ai/workflows/core/main-delivery/WORKFLOW.md#маршрутизация-dod-dod_routing).
+Фактического owner уточняй в относящемся к задаче разделе
+`documentation/project-context.md`. Уже доступные актуальные тексты используй
+без повторной загрузки; из длинного workflow или контекста читай только
+недостающий раздел.
 
 1. Назови затронутый route/component, observable scenario и критерий успеха.
    Для responsive изменений выбери нужные viewport, для форм — изменённые states.
-2. Выбери проверку по матрице. Static/typecheck/build/browser не являются
+2. Выбери проверку по изменению и риску. Static/typecheck/build/browser не являются
    последовательностью обязательных tier. Воспроизведи дефект до правки,
    если это помогает проверить исправление.
 3. После изменения собери evidence выбранного сценария: rendered DOM/computed CSS,

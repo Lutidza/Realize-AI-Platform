@@ -38,11 +38,11 @@ Codex-адаптеры — в `.codex/**`.
    [Целевые инженерные полномочия ENG-05](architecture/platform-access.md#единые-инженерные-полномочия-eng-05) —
    identity/grants для IDE, Admin и GPT, персональный OAuth и границы native доступа.
 10. [Протокол инженерных операций ENG-06](architecture/engineering-operations.md) —
-   DTO, plan/preview/apply, блокировки, восстановление, генераторы и пределы проверок/очередей;
-   §12 — основание ENG-07; §13 — создание файлов/папок ENG-08; §§14–15 —
-   exact-version edit ENG-09 и bounded project/directory move ENG-10 с metadata,
-   ссылками и case-only ограничениями. §16 — план первого среза ENG-11 на
-   пользовательской проверке; клиентские tools ещё не активированы.
+    DTO, plan/preview/apply, блокировки, восстановление, генераторы и пределы проверок/очередей;
+    §12 — основание ENG-07; §13 — создание файлов/папок ENG-08; §§14–15 —
+    exact-version edit ENG-09 и bounded project/directory move ENG-10 с metadata,
+    ссылками и case-only ограничениями. §16 — план первого среза ENG-11 на
+    пользовательской проверке; клиентские tools ещё не активированы.
 
 Подключение аккаунта ChatGPT или API key и требования к исполнителям:
 [интеграция Codex](architecture/codex-integration.md).
@@ -89,7 +89,7 @@ skills, оценка, улучшение и сравнение результа�
   полный редактор задач, участники, чеклисты, связи и модель исполнения.
 - [Системный шаблон админки](architecture/system-admin-shell.md)
   — общая оболочка Realize, независимая от Payload CSS, host adapter и постепенный перенос.
-- [Первый релиз RealizeAI Control Panel](specifications/RealizeAI Control Panel-first-release.md)
+- [Первый релиз RealizeAI Control Panel](specifications/realize-ai-control-panel-first-release.md)
   — целевой состав, identity/version, reuse, безопасный переход и критерии
   глобального назначения Admin и отдельного оформления сайта.
 - [Исполнение задач и интеграция с AI](specifications/task-management-execution.md)
@@ -105,6 +105,20 @@ skills, оценка, улучшение и сравнение результа�
   — официальные примеры, применимые сценарии и требования к экранам.
 
 ## Исторические материалы
+
+[Доставка layout reader в локальный web, 2026-11-21](reports/2026-11-21-layout-reader-deployment.md)
+— actual BUILD_ID/health, read-only сохранность назначений и ledger, закрытый
+writer и ограниченный rollback readiness check.
+
+[Локальный rollback-кандидат layout reader, 2026-11-21](reports/2026-11-21-layout-reader-rollback-candidate.md)
+— переносимый архив, compiled-reader matrix и изолированный runtime smoke; без
+обновления работающей службы и включения writer.
+
+[Проверка доставки layout reader и сборки отката, 2026-11-21](reports/2026-11-21-layout-reader-delivery-rollback-audit.md)
+— установленный artifact, отказ нового binding и границы локальной проверки rollback.
+
+[Два макета Control Panel: metadata, bindings и состояние, 2026-11-17](reports/2026-11-17-control-panel-layout-contract-first-slice.md)
+— два draft определения `0.1.0`, exact pins, стабильный Frame и проверки в браузере.
 
 [Разбор референса для RealizeAI Control Panel, 2026-10-19](reports/2026-10-19-realize-one-reference-breakdown.md)
 — TASK-22 / ONE-03: композиция, общие элементы, состояния, desktop/mobile и

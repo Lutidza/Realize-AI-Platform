@@ -1,13 +1,16 @@
 /**
  * @file packages/payload-extension-manager/src/installed-templates/mapInstalledTemplatesSnapshot.mapper.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Формирует allowlist установленного runtime inventory без записи или вымышленного installer receipt.
  * @see documentation/specifications/extension-management.md
  */
 import type { TemplateTarget } from "@realize/template-contracts";
 import type { ExtensionAssignment } from "../appearance/ExtensionAppearance.types";
-import type { ExtensionCatalogEntry } from "../catalog/ExtensionCatalog.types";
+import type {
+  ExtensionCatalogEntry,
+  ExtensionTemplateReadiness,
+} from "../catalog/ExtensionCatalog.types";
 import type {
   InstalledTemplateActionsDto,
   InstalledTemplateEntryDto,
@@ -34,6 +37,7 @@ function actionsFor(
   verified: boolean,
   availability: InstalledTemplateEntryDto["availability"],
   settings: boolean,
+  readiness?: ExtensionTemplateReadiness,
 ): InstalledTemplateActionsDto {
   const reason = !input.manageAppearance
     ? "read_only"
@@ -46,8 +50,8 @@ function actionsFor(
           : null;
   return {
     settings: reason === null && settings,
-    select: reason === null,
-    reason,
+    select: reason === null && readiness !== "preview-only",
+    reason: reason ?? (readiness === "preview-only" ? "preview_only" : null),
   };
 }
 
@@ -94,6 +98,7 @@ function mapPackage(
   });
   return {
     kind: "package",
+    ...(entry.readiness === undefined ? {} : { readiness: entry.readiness }),
     key: `package:${entry.manifest.id}@${entry.manifest.version}`,
     id: entry.manifest.id,
     name: entry.manifest.displayName,
@@ -109,7 +114,13 @@ function mapPackage(
       label: palette.label,
       modes: [...palette.modes],
     })),
-    actions: actionsFor(input, verified, availability, editable),
+    actions: actionsFor(
+      input,
+      verified,
+      availability,
+      editable,
+      entry.readiness,
+    ),
   };
 }
 

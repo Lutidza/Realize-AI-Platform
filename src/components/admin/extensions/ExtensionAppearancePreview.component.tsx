@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/extensions/ExtensionAppearancePreview.component.tsx
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-12
  * @description Проверяет candidate layout и общие controls на локальных примерах без сохранения оформления.
  * @see documentation/specifications/extension-management.md
  */
@@ -16,6 +16,7 @@ import {
   UiSelect,
   UiSurface,
   UiSwitch,
+  getUiButtonClassName,
 } from "@realize/ui-kit";
 import { SystemAdminTemplateHost } from "../system-shell/SystemAdminTemplateHost.component";
 import { getSystemAdminNavigation } from "../system-shell/systemAdmin.navigation";
@@ -24,6 +25,8 @@ import {
   SYSTEM_TASK_MANAGER_ROUTE,
 } from "../system-shell/systemAdmin.routes";
 import type { ExtensionAppearancePreviewProps } from "./ExtensionAppearancePreview.types";
+import { useSystemAdminTemplate } from "../system-shell/useSystemAdminTemplate.hook";
+import { EXTENSION_PREVIEW_ONLY_MESSAGE } from "./extensionReadiness.constants";
 import styles from "./ExtensionManager.module.css";
 
 /** Локальный mode switch меняет только preview; данные являются явно обозначенными примерами. */
@@ -31,6 +34,7 @@ export function ExtensionAppearancePreview({
   assignment,
   expiresAt,
   currentActor,
+  readiness,
 }: ExtensionAppearancePreviewProps) {
   const [mode, setMode] = useState(assignment.selection.mode);
   const [text, setText] = useState("Пример текста");
@@ -38,37 +42,81 @@ export function ExtensionAppearancePreview({
   const [enabled, setEnabled] = useState(true);
   const [checked, setChecked] = useState(false);
   const selection = assignment.selection;
+  const previewOnly = readiness === "preview-only";
+  const { setMode: setTemplateMode } = useSystemAdminTemplate();
   return (
     <SystemAdminTemplateHost
       screen="workspace"
       mode={mode}
       onModeChange={setMode}
       locale="ru"
-      context="Предпросмотр оформления"
-      navigation={getSystemAdminNavigation({
-        onTasks: () => window.location.assign(SYSTEM_TASK_MANAGER_ROUTE),
-      })}
-      activeNavigationId="themes"
-      capabilities={{
-        account: {
-          user: {
-            name: currentActor.name,
-            initials: currentActor.name.slice(0, 2).toUpperCase(),
-          },
-          profileActions: [],
-        },
-      }}
-      pageActions={[
-        {
-          id: "back-to-appearance",
-          label: "Вернуться к назначениям",
-          icon: <ArrowLeft size={16} aria-hidden="true" />,
-          onSelect: () => window.location.assign(SYSTEM_APPEARANCE_ROUTE),
-        },
-      ]}
+      context={previewOnly ? undefined : "Предпросмотр оформления"}
+      navigation={
+        previewOnly
+          ? []
+          : getSystemAdminNavigation({
+              onTasks: () => window.location.assign(SYSTEM_TASK_MANAGER_ROUTE),
+            })
+      }
+      activeNavigationId={previewOnly ? "" : "themes"}
+      capabilities={
+        previewOnly
+          ? undefined
+          : {
+              account: {
+                user: {
+                  name: currentActor.name,
+                  initials: currentActor.name.slice(0, 2).toUpperCase(),
+                },
+                profileActions: [],
+              },
+            }
+      }
+      pageActions={
+        previewOnly
+          ? undefined
+          : [
+              {
+                id: "back-to-appearance",
+                label: "Вернуться к назначениям",
+                icon: <ArrowLeft size={16} aria-hidden="true" />,
+                onSelect: () => window.location.assign(SYSTEM_APPEARANCE_ROUTE),
+              },
+            ]
+      }
       footer="Предпросмотр не изменяет активное оформление."
     >
-      <div className={styles.workbench}>
+      <div className={[styles.workbench, styles.previewWorkbench].join(" ")}>
+        {previewOnly && (
+          <>
+            <a
+              href={SYSTEM_APPEARANCE_ROUTE}
+              className={getUiButtonClassName({
+                variant: "secondary",
+                size: "small",
+              })}
+            >
+              Вернуться к назначениям
+            </a>
+            <UiNotice role="status">{EXTENSION_PREVIEW_ONLY_MESSAGE}</UiNotice>
+            <label className={styles.field}>
+              Тема предпросмотра
+              <UiSelect
+                value={mode}
+                onChange={(event) => {
+                  const next = event.currentTarget.value;
+                  if (next === "light" || next === "dark") {
+                    setMode(next);
+                    setTemplateMode(next);
+                  }
+                }}
+              >
+                <option value="light">Светлая</option>
+                <option value="dark">Тёмная</option>
+              </UiSelect>
+            </label>
+          </>
+        )}
         <UiNotice
           tone="positive"
           title="Предпросмотр — изменения ещё не применены"

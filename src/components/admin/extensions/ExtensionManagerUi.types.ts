@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/extensions/ExtensionManagerUi.types.ts
- * @version 1.0.1
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Описывает stateless widgets каталога, назначения, плана и истории.
  */
 import type {
@@ -51,6 +51,7 @@ export type ExtensionAppearancePlanProps = {
   plan: ExtensionAppearancePlanDto;
   disabled: boolean;
   invalidReason: string | null;
+  readiness?: ExtensionCatalogEntryDto["readiness"];
   onApply: () => void;
   onDiscard: () => void;
 };

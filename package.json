@@ -110,6 +110,7 @@
     "@realize/ai-contracts": "0.1.0",
     "@realize/change-engine": "0.1.0",
     "@realize/codex-adapter": "0.1.0",
+    "@realize/element-registry": "0.1.0",
     "@realize/engineering-runtime": "0.1.0",
     "@realize/git-runtime": "0.1.0",
     "@realize/verification-runtime": "0.1.0",
@@ -151,7 +152,8 @@
     "tailwind-merge": "^3.6.0",
     "typescript": "6.0.3",
     "zod": "4.6.5",
-    "@realize/payload-access-management": "0.1.0"
+    "@realize/payload-access-management": "0.1.0",
+    "@realize/template-realizeai-control-panel": "0.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",

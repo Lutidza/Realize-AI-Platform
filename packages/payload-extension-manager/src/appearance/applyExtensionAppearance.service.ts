@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/appearance/applyExtensionAppearance.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Применяет один appearance plan через CAS и actor/request replay ledger.
  * @see documentation/specifications/extension-management.md
  */
@@ -18,7 +18,9 @@ import { validateExtensionOperation } from "./validateExtensionOperation.validat
 import { parseExtensionAppearanceStore } from "./parseExtensionAppearanceStore.validator";
 import { assertExtensionPlanCurrent } from "./assertExtensionPlanCurrent.validator";
 import { hashExtensionValue } from "./hashExtensionValue.server";
+import { assertExtensionAssignmentReady } from "../catalog/assertExtensionAssignmentReady.validator";
 import { mapExtensionAppearanceReceipt } from "./mapExtensionAppearanceReceipt.mapper";
+import { assertLayoutAssignmentWritesAllowed } from "./assertLayoutAssignmentWritesAllowed.validator";
 
 /** Replay проверяется до TTL/catalog/base; caller атомарно записывает target и immutable receipt. */
 export function applyExtensionAppearance(
@@ -52,6 +54,10 @@ export function applyExtensionAppearance(
   if (plan.hash !== command.expectedPlanHash)
     throw new ExtensionManagerError("PLAN_HASH_MISMATCH");
   assertExtensionPlanCurrent({ ...input, store, plan });
+  assertExtensionAssignmentReady(
+    input.catalog,
+    plan.desiredAssignment.selection,
+  );
   if (
     store.receipts.length >= EXTENSION_APPEARANCE_LIMITS.receipts ||
     store.targets[plan.target].revision >= Number.MAX_SAFE_INTEGER - 1
@@ -82,6 +88,7 @@ export function applyExtensionAppearance(
     plans: store.plans.filter((candidate) => candidate.id !== plan.id),
     receipts: [...store.receipts, receipt],
   });
+  assertLayoutAssignmentWritesAllowed(next, input.layoutAssignmentWrites);
   return {
     store: next,
     receipt: mapExtensionAppearanceReceipt(receipt),

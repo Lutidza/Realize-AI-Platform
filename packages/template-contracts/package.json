@@ -5,10 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/templateContracts.index.ts",
-    "./react": "./src/templateContracts.react.index.ts"
+    "./react": "./src/templateContracts.react.index.ts",
+    "./layouts/server": "./src/layouts/templateLayouts.server.index.ts"
   },
   "dependencies": {
-    "zod": "4.6.5"
+    "zod": "4.6.5",
+    "@realize/element-registry": "0.1.0"
   },
   "peerDependencies": {
     "react": "^19.2.8"

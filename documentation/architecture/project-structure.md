@@ -13,6 +13,13 @@
   постоянный Task Manager `/system/task-manager` и `/system/appearance` с
   actor-bound `/system/appearance/preview/[planId]`; reference остаётся отдельным маршрутом.
 - `src/payload.config.ts` — root Payload config и migration owner.
+- `packages/element-registry/**` — первый срез общих identity/owner contracts,
+  immutable compiled snapshot и lookup без Payload/React/AI runtime. Host entry —
+  `src/registry/realizeOwnerRegistry.config.ts`, пять source mappings —
+  `src/registry/realizeElementOwnerBindings.config.ts`. Это отдельный read-only
+  compiled entry; startup-интеграция и полный каталог компонентов не внедрены.
+  Область проверки от 17 ноября 2026 года —
+  [отчёт](../reports/2026-11-17-element-owner-registry-first-slice.md).
 - `src/plugins/index.ts` — единая точка регистрации Payload plugins.
 - `src/collections/**`, `src/globals/**`, `src/blocks/**` — активная Payload
   schema и content owners.
@@ -340,6 +347,16 @@ AI-layer audit от 2026-08-17 сохранён как historical evidence в
 
 `packages/template-contracts` — единый serializable manifest/selection API и
 публичные React contracts шаблонов; зависимости на Payload/Next/AI отсутствуют.
+Первый layout profile также принадлежит этому SDK: pure schema/parser/resolver
+на root entry, Node hash compiler на `/layouts/server`.
+`packages/template-realizeai-control-panel` — отдельный preview-only пакет нового
+шаблона. Его `src/controlPanelLayouts.metadata.ts` и public `/layouts` задают
+два draft определения `0.1.0` с exact alias pins; compiled bindings связывают их
+с одним стабильным Frame. Общую identity/owner schema предоставляет
+`packages/element-registry`. Явные owner registrations/package binding и
+отдельный layout catalog hash собираются в `src/registry/`; эти read-only входы
+не являются установщиком или подключением к рабочей активации. Контракт —
+[спецификация Control Panel](../specifications/realize-ai-control-panel-first-release.md#381-самостоятельные-определения-макетов-и-release-pins).
 `packages/template-realize` — самостоятельный первый Admin template package:
 manifest, настройки, palette, Button/Input, workspace/auth/status и полный
 renderer в `src/layouts/admin/`. UI-kit не импортирует этот пакет.

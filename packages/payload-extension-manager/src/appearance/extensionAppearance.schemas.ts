@@ -1,16 +1,18 @@
 /**
  * @file packages/payload-extension-manager/src/appearance/extensionAppearance.schemas.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Проверяет строгие команды и сериализуемые записи appearance lifecycle.
  * @see documentation/specifications/extension-management.md
  */
 import { z } from "zod";
 import {
   isTemplateSettings,
+  layoutAssignmentBindingSchema,
   templateSelectionSchema,
 } from "@realize/template-contracts";
 import type { TemplateSettings } from "@realize/template-contracts";
+import { extensionTemplateReadinessSchema } from "../catalog/templateReadiness.schemas";
 import { EXTENSION_APPEARANCE_LIMITS } from "./extensionAppearance.constants";
 
 export const extensionHashSchema = z.string().regex(/^[a-f0-9]{64}$/);
@@ -33,11 +35,35 @@ const revisionSchema = z
 const targetSchema = z.enum(["admin", "frontend"]);
 const timeSchema = z.iso.datetime();
 
-export const extensionAssignmentSchema = z.strictObject({
-  selection: templateSelectionSchema,
-  settings: extensionSettingsSchema,
-  manifestHash: extensionHashSchema,
-});
+/** Только reader: отсутствие binding сохраняется буквально; разрешение каталога выполняется отдельно. */
+export const extensionAssignmentSchema = z
+  .strictObject({
+    selection: templateSelectionSchema,
+    settings: extensionSettingsSchema,
+    manifestHash: extensionHashSchema,
+    layout: layoutAssignmentBindingSchema.optional(),
+  })
+  .superRefine((assignment, context) => {
+    if (Object.hasOwn(assignment, "layout") && assignment.layout === undefined)
+      context.addIssue({
+        code: "custom",
+        path: ["layout"],
+        message: "Omit an absent layout binding",
+      });
+    // Zod может продолжить refinement после custom issue у settings; не читаем невалидный объект.
+    if (
+      !assignment.layout ||
+      !isTemplateSettings(assignment.settings) ||
+      !Object.hasOwn(assignment.settings, "layoutId")
+    )
+      return;
+    if (assignment.settings.layoutId !== assignment.layout.localId)
+      context.addIssue({
+        code: "custom",
+        path: ["settings", "layoutId"],
+        message: "Explicit layout alias does not match binding",
+      });
+  });
 export const extensionTargetStateSchema = z.strictObject({
   revision: revisionSchema,
   current: extensionAssignmentSchema.nullable(),
@@ -73,6 +99,7 @@ export const applyExtensionAppearanceSchema = z.strictObject({
 /** DTO success проверяется до признания операции завершённой и освобождения request UUID. */
 export const extensionAppearancePlanDtoSchema = z
   .strictObject({
+    readiness: extensionTemplateReadinessSchema.optional(),
     planId: extensionRequestIdSchema,
     planHash: extensionHashSchema,
     action: z.enum(["assign", "recover"]),

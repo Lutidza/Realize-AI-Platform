@@ -1,0 +1,35 @@
+{
+  "name": "@realize/template-realizeai-control-panel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/controlPanelManifest.index.ts",
+    "./admin": "./src/controlPanel.index.ts",
+    "./manifest": "./src/controlPanelManifest.index.ts",
+    "./layouts": "./src/controlPanelLayouts.metadata.ts",
+    "./registry": "./src/controlPanelOwnerRegistration.config.ts",
+    "./package.json": "./package.json",
+    "./manifest.json": "./template.manifest.json",
+    "./settings": "./src/settings/resolveControlPanelSettings.validator.ts",
+    "./settings.schema.json": "./settings.schema.json"
+  },
+  "scripts": {
+    "generate:settings-schema": "node --import=tsx/esm scripts/generateSettingsSchema.controller.mjs"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "dependencies": {
+    "@realize/element-registry": "0.1.0",
+    "@realize/template-contracts": "0.1.0",
+    "@realize/ui-kit": "0.2.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.5"
+  },
+  "peerDependencies": {
+    "react": "^19.2.8"
+  }
+}

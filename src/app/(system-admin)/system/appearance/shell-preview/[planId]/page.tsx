@@ -1,7 +1,7 @@
 /**
  * @file src/app/(system-admin)/system/appearance/shell-preview/[planId]/page.tsx
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-11-12
  * @description Показывает exact candidate из shell plan после session/actor/TTL/CAS проверки.
  * @see documentation/specifications/extension-management.md
  */
@@ -64,6 +64,7 @@ export default async function SystemAdminShellPreviewPage({
         assignment={assignment}
         expiresAt={plan.expiresAt}
         currentActor={context.currentActor}
+        readiness={plan.readiness}
       />
     </SystemAdminTemplateProvider>
   );

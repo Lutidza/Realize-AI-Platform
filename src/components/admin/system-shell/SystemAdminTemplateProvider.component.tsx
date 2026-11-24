@@ -1,14 +1,17 @@
 /**
  * @file src/components/admin/system-shell/SystemAdminTemplateProvider.component.tsx
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-11
  * @description Связывает строгий выбор compiled Admin пакета с UI context без лишнего DOM.
  * @see documentation/architecture/system-admin-shell.md
  */
 
 "use client";
-import { useContext, useMemo, useState } from "react";
-import { resolveTemplateSelection } from "@realize/template-contracts";
+import { useCallback, useContext, useMemo, useState } from "react";
+import {
+  resolveTemplateSelection,
+  type TemplateMode,
+} from "@realize/template-contracts";
 import { UiTemplateProvider } from "@realize/ui-kit";
 import { adminAppearanceConfig } from "./adminAppearance.config";
 import { SYSTEM_ADMIN_TEMPLATES } from "./systemAdminTemplates.registry";
@@ -21,12 +24,22 @@ export function SystemAdminTemplateProvider({
   selection = adminAppearanceConfig.selection,
   settings = adminAppearanceConfig.settings,
   initialMode,
+  mode: controlledMode,
+  onModeChange,
   nativeAdminEnabled,
 }: SystemAdminTemplateProviderProps) {
   const parent = useContext(SYSTEM_ADMIN_TEMPLATE_CONTEXT);
   const nativeEnabled =
     nativeAdminEnabled ?? parent?.nativeAdminEnabled ?? true;
-  const [mode, setMode] = useState(initialMode ?? selection.mode);
+  const [localMode, setLocalMode] = useState(initialMode ?? selection.mode);
+  const mode = controlledMode ?? localMode;
+  const setMode = useCallback(
+    (next: TemplateMode) => {
+      if (controlledMode === undefined) setLocalMode(next);
+      onModeChange?.(next);
+    },
+    [controlledMode, onModeChange],
+  );
   const resolved = useMemo(
     () =>
       resolveTemplateSelection({
@@ -71,7 +84,7 @@ export function SystemAdminTemplateProvider({
       setMode,
       nativeAdminEnabled: nativeEnabled,
     }),
-    [definition, selection, effectiveSettings, mode, nativeEnabled],
+    [definition, selection, effectiveSettings, mode, setMode, nativeEnabled],
   );
   return (
     <SYSTEM_ADMIN_TEMPLATE_CONTEXT.Provider value={value}>

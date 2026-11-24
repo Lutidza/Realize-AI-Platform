@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/appearance/prepareExtensionAppearance.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Готовит immutable appearance plan с actor/UUID replay без изменения назначения.
  * @see documentation/specifications/extension-management.md
  */
@@ -20,6 +20,7 @@ import { validateExtensionOperation } from "./validateExtensionOperation.validat
 import { hashExtensionValue } from "./hashExtensionValue.server";
 import { resolveExtensionAssignment } from "../catalog/resolveExtensionAssignment.validator";
 import { mapExtensionAppearancePlan } from "./mapExtensionAppearancePlan.mapper";
+import { assertLayoutAssignmentWritesAllowed } from "./assertLayoutAssignmentWritesAllowed.validator";
 
 /** Persistence обязан сохранить новый plan/prepare receipt одной транзакцией и не evict ledger ключи. */
 export function prepareExtensionAppearance(
@@ -46,7 +47,11 @@ export function prepareExtensionAppearance(
       throw new ExtensionManagerError("PLAN_EXPIRED");
     return {
       store,
-      plan: mapExtensionAppearancePlan(receipt.plan, receipt.current),
+      plan: mapExtensionAppearancePlan(
+        receipt.plan,
+        receipt.current,
+        input.catalog,
+      ),
       replayed: true,
     };
   }
@@ -144,9 +149,10 @@ export function prepareExtensionAppearance(
     plans: [...retainedPlans, plan],
     receipts: [...store.receipts, prepareReceipt],
   });
+  assertLayoutAssignmentWritesAllowed(next, input.layoutAssignmentWrites);
   return {
     store: next,
-    plan: mapExtensionAppearancePlan(plan, state.current),
+    plan: mapExtensionAppearancePlan(plan, state.current, input.catalog),
     replayed: false,
   };
 }

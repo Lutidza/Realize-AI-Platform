@@ -1,0 +1,59 @@
+/**
+ * @file packages/template-realizeai-control-panel/src/palettes/ControlPanelPalette.module.css
+ * @version 1.4.0
+ * @date 2026-11-24
+ * @description Определяет семантические токены геометрии и rail поверх явно наследуемого UI-kit.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+.palette {
+  --ui-container-contained-max: 80rem;
+  --ui-container-reading-max: 72ch;
+  --ui-surface-radius: var(--ui-radius-md);
+  --ui-grid-column-gap: var(--ui-space-4);
+  --ui-grid-row-gap: var(--ui-space-4);
+  --ui-popover-width: 280px;
+  --ui-popover-body-padding: 12px;
+  --ui-menu-radius: var(--ui-radius-md);
+  --ui-menu-padding: 5px;
+  --ui-menu-font-size: 13px;
+  --ui-menu-font-weight: 500;
+  --ui-menu-line-height: 18px;
+  --ui-menu-item-radius: var(--ui-radius-sm);
+  --ui-menu-item-padding-inline: 9px;
+  --ui-menu-selected-background: color-mix(
+    in srgb,
+    var(--ui-color-primary) 9%,
+    var(--ui-color-surface)
+  );
+  --panel-topbar-height: 52px;
+  --panel-topbar-action-height: 36px;
+  --panel-frame-inset: 8px;
+  --panel-rail-panel-width: 58px;
+  --panel-rail-width: calc(
+    var(--panel-rail-panel-width) + 2 * var(--panel-frame-inset)
+  );
+  --panel-sidebar-width: 280px;
+  --panel-gap: 16px;
+  --panel-frame-radius: calc(
+    var(--ui-surface-radius) + var(--panel-frame-inset)
+  );
+  --panel-footer-min-height: 36px;
+  --panel-rail-background: var(--ui-color-surface-raised);
+  --panel-rail-text: var(--ui-color-text);
+}
+
+.palette[data-ui-theme="dark"] {
+  --panel-rail-background: linear-gradient(
+    180deg,
+    #281740,
+    #171023 55%,
+    #100d1b
+  );
+  --panel-rail-text: #dfd5f2;
+}
+
+@media (pointer: coarse) {
+  .palette {
+    --panel-topbar-action-height: 44px;
+  }
+}

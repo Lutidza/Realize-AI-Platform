@@ -32,6 +32,7 @@ import * as migration_20261011_215235_task_git_sync from './20261011_215235_task
 import * as migration_20261012_094626_extension_manager_state from './20261012_094626_extension_manager_state';
 import * as migration_20261019_065606_task_workspace_intake from './20261019_065606_task_workspace_intake';
 import * as migration_20261019_085743_platform_access from './20261019_085743_platform_access';
+import * as migration_20261122_123413_documents from './20261122_123413_documents';
 
 export const migrations = [
   {
@@ -202,6 +203,11 @@ export const migrations = [
   {
     up: migration_20261019_085743_platform_access.up,
     down: migration_20261019_085743_platform_access.down,
-    name: '20261019_085743_platform_access'
+    name: '20261019_085743_platform_access',
+  },
+  {
+    up: migration_20261122_123413_documents.up,
+    down: migration_20261122_123413_documents.down,
+    name: '20261122_123413_documents'
   },
 ];

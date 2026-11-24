@@ -1,7 +1,7 @@
 /**
  * @file tests/int/system-admin-navigation.int.spec.ts
- * @version 1.10.0
- * @date 2026-10-19
+ * @version 1.11.1
+ * @date 2026-11-23
  * @description Проверяет группы подпунктов, hover, клавиатурную и мобильную навигацию системного меню.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -1607,6 +1607,24 @@ describe("Общая навигация системной админки", () =
     expect(openHome).not.toHaveBeenCalled();
     expect(props.onNavigationPreferencesChange).not.toHaveBeenCalled();
   });
+});
+
+describe("Вход в документацию", () => {
+  it.each([true, false])(
+    "оставляет ссылку при nativeAdminEnabled=%s",
+    (nativeAdminEnabled) => {
+      const navigation = getSystemAdminNavigation({ onTasks: () => undefined });
+      const documentation = filterSystemAdminNavigation(
+        navigation,
+        nativeAdminEnabled,
+      ).find((item) => item.id === "documentation");
+
+      expect(documentation).toMatchObject({
+        label: "Документация",
+        href: "/system/documents",
+      });
+    },
+  );
 });
 
 describe("Навигация центра доступов", () => {

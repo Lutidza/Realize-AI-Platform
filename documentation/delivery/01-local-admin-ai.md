@@ -433,6 +433,17 @@ Unit-файлы принадлежат оператору и находятся 
 | `realize-execution.service`     | Штатный AI execution worker                       |
 | `realize-media.service`         | Штатный Payload Media worker                      |
 
+**21 ноября 2026 года:** только `realize-web.service` переключён на reader
+`lVEkQyOl_Fc34MI5N_840` из `.next/layout-reader-20261121-lVEkQyOl_Fc34MI5N_840`
+через отдельный ExecStart override. Actual BUILD_ID, live/readiness и static
+проверены; installed search/build pointer обновлён штатным owner. Остальные
+четыре службы сохранили PID. Read-only compiled codecs подтвердили сохранность
+appearance/Admin Shell state/ledger; четыре durable writer calls остаются
+`disabled`. Старый bundle сохранён, rollback `--check` прошёл без mutations;
+возврат к нему допустим только пока нет layout bindings. UI/hydration и
+глобальная minimum rollback build не объявляются проверенными. Evidence —
+[отчёт доставки](../reports/2026-11-21-layout-reader-deployment.md).
+
 Службы автоматически перезапускаются после завершения процесса. Явный
 `systemctl stop` оставляет их остановленными. Execution worker при остановке
 завершает принятое задание; systemd ожидает его сохранения, а ограничения времени

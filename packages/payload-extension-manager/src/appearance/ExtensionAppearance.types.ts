@@ -1,23 +1,31 @@
 /**
  * @file packages/payload-extension-manager/src/appearance/ExtensionAppearance.types.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.4.0
+ * @date 2026-11-18
  * @description Определяет независимые назначения, планы и durable replay ledger appearance.
  * @see documentation/specifications/extension-management.md
  */
 import type {
+  LayoutAssignmentBinding,
   TemplateSelection,
   TemplateSettings,
   TemplateTarget,
 } from "@realize/template-contracts";
-import type { ExtensionCatalog } from "../catalog/ExtensionCatalog.types";
+import type {
+  ExtensionCatalog,
+  ExtensionTemplateReadiness,
+} from "../catalog/ExtensionCatalog.types";
 
 /** Settings — нормализованный снимок; manifestHash относится к точной compiled версии. */
 export type ExtensionAssignment = {
   selection: TemplateSelection;
   settings: TemplateSettings;
   manifestHash: string;
+  /** Server-derived exact snapshot; durable запись отдельно закрыта write policy. */
+  layout?: LayoutAssignmentBinding;
 };
+/** Полномочие server operation, не поле command/DTO; отсутствие разрешения закрывает новую запись. */
+export type ExtensionLayoutAssignmentWritePolicy = "disabled" | "enabled";
 export type ExtensionTargetState = {
   revision: number;
   current: ExtensionAssignment | null;
@@ -61,6 +69,8 @@ export type ExtensionAppearancePlan = {
 };
 /** DTO не содержит actorKey/requestId/input fingerprint. */
 export type ExtensionAppearancePlanDto = {
+  /** Read-only текущая политика каталога; не входит в сохраняемый план или его hash. */
+  readiness?: ExtensionTemplateReadiness;
   planId: string;
   planHash: string;
   action: "assign" | "recover";
@@ -126,6 +136,7 @@ export type ExtensionOperationContext = {
   planId?: string;
 };
 export type PrepareExtensionAppearanceOperation = {
+  layoutAssignmentWrites?: ExtensionLayoutAssignmentWritePolicy;
   store: ExtensionAppearanceStore;
   catalog: ExtensionCatalog;
   actorKey: string;
@@ -143,6 +154,7 @@ export type PreviewExtensionAppearanceOperation = {
   nowMs: number;
 };
 export type ApplyExtensionAppearanceOperation = {
+  layoutAssignmentWrites?: ExtensionLayoutAssignmentWritePolicy;
   store: ExtensionAppearanceStore;
   catalog: ExtensionCatalog;
   actorKey: string;
@@ -175,4 +187,6 @@ export type ExtensionManagerErrorCode =
   | "NO_PREVIOUS_ASSIGNMENT"
   | "REPLAY_CONFLICT"
   | "LIMIT_REACHED"
+  | "TEMPLATE_PREVIEW_ONLY"
+  | "LAYOUT_BINDING_WRITES_DISABLED"
   | "ASSIGNMENT_UNAVAILABLE";

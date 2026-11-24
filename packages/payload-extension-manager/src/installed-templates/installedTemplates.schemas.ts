@@ -1,11 +1,12 @@
 /**
  * @file packages/payload-extension-manager/src/installed-templates/installedTemplates.schemas.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Проверяет строгий inventory DTO и runtime evidence без приватных полей и фиктивного native package.
  * @see documentation/specifications/extension-management.md
  */
 import { z } from "zod";
+import { extensionTemplateReadinessSchema } from "../catalog/templateReadiness.schemas";
 import { templateSelectionSchema } from "@realize/template-contracts";
 import { extensionHashSchema } from "../appearance/extensionAppearance.schemas";
 
@@ -53,7 +54,13 @@ const actions = z.strictObject({
   settings: z.boolean(),
   select: z.boolean(),
   reason: z
-    .enum(["read_only", "requires_schema", "runtime_unverified", "unavailable"])
+    .enum([
+      "read_only",
+      "requires_schema",
+      "runtime_unverified",
+      "unavailable",
+      "preview_only",
+    ])
     .nullable(),
 });
 const common = {
@@ -78,6 +85,7 @@ export const installedTemplateEntrySchema = z
     z.strictObject({
       ...common,
       kind: z.literal("package"),
+      readiness: extensionTemplateReadinessSchema.optional(),
       id: identifier,
       version,
       packageName: z
@@ -100,6 +108,8 @@ export const installedTemplateEntrySchema = z
   ])
   .refine(
     (entry) => {
+      const previewOnly =
+        entry.kind === "package" && entry.readiness === "preview-only";
       const allUsage = [
         ...entry.usage.selectedTargets,
         ...entry.usage.activeTargets,
@@ -114,9 +124,14 @@ export const installedTemplateEntrySchema = z
             !entry.actions.settings)) &&
         (entry.availability === "available" ||
           entry.usage.activeTargets.length === 0) &&
-        (entry.actions.settings || entry.actions.select
+        (!previewOnly ||
+          (!entry.actions.select && entry.usage.activeTargets.length === 0)) &&
+        (entry.actions.reason !== "preview_only" || previewOnly) &&
+        (entry.actions.select
           ? entry.actions.reason === null
-          : entry.actions.reason !== null) &&
+          : entry.actions.settings
+            ? entry.actions.reason === (previewOnly ? "preview_only" : null)
+            : entry.actions.reason !== null) &&
         (!(entry.actions.settings || entry.actions.select) ||
           (entry.installation === "confirmed" &&
             entry.availability === "available"))

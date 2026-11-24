@@ -1,0 +1,57 @@
+/**
+ * @file src/app/(control-panel-preview)/reference/control-panel/ControlPanelGridPreview.module.css
+ * @version 1.0.0
+ * @date 2026-11-12
+ * @description Задаёт только композицию и подписи демоблоков поверх общих layout primitives и Surface.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-6);
+  padding-block: var(--ui-space-4);
+}
+/* Только demo оставляет место внешним controls; макет без topbar сохраняет свою структуру. */
+:global([data-control-panel-layout="without-topbar"]) .preview {
+  padding-block-start: calc(var(--panel-topbar-height) + var(--ui-space-4));
+}
+.intro,
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  min-inline-size: 0;
+}
+.intro {
+  gap: var(--ui-space-1);
+}
+.preview h1 {
+  font-size: 22px;
+  font-weight: 600;
+}
+.preview h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+.preview h3 {
+  font-size: 14px;
+  font-weight: 600;
+}
+.preview p {
+  color: var(--ui-color-muted);
+}
+.track {
+  min-block-size: var(--ui-space-8);
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-2);
+  padding: var(--ui-space-4);
+  min-inline-size: 0;
+}
+.longText {
+  overflow-wrap: anywhere;
+  color: var(--ui-color-muted);
+  font-size: 12px;
+}

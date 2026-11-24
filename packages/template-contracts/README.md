@@ -10,6 +10,8 @@ AI runtime или внутренностей host.
   `resolveTemplateSelection`, DTO и `TemplateContractError`.
 - `@realize/template-contracts/react`: только presentation/definition/primitive
   types. Этот вход не запускает React и не содержит renderer.
+- `@realize/template-contracts/layouts/server`: синхронная сборка и проверка
+  SHA-256 каталога макетов; Node-only вход, не импортируется renderer.
 
 Manifest объявляет точные ID/version/packageName, target exports, screen IDs,
 optional capabilities, compatibility bounds, settings schema/defaults,
@@ -51,6 +53,37 @@ manifest не содержит self-hash.
 Корректный manifest не подтверждает доверие к коду, установку или готовность.
 Installer/Workshop используют один контракт, но остаются владельцами своих
 проверок, actor permissions, delivery, source/evidence и activation receipts.
+
+Первый layout profile `realize.admin-panel-frame@0.1.0` имеет отдельную strict
+schema. Root API экспортирует `parseLayoutDescriptor`, `parseTemplateLayoutCatalog`,
+`resolveTemplateLayout` и `assertLayoutSlots`. Metadata описывают identity,
+самостоятельную exact SemVer version, owner, template, runtime regions/slots и
+owner-bound README guides. Это ограниченный Admin profile, не общий редактор
+компонентов. Его версии могут содержать SemVer prerelease/build; manifest protocol
+1.0 выше по-прежнему принимает только стабильные версии.
+
+Каталог связывает template release, default alias и точные alias pins с
+определениями. Отсутствующий layoutId наследует default; явный неизвестный alias
+отклоняется. Parser нормализует, проверяет граф ссылок и замораживает metadata.
+Для DTO с catalogHash он проверяет только формат hash. Server API
+`createTemplateLayoutCatalog(input, expectedCatalogHash?)` пересчитывает hash и
+отклоняет несовпадающий claimed hash или независимый устаревший expected hash.
+Hash покрывает metadata/default/alias pins/template version, без bytes кода,
+CSS, guides или артефакта установки; он не подтверждает ACL или доступность
+runtime. Сравнение с expected hash само по себе не публикует определение.
+
+Срез двух draft definitions и точные ограничения реализации описаны в
+[спецификации Control Panel](../../documentation/specifications/realize-ai-control-panel-first-release.md#381-самостоятельные-определения-макетов-и-release-pins).
+
+С 18 ноября первый reader назначения понимает `LayoutAssignmentBinding`:
+`{schemaVersion:"1.0", localId, reference, catalogHash}`. Root API экспортирует
+`layoutAssignmentBindingSchema` и `parseLayoutAssignmentBinding`; parser
+проверяет bounded plain JSON и возвращает detached frozen snapshot. Неверная
+форма отклоняется с `INVALID_LAYOUT_BINDING`. Проверяется только формат exact
+reference/hash: существование в каталоге, target/profile, hash verification и
+runtime admission принадлежат следующему этапу. Тип wire input также доступен
+как `LayoutAssignmentBindingInput`. Новая схема не разрешает alias и не
+подставляет default в settings.
 
 Каноническое направление:
 [Мастерская](../../documentation/specifications/design-workshop.md),

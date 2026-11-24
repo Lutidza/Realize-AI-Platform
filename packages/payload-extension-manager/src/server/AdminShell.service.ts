@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/server/AdminShell.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-18
  * @description Авторизует независимый shell lifecycle и атомарно проверяет template dependency.
  * @see documentation/specifications/extension-management.md
  */
@@ -101,6 +101,7 @@ export class AdminShellService {
       "prepare",
       async (store, appearance) => {
         const result = prepareAdminShell({
+          layoutAssignmentWrites: "disabled",
           store,
           policy: current.policy,
           appearance,
@@ -137,6 +138,7 @@ export class AdminShellService {
       "apply",
       async (store, appearance) => {
         const result = applyAdminShell({
+          layoutAssignmentWrites: "disabled",
           store,
           policy: current.policy,
           appearance,

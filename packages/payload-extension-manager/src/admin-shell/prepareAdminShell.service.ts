@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/admin-shell/prepareAdminShell.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Готовит immutable native/custom план с UUID replay без изменения shell или appearance.
  * @see documentation/specifications/extension-management.md
  */
@@ -22,6 +22,7 @@ import { parseAdminShellPolicy } from "./parseAdminShellPolicy.validator";
 import { hashAdminShellPolicy } from "./hashAdminShellPolicy.server";
 import { captureAdminShellTemplate } from "./captureAdminShellTemplate.validator";
 import { mapAdminShellPlan } from "./mapAdminShellPlan.mapper";
+import { assertLayoutAssignmentWritesAllowed } from "../appearance/assertLayoutAssignmentWritesAllowed.validator";
 
 export function prepareAdminShell(
   input: PrepareAdminShellOperation,
@@ -45,7 +46,11 @@ export function prepareAdminShell(
       throw new ExtensionManagerError("REPLAY_CONFLICT");
     if (Date.parse(prior.plan.expiresAt) <= input.nowMs)
       throw new ExtensionManagerError("PLAN_EXPIRED");
-    return { store, plan: mapAdminShellPlan(prior.plan), replayed: true };
+    return {
+      store,
+      plan: mapAdminShellPlan(prior.plan, input.appearance?.catalog),
+      replayed: true,
+    };
   }
   const existing = store.plans.find(
     (plan) =>
@@ -127,5 +132,10 @@ export function prepareAdminShell(
     plans: [...retainedPlans, plan],
     receipts: [...store.receipts, receipt],
   });
-  return { store: next, plan: mapAdminShellPlan(plan), replayed: false };
+  assertLayoutAssignmentWritesAllowed(next, input.layoutAssignmentWrites);
+  return {
+    store: next,
+    plan: mapAdminShellPlan(plan, input.appearance?.catalog),
+    replayed: false,
+  };
 }

@@ -1,0 +1,150 @@
+/**
+ * @file packages/template-realizeai-control-panel/src/layouts/ControlPanelLayout.module.css
+ * @version 1.2.0
+ * @date 2026-11-24
+ * @description Задаёт сетку референса с постоянными областями и mobile-first границей 1024px.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+.shell {
+  position: relative;
+  display: grid;
+  grid-template-areas: "topbar" "body";
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--panel-topbar-height) minmax(0, 1fr);
+  inline-size: 100%;
+  block-size: 100dvh;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: clip;
+  background: var(--ui-color-surface);
+}
+.withoutTopbar {
+  grid-template-areas: "body";
+  grid-template-rows: minmax(0, 1fr);
+}
+.rail {
+  grid-area: rail;
+  display: none;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: 0 var(--panel-frame-inset) var(--panel-frame-inset);
+}
+.brand {
+  block-size: var(--panel-topbar-height);
+  flex-shrink: 0;
+}
+.railBody {
+  flex: 1;
+  min-block-size: 0;
+  margin-block-start: var(--panel-frame-inset);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--ui-surface-radius);
+  background: var(--panel-rail-background);
+  color: var(--panel-rail-text);
+}
+.topbar {
+  grid-area: topbar;
+  background: var(--ui-color-surface);
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-3);
+  padding-inline: var(--panel-frame-inset);
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+.body {
+  grid-area: body;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: var(--panel-gap);
+  overflow: clip;
+  background: var(--ui-color-bg);
+}
+.sidebar {
+  display: none;
+  inline-size: var(--panel-sidebar-width);
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-surface-radius);
+  padding: var(--ui-space-4);
+  background: var(--ui-color-surface);
+}
+.container {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--panel-gap);
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: clip;
+}
+.content {
+  position: relative;
+  border-radius: var(--ui-surface-radius);
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding-inline-end: var(--panel-gap);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+}
+.content:focus {
+  outline: none;
+}
+.footer {
+  min-inline-size: 0;
+  min-block-size: var(--panel-footer-min-height);
+  padding: var(--ui-space-2) var(--panel-gap);
+  overflow-wrap: anywhere;
+  border-block-start: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-muted);
+  font-size: 11px;
+}
+.skipLink {
+  position: fixed;
+  inset-block-start: var(--panel-frame-inset);
+  inset-inline-start: var(--panel-frame-inset);
+  z-index: 1;
+  transform: translateY(-200%);
+  padding: var(--ui-space-2) var(--ui-space-4);
+  border-radius: var(--ui-radius-sm);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-primary);
+}
+.skipLink:focus {
+  transform: none;
+}
+/* Ровно 1024px остаётся mobile; дробные ширины выше границы уже desktop. */
+@media (width > 1024px) {
+  .shell {
+    grid-template-areas: "rail topbar" "rail body";
+    grid-template-columns: var(--panel-rail-width) minmax(0, 1fr);
+  }
+  .withoutTopbar {
+    grid-template-areas: "rail body";
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .rail {
+    display: flex;
+    flex-direction: column;
+  }
+  .body {
+    grid-template-columns: var(--panel-sidebar-width) minmax(0, 1fr);
+    gap: var(--panel-gap);
+    padding: var(--panel-frame-inset);
+    border-start-start-radius: var(--panel-frame-radius);
+    border-end-start-radius: var(--panel-frame-radius);
+    box-shadow: inset 1px 1px 0 var(--ui-color-border);
+  }
+  .sidebar {
+    display: block;
+  }
+}

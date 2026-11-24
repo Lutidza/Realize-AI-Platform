@@ -10,12 +10,18 @@ description: >-
 
 Используй skill для application frontend задач в `Realize — AI Platform`.
 
-## Что открыть
+## Применимые источники
 
-1. `AGENTS.md`
-2. `documentation/project-context.md`
+Следуй общему протоколу `AGENTS.md`: используй уже доступные актуальные тексты,
+в том числе унаследованные, и дочитывай только недостающие фрагменты. Этот список
+не требует повторного входа или обхода всех ссылок.
+
+1. `AGENTS.md` — общий протокол, если его полного текста ещё нет в контексте.
+2. `documentation/project-context.md` — разделы о runtime и затронутом владельце.
 3. `.ai/roles/developer/frontend/INDEX.md`
-4. `.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md`
+4. `.ai/workflows/frontend/next-react/guardrail/WORKFLOW.md` — общий порядок;
+   из раздела о референсах только выбранные шаги соответствующего этапа, без
+   загрузки полного workflow.
 5. `.ai/rules/development/frontend/RULE-NEXT-REACT-FRONTEND-BOUNDARIES.md`
 6. `.ai/checks/development/frontend/CHECK-NEXT-REACT-FRONTEND-BOUNDARIES.md`
 

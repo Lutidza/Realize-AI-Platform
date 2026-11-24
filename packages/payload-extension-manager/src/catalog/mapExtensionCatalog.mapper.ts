@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/catalog/mapExtensionCatalog.mapper.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Выдаёт только schema-checked metadata compiled каталога без callbacks.
  * @see documentation/specifications/extension-management.md
  */
@@ -20,6 +20,10 @@ export function mapExtensionCatalog(
     runtimeBuildId: catalog.runtimeBuildId,
     hostCompatibility: structuredClone(catalog.hostCompatibility),
     entries: catalog.entries.map((entry) => ({
+      ...(entry.layoutCatalog === undefined
+        ? {}
+        : { layoutCatalog: structuredClone(entry.layoutCatalog) }),
+      ...(entry.readiness === undefined ? {} : { readiness: entry.readiness }),
       manifest: structuredClone(entry.manifest),
       manifestHash: entry.manifestHash,
       settingsSchema: structuredClone(entry.settingsSchema),

@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/extensions/ExtensionManager.component.tsx
- * @version 1.1.1
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-12
  * @description Подключает модуль «Темы и шаблоны» к нейтральному Admin host и безопасным appearance операциям.
  * @see documentation/specifications/extension-management.md
  */
@@ -127,6 +127,7 @@ export function ExtensionManager(props: ExtensionManagerProps) {
             plan={manager.plan}
             disabled={manager.locked || !manager.canManage}
             invalidReason={manager.invalidPlanReason}
+            readiness={manager.planReadiness}
             onApply={() => {
               void manager.apply();
             }}

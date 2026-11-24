@@ -52,7 +52,7 @@ Anthropic и LangChain используются как источники сра
 | Review и release gate | [gate](../../scripts/runtime/evaluation/checkEvaluationGate.service.ts) | Есть проверка fingerprint, среды, review и свежести evidence. Не подменять ручной review deterministic passed. |
 | Task lifecycle | [task-workspace](../../.ai/tools/task-workspace/README.md) | Задача уже создана на сервере. Не создавать параллельный TASK/manifest и не обходить managed cleanup. |
 | Создание skills | Внешний установленный Codex skill-creator | Содержит инструкции, init_skill.py, generate_openai_yaml.py и quick_validate.py. Не является переносимым project API; нельзя жёстко привязывать реализацию к локальному абсолютному пути. |
-| Проблемная роль | [agent.toml](../../.codex/agents/frontend/next-react/guardrail/agent.toml) | Поле prompt отклонено текущим Codex; отсутствует developer_instructions. Исправление и загрузка должны стать первым интеграционным сценарием после согласования. |
+| Frontend guardrail | [agent.toml](../../.codex/agents/frontend/next-react/guardrail/agent.toml) | Найденное при исходном аудите неподдержанное поле `prompt` заменено на `developer_instructions`: read-only граница и явное чтение существующего Markdown-задания без дублирования текста. Исправление формата не подтверждает runtime activation; загрузка роли и выполнение ссылочных инструкций остаются отдельным интеграционным сценарием. |
 
 ## 3. Владельцы и отсутствие дублирования
 

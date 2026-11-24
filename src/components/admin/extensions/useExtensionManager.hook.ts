@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/extensions/useExtensionManager.hook.ts
- * @version 1.1.1
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-12
  * @description Управляет snapshot, независимыми draft и планом над заменяемым template renderer.
  * @see documentation/specifications/extension-management.md
  */
@@ -133,6 +133,14 @@ export function useExtensionManager(
   const canManage =
     snapshot?.permissions.manageAppearance === true &&
     snapshot.storage === "ready";
+  const planReadiness = plan
+    ? snapshot?.catalog.entries.find(
+        (entry) =>
+          entry.manifest.id === plan.desiredAssignment.selection.templateId &&
+          entry.manifest.version ===
+            plan.desiredAssignment.selection.templateVersion,
+      )?.readiness
+    : undefined;
   const invalidPlanReason =
     !plan || !snapshot
       ? null
@@ -265,6 +273,7 @@ export function useExtensionManager(
       command.isLocked() ||
       loading ||
       invalidPlanReason ||
+      planReadiness === "preview-only" ||
       Date.parse(plan.expiresAt) <= Date.now()
     )
       return;
@@ -296,6 +305,7 @@ export function useExtensionManager(
     draftDirty,
     templateChange,
     invalidPlanReason,
+    planReadiness,
     commandError: command.error,
     pending: command.pending,
     refresh,

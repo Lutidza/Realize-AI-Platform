@@ -1,0 +1,14 @@
+{
+  "name": "@realize/element-registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/elementRegistry.index.ts",
+    "./server": "./src/elementRegistry.server.index.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
+  },
+  "sideEffects": false
+}

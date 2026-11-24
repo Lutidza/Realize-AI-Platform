@@ -1,7 +1,7 @@
 /**
  * @file src/app/(system-admin)/system/appearance/preview/[planId]/page.tsx
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.1.1
+ * @date 2026-11-12
  * @description Показывает точный кандидат из защищённого плана без смены рабочего назначения.
  * @see documentation/specifications/extension-management.md
  */
@@ -63,6 +63,7 @@ export default async function SystemAppearancePreviewPage({
         assignment={plan.desiredAssignment}
         expiresAt={plan.expiresAt}
         currentActor={context.currentActor}
+        readiness={plan.readiness}
       />
     </SystemAdminTemplateProvider>
   );

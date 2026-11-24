@@ -19,6 +19,15 @@ gateway, process tracking и lifecycle checks. Для изменения тол�
 продуктовый `services/ai-execution-worker/**`: их lifecycle и permissions
 различаются. Не навязывай SQLite/monitor/bootstrap прямой разработке.
 
+Для обычного external процесса используй общее
+[правило lifecycle](../../../rules/agent-runtime/RULE-WORKER-SESSION-LIFECYCLE-AND-AUTONOMOUS-MODE.md)
+и разделы [«Выбор режима»](../../../workflows/core/worker-session/WORKFLOW.md#выбор-режима)
+и [«Общая последовательность»](../../../workflows/core/worker-session/WORKFLOW.md#общая-последовательность).
+Managed-дополнение, runtime README, writer/schema и monitor подключай при
+явном выборе managed режима либо изменении соответствующего tool contract.
+Недостающий текст выбирай по разделам; используй уже полученные актуальные
+диапазоны без повторного чтения.
+
 До изменения tool contract прочитай реализацию и consumers; сохраняй cleanup,
 actor ownership и валидацию writer/schema. Проверь изменённые команды точечно,
 синхронизируй документацию/adapter. Не запускать maintenance или менять чужие

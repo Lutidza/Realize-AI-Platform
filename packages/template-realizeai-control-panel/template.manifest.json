@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0",
+  "id": "realizeai-control-panel",
+  "version": "0.1.0",
+  "packageName": "@realize/template-realizeai-control-panel",
+  "displayName": "RealizeAI Control Panel",
+  "entries": {
+    "admin": "./admin"
+  },
+  "targets": [
+    {
+      "target": "admin",
+      "screens": ["workspace"]
+    }
+  ],
+  "compatibility": {
+    "contractVersion": "1.0",
+    "platform": {
+      "minimum": "1.0.0",
+      "maximumExclusive": "2.0.0"
+    },
+    "react": {
+      "minimum": "19.2.8",
+      "maximumExclusive": "20.0.0"
+    },
+    "next": {
+      "minimum": "16.3.1",
+      "maximumExclusive": "17.0.0"
+    }
+  },
+  "settings": {
+    "schemaVersion": "1.1.0",
+    "schemaPath": "settings.schema.json",
+    "defaults": {
+      "density": "comfortable",
+      "panelWidth": 280
+    }
+  },
+  "palettes": [
+    {
+      "id": "realizeai-control-panel",
+      "version": "0.1.0",
+      "label": "RealizeAI Control Panel",
+      "modes": ["light", "dark"]
+    }
+  ],
+  "ui": {
+    "contractVersion": "1.0",
+    "primitives": ["Button", "Input"],
+    "inheritsDefault": true
+  }
+}

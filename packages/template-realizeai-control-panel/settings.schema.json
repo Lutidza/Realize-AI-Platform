@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "density": {
+      "default": "comfortable",
+      "title": "Плотность содержимого",
+      "x-enumLabels": { "comfortable": "Просторно", "compact": "Компактно" },
+      "type": "string",
+      "enum": ["comfortable", "compact"]
+    },
+    "panelWidth": {
+      "default": 280,
+      "title": "Ширина боковой панели",
+      "type": "integer",
+      "minimum": 220,
+      "maximum": 400
+    },
+    "layoutId": {
+      "title": "Макет",
+      "x-enumLabels": {
+        "default": "Стандартный",
+        "without-topbar": "Без верхней панели"
+      },
+      "description": "Отсутствие значения означает наследование макета по умолчанию.",
+      "type": "string",
+      "enum": ["default", "without-topbar"]
+    }
+  },
+  "additionalProperties": false,
+  "$id": "urn:realize:realizeai-control-panel:settings:1.1.0"
+}

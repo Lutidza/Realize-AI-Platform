@@ -85,6 +85,11 @@ runtime_sources:
   продукта. Его явный publisher выпускает artifact; runtime не читает инструкции
   из клиентского checkout. Вход — [реестр runtime](registry/rules/runtime/INDEX.md).
 - `tools/` содержит исходники и документацию локальных инструментов агентов.
+- [tools/context-reading/](tools/context-reading/README.md) читает выбранные
+  диапазоны документов ограниченными пакетами без записи файлов.
+- [tools/codex-request-diagnostics/](tools/codex-request-diagnostics/README.md)
+  наблюдает фактические запросы native Codex через временный TLS relay,
+  сохраняя только HMAC, counts и usage без payload или reasoning.
 - `tools/quality/` проверяет metadata и связи активного слоя для CI;
   поведенческие evals используют продуктовый adapter через `scripts/runtime/evaluation/`.
 - `tools/engineering/` содержит project binding для `source.util` и

@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/catalog/extensionCatalog.schemas.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-18
  * @description Проверяет публичную compiled catalog DTO без функций и приватных данных.
  * @see documentation/specifications/extension-management.md
  */
@@ -9,11 +9,16 @@ import { z } from "zod";
 import {
   templateManifestSchema,
   templateHostCompatibilitySchema,
+  templateLayoutCatalogSchema,
+  parseTemplateLayoutCatalog,
+  isTemplateSettings,
 } from "@realize/template-contracts";
 import {
   extensionHashSchema,
   extensionSettingsSchema,
 } from "../appearance/extensionAppearance.schemas";
+import { extensionTemplateReadinessSchema } from "./templateReadiness.schemas";
+import { assertExtensionLayoutCatalogScope } from "./assertExtensionLayoutCatalogScope.validator";
 
 export const extensionCatalogDtoSchema = z
   .strictObject({
@@ -26,14 +31,33 @@ export const extensionCatalogDtoSchema = z
     hostCompatibility: templateHostCompatibilitySchema,
     entries: z
       .array(
-        z.strictObject({
-          manifest: templateManifestSchema,
-          manifestHash: extensionHashSchema,
-          settingsSchema: extensionSettingsSchema.refine(
-            (schema) => schema.type === "object",
-          ),
-          availability: z.literal("compiled"),
-        }),
+        z
+          .strictObject({
+            layoutCatalog: templateLayoutCatalogSchema.optional(),
+            readiness: extensionTemplateReadinessSchema.optional(),
+            manifest: templateManifestSchema,
+            manifestHash: extensionHashSchema,
+            settingsSchema: extensionSettingsSchema.refine(
+              (schema) =>
+                isTemplateSettings(schema) && schema.type === "object",
+            ),
+            availability: z.literal("compiled"),
+          })
+          .superRefine((entry, context) => {
+            if (!entry.layoutCatalog) return;
+            try {
+              assertExtensionLayoutCatalogScope(
+                parseTemplateLayoutCatalog(entry.layoutCatalog),
+                entry.manifest,
+              );
+            } catch {
+              context.addIssue({
+                code: "custom",
+                path: ["layoutCatalog"],
+                message: "Layout catalog does not match template release",
+              });
+            }
+          }),
       )
       .max(100),
   })

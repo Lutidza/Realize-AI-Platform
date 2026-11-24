@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/admin-shell/applyAdminShell.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-18
  * @description Применяет shell CAS либо exact UUID replay; custom appearance остаётся readonly.
  * @see documentation/specifications/extension-management.md
  */
@@ -19,6 +19,7 @@ import { applyAdminShellSchema } from "./adminShell.schemas";
 import { parseAdminShellStore } from "./parseAdminShellStore.validator";
 import { assertAdminShellPlanCurrent } from "./assertAdminShellPlanCurrent.validator";
 import { mapAdminShellReceipt } from "./mapAdminShellReceipt.mapper";
+import { assertLayoutAssignmentWritesAllowed } from "../appearance/assertLayoutAssignmentWritesAllowed.validator";
 
 /** Persistence атомарно записывает только shell state и immutable shell receipt. */
 export function applyAdminShell(
@@ -48,6 +49,8 @@ export function applyAdminShell(
   if (plan.hash !== command.expectedPlanHash)
     throw new ExtensionManagerError("PLAN_HASH_MISMATCH");
   assertAdminShellPlanCurrent({ ...input, store, plan });
+  // Применяемый plan исчезнет из next, а shell receipt не содержит assignment.
+  assertLayoutAssignmentWritesAllowed(store, input.layoutAssignmentWrites);
   if (
     store.receipts.length >= EXTENSION_APPEARANCE_LIMITS.receipts ||
     store.state.revision >= Number.MAX_SAFE_INTEGER - 1
@@ -73,6 +76,7 @@ export function applyAdminShell(
     plans: store.plans.filter((candidate) => candidate.id !== plan.id),
     receipts: [...store.receipts, receipt],
   });
+  assertLayoutAssignmentWritesAllowed(next, input.layoutAssignmentWrites);
   return {
     store: next,
     receipt: mapAdminShellReceipt(receipt),

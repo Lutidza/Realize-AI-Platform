@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/catalog/resolveExtensionAssignment.validator.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-18
  * @description Проверяет exact compiled выбор и settings через общий SDK и доверенный package validator.
  * @see documentation/specifications/extension-management.md
  */
@@ -9,6 +9,8 @@ import {
   isTemplateSettings,
   resolveTemplateSelection,
   TemplateContractError,
+  resolveTemplateLayout,
+  parseLayoutAssignmentBinding,
 } from "@realize/template-contracts";
 import type { ResolveExtensionAssignmentInput } from "./ExtensionCatalog.types";
 import type { ExtensionAssignment } from "../appearance/ExtensionAppearance.types";
@@ -42,7 +44,26 @@ export function resolveExtensionAssignment(
     }
     if (!isTemplateSettings(settings))
       throw new ExtensionManagerError("INVALID_SETTINGS");
+    let layout;
+    if (entry.layoutCatalog) {
+      const explicit = Object.hasOwn(settings, "layoutId");
+      if (explicit && typeof settings.layoutId !== "string")
+        throw new ExtensionManagerError("INVALID_SETTINGS");
+      const resolved = resolveTemplateLayout(
+        entry.layoutCatalog,
+        explicit ? (settings.layoutId as string) : undefined,
+      );
+      if (resolved.descriptor.target !== selected.selection.target)
+        throw new ExtensionManagerError("ASSIGNMENT_UNAVAILABLE");
+      layout = parseLayoutAssignmentBinding({
+        schemaVersion: "1.0",
+        localId: resolved.localId,
+        reference: resolved.reference,
+        catalogHash: entry.layoutCatalog.catalogHash,
+      });
+    }
     return {
+      ...(layout === undefined ? {} : { layout }),
       selection: structuredClone(selected.selection),
       settings: structuredClone(settings),
       manifestHash: entry.manifestHash,

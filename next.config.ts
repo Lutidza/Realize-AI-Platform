@@ -1,7 +1,7 @@
 /**
  * @file next.config.ts
- * @version 1.5.5
- * @date 2026-11-05
+ * @version 1.6.0
+ * @date 2026-11-11
  * @description Настраивает сборку Next.js с Payload и общими пакетами Realize.
  */
 
@@ -58,6 +58,7 @@ const nextConfig: NextConfig = {
     "@realize/ui-kit",
     "@realize/template-contracts",
     "@realize/template-realize",
+    "@realize/template-realizeai-control-panel",
     "@realize/payload-extension-manager",
   ],
 };

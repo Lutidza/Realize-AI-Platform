@@ -1,11 +1,12 @@
 /**
  * @file src/payload.config.ts
- * @version 1.4.0
- * @date 2026-10-12
+ * @version 1.5.0
+ * @date 2026-11-22
  * @description Настраивает Payload, обработку Media и переходы к самостоятельным системным разделам.
  * @see documentation/specifications/media-management.md
  * @see documentation/specifications/task-management.md
  * @see documentation/specifications/design-workshop.md
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
  */
 
 import { postgresAdapter } from "@payloadcms/db-postgres";
@@ -25,6 +26,7 @@ import path from "path";
 import { buildConfig } from "payload";
 
 import { Categories } from "@/collections/Categories";
+import { Documents } from "@/collections/Documents";
 import { Media } from "@/collections/Media";
 import { MediaProfiles } from "@/collections/Media/MediaProfiles.collection";
 import { MediaOriginals } from "@/collections/Media/MediaOriginals.collection";
@@ -70,6 +72,7 @@ export default buildConfig({
   collections: [
     Users,
     Pages,
+    Documents,
     Categories,
     Media,
     MediaProfiles,

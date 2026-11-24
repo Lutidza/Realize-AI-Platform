@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-extension-manager/src/appearance/previewExtensionAppearance.service.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Проверяет appearance plan для preview без изменения storage или назначения.
  * @see documentation/specifications/extension-management.md
  */
@@ -24,5 +24,9 @@ export function previewExtensionAppearance(
   const plan = store.plans.find((candidate) => candidate.id === input.planId);
   if (!plan) throw new ExtensionManagerError("PLAN_NOT_FOUND");
   assertExtensionPlanCurrent({ ...input, store, plan });
-  return mapExtensionAppearancePlan(plan, store.targets[plan.target].current);
+  return mapExtensionAppearancePlan(
+    plan,
+    store.targets[plan.target].current,
+    input.catalog,
+  );
 }

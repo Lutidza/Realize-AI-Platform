@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/system-shell/requireSystemAdmin.service.ts
- * @version 1.5.0
- * @date 2026-10-19
+ * @version 1.5.1
+ * @date 2026-11-13
  * @description Проверяет сессию Payload и роль администратора перед выдачей безопасного UI-контекста.
  * @see documentation/architecture/system-admin-shell.md
  */
@@ -20,6 +20,8 @@ import {
 
 import { checkRole } from "@/access/utilities";
 import { extensionManagerOptions } from "@/plugins/extensionManager.config";
+import { extensionTemplateCatalog } from "@/plugins/extensionTemplateCatalog.config";
+import { resolveSystemAdminFallbackAppearance } from "./resolveSystemAdminFallbackAppearance.validator";
 import { adminAppearanceConfig } from "./adminAppearance.config";
 import { systemAdminReferenceAppearance } from "./systemAdminReferenceAppearance.config";
 import {
@@ -109,15 +111,21 @@ export async function requireSystemAdmin(
         extensionManagerOptions,
         "admin",
       );
-  const source = reference
-    ? systemAdminReferenceAppearance
-    : adminAppearanceConfig;
   const assignment = effective?.assignment;
   if (assignment && assignment.selection.target !== "admin")
     throw new Error("ADMIN_ASSIGNMENT_REQUIRED");
+  const fallback = assignment
+    ? null
+    : resolveSystemAdminFallbackAppearance({
+        entries: extensionTemplateCatalog,
+        host: adminAppearanceConfig.host,
+        source: adminAppearanceConfig,
+        recovery: systemAdminReferenceAppearance,
+        reference,
+      });
   const selection = assignment
     ? { ...assignment.selection, target: "admin" as const }
-    : source.selection;
+    : fallback!.selection;
   return {
     ...(shell?.effectiveMode
       ? {
@@ -144,11 +152,13 @@ export async function requireSystemAdmin(
     },
     appearance: {
       selection,
-      settings: assignment?.settings ?? source.settings,
+      settings: assignment?.settings ?? fallback!.settings,
       revision: effective?.revision ?? 0,
       persisted: effective?.persisted ?? false,
       storageReady: effective?.storageReady ?? false,
-      requiresRecovery: effective?.requiresRecovery ?? false,
+      requiresRecovery: Boolean(
+        effective?.requiresRecovery || fallback?.requiresRecovery,
+      ),
     },
   };
 }

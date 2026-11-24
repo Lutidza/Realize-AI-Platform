@@ -1,0 +1,42 @@
+/**
+ * @file packages/template-realizeai-control-panel/src/primitives/ControlPanelButton.module.css
+ * @version 1.0.0
+ * @date 2026-11-12
+ * @description Воспроизводит компактную toolbar-подачу reference в новом template adapter.
+ * @see documentation/specifications/realize-ai-control-panel-first-release.md
+ */
+.button[data-ui-appearance="toolbar"] {
+  min-height: 34px;
+  padding: 7px 10px;
+  gap: 7px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.button[data-ui-appearance="toolbar"][data-control-panel-size="icon"] {
+  width: 34px;
+  padding: 7px;
+}
+.button[data-ui-appearance="toolbar"][data-control-panel-variant="ghost"] {
+  color: var(--ui-color-muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.button[data-ui-appearance="toolbar"][data-control-panel-variant="ghost"]:is(
+    :hover,
+    [aria-expanded="true"]
+  ):not(:disabled) {
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface-raised);
+}
+@media (pointer: coarse) {
+  .button[data-ui-appearance="toolbar"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  .button[data-ui-appearance="toolbar"][data-control-panel-size="icon"] {
+    width: 44px;
+  }
+}

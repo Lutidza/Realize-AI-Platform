@@ -12,19 +12,21 @@ Skill применяется, когда основной риск - смеша�
 business logic, mapping, persistence and frontend data contract in the wrong
 layer.
 
-## Что открыть
+## Выбор источников
 
-1. `AGENTS.md`
-2. `documentation/project-context.md`
-3. `.ai/roles/developer/backend/INDEX.md`
-4. `.ai/registry/rules/development/backend/INDEX.md`
-5. Применимые `.ai/rules/development/backend/**` и
-   `.ai/checks/development/backend/**`.
-6. `.ai/roles/developer/frontend/INDEX.md`, если меняется frontend consumer.
+Используй уже выполненный вход по `AGENTS.md`; актуальные прочитанные источники
+повторно не загружай. Если не хватает фактов, открой относящийся к контракту
+раздел `documentation/project-context.md` и текущий код владельца.
 
-При доступном Internal MCP эти же источники можно получить по S1-маршруту
-`.ai/workflows/ai-operations/mcp-tooling/WORKFLOW.md`. Metadata не заменяет
-чтение текста; при недоступности MCP используй прямое чтение без смены policy.
+По `.ai/roles/developer/backend/INDEX.md` и
+`.ai/registry/rules/development/backend/INDEX.md` выбери правила и checks именно
+для изменяемого контракта. Читай выбранные требования, а не весь backend-раздел
+и граф его ссылок. Frontend роль подключай, если меняется frontend consumer.
+
+Недостающий контекст при доступном Internal MCP получай по S1-маршруту
+`.ai/workflows/ai-operations/mcp-tooling/WORKFLOW.md`. Это не требует повторного
+bootstrap уже полученных актуальных источников. Metadata не заменяет чтение
+текста; при недоступности MCP используй прямое чтение без смены policy.
 
 ## Порядок
 

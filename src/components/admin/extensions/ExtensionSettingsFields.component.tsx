@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/extensions/ExtensionSettingsFields.component.tsx
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.1.0
+ * @date 2026-11-12
  * @description Отображает stateless schema-driven settings или полный JSON editor.
  */
 import { UiInput, UiSelect, UiSwitch, UiTextarea } from "@realize/ui-kit";
@@ -67,11 +67,19 @@ export function ExtensionSettingsFields({
               }
               disabled={disabled}
               required={field.required}
-              onChange={(event) => change(field.key, event.currentTarget.value)}
+              onChange={(event) => {
+                const value = event.currentTarget.value;
+                if (value === "" && field.required) return;
+                change(field.key, value === "" ? undefined : value);
+              }}
             >
-              {!parsed.value[field.key] && (
-                <option value="">Выберите значение</option>
-              )}
+              {!field.required ? (
+                <option value="">По умолчанию</option>
+              ) : !parsed.value[field.key] ? (
+                <option value="" disabled>
+                  Выберите значение
+                </option>
+              ) : null}
               {field.options.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
