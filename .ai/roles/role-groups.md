@@ -53,6 +53,10 @@ Admin, ChatGPT и IDE. Реализацию ведёт вместе с Developer
 - performance-sensitive browser/client scenarios where the frontend owns the
   measured experience.
 
+Для статического аудита формы «Создать статью» профиль Developer Frontend
+используют аудитор и независимый frontend-ревьюер. Их отдельные поручения
+и ответственность оркестратора описаны в [workflow назначения](../workflows/core/worker-assignment/WORKFLOW.md#независимое-ревью-аудита-формы-создать-статью).
+
 ### Developer Backend
 
 Файл: `.ai/roles/developer/backend/INDEX.md`.

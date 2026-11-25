@@ -1,0 +1,27 @@
+{
+  "id": "audit-create-article-001",
+  "revision": 1,
+  "baseCommit": "a935c55ee8ef0ba2bee65c0f7e69b4b205fe6163",
+  "manifestPath": ".ai/templates/worker-assignment/TEMPLATE-WORKER-ASSIGNMENT-MANIFEST.md",
+  "manifestSha256": "1a89661763f8553d950330f2acb7118a265698f3328ed78483d3b6e98b7d79f8",
+  "files": {
+    "AGENTS.md": "38ab7747c9f1cd2d197e9e800436ef879e5dd627a07965f2330aeb1d50c8ad4a",
+    ".ai/roles/developer/frontend/INDEX.md": "edf1bd967f5ba110ed98c863b173f52ea703450850ff322b52044ffba9c143bc",
+    ".ai/rules/development/RULE-CODE-STRUCTURE.md": "28c0062116aedf4be03ff06299d827c567f0fe83a47c86d44aa18351641e8426",
+    ".codex/skills/feature-decomposition-guard/SKILL.md": "39e3d467d9db7fdf0a85a4c9e7440ba5ed753f3c27f43d63afcd7ec52167eb15",
+    ".ai/checks/development/CHECK-CODE-STRUCTURE.md": "a7514d085ccfa4e731cbda818058dd27a45fa14671f809f329d80b5261ceb87c",
+    "documentation/specifications/realize-ai-control-panel/documents/creation.md": "8fee625732fa83523a313c9fd2583b2bfe45a07c48a7020069e3ece76d7d4838",
+    "src/app/(system-admin)/system/documents/actions/create/page.tsx": "0a52760c19740d3b8d7d66d24415f036acd6b94f9001959b086b5d71f2ef8214",
+    "src/components/admin/documents/ArticleCreateForm.component.tsx": "2a9c7887fe5b342ffeba1f54c16b150496fdd8a007eb5c0381a5a441ecd64296",
+    "src/components/admin/documents/ArticleCreateField.component.tsx": "3dbd5735f9c7c757d6a9b22f947089fc06c3c1ccd44973c3406d77edbd6b88bd",
+    "src/components/admin/documents/ArticleCreateSectionFields.component.tsx": "cfe47061da891e5ea83a5c160af77746b3ad438a8a140bc055a2df7616623f95",
+    "src/components/admin/documents/ArticleCreateForm.module.css": "b686bd3af9f6c3a055fa23b6affd6954396c55c9dbc93cd2082217a563855f4a",
+    "src/components/admin/documents/ArticleCreateForm.types.ts": "4048e3fc1a7c3f8e87e80e0355183d623f9621418b53f2bca7b0212bee0b992a",
+    "src/components/admin/documents/DocumentArticleForm.types.ts": "8d985dac73685bbfeba2e7cebc52a6e21adf9fe1923d577cf69a898528d9b162",
+    "src/components/admin/documents/useArticleCreateForm.hook.ts": "e1524bee883d939db2d261fe87673db03d09ca3a1d0bbedc2d069fb3e2bfc554",
+    "src/components/admin/documents/suggestDocumentIdentifier.util.ts": "0ac32d564f609f04670cc8810af5be349c06741567e2742eb91a8fadfa9a2d2b",
+    "src/components/admin/documents/documentArticleInput.validator.ts": "8931bdbdaa50934389cac6c97ad84a765301e98829075397548b76dea616d8c6",
+    "src/components/admin/documents/createDocumentArticle.action.ts": "123c17404221dc73fc8ddda53ec74c8af9b43ecedecf165f0f2b2479be37867a",
+    "src/components/admin/documents/matchesSubmittedDocumentArticle.util.ts": "82c48b8a629dddba9ebb2c6c027235b4293392ca7bfff7dba52f9f3881a53ea2"
+  }
+}

@@ -1,0 +1,30 @@
+/**
+ * @file scripts/runtime/audit-dossier-preview/login/style.css
+ * @version 1.0.0
+ * @date 2026-11-26
+ * @description Оформляет вход отдельного тестового стенда.
+ * @see documentation/specifications/task-management/execution/article-audit-dossier-preview.md
+ */
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+main {
+  max-width: 26rem;
+  padding: 2rem;
+  margin: 10vh auto;
+}
+form,
+label {
+  display: grid;
+  gap: 0.5rem;
+}
+form {
+  gap: 1rem;
+}
+input,
+button {
+  font: inherit;
+  min-height: 2.5rem;
+  padding-inline: 0.75rem;
+}

@@ -1,7 +1,7 @@
 /**
  * @file src/components/admin/task-manager/TaskManagerWorkbench.component.tsx
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.2.0
+ * @date 2026-11-26
  * @description Подключает постоянные проекты и задачи к нейтральному template host.
  * @see documentation/specifications/task-management-execution.md
  * @see documentation/architecture/system-admin-shell.md
@@ -290,6 +290,11 @@ export function TaskManagerWorkbench(props: TaskManagerWorkbenchProps) {
               {manager.detailLoading && <p role="status">Загрузка карточки…</p>}
               {manager.task && (
                 <TaskDetail
+                  auditDossierHref={
+                    props.auditDossier?.taskId === manager.task.id
+                      ? props.auditDossier.href
+                      : undefined
+                  }
                   task={manager.task}
                   events={manager.events}
                   participants={manager.participants}

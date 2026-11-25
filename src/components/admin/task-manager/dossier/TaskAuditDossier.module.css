@@ -1,0 +1,67 @@
+/**
+ * @file src/components/admin/task-manager/dossier/TaskAuditDossier.module.css
+ * @version 1.0.0
+ * @date 2026-11-26
+ * @description Оформляет сохранённые тексты и выводы аудита в оболочке Task Manager.
+ * @see documentation/specifications/task-management/execution/article-audit-dossier-preview.md
+ */
+.dossier,
+.panel,
+.contents,
+.assessment {
+  display: grid;
+  min-width: 0;
+  gap: var(--ui-layout-gap, 16px);
+}
+.dossier {
+  grid-template-columns: minmax(0, 1fr);
+  overflow-wrap: anywhere;
+}
+.dossier h1,
+.dossier h2,
+.dossier h3,
+.dossier p,
+.contents h2 {
+  margin: 0;
+}
+.dossier h1 {
+  margin-top: 0.3em;
+}
+.panel {
+  padding: clamp(16px, 2.5vw, 32px);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.meta {
+  color: var(--ui-color-muted);
+  font-size: 0.875rem;
+}
+.report,
+.assessment p,
+.panel p {
+  line-height: 1.6;
+}
+.report {
+  white-space: pre-wrap;
+}
+.assessment {
+  gap: 8px;
+  padding-top: var(--ui-layout-gap, 16px);
+  border-top: 1px solid var(--ui-color-border);
+}
+.assessment blockquote {
+  margin: 0;
+  padding-inline-start: 12px;
+  border-inline-start: 2px solid var(--ui-color-primary);
+}
+.contents {
+  align-content: start;
+  padding: var(--ui-layout-gap, 16px);
+}
+.contents h2 {
+  font-size: 1rem;
+}

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/codex-request-diagnostics/src/runSmoke.controller.ts
- * @version 1.0.0
- * @date 2026-11-20
+ * @version 2.0.0
+ * @date 2026-11-25
  * @description Запускает bounded stock CLI exec и сохраняет только hash-only evidence и числовые итоги.
  */
 import { createHash, createHmac, randomBytes } from "node:crypto";
@@ -9,7 +9,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { execFileSync } from "node:child_process";
+import { readCodexCliVersion } from "./readCodexCliVersion.util.ts";
 import { startDiagnosticRelay } from "./diagnosticRelay.adapter.ts";
 import { RequestFingerprintObserver } from "./requestFingerprint.service.ts";
 import { runCodexExec } from "./codexExec.adapter.ts";
@@ -325,7 +325,6 @@ export function smokePhaseAccepted(
   return (
     result.completed &&
     result.ephemeralRequested &&
-    result.sourceGuardConfirmed &&
     result.upstreamTlsConfirmed &&
     result.sameInstructions &&
     result.sameSettings &&
@@ -458,8 +457,8 @@ export async function runSmoke(
   let phase: SmokePhase = "setup";
   let failed = false,
     observationOverflow = false,
-    relayClosed = false,
-    cliVersionConfirmed = false;
+    relayClosed = false;
+  let cliVersion: string | null = null;
   let failureCode: SmokeFailureCode = "none";
   let initialSourcesHash: string | null = null,
     initialBuildHash: string | null = null,
@@ -492,14 +491,7 @@ export async function runSmoke(
       )
     )
       throw new Error("unsafe_trace_environment");
-    if (
-      execFileSync("codex", ["--version"], {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }).trim() !== "codex-cli 0.162.1"
-    )
-      throw new Error("unsupported_cli_version");
-    cliVersionConfirmed = true;
+    cliVersion = readCodexCliVersion();
     const sources = loadSmokeSources(cwd);
     expectedLines = sources.reduce(
       (n, source) => n + source.last - source.first + 1,
@@ -702,7 +694,6 @@ export async function runSmoke(
         sameSettings,
         sameBuild,
         ephemeralRequested: true,
-        sourceGuardConfirmed: cliVersionConfirmed,
         upstreamTlsConfirmed: smokeUpstreamConfirmed(observations.slice(from)),
         completed: !invokeFailed && completedTurns === 1 && failedTurns === 0,
         usage: nativeUsage,
@@ -744,7 +735,6 @@ export async function runSmoke(
     const codes: SmokeFailureCode[] = [
       "core_dump_not_disabled",
       "unsafe_trace_environment",
-      "unsupported_cli_version",
       "assignment_contract_changed",
       "smoke_acceptance_failed",
     ];
@@ -785,15 +775,13 @@ export async function runSmoke(
       row.execution.groupStopped,
   );
   const report = {
-    schemaVersion: 8,
+    schemaVersion: 9,
     status: failed ? "failed" : "completed",
     failureCode,
     mode,
     executionMode: "stock-cli-exec",
-    expectedCliVersion: "0.162.1",
-    cliVersionConfirmed,
+    cliVersion,
     ephemeralRequested: true,
-    conversationLoggerDisabledBySourceGuard: cliVersionConfirmed,
     globalFileCreationClaimed: false,
     comparison: "three-fresh-cli-vs-one-cli-three-sequential-operations",
     expectedLines,

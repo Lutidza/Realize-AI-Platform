@@ -1,20 +1,23 @@
 /**
  * @file src/components/admin/task-manager/TaskDetail.component.tsx
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.4.0
+ * @date 2026-11-26
  * @description Показывает сохранённую ревизию задачи, ручные Git-привязки и настоящий audit.
  * @see documentation/specifications/task-management-execution.md
  */
+import Link from "next/link";
 import { UiBadge, UiButton, UiSurface } from "@realize/ui-kit";
 import type { TaskDetailProps } from "./TaskManager.types";
 import { taskPriorityLabels, taskStatusLabels } from "./taskManager.constants";
 import { TaskGitObservations } from "./TaskGitObservations.component";
+import { auditDossierSections } from "./dossier/taskAuditDossier.constants";
 import styles from "./TaskManagerWorkbench.module.css";
 
 export function TaskDetail({
   task,
   events,
   participants,
+  auditDossierHref,
   moreEvents,
   eventsLoading,
   onMoreEvents,
@@ -45,6 +48,26 @@ export function TaskDetail({
         <UiBadge>{taskStatusLabels[task.status]}</UiBadge>
         <UiBadge>{taskPriorityLabels[task.priority]}</UiBadge>
       </div>
+      {auditDossierHref && (
+        <nav className={styles.stack} aria-label="Материалы аудита">
+          <h3>
+            <Link prefetch={false} href={auditDossierHref}>
+              Досье аудита
+            </Link>
+          </h3>
+          <div className={styles.actions}>
+            {auditDossierSections.map(({ anchor, label }) => (
+              <Link
+                key={anchor}
+                prefetch={false}
+                href={`${auditDossierHref}#${anchor}`}
+              >
+                {label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      )}
       <p className={styles.description}>
         {task.description || "Описание не заполнено."}
       </p>

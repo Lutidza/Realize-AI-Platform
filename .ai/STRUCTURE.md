@@ -66,7 +66,8 @@ runtime_sources:
 │   ├── git-delivery/README.md
 │   ├── quality/README.md
 │   ├── task-workspace/README.md
-│   └── source-headers/README.md
+│   ├── source-headers/README.md
+│   └── worker-assignment/README.md
 ├── worker-profiles/
 │   └── INDEX.md
 ├── agents-evolution/
@@ -87,6 +88,8 @@ runtime_sources:
 - `tools/` содержит исходники и документацию локальных инструментов агентов.
 - [tools/context-reading/](tools/context-reading/README.md) читает выбранные
   диапазоны документов ограниченными пакетами без записи файлов.
+- [tools/worker-assignment/](tools/worker-assignment/README.md)
+  готовит пакет назначения, привязывает личный контекст аудита и проверяет его при повторном открытии.
 - [tools/codex-request-diagnostics/](tools/codex-request-diagnostics/README.md)
   наблюдает фактические запросы native Codex через временный TLS relay,
   сохраняя только HMAC, counts и usage без payload или reasoning.

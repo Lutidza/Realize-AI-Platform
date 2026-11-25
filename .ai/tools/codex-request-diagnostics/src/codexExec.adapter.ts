@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/codex-request-diagnostics/src/codexExec.adapter.ts
- * @version 1.0.0
- * @date 2026-11-19
+ * @version 1.0.1
+ * @date 2026-11-25
  * @description Выполняет bounded stock ephemeral exec и возвращает только process metadata.
  */
 import { spawn } from "node:child_process";
@@ -138,6 +138,11 @@ export async function runCodexExec(
     "read-only",
     "--ephemeral",
     "--json",
+    // У ephemeral диагностики нет места для истории и файлов SQLite под Linux.
+    "-c",
+    'history.persistence="none"',
+    "-c",
+    'sqlite_home="/dev/null"',
     "-c",
     "features.apps=false",
     "-c",

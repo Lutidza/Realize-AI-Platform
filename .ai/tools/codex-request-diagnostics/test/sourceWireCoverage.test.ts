@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/codex-request-diagnostics/test/sourceWireCoverage.test.ts
- * @version 1.0.0
- * @date 2026-11-20
+ * @version 1.0.1
+ * @date 2026-11-25
  * @description Проверяет доставку Markdown через model-visible tool output, исключая metadata и reasoning.
  */
 import test from "node:test";
@@ -258,7 +258,6 @@ function accepted(
     sameSettings: true,
     sameBuild: true,
     ephemeralRequested: true,
-    sourceGuardConfirmed: true,
     upstreamTlsConfirmed: true,
     completed: true,
     usage,

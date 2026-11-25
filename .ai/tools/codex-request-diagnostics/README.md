@@ -1,6 +1,6 @@
 # Hash-only диагностика запросов Codex
 
-Отдельный диагностический инструмент для native Codex CLI `0.162.1`.
+Отдельный диагностический инструмент для native Codex CLI.
 Программный `git:worker -- inspect` не вызывает модель; инструмент наблюдает
 вызывающий Codex. Обычный inspect не требует relay или дополнительной сессии.
 
@@ -26,7 +26,7 @@ close до downstream handshake немедленно закрывает клие
 воспроизведённый lifecycle hazard, но не устанавливает историческую причину A3
 CONNECT 50/51: прежний отчёт не сохранил error class и остаётся failed.
 
-В schema `8` каждый TLS attempt имеет закрытые stage/outcome/errorClass, ordinal
+Начиная со схемы `8` каждый TLS attempt имеет закрытые stage/outcome/errorClass, ordinal
 `1|2` и `applicationForwarded: false`; messages, stacks, addresses и certificates
 не сохраняются. Восстановленный pre-application сбой виден как `retrying`, затем
 `connected`; исчерпание/неретрайный сбой остаётся coverage error с typed details.
@@ -49,9 +49,10 @@ CA/CSR; доверие к CA передаётся только дочернем�
 собственная process group останавливается и проверяется.
 
 Для модели используется stock `codex --no-daemon exec --ephemeral --json`, approval
-`never`, sandbox `read-only`. В проверенном исходнике `0.162.1` in-process exec
-не подключает SQLite conversation logger; external app-server для этого запуска
-запрещён. Это не утверждение об отсутствии любых служебных файлов Codex.
+`never`, sandbox `read-only`. CLI получает `history.persistence="none"` и
+`sqlite_home="/dev/null"` (под Linux по этому пути нельзя создать файлы базы).
+Запуск использует in-process exec. Отчёт фиксирует запрошенный ephemeral-режим.
+Поведение внутреннего логирования конкретной сборки по номеру версии не устанавливается.
 История, CLI JSONL, tool output и response events обрабатываются в RAM.
 `CODEX_ROLLOUT_TRACE_ROOT` и `SSLKEYLOGFILE` запрещены; core dumps должны быть
 отключены для процесса. Нативная авторизация Codex используется без копирования
@@ -100,7 +101,7 @@ events. Usage terminal events дедуплицируется и сверяетс
 Отказы не скрываются; полнота generation по-прежнему требует всех terminal events
 и точного совпадения observer/CLI usage. Неполное TLS/HTTP/WS покрытие остаётся ошибкой,
 включая поздние EOF events при закрытии relay после всех CLI phases.
-В отчёте schema `8` отдельно подтверждаются `finalCoverageComplete` и целевое
+Начиная со схемы `8` отдельно подтверждаются `finalCoverageComplete` и целевое
 `expectedReaderCalls: 6` текущего профиля из 788 обязательных строк.
 Дополнительно требуются ровно `reads + expectedInspects` command calls и одна
 успешная `verify:runtime` внутри первого inspect. Счётчики `runtimeChecks`,
@@ -175,7 +176,7 @@ Reader-команды и шесть пакетов не меняются. Это
 
 ## Запуск
 
-Требуются pinned Node/npm, установленный Codex `0.162.1`, OpenSSL и действующая
+Требуются pinned Node/npm, установленный native Codex CLI в `PATH`, OpenSSL и действующая
 нативная авторизация. Запускай из корня проекта:
 
 ```bash
@@ -186,8 +187,10 @@ node --import=tsx/esm .ai/tools/codex-request-diagnostics/src/runSmoke.controlle
 ```
 
 `diagnostic` выполняет одну bounded read-only задачу D0 с одним свежим inspect.
-Перед запуском поставь проверенный native Codex `0.162.1` первым в `PATH`:
-IDE может предоставлять другой `codex`, который guard отклонит до model turn.
+В схеме отчёта `9` поле `cliVersion` содержит номер сборки из `codex --version`
+или `null`, если номер получить не удалось. Версия служит для воспроизведения
+измерения. Допуск исполнителя проверяется отдельно для конкретной сессии
+по [контракту назначения](../worker-assignment/README.md#проверка-реального-транспорта-до-передачи-назначения).
 Файл результата создаётся с `wx`/`0600`: существующий файл не перезаписывается.
 Он содержит только безопасные диагностические события и агрегаты.
 
@@ -223,6 +226,7 @@ node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/http2Stream.test.
 node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/diagnosticRelay.test.ts
 node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/connectVerifiedUpstream.test.ts
 node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/sourceWireCoverage.test.ts
+node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/cliVersionReport.test.ts
 node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/assertSafeCodexLaunch.test.ts
 node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/smokeCoverage.test.ts
 node --import=tsx/esm .ai/tools/codex-request-diagnostics/test/contextReadingSmoke.test.ts

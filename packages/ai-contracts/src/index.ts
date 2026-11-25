@@ -1,11 +1,13 @@
 /**
  * @file packages/ai-contracts/src/index.ts
- * @version 2.17.0
- * @date 2026-10-23
+ * @version 2.18.0
+ * @date 2026-11-25
  * @description Экспортирует стабильный публичный API контрактов Realize AI.
  */
 
 export * from "./agent";
+export { adapterAccessEvidenceV1Schema } from "./assignmentAccessEvidence.schemas";
+export type { AdapterAccessEvidenceV1 } from "./AdapterAccessEvidence.types";
 export * from "./OwnerEngineering.types";
 export * from "./ownerEngineering.constants";
 export { encodeOwnerEngineeringGrant } from "./ownerEngineeringGrant.util";

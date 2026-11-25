@@ -1,0 +1,39 @@
+{
+  "input": [
+    {
+      "type": "additional_tools",
+      "role": "developer",
+      "tools": [
+        {
+          "type": "namespace",
+          "name": "functions",
+          "tools": [
+            {
+              "type": "custom",
+              "name": "exec"
+            },
+            {
+              "type": "function",
+              "name": "wait",
+              "parameters": {
+                "type": "object",
+                "properties": {}
+              }
+            },
+            {
+              "type": "function",
+              "name": "request_user_input_async",
+              "parameters": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "client_metadata": {
+    "x-codex-turn-metadata": "{\"tool_namespaces_info\":{\"functions\":{\"name\":\"functions\",\"functions\":{\"exec\":{\"name\":\"exec\",\"direct\":true,\"code_mode_name\":null,\"deferred\":false,\"source\":{\"kind\":\"harness\"}},\"wait\":{\"name\":\"wait\",\"direct\":true,\"code_mode_name\":null,\"deferred\":false,\"source\":{\"kind\":\"harness\"}},\"request_user_input_async\":{\"name\":\"request_user_input_async\",\"direct\":true,\"code_mode_name\":null,\"deferred\":false,\"source\":{\"kind\":\"harness\"}},\"list_mcp_resources\":{\"name\":\"list_mcp_resources\",\"direct\":false,\"code_mode_name\":\"list_mcp_resources\",\"deferred\":false,\"source\":{\"kind\":\"harness\"}},\"list_mcp_resource_templates\":{\"name\":\"list_mcp_resource_templates\",\"direct\":false,\"code_mode_name\":\"list_mcp_resource_templates\",\"deferred\":false,\"source\":{\"kind\":\"harness\"}},\"read_mcp_resource\":{\"name\":\"read_mcp_resource\",\"direct\":false,\"code_mode_name\":\"read_mcp_resource\",\"deferred\":false,\"source\":{\"kind\":\"harness\"}}}},\"mcp__realize_assignment\":{\"name\":\"mcp__realize_assignment\",\"functions\":{\"repo_read_file\":{\"name\":\"repo_read_file\",\"direct\":false,\"code_mode_name\":\"mcp__realize_assignment__repo_read_file\",\"deferred\":false,\"source\":{\"kind\":\"mcp\",\"server_name\":\"realize_assignment\"}}}}}}"
+  }
+}

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/codex-request-diagnostics/src/runSmoke.types.ts
- * @version 1.0.0
- * @date 2026-11-20
+ * @version 2.0.0
+ * @date 2026-11-25
  * @description Определяет закрытый отчёт stock CLI smoke без conversation history и captured payload.
  */
 import type { CodexExecResult } from "./codexExec.types.ts";
@@ -24,7 +24,6 @@ export type SmokeFailureCode =
   | "none"
   | "core_dump_not_disabled"
   | "unsafe_trace_environment"
-  | "unsupported_cli_version"
   | "assignment_contract_changed"
   | "smoke_acceptance_failed"
   | "relay_cleanup_failed"
@@ -121,7 +120,6 @@ export interface SmokePhaseResult {
   sameSettings: boolean;
   sameBuild: boolean;
   ephemeralRequested: true;
-  sourceGuardConfirmed: boolean;
   upstreamTlsConfirmed: boolean;
   completed: boolean;
   usage: SmokeTokenUsage | null;

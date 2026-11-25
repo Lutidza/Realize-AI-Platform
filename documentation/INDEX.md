@@ -96,6 +96,9 @@ skills, оценка, улучшение и сравнение результа�
   — техническая часть ТЗ: назначения, очереди, runtime adapters и восстановление.
   [Целевой lifecycle ENG-04](specifications/task-management-execution.md#15-целевой-контракт-задач-eng-04)
   определяет переходы, права, связи, результаты и совместимость v1/v2.
+  [Попытки и досье](specifications/task-management/execution/attempts-and-dossier.md) и
+  [контрольные точки](specifications/task-management/execution/checkpoints-and-reads.md)
+  описывают согласованный контракт аудита формы «Создать статью».
 - [Менеджер расширений Payload](specifications/extension-management.md)
   — черновик ТЗ каталога, установки, обновления и удаления через Admin.
 - [Медиатека: обработка изображений, загрузка и MediaBlock](specifications/media-management.md)
