@@ -1,14 +1,14 @@
 /**
  * @file .ai/tools/worker-assignment/src/checkpoints/startReworkAudit.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Открывает собственную попытку аудитора с поручением, прежним отчётом и закреплённым основанием.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { isDeepStrictEqual } from "node:util";
 import { bindAssignment } from "../bindAssignment.service";
 import type { ReworkInboxRepository } from "@realize/payload-task-manager/audit-review";
-import type { RepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import type { ApiAuditSelection } from "../adapters/ApiAuditSelection.types";
 import type { PostgresCheckpointStore } from "./PostgresCheckpoint.repository";
 import { createAuditCheckpointState } from "./createAuditCheckpointState.service";

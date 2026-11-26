@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/review-queue/resolveClaimedReview.adapter.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Подтверждает личность и происхождение попытки ревью по сохранённому claim в очереди.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import {
   assertQueueDelivery,

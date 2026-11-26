@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/publication/reviewAccess.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.15
+ * @date 2026-11-26
  * @description Проверяет полномочия участника при публикации, выдаче работы и чтении материалов ревью.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -16,8 +16,13 @@ import {
 import { dispatchPendingReviews } from "../../src/review-queue/dispatchPendingReviews.service";
 import { reviewDispatchKey } from "../../src/review-queue/reviewDispatchKey.util";
 import { receiveReviewMaterials } from "../../src/review-queue/receiveReviewMaterials.service";
-import { view } from "../articleAudit.fixture";
 import { auditReviewFixture } from "./auditReview.fixture";
+import { sampleCheckpointAudit } from "../checkpoints/sampleCheckpointAudit.fixture";
+import {
+  sampleAuditReviewParticipants,
+  sampleReviewProjectRoles,
+} from "./auditReviewParticipants.fixture";
+import { runCheckpointAudit } from "./runCheckpointAudit.fixture";
 
 async function assertMaterialsDenied(
   f: Awaited<ReturnType<typeof auditReviewFixture>>,
@@ -38,7 +43,7 @@ async function assertMaterialsDenied(
     /review_access_denied/,
   );
   await assert.rejects(
-    f.dossier.readSource(resultId, view, actorId),
+    f.dossier.readSource(resultId, f.simulator.reads[0].path, actorId),
     /review_access_denied/,
   );
 }
@@ -46,7 +51,31 @@ async function assertMaterialsDenied(
 /** Использует общий кластер сценариев публикации. Каждая фикстура создаёт свой проект, план и отчёт. */
 export function registerReviewAccessTests() {
   test("Выдача проверяет участника, точные версии и отзыв доступа до и после claim", async (t) => {
-    const f = await auditReviewFixture(t);
+    const f = await auditReviewFixture(t, {
+      audit: sampleCheckpointAudit(),
+      participants: sampleAuditReviewParticipants(),
+      assignedReviewerRole: "independentReviewer",
+      review: {
+        stageId: "report-review",
+        assignmentId: randomUUID(),
+        assignmentRevision: 1,
+        iteration: 1,
+      },
+      foundation: {
+        createdAt: "2026-11-25T12:00:00.000Z",
+        listId: randomUUID(),
+        projectTitle: "Доступ к материалам",
+        projectDescription: "",
+        listTitle: "Отзыв доступа",
+        taskTitle: "Проверить отзыв доступа к материалам",
+        taskDescription: "",
+        status: "review",
+        priority: "normal",
+        gitBindings: [],
+      },
+      projectRoles: sampleReviewProjectRoles,
+      runAudit: runCheckpointAudit,
+    });
     const published = await f.publish();
     const delivery = await f.dossier.prepareDelivery(published.resultId);
     const key = reviewDispatchKey(delivery);
@@ -127,7 +156,31 @@ export function registerReviewAccessTests() {
   });
 
   test("Снятое назначение останавливает ожидающую работу, досье сохраняет результат аудитору", async (t) => {
-    const f = await auditReviewFixture(t);
+    const f = await auditReviewFixture(t, {
+      audit: sampleCheckpointAudit(),
+      participants: sampleAuditReviewParticipants(),
+      assignedReviewerRole: "independentReviewer",
+      review: {
+        stageId: "report-review",
+        assignmentId: randomUUID(),
+        assignmentRevision: 1,
+        iteration: 1,
+      },
+      foundation: {
+        createdAt: "2026-11-25T12:00:00.000Z",
+        listId: randomUUID(),
+        projectTitle: "Назначения на ревью",
+        projectDescription: "",
+        listTitle: "Снятые назначения",
+        taskTitle: "Остановить доставку после снятия назначения",
+        taskDescription: "",
+        status: "review",
+        priority: "normal",
+        gitBindings: [],
+      },
+      projectRoles: sampleReviewProjectRoles,
+      runAudit: runCheckpointAudit,
+    });
     const { resultId } = await f.publish();
     const delivery = await f.dossier.prepareDelivery(resultId);
     await f.queue.submit(delivery);
@@ -152,7 +205,31 @@ export function registerReviewAccessTests() {
   });
 
   test("Сохранённый grant теряет силу после удаления участника из проекта Foundation", async (t) => {
-    const f = await auditReviewFixture(t);
+    const f = await auditReviewFixture(t, {
+      audit: sampleCheckpointAudit(),
+      participants: sampleAuditReviewParticipants(),
+      assignedReviewerRole: "independentReviewer",
+      review: {
+        stageId: "report-review",
+        assignmentId: randomUUID(),
+        assignmentRevision: 1,
+        iteration: 1,
+      },
+      foundation: {
+        createdAt: "2026-11-25T12:00:00.000Z",
+        listId: randomUUID(),
+        projectTitle: "Участники проекта",
+        projectDescription: "",
+        listTitle: "Проверка членства",
+        taskTitle: "Проверить права выбывшего участника",
+        taskDescription: "",
+        status: "review",
+        priority: "normal",
+        gitBindings: [],
+      },
+      projectRoles: sampleReviewProjectRoles,
+      runAudit: runCheckpointAudit,
+    });
     const { resultId } = await f.publish();
     const delivery = await f.dossier.prepareDelivery(resultId);
     await f.queue.submit(delivery);
@@ -185,9 +262,60 @@ export function registerReviewAccessTests() {
   });
 
   test("Блокировка саморевью сохраняет ход независимой задачи и изоляцию материалов", async (t) => {
-    const self = await auditReviewFixture(t, false);
+    const self = await auditReviewFixture(t, {
+      audit: sampleCheckpointAudit(),
+      participants: sampleAuditReviewParticipants(),
+      assignedReviewerRole: "implementationAuthor",
+      review: {
+        stageId: "report-review",
+        assignmentId: randomUUID(),
+        assignmentRevision: 1,
+        iteration: 1,
+      },
+      foundation: {
+        createdAt: "2026-11-25T12:00:00.000Z",
+        listId: randomUUID(),
+        projectTitle: "Проверка авторства",
+        projectDescription: "",
+        listTitle: "Ревью собственной работы",
+        taskTitle: "Проверить блокировку саморевью",
+        taskDescription: "",
+        status: "review",
+        priority: "normal",
+        gitBindings: [],
+      },
+      projectRoles: {
+        ...sampleReviewProjectRoles,
+        members: ["auditor", "implementationAuthor", "replacementReviewer"],
+      },
+      runAudit: runCheckpointAudit,
+    });
     const blocked = await self.publish();
-    const other = await auditReviewFixture(t);
+    const other = await auditReviewFixture(t, {
+      audit: sampleCheckpointAudit(),
+      participants: sampleAuditReviewParticipants(),
+      assignedReviewerRole: "independentReviewer",
+      review: {
+        stageId: "report-review",
+        assignmentId: randomUUID(),
+        assignmentRevision: 1,
+        iteration: 1,
+      },
+      foundation: {
+        createdAt: "2026-11-25T12:00:00.000Z",
+        listId: randomUUID(),
+        projectTitle: "Независимая проверка",
+        projectDescription: "",
+        listTitle: "Внешнее ревью",
+        taskTitle: "Передать материалы независимому ревьюеру",
+        taskDescription: "",
+        status: "review",
+        priority: "normal",
+        gitBindings: [],
+      },
+      projectRoles: sampleReviewProjectRoles,
+      runAudit: runCheckpointAudit,
+    });
     const ready = await other.publish();
     assert.equal(self.reviewerId, self.plan.implementationAuthorId);
     const outcomes = await dispatchPendingReviews(self.dossier, self.queue);

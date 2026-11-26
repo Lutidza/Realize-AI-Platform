@@ -3,8 +3,10 @@
 Версия: **0.20**, 2026-11-25. Статус: **проект технической части ТЗ с реализованными ограниченными срезами**.
 Читается вместе с [продуктовым ТЗ](task-management.md). Новые сущности,
 команды и состояния ниже — целевой контракт, кроме явно обозначенных
-реализованных срезов §8.1–8.3 и §12–14. В §8 отдельно отмечен изолированный
-пилот хранилища попыток и публикации в досье. Intake локального CLI описан отдельно
+реализованных срезов §8.1–8.3 и §12–14. В §8 описано, как Assignment восстанавливает
+попытку по [контрольной точке](task-management/execution/checkpoint-storage.md)
+и как Task Manager [публикует отчёт и карту покрытия в досье](task-management/execution/audit-report-publication.md).
+Этот процесс проверен на отдельной PostgreSQL с имитатором. Intake локального CLI описан отдельно
 в §8.3/§12.4; он не добавляет серверную приёмку или полный artifact lifecycle.
 Выбор контекста и управление Project/List из §12.5 реализованы в исходниках;
 локально активированная сборка пока сохраняет предыдущий серверный интерфейс.
@@ -491,15 +493,15 @@ Retention удалённого текста соблюдается: ссылка
 | Локальный workspace                                                                                         | Несвязанный резерв — TASK.md по §8.1; после связи предметный owner — Task API, старый снимок сохранён; полный file cutover остаётся целевым |
 | Native agent session/SQLite registry                                                                        | Собственный runtime инструментов; в task dossier только разрешённые ссылки/сводки                                                           |
 
-Связи попытки, этапа, назначения, событий и досье согласованы на примере аудита
-формы «Создать статью». В отдельной PostgreSQL проверены восстановление попытки,
-публикация двух версий материалов в досье и передача результата по назначению независимого ревьюера.
-[Исполнение задачи, попытки и досье](task-management/execution/attempts-and-dossier.md) ·
-[Хранилище контрольных точек](task-management/execution/article-audit-storage-pilot.md) ·
-[Публикация и выдача работы](task-management/execution/article-audit-publication.md) ·
-[Заключение и решение о приёмке](task-management/execution/article-audit-conclusion.md) ·
-[Доработка и повторная приёмка](task-management/execution/article-audit-rework.md) ·
-[Просмотр досье тестового аудита](task-management/execution/article-audit-dossier-preview.md)
+Каждая попытка принадлежит этапу исполнения и ревизии назначения. С этой попыткой
+связаны предметные события и опубликованный результат. Для процесса независимого
+ревью на отдельной PostgreSQL проверены восстановление попытки, публикация отчёта
+и карты покрытия в досье и выдача их версий назначенному ревьюеру.
+[Связи задачи, исполнения, этапа и назначения](task-management/execution/attempts-and-dossier.md#от-задачи-до-фактического-запуска) ·
+[Хранилище контрольных точек](task-management/execution/checkpoint-storage.md) ·
+[Публикация и выдача работы](task-management/execution/audit-report-publication.md) ·
+[Заключение и решение о приёмке](task-management/execution/review-conclusion.md) ·
+[Доработка и повторная приёмка](task-management/execution/review-rework.md)
 
 Artifact metadata: ID/revision, category, filename, MIME, bytes, content hash,
 storage key, author, task/execution/stage/attempt, createdAt, provenance,
@@ -983,8 +985,9 @@ Owner автоматически включён в members; разрешённы
 публичный DTO содержит ID/name без email или credentials.
 
 Project create атомарно создаёт List «Задачи». У Project/List/Task постоянные
-UUID IDs; task key `TASK-<numeric storage ID>` выдаётся сервером. Основные
-Project/List связи задачи неизменны в пилоте. Task содержит title/description
+UUID IDs; task key `TASK-<numeric storage ID>` выдаётся сервером. Команда создания
+задачи принимает `projectId` и `listId`. При обновлении Task Manager сохраняет оба значения.
+Task содержит title/description
 plain text, status `backlog/in_progress/review`, priority, assignee либо null,
 revision, Git bindings, авторов и даты. Исполнитель — разрешённый project member.
 Done/Closed, приёмка, архив, перенос и AI-запуск входят в следующие поставки.
@@ -995,8 +998,8 @@ Update требует `expectedRevision`; PostgreSQL transaction/advisory locks
 результат create/update по actor/operation/Idempotency-Key/request hash;
 повтор с другим payload — conflict, повтор прежнего запроса возвращает прежний
 результат после новой проверки доступа. Audit/receipts нельзя перезаписать.
-Mutation facade в пилоте требует request без внешней `transactionID`:
-вызов внутри чужой транзакции отклоняется до чтения/записи task domain.
+Если у запроса на изменение уже задан `transactionID`, Task Manager возвращает
+`503` до чтения или записи данных задачи.
 В установленном Payload collection Local API при ошибке завершает общую
 транзакцию; поэтому обещание вложенной атомарной task unit через savepoint
 было бы неверным. Собственная транзакция сохраняет атомарность task/event/receipt,
@@ -1170,9 +1173,10 @@ Host передаёт модулю read-only port. Существующий inte
 credential vault и обращением к GitHub API. Task package не получает токен,
 не импортирует host и не создаёт самостоятельный provider client.
 
-Пилот читает только `purpose: platform-core` и repository slug, совпадающий с
-текущим настроенным GitHub repository. Для запроса коммита нужен полный 40 hex
-SHA. Foundation продолжает принимать 40/64 hex как ручной идентификатор;
+Адаптер Realize передаёт в `GitHubObservationService` только привязки с
+`purpose: platform-core`. Перед обращением к GitHub сервис сверяет `repositoryId`
+со slug репозитория в настроенном подключении и проверяет формат `commitSha` —
+ровно 40 символов `[a-f0-9]`. Foundation продолжает принимать 40/64 hex как ручной идентификатор;
 64 hex не объявляется поддержанным текущим GitHub adapter. Привязки
 `customer-project` и иной repository ID не разрешают чтение через credentials
 репозитория платформы: registry клиентских репозиториев и отдельные полномочия
@@ -1425,7 +1429,7 @@ active-return status. Старое `review` не становится `done` и�
 
 ### 15.2. Ревизии, результаты и evidence
 
-Для аудита формы отдельные версии отчёта, карты и заключения связаны с попытками. Решение ссылается на точное заключение и редакцию основания. [Контракт публикации и приёмки](task-management/execution/article-audit-conclusion.md)
+Отдельные версии отчёта, карты покрытия и заключения связаны с попытками аудитора и ревьюера. Решение ссылается на точное заключение и редакцию основания. [Контракт публикации и приёмки](task-management/execution/review-conclusion.md)
 
 Task `revision` — CAS всей редактируемой карточки. Отдельно фиксируются версии
 критериев, acceptance policy и delivery requirements: перестановка в списке

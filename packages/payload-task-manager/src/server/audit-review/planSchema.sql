@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/planSchema.sql
- * @version 1.1.0
- * @date 2026-11-25
- * @description Хранит исполнения, ревизии плана, назначения и разрешения пилота в отдельной PostgreSQL.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @version 1.1.2
+ * @date 2026-11-26
+ * @description Хранит исполнения, ревизии плана, назначения и разрешения участников в отдельной PostgreSQL.
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 CREATE SCHEMA IF NOT EXISTS audit_review;
 REVOKE ALL ON SCHEMA audit_review FROM PUBLIC;

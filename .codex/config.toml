@@ -31,3 +31,7 @@ url = "http://127.0.0.1:4319/mcp"
 http_headers_helper = "node scripts/runtime/readLocalMcpHeaders.controller.mjs"
 startup_timeout_sec = 20
 tool_timeout_sec = 30
+
+[features]
+multi_agent = false
+multi_agent_v2 = false

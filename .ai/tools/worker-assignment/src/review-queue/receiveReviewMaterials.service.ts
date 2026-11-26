@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/review-queue/receiveReviewMaterials.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Выдаёт получившему работу ревьюеру точные версии отчёта и карты из закрытого досье.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import { createHash } from "node:crypto";
 import type { AuditDossierRepository } from "@realize/payload-task-manager/audit-review";

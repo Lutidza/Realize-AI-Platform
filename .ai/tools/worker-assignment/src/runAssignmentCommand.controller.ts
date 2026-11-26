@@ -1,23 +1,22 @@
 /**
  * @file .ai/tools/worker-assignment/src/runAssignmentCommand.controller.ts
- * @version 1.3.0
- * @date 2026-11-25
+ * @version 2.0.1
+ * @date 2026-11-26
  * @description Выводит проверенный состав назначения или его полный пакет без запуска исполнителя.
  */
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
-import { createRepositoryReadPolicy } from "../../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { preflightOpenAiAudit } from "./adapters/openAiAuditRequest.adapter";
 import { prepareAssignment } from "./prepareAssignment.service";
 import { preflightAssignment } from "./preflightAssignment.service";
 import { bindAssignment } from "./bindAssignment.service";
 
 const usage =
-  "npm run --silent ai:assignment -- prepare [--bundle] [--lock <путь от корня>]\n" +
-  "npm run --silent ai:assignment -- bind [--context <contextId>] [--lock <путь от корня>]\n" +
-  "npm run --silent ai:assignment -- preflight --context <contextId> [--lock <путь от корня>]\n" +
-  "npm run --silent ai:assignment -- preflight-api --context <contextId> --model <модель> [--lock <путь от корня>]";
-const articleAuditLock = ".ai/tools/worker-assignment/article-audit.lock.json";
+  "npm run --silent ai:assignment -- prepare --lock <путь от корня> [--bundle]\n" +
+  "npm run --silent ai:assignment -- bind --lock <путь от корня> [--context <contextId>]\n" +
+  "npm run --silent ai:assignment -- preflight --lock <путь от корня> --context <contextId>\n" +
+  "npm run --silent ai:assignment -- preflight-api --lock <путь от корня> --context <contextId> --model <модель>";
 
 async function runAssignmentCommand(): Promise<number> {
   let args;
@@ -55,9 +54,13 @@ async function runAssignmentCommand(): Promise<number> {
     console.error(usage);
     return 1;
   }
+  const lock = values.lock;
+  if (!lock?.trim()) {
+    console.error("Укажите обязательный параметр --lock <путь от корня>.");
+    return 1;
+  }
   const root = fileURLToPath(new URL("../../../../", import.meta.url));
   const policy = await createRepositoryReadPolicy(root, true);
-  const lock = values.lock ?? articleAuditLock;
   if (command === "preflight-api" && values.context && values.model) {
     const result = await preflightOpenAiAudit(policy, {
       lockPath: lock,

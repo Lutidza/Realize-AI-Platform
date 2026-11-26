@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/AuditRevision.types.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Описывает происхождение исправленного отчёта и ответы аудитора на возвращённые критерии.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import type { ReviewCriterionId } from "../conclusions/ReviewConclusion.types";
 

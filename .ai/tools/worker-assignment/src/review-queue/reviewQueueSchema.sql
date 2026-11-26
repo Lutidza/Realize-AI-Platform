@@ -1,8 +1,8 @@
 -- @file .ai/tools/worker-assignment/src/review-queue/reviewQueueSchema.sql
--- @version 1.0.0
--- @date 2026-11-25
--- @description Создаёт приватную очередь пилота с единственной выдачей работы по ключу назначения.
--- @see documentation/specifications/task-management/execution/article-audit-publication.md
+-- @version 1.0.2
+-- @date 2026-11-26
+-- @description Создаёт приватную очередь ревью с единственной выдачей работы по ключу назначения.
+-- @see documentation/specifications/task-management/execution/audit-report-publication.md
 SELECT pg_advisory_xact_lock(hashtextextended('audit_review_runtime.schema', 0));
 CREATE SCHEMA IF NOT EXISTS audit_review_runtime;
 REVOKE ALL ON SCHEMA audit_review_runtime FROM PUBLIC;

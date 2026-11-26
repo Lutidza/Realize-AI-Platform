@@ -13,7 +13,7 @@ import type { GitReadContext, GitReadSnapshot } from "./GitRead.types";
 
 /** Metadata не подтверждает чистоту дерева и не заменяет content fingerprint. */
 export async function readGitHead(
-  context: GitReadContext,
+  context: Pick<GitReadContext, "policy" | "signal">,
 ): Promise<Pick<GitReadSnapshot, "head" | "branch" | "detached" | "unborn">> {
   const signal = AbortSignal.any([
     ...(context.signal ? [context.signal] : []),

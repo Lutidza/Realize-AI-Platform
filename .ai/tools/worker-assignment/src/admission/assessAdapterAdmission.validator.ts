@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/admission/assessAdapterAdmission.validator.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Решает допуск к статическому аудиту по пакету, фактам адаптера и живой привязке.
- * @see documentation/architecture/assignment-adapter/article-audit-evidence.md
+ * @see documentation/architecture/assignment-adapter/adapter-access-evidence-v1.md
  */
 import { adapterAccessEvidenceV1Schema } from "@realize/ai-contracts";
 import { isDeepStrictEqual as equal } from "node:util";

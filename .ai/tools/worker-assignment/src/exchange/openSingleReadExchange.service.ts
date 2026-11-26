@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/worker-assignment/src/exchange/openSingleReadExchange.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Ведёт одну попытку из двух допущенных запросов через предоставленный транспорт.
  * @see documentation/architecture/assignment-adapter/single-read.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
-import type { RepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { RepositoryReadError } from "../../../../../services/ai-control-plane/src/RepositoryRead.error";
 import {
   admitOpenAiAuditRequest,

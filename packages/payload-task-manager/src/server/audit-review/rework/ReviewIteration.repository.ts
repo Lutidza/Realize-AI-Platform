@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/ReviewIteration.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Предоставляет диспетчеру незавершённые выдачи повторного ревью и фиксирует квитанции очереди.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { readFile } from "node:fs/promises";
 import type { Pool } from "pg";

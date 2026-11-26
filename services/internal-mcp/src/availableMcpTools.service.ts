@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/availableMcpTools.service.ts
- * @version 1.3.0
- * @date 2026-10-22
+ * @version 1.3.1
+ * @date 2026-11-26
  * @description Пересекает существующие регистрации с текущим principal и доверенной конфигурацией.
  */
 import type { McpToolName } from "../../../packages/ai-contracts/src/McpTool.types";
@@ -34,6 +34,8 @@ export function availableMcpTools(
       if (name === "realize_get_context") return false;
       const entry = mcpToolCatalog[name];
       if (!entry) return false;
+      if (entry.grant === "assignment:read-only")
+        return Boolean(options.assignments && principal.repositoryRead);
       if (entry.grant === "context") return true;
       if (entry.dependency === "workshop")
         return (

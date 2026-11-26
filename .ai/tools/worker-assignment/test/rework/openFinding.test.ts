@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/rework/openFinding.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.3
+ * @date 2026-11-26
  * @description Проверяет сохранение открытого замечания и третью ревизию отчёта в том же исполнении задачи.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -12,7 +12,7 @@ import {
   correctedAttempt,
   nextReviewer,
   command,
-} from "./articleRework.fixture";
+} from "./auditRework.fixture";
 
 export function registerOpenFindingTests() {
   test("Незакрытое замечание проходит ещё одну доработку и принимается по третьей версии отчёта", async (t) => {
@@ -24,10 +24,10 @@ export function registerOpenFindingTests() {
     )!;
     item.status = "discrepancy";
     item.reason =
-      "Отчёт упоминает сравнение полей, но пропускает ветку несовпадения в checkSave.";
-    item.correction = "Указать сообщение о занятом адресе при несовпадении.";
+      "В отчёте не указано, как поступить при несовпадении версии файла.";
+    item.correction = "Описать проверку при несовпадении хеша.";
     item.acceptanceTest =
-      "Проверить вызов showError с полем slug при несовпадении.";
+      "Указать, можно ли подтвердить версию при несовпадении SHA-256.";
     first.body.recommendation = "needs_changes";
     first.body.summary =
       "Уточнена цепочка, остаётся расхождение по результату сравнения.";
@@ -61,7 +61,7 @@ export function registerOpenFindingTests() {
     assert.equal(work.expectedRevision, 3);
     const f2 = { ...f, work };
     const line =
-      "При несовпадении checkSave показывает ошибку поля slug о занятом адресе.";
+      "При несовпадении SHA-256 версия файла остаётся неподтверждённой.";
     const corrected = await (await correctedAttempt(f2, line)).publish();
     const last = await nextReviewer(f2);
     const checked = last.body.assessments.find(
@@ -69,7 +69,7 @@ export function registerOpenFindingTests() {
     )!;
     checked.reportQuote = line;
     checked.reason =
-      "Ветка после matchesSubmittedDocumentArticle вызывает showError с полем slug.";
+      "Условие подтверждения версии сверено с хешем в квитанции.";
     last.body.resolutions![0].explanation = checked.reason;
     assert.equal(
       last.context.auditRevision?.parentResultId,

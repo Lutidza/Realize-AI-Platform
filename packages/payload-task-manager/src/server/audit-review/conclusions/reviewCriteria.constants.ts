@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/reviewCriteria.constants.ts
- * @version 1.0.0
- * @date 2026-11-25
- * @description Закрепляет четыре предметных критерия аудита формы «Создать статью».
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @version 1.0.1
+ * @date 2026-11-26
+ * @description Задаёт допустимые идентификаторы критериев заключения независимого ревьюера.
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 export const REVIEW_CRITERIA = [
   "responsibilities",

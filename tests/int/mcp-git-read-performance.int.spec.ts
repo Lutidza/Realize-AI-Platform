@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-git-read-performance.int.spec.ts
- * @version 1.0.3
- * @date 2026-11-08
+ * @version 1.0.4
+ * @date 2026-11-26
  * @description Проверяет ограниченное параллельное чтение Git, неизменность snapshot и защиту обхода.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -31,7 +31,7 @@ import { readGitMetadata } from "../../.ai/tools/git-delivery/src/read/readGitMe
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { RepositoryReadError } from "../../services/ai-control-plane/src/RepositoryRead.error";
 import type { RepositoryQueryContext } from "../../services/ai-control-plane/src/RepositoryQueries.types";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import * as fileReader from "../../services/ai-control-plane/src/readRepositoryFile.service";
 import * as directoryReader from "../../services/ai-control-plane/src/openRepositoryDirectory.adapter";
 import { walkRepository } from "../../services/ai-control-plane/src/walkRepository.service";

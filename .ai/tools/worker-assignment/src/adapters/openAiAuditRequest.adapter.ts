@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/worker-assignment/src/adapters/openAiAuditRequest.adapter.ts
- * @version 1.2.0
- * @date 2026-11-25
+ * @version 1.2.3
+ * @date 2026-11-26
  * @description Готовит HTTP-запрос аудита, проверяет допуск V1 и связывает отправку с проверенными байтами.
  * @see documentation/architecture/assignment-adapter/openai-chat-completions.md
  * @see documentation/specifications/task-management/execution/checkpoints-and-reads.md
@@ -10,14 +10,14 @@ import { randomUUID } from "node:crypto";
 import {
   openAiChatPolicy,
   resolveOpenAiChatPolicy,
-} from "../../../../../services/ai-control-plane/src/model-providers/openaiChatCompletions.policy";
-import type { RepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/RepositoryRead.types";
+} from "realize-ai-platform/model-providers/openai-chat-completions-policy";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import type {
   BoundAssignment,
   AdmissionAttempt,
 } from "../admission/AssignmentAdmission.types";
 import type { AuditContinuation } from "../exchange/SingleRead.types";
-import { articleReaderTool } from "../admission/articleReaderTool.mapper";
+import { defineRepoReadFileTool } from "../admission/defineRepoReadFileTool.mapper";
 import { inspectApiAuditAdmission } from "../admission/inspectApiAuditAdmission.service";
 import { bindAssignment } from "../bindAssignment.service";
 import type { ApiAuditSelection } from "./ApiAuditSelection.types";
@@ -68,7 +68,7 @@ export async function admitOpenAiAuditRequest(
         user,
         ...history.flatMap((read) => [read.assistant, read.result]),
       ],
-      tools: [articleReaderTool(bound.report.effectiveAccess.readPaths)],
+      tools: [defineRepoReadFileTool(bound.report.effectiveAccess.readPaths)],
     }),
     dispatch: bound.context.callTool,
   });

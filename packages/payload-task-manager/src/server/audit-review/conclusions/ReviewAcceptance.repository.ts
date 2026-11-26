@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/ReviewAcceptance.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Доставляет заключение полномочному участнику и атомарно фиксирует решение и адресованную доработку.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import { prepareDecisionRecords } from "./prepareDecisionRecords.mapper";
 import { readFile } from "node:fs/promises";

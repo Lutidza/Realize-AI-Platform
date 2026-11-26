@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/admission/inspectApiAuditAdmission.service.ts
- * @version 1.2.0
- * @date 2026-11-25
+ * @version 1.2.2
+ * @date 2026-11-26
  * @description Проверяет локально подготовленный запрос API и его диспетчер без сетевого вызова.
- * @see documentation/architecture/assignment-adapter/article-audit-evidence.md
+ * @see documentation/architecture/assignment-adapter/adapter-access-evidence-v1.md
  * @see documentation/specifications/task-management/execution/checkpoints-and-reads.md
  */
 import type { AdapterAccessEvidenceV1 } from "@realize/ai-contracts";
@@ -19,7 +19,7 @@ import type {
   BoundAssignment,
 } from "./AssignmentAdmission.types";
 import { createAccessEvidence } from "./createAccessEvidence.mapper";
-import { articleReaderTool } from "./articleReaderTool.mapper";
+import { defineRepoReadFileTool } from "./defineRepoReadFileTool.mapper";
 import { assessAdapterAdmission } from "./assessAdapterAdmission.validator";
 import { AttemptObservations } from "./AttemptObservations.repository";
 
@@ -167,7 +167,7 @@ export async function inspectApiAuditAdmission(
     const paths = tools[0].function.parameters.properties.path.enum;
     if (
       !equal(paths.toSorted(), effectiveAccess.readPaths.toSorted()) ||
-      !equal((raw as { tools: unknown }).tools, [articleReaderTool(paths)])
+      !equal((raw as { tools: unknown }).tools, [defineRepoReadFileTool(paths)])
     )
       return fail(
         "transport_access_mismatch",

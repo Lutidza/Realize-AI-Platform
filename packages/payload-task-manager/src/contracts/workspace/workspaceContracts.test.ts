@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/contracts/workspace/workspaceContracts.test.ts
- * @version 1.0.0
- * @date 2026-10-13
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет строгую границу локальных manifest, разделение состояний и producer identity.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -447,7 +447,7 @@ test("Числа, hash, UUID и ISO timestamp проверяются без coer
     );
   }
   assert.equal(
-    workspaceTaskSchema.safeParse({ ...task, localDossierId: "task-01" })
+    workspaceTaskSchema.safeParse({ ...task, localDossierId: task.localKey })
       .success,
     false,
   );
@@ -502,7 +502,10 @@ test("Version, обязательные nullable поля и metadata limits ф�
     false,
   );
   assert.equal(
-    workspaceTaskSchema.safeParse({ ...task, localKey: "task_01" }).success,
+    workspaceTaskSchema.safeParse({
+      ...task,
+      localKey: task.localKey.replace("-", "_"),
+    }).success,
     false,
   );
   assert.equal(

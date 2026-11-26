@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/TaskManager.service.ts
- * @version 1.5.0
- * @date 2026-10-19
+ * @version 1.5.1
+ * @date 2026-11-26
  * @description Координирует membership, задачи, revision CAS, live Git observation и долговечные sync.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -440,9 +440,8 @@ export class TaskManagerService {
     await this.list(input.projectId, input.listId);
     await this.assignee(project, input.assigneeId);
     const now = new Date().toISOString();
-    const task: TaskDto = {
+    const taskFields = {
       id: randomUUID(),
-      key: "TASK-1",
       ...input,
       revision: 1,
       createdBy: actor.id,
@@ -451,22 +450,22 @@ export class TaskManagerService {
       updatedAt: now,
     };
     const row = await this.repository.create(TASKS_SLUG, {
-      taskId: task.id,
-      projectId: task.projectId,
-      listId: task.listId,
-      revision: task.revision,
+      taskId: taskFields.id,
+      projectId: taskFields.projectId,
+      listId: taskFields.listId,
+      revision: taskFields.revision,
       workspaceSourceId: source?.workspaceSourceId ?? null,
       workspaceCreateHash: source?.workspaceCreateHash ?? null,
-      record: task,
+      record: taskFields,
     });
-    // Numeric PK задаёт читабельный key; UUID остаётся устойчивым публичным ID.
+    // Ключ становится известен после вставки строки и сохраняется в той же транзакции.
     if (!/^[1-9][0-9]*$/.test(String(row.id)))
       throw new TaskManagerError(
         "STORAGE_UNAVAILABLE",
         "Хранилище задач требует числовой идентификатор записи.",
         503,
       );
-    task.key = `TASK-${row.id}`;
+    const task: TaskDto = { ...taskFields, key: `TASK-${row.id}` };
     await this.repository.update(TASKS_SLUG, row.id, { record: task });
     await this.appendEvent(task, "created", "Задача создана.");
     return mapTask(task);

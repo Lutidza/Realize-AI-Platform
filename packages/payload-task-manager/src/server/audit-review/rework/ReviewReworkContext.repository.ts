@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/ReviewReworkContext.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Открывает получившему итерацию ревьюеру исходное замечание и ответы аудитора на эту доработку.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import type { Pool } from "pg";
 import { withAuditTransaction } from "../withAuditTransaction.repository";

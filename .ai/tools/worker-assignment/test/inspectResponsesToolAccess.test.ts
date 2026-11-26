@@ -1,23 +1,35 @@
 /**
  * @file .ai/tools/worker-assignment/test/inspectResponsesToolAccess.test.ts
- * @version 1.0.0
- * @date 2026-11-25
- * @description Проверяет сверку прямых, отложенных и вложенных маршрутов на локальных запросах Responses.
+ * @version 1.0.1
+ * @date 2026-11-26
+ * @description Проверяет доступ к файлам временного назначения по прямым, отложенным и вложенным маршрутам Responses.
  */
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { test } from "node:test";
+import { test, type TestContext } from "node:test";
 import { inspectResponsesToolAccess } from "../src/inspectResponsesToolAccess.validator";
+import {
+  createTemporaryAssignment,
+  requiredSources,
+} from "./temporaryAssignment.fixture";
 
 const example = readFileSync(
   new URL("./responsesLiteRoutes.fixture.json", import.meta.url),
   "utf8",
 );
-const lock = new URL("../article-audit.lock.json", import.meta.url);
-const paths = Object.keys(JSON.parse(readFileSync(lock, "utf8")).files);
+const entryPath = "src/module/entry.ts";
 const field = "x-codex-turn-metadata";
 const ns = "mcp__realize_assignment";
 const mcpSource = { kind: "mcp", server_name: "realize_assignment" };
+
+async function inspectorForAssignment(t: TestContext, paths = [entryPath]) {
+  const { lock } = await createTemporaryAssignment(t, {
+    reviewScope: { paths },
+  });
+  const allowedPaths = Object.keys(lock.files);
+  return (body: unknown) => inspectResponsesToolAccess(body, allowedPaths);
+}
+
 function withMetadata(body: object, info: unknown) {
   return {
     ...body,
@@ -30,7 +42,7 @@ function fixtureInfo() {
   return JSON.parse(JSON.parse(example).client_metadata[field])
     .tool_namespaces_info;
 }
-function directReader(allowedPaths = paths) {
+function directReader(allowedPaths: string[]) {
   const body = {
     tools: [
       {
@@ -62,9 +74,9 @@ function directReader(allowedPaths = paths) {
     info: { [ns]: { name: ns, functions: { repo_read_file: entry } } },
   };
 }
-const inspect = (body: unknown) => inspectResponsesToolAccess(body, paths);
 
-test("три прямых инструмента согласованы, reader и ресурсы доступны через exec только по метаданным примера", () => {
+test("три прямых инструмента согласованы, reader и ресурсы доступны через exec только по метаданным примера", async (t) => {
+  const inspect = await inspectorForAssignment(t);
   const report = inspect(JSON.parse(example));
   assert.equal(report.status, "blocked");
   assert.equal(report.reason, "unexpected_tool");
@@ -102,30 +114,36 @@ test("три прямых инструмента согласованы, reader 
   );
 });
 
-test("единственный прямой reader требует точного enum, подтверждённого источника и совпадения обоих каталогов", () => {
-  const { body, info } = directReader();
-  const report = inspect(withMetadata(body, info));
-  assert.equal(paths.length, 18);
-  assert.equal(report.onlyReader, true);
-  assert.equal(report.status, "verified");
-  assert.equal(
-    inspect(
-      withMetadata(directReader([...paths.slice(1), "outside.md"]).body, info),
-    ).reason,
-    "path_mismatch",
-  );
-  info[ns].functions.repo_read_file.source = {
-    kind: "mcp",
-    server_name: "another_server",
-  };
-  assert.equal(
-    inspect(withMetadata(body, info)).reason,
-    "reader_source_mismatch",
-  );
+test("единственный прямой reader требует точного enum и подтверждённого источника для одного и нескольких файлов", async (t) => {
+  for (const paths of [[entryPath], [entryPath, "src/shared/entry.ts"]]) {
+    const inspect = await inspectorForAssignment(t, paths);
+    const { body, info } = directReader([...requiredSources, ...paths]);
+    const report = inspect(withMetadata(body, info));
+    assert.equal(report.status, "verified");
+    assert.equal(report.onlyReader, true);
+
+    const substituted = directReader([
+      ...requiredSources,
+      "src/module/draft.ts",
+      ...paths.slice(1),
+    ]);
+    const mismatch = inspect(withMetadata(substituted.body, info));
+    assert.equal(mismatch.status, "blocked");
+    assert.equal(mismatch.reason, "path_mismatch");
+
+    info[ns].functions.repo_read_file.source = {
+      kind: "mcp",
+      server_name: "another_server",
+    };
+    const wrongSource = inspect(withMetadata(body, info));
+    assert.equal(wrongSource.status, "blocked");
+    assert.equal(wrongSource.reason, "reader_source_mismatch");
+  }
 });
 
-test("отсутствующие и повреждённые метаданные блокируют допуск даже при точном прямом каталоге", () => {
-  const { body, info } = directReader();
+test("отсутствующие и повреждённые метаданные блокируют допуск даже при точном прямом каталоге", async (t) => {
+  const inspect = await inspectorForAssignment(t);
+  const { body, info } = directReader([...requiredSources, entryPath]);
   const misplaced = {
     ...body,
     headers: { [field]: JSON.stringify({ tool_namespaces_info: info }) },
@@ -141,7 +159,8 @@ test("отсутствующие и повреждённые метаданны�
   assert.equal(inspect(withMetadata(body, info)).reason, "metadata_invalid");
 });
 
-test("прямые записи сверяются в обе стороны, для вложенного reader нужен прямой exec", () => {
+test("прямые записи сверяются в обе стороны, для вложенного reader нужен прямой exec", async (t) => {
+  const inspect = await inspectorForAssignment(t);
   const body = JSON.parse(example);
   const info = fixtureInfo();
   info.functions.functions.wait.direct = false;
@@ -160,7 +179,8 @@ test("прямые записи сверяются в обе стороны, д�
   );
 });
 
-test("маршрут deferred требует прямого tool_search, а совпадение имён Code Mode блокирует неоднозначный отчёт", () => {
+test("маршрут deferred требует прямого tool_search, а совпадение имён Code Mode блокирует неоднозначный отчёт", async (t) => {
+  const inspect = await inspectorForAssignment(t);
   const body = JSON.parse(example);
   const info = fixtureInfo();
   const reader = info[ns].functions.repo_read_file;

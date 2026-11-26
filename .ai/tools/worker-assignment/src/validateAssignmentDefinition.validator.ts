@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/worker-assignment/src/validateAssignmentDefinition.validator.ts
- * @version 1.0.1
- * @date 2026-11-25
+ * @version 1.1.0
+ * @date 2026-11-26
  * @description Проверяет контракт назначения, его идентичность и область относительно файла привязки.
  */
 import { z } from "zod";
@@ -9,19 +9,25 @@ import { RepositoryReadError } from "../../../../services/ai-control-plane/src/R
 import { parseRepositoryPath } from "../../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
 
 const label = z.string().trim().min(1).max(2048);
-const paths = z.array(label).min(1).max(64);
+const labels = z.array(label).min(1).max(64);
+const filePath = z.string().min(1).max(2048);
+const filePaths = z.array(filePath).min(1).max(64);
 const identity = {
   id: label,
   revision: z.number().int().positive(),
   baseCommit: z.string().regex(/^[a-f0-9]{40}$/),
 };
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
+const reviewScopeSchema = z.union([
+  z.strictObject({ paths: filePaths }),
+  z.strictObject({ route: filePath, directory: filePath, files: filePaths }),
+]);
 
 export const assignmentLockSchema = z.strictObject({
   ...identity,
-  manifestPath: label,
+  manifestPath: filePath,
   manifestSha256: digest,
-  files: z.record(label, digest),
+  files: z.record(filePath, digest),
 });
 
 const assignmentSchema = z.strictObject({
@@ -30,21 +36,31 @@ const assignmentSchema = z.strictObject({
   returnsTo: label,
   mission: label,
   ownerLayer: label,
-  role: label,
+  role: filePath,
   roleReason: label,
   mode: z.literal("static-read-only"),
-  requiredSources: paths,
-  reviewScope: z.strictObject({ route: label, directory: label, files: paths }),
+  requiredSources: filePaths,
+  reviewScope: reviewScopeSchema,
   permissions: z.strictObject({
     read: z.tuple([z.literal("requiredSources"), z.literal("reviewScope")]),
     writePaths: z.tuple([]),
     tools: z.tuple([z.literal("repo_read_file")]),
     output: z.literal("reply-to-orchestrator"),
   }),
-  checks: paths,
-  expectedOutput: paths,
+  checks: labels,
+  expectedOutput: labels,
   stopCondition: label,
 });
+
+function resolveReviewPaths(scope: z.infer<typeof reviewScopeSchema>) {
+  if ("paths" in scope)
+    return scope.paths.map((path) => parseRepositoryPath(path));
+  const directory = parseRepositoryPath(scope.directory.replace(/\/$/, ""));
+  return [
+    parseRepositoryPath(scope.route),
+    ...scope.files.map((file) => directory + "/" + parseRepositoryPath(file)),
+  ];
+}
 
 /** Сверяет область и полномочия до чтения любого из заявленных файлов назначения. */
 export function validateAssignmentDefinition(
@@ -72,15 +88,7 @@ export function validateAssignmentDefinition(
       "INVALID_INPUT",
       "Роль должна входить в обязательные источники.",
     );
-  const directory = parseRepositoryPath(
-    assignment.reviewScope.directory.replace(/\/$/, ""),
-  );
-  const scope = [
-    parseRepositoryPath(assignment.reviewScope.route),
-    ...assignment.reviewScope.files.map(
-      (file) => directory + "/" + parseRepositoryPath(file),
-    ),
-  ];
+  const scope = resolveReviewPaths(assignment.reviewScope);
   const paths = new Set([...assignment.requiredSources, ...scope]);
   if (
     paths.size !== assignment.requiredSources.length + scope.length ||

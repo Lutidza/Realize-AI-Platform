@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/AuditPublication.types.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Определяет версионированный вход досье и ссылки, которые может получить очередь ревью.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 export type AuditTaskBinding = {
   projectId: string;

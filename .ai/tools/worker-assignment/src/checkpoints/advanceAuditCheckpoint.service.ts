@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/worker-assignment/src/checkpoints/advanceAuditCheckpoint.service.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Выполняет один допущенный обмен и атомарно подтверждает доставку чтения с очередным вызовом или отчётом.
  * @see documentation/specifications/task-management/execution/checkpoints-and-reads.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
 import type { ReworkInboxRepository } from "@realize/payload-task-manager/audit-review";
-import type { RepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { RepositoryReadError } from "../../../../../services/ai-control-plane/src/RepositoryRead.error";
 import type {
   AuditCallKey,

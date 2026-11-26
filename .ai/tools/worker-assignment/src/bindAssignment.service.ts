@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/worker-assignment/src/bindAssignment.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Создаёт или повторно открывает личный контекст статического аудита.
  */
 import type { AssignmentBindResult } from "./WorkerAssignment.types";
 import { randomUUID } from "node:crypto";
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { AssignmentContextRepository } from "./AssignmentContext.repository";
 import { collectAssignmentPackage } from "./collectAssignmentPackage.service";
 import { openAssignmentContext } from "./openAssignmentContext.service";
@@ -18,6 +18,15 @@ export async function bindAssignment(
   contextId?: string,
 ): Promise<AssignmentBindResult> {
   const packet = await collectAssignmentPackage(policy, lockPath);
+  return bindPreparedAssignment(policy, packet, contextId);
+}
+
+/** Только полный снимок может создать проверяемый контекст исполнителя. */
+export async function bindPreparedAssignment(
+  policy: RepositoryReadPolicy,
+  packet: Awaited<ReturnType<typeof collectAssignmentPackage>>,
+  contextId?: string,
+): Promise<AssignmentBindResult> {
   if (!packet.packageComplete)
     return {
       report: {

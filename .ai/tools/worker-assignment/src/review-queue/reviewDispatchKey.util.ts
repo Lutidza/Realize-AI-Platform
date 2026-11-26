@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/review-queue/reviewDispatchKey.util.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Получает ключ единственной работы по назначению и итерации этапа ревью.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import type { ReviewDelivery } from "@realize/payload-task-manager/audit-review";
 import { createHash } from "node:crypto";

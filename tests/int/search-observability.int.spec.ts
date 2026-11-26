@@ -1,7 +1,7 @@
 /**
  * @file tests/int/search-observability.int.spec.ts
- * @version 1.1.0
- * @date 2026-09-28
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Проверяет privacy, потери очереди, реальные Unicode измерения и изоляцию отказов наблюдателя.
  */
 // @vitest-environment node
@@ -21,7 +21,7 @@ import {
 import { SearchObservationCollector } from "../../packages/payload-ai-plugin/src/search-observability/SearchObservationCollector.service";
 import { createSearchObservationEndpoints } from "../../packages/payload-ai-plugin/src/search-observability/searchObservationEndpoints.controller";
 import { sanitizeOptions } from "../../packages/payload-ai-plugin/src/options";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { searchRepository } from "../../services/ai-control-plane/src/searchRepository.service";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { createMcpHttpServer } from "../../services/internal-mcp/src/createMcpHttpServer.controller";

@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-protocol.int.spec.ts
- * @version 1.3.3
- * @date 2026-11-05
+ * @version 1.3.4
+ * @date 2026-11-26
  * @description Проверяет обе protocol eras настоящими SDK clients и Git на одноразовом checkout.
  */
 // @vitest-environment node
@@ -30,7 +30,7 @@ import { readGitDiff } from "../../.ai/tools/git-delivery/src/read/readGitDiff.s
 import { readGitStatus } from "../../.ai/tools/git-delivery/src/read/readGitStatus.service";
 import { createMcpHttpServer } from "../../services/internal-mcp/src/createMcpHttpServer.controller";
 import { McpError } from "../../services/internal-mcp/src/Mcp.error";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { MCP_REALIZE_TOOLS } from "../../packages/ai-contracts/src/mcpServer.config";
 import { MCP_SERVER_VERSION } from "../../services/internal-mcp/src/mcpToolCatalog.config";

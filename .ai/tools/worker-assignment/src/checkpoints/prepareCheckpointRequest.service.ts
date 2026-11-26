@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/worker-assignment/src/checkpoints/prepareCheckpointRequest.service.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.2
+ * @date 2026-11-26
  * @description Заново связывает точные источники, историю и права попытки перед передачей имитатору.
  * @see documentation/specifications/task-management/execution/checkpoints-and-reads.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
 import type { ReworkInboxRepository } from "@realize/payload-task-manager/audit-review";
-import type { RepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { bindAssignment } from "../bindAssignment.service";
 import { admitOpenAiAuditRequest } from "../adapters/openAiAuditRequest.adapter";
 import { performSingleRead } from "../exchange/performSingleRead.service";
@@ -34,6 +34,7 @@ export async function prepareCheckpointRequest(
     (state.status !== "pending" || !equal(state.pending.key, expectedKey))
   )
     throw new Error("tool_call_mismatch");
+  if (!selection.contextId) throw new Error("context_mismatch");
   const bound = await bindAssignment(
     policy,
     selection.lockPath,
@@ -45,6 +46,7 @@ export async function prepareCheckpointRequest(
     bound.report.lockSha256 !== identity.lockSha256 ||
     bound.report.revision !== identity.revision ||
     bound.report.assignmentId !== identity.assignmentId ||
+    !equal(bound.context.scopePins, identity.scopePins) ||
     hashAuditText(bound.context.initialInput) !== identity.inputSha256
   )
     throw new Error("context_mismatch");

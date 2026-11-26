@@ -1,22 +1,22 @@
 /**
  * @file .ai/tools/worker-assignment/test/publication/reviewProcess.fixture.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.3
+ * @date 2026-11-26
  * @description Прерывает издателя или диспетчер после настоящего commit и получает работу отдельным процессом.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import { AuditDossierRepository } from "@realize/payload-task-manager/audit-review";
-import { createRepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { PostgresCheckpointStore } from "../../src/checkpoints/PostgresCheckpoint.repository";
 import { publishReceivedAudit } from "../../src/checkpoints/publishReceivedAudit.service";
 import { PostgresReviewQueue } from "../../src/review-queue/PostgresReview.repository";
 import { dispatchPendingReviews } from "../../src/review-queue/dispatchPendingReviews.service";
-import { openPilotPool } from "../checkpoints/checkpointPilot.fixture";
+import { openAssignmentTestPool } from "../checkpoints/checkpointStorage.fixture";
 import { receiveReviewMaterials } from "../../src/review-queue/receiveReviewMaterials.service";
 import { createHash } from "node:crypto";
 
 const [action, ...args] = process.argv.slice(2);
-const pool = openPilotPool();
+const pool = openAssignmentTestPool();
 const dossier = new AuditDossierRepository(pool);
 const queue = new PostgresReviewQueue(pool);
 try {

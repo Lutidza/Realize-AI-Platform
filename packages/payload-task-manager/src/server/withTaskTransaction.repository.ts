@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/server/withTaskTransaction.repository.ts
- * @version 1.1.0
- * @date 2026-10-19
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Сериализует replay и изменения проекта PostgreSQL locks в транзакции Payload.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -27,7 +27,10 @@ export async function assertIndependentTaskTransaction(
     );
 }
 
-/** Атомарный пилот PostgreSQL-only; mutation, audit и replay используют собственную txn. */
+/**
+ * Открывает отдельную транзакцию PostgreSQL через Payload. При создании или обновлении
+ * задачи в ней вместе сохраняются изменение, событие истории и результат для повторного запроса.
+ */
 export async function withTaskTransaction<T>(
   req: PayloadRequest,
   actorId: string,

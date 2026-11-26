@@ -1,14 +1,15 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/reviewEvidence.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет принадлежность независимых чтений и отказ в публикации недоказанных оценок.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { test } from "node:test";
 import { setReviewAccess } from "@realize/payload-task-manager/audit-review";
+import { sampleCheckpointAudit } from "../checkpoints/sampleCheckpointAudit.fixture";
 import { reviewFixture } from "./reviewConclusion.fixture";
 
 export function registerEvidenceTests() {
@@ -69,7 +70,12 @@ export function registerEvidenceTests() {
   });
 
   test("Собственное чтение ревьюера не расширяет покрытие аудитора, а отзыв доступа закрывает чтение и публикацию", async (t) => {
-    const f = await reviewFixture(t);
+    const path = "src/module/entry.ts";
+    const audit = sampleCheckpointAudit(
+      { [path]: "// начало\nexport const entry = 1;\n// конец\n" },
+      [{ path, startLine: 2, lineCount: 1 }],
+    );
+    const f = await reviewFixture(t, false, audit);
     const outsideAuditMap = Object.keys(f.plan.sourcePins).find(
       (path) => !Object.hasOwn(f.plan.scopePins, path),
     );

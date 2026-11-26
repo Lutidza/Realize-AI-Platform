@@ -1,18 +1,19 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/reviewConclusion.fixture.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.17
+ * @date 2026-11-26
  * @description Создаёт реальную попытку и собственные квитанции ревьюера на базе проверяемого варианта отчёта.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { TestContext } from "node:test";
 import {
   ReviewEvidenceRepository,
   ReviewConclusionRepository,
   ReviewAcceptanceRepository,
   REVIEW_CRITERIA,
+  type AuditFileCoverage,
   type ReviewAssessment,
   type ReviewBody,
   type ReviewEvidenceRef,
@@ -21,24 +22,55 @@ import { resolveClaimedReview } from "../../src/review-queue/resolveClaimedRevie
 import { reviewDispatchKey } from "../../src/review-queue/reviewDispatchKey.util";
 import { receiveReviewMaterials } from "../../src/review-queue/receiveReviewMaterials.service";
 import { auditReviewFixture } from "../publication/auditReview.fixture";
+import { sampleCheckpointAudit } from "../checkpoints/sampleCheckpointAudit.fixture";
 import {
-  auditSamples,
+  sampleAuditReviewParticipants,
+  sampleReviewProjectRoles,
+} from "../publication/auditReviewParticipants.fixture";
+import {
   auditQuotes,
-  runArticleAudit,
-} from "./articleAuditReport.fixture";
+  describeAuditRead,
+  runAuditReport,
+} from "./auditReport.fixture";
 
 export const sha = (text: string) =>
   createHash("sha256").update(text).digest("hex");
 
-export async function reviewFixture(t: TestContext, disputed = false) {
-  const f = await auditReviewFixture(t, true, (pilot) =>
-    runArticleAudit(pilot, disputed),
-  );
+export async function reviewFixture(
+  t: TestContext,
+  disputed = false,
+  audit = sampleCheckpointAudit(),
+) {
+  const f = await auditReviewFixture(t, {
+    audit,
+    participants: sampleAuditReviewParticipants(),
+    assignedReviewerRole: "independentReviewer",
+    review: {
+      stageId: "report-review",
+      assignmentId: randomUUID(),
+      assignmentRevision: 1,
+      iteration: 1,
+    },
+    foundation: {
+      createdAt: "2026-11-25T12:00:00.000Z",
+      listId: randomUUID(),
+      projectTitle: "Заключения ревьюеров",
+      projectDescription: "",
+      listTitle: "Проверка отчётов",
+      taskTitle: "Подготовить заключение по отчёту аудитора",
+      taskDescription: "",
+      status: "review",
+      priority: "normal",
+      gitBindings: [],
+    },
+    projectRoles: sampleReviewProjectRoles,
+    runAudit: (scenario) => runAuditReport(scenario, disputed),
+  });
   const result = await f.publish();
   const delivery = await f.dossier.prepareDelivery(result.resultId);
   const submitted = await f.queue.submit(delivery);
   await f.dossier.acknowledge(delivery, submitted.jobId);
-  const { job, report } = await receiveReviewMaterials(
+  const { job, report, coverage } = await receiveReviewMaterials(
     f.queue,
     f.dossier,
     reviewDispatchKey(delivery),
@@ -46,7 +78,7 @@ export async function reviewFixture(t: TestContext, disputed = false) {
     "review-simulator",
   );
   const { reviewAttemptId } = job;
-  const orchestratorId = f.replacementReviewer;
+  const orchestratorId = f.participantIds.replacementReviewer;
   const evidence = new ReviewEvidenceRepository(f.pool, resolveClaimedReview);
   const conclusions = new ReviewConclusionRepository(
     f.pool,
@@ -58,15 +90,16 @@ export async function reviewFixture(t: TestContext, disputed = false) {
     criteriaSha256: f.lock.manifestSha256,
     policySha256: f.initial.state.identity.lockSha256,
   };
-  const basis = await acceptance.configure(f.plan.auditorId, delivery, config);
-  const [firstPath, firstStart, firstEnd] = auditSamples[0];
+  const basis = await acceptance.configure(f.ownerId, delivery, config);
+  const [first] = audit.simulator.reads;
+  assert(first, "Для проверки права на чтение требуется источник");
   await assert.rejects(
     evidence.read(
       f.reviewerId,
       reviewAttemptId,
-      firstPath,
-      firstStart,
-      firstEnd,
+      first.path,
+      first.startLine,
+      first.startLine,
     ),
     /review_basis_unbound/,
   );
@@ -79,6 +112,7 @@ export async function reviewFixture(t: TestContext, disputed = false) {
     f.reviewerId,
     reviewAttemptId,
     report,
+    coverage,
     disputed,
   );
   return {
@@ -97,65 +131,74 @@ export async function reviewFixture(t: TestContext, disputed = false) {
 
 /** Имитатор ревью каждый раз получает новые квитанции из допущенной попытки. */
 export async function buildReviewBody(
-  evidence: ReviewEvidenceRepository,
+  evidence: Pick<ReviewEvidenceRepository, "read">,
   reviewerId: string,
   reviewAttemptId: string,
   report: Buffer,
+  coverage: Buffer,
   disputed: boolean,
 ): Promise<ReviewBody> {
   const refs: ReviewEvidenceRef[] = [];
-  for (const [path, start, end] of auditSamples) {
-    const { text, ...ref } = await evidence.read(
-      reviewerId,
-      reviewAttemptId,
-      path,
-      start,
-      end,
-    );
-    assert(text.trim());
-    assert.equal(ref.auditorCoverage, "covered");
-    refs.push(ref);
+  const files: AuditFileCoverage[] = JSON.parse(coverage.toString("utf8"));
+  const reportLines = new Set(report.toString("utf8").split("\n"));
+  for (const { path, sha256, receipts } of files) {
+    for (const { startLine, endLine } of receipts) {
+      if (endLine < startLine) continue;
+      const { text, ...ref } = await evidence.read(
+        reviewerId,
+        reviewAttemptId,
+        path,
+        startLine,
+        endLine,
+      );
+      assert(text.length > 0);
+      assert.equal(ref.auditorCoverage, "covered");
+      assert.deepEqual(
+        [ref.path, ref.sha256, ref.startLine, ref.endLine],
+        [path, sha256, startLine, endLine],
+      );
+      assert(reportLines.has(describeAuditRead(ref)));
+      refs.push(ref);
+    }
   }
-  const quotes = auditQuotes(disputed);
-  const groups = [
-    [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-    [0, 1, 7, 9, 10],
-    [7, 11, 12],
-    [0, 10],
-  ];
-  const reasons = [
-    "Пути из отчёта совпали с 12 файлами карты и их обязанностями.",
-    "Проверены вызов из хука и обработка данных серверным действием.",
-    disputed
-      ? "Сервер возвращает поля, а хук сравнивает содержимое перед переходом."
-      : "Проверены выборка по slug и сравнение вложенных полей с черновиком.",
-    "Границы статической проверки указаны явно.",
-  ];
-  const assessments = REVIEW_CRITERIA.map(
-    (criterion, index): ReviewAssessment => {
-      assert(report.toString().includes(quotes[criterion]));
-      const base = {
-        criterion,
-        reportQuote: quotes[criterion],
-        reason: reasons[index],
-        evidence: groups[index].map((i) => refs[i]),
-      };
-      if (disputed && criterion === "verification-chain")
-        return {
-          ...base,
-          status: "discrepancy",
-          correction: "Описать сравнение отправленных полей и разделов.",
-          acceptanceTest:
-            "Проследить вызов matchesSubmittedDocumentArticle из checkSave.",
-        };
-      return { ...base, status: "confirmed" };
-    },
+  assert(
+    refs.length > 0,
+    "В карте покрытия нет прочитанных строк для заключения",
   );
+  const quotes = auditQuotes(disputed);
+  const reasons = {
+    responsibilities: "Источники из карты покрытия найдены в отчёте.",
+    "create-chain":
+      "По квитанциям из карты перечитаны строки закреплённых файлов.",
+    "verification-chain": disputed
+      ? "Квитанция связывает путь с SHA-256 конкретной версии."
+      : "Пути и SHA-256 независимо сверены с картой покрытия.",
+    "findings-and-limits":
+      "Границы чтений в отчёте совпали с квитанциями ревьюера.",
+  };
+  const assessments = REVIEW_CRITERIA.map((criterion): ReviewAssessment => {
+    assert(reportLines.has(quotes[criterion]));
+    const base = {
+      criterion,
+      reportQuote: quotes[criterion],
+      reason: reasons[criterion],
+      evidence: [...refs],
+    };
+    if (disputed && criterion === "verification-chain")
+      return {
+        ...base,
+        status: "discrepancy",
+        correction: "Указать, как определяется версия прочитанного файла.",
+        acceptanceTest:
+          "Сверить путь и SHA-256 с квитанцией независимого чтения.",
+      };
+    return { ...base, status: "confirmed" };
+  });
   const body: ReviewBody = {
     schemaVersion: 1,
     recommendation: disputed ? "needs_changes" : "confirmed",
     summary: disputed
-      ? "Требуется уточнить проверку результата записи."
+      ? "Требуется уточнить проверку версии файла."
       : "Отчёт подтверждён по четырём критериям.",
     assessments,
   };

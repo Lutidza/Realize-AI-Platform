@@ -1,14 +1,14 @@
 /**
  * @file .ai/tools/worker-assignment/src/readAssignmentDefinition.service.ts
- * @version 1.0.1
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Читает закреплённое назначение и сверяет идентичность, область и разрешения.
  */
 import { createHash } from "node:crypto";
 import { parseDocument } from "yaml";
 import { RepositoryReadError } from "../../../../services/ai-control-plane/src/RepositoryRead.error";
 import { readRepositoryFile } from "../../../../services/ai-control-plane/src/readRepositoryFile.service";
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import {
   assignmentLockSchema,
   validateAssignmentDefinition,

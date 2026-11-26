@@ -1,24 +1,24 @@
 /**
  * @file .ai/tools/worker-assignment/test/checkpoints/checkpointProcess.fixture.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 2.0.3
+ * @date 2026-11-26
  * @description Имитирует ответы транспорта в отдельном процессе, включая аварийный выход после отправки.
- * @see documentation/specifications/task-management/execution/article-audit-storage-pilot.md
+ * @see documentation/specifications/task-management/execution/checkpoint-storage.md
  */
 import { appendFile } from "node:fs/promises";
 import { join } from "node:path";
-import { createRepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { advanceAuditCheckpoint } from "../../src/checkpoints/advanceAuditCheckpoint.service";
 import { PostgresCheckpointStore } from "../../src/checkpoints/PostgresCheckpoint.repository";
 import type { SingleReadTransport } from "../../src/exchange/SingleRead.types";
-import { view } from "../articleAudit.fixture";
-import { openPilotPool } from "./checkpointPilot.fixture";
-import type { PilotCommand } from "./CheckpointPilot.types";
+import { openAssignmentTestPool } from "./checkpointStorage.fixture";
+import { checkpointSimulatorResponse } from "./checkpointSimulatorResponse.fixture";
+import type { CheckpointProcessCommand } from "./CheckpointScenario.types";
 
-const command: PilotCommand = JSON.parse(process.argv[2]);
-const { root, attemptId, task, action, options } = command;
+const command: CheckpointProcessCommand = JSON.parse(process.argv[2]);
+const { root, attemptId, task, action, options, simulator } = command;
 const pid = process.pid;
-const pool = openPilotPool();
+const pool = openAssignmentTestPool();
 const store = new PostgresCheckpointStore(pool);
 const transport: SingleReadTransport = {
   async send(request) {
@@ -28,41 +28,10 @@ const transport: SingleReadTransport = {
       { mode: 0o600 },
     );
     if (action === "crash") process.kill(pid, "SIGKILL");
-    const count = JSON.parse(request.body).messages.length;
-    const choice =
-      count === 5
-        ? {
-            finish_reason: "stop",
-            message: {
-              role: "assistant",
-              content: "Отчёт имитатора о двух диапазонах формы.\n",
-            },
-          }
-        : {
-            finish_reason: "tool_calls",
-            message: {
-              role: "assistant",
-              content: null,
-              tool_calls: [
-                {
-                  type: "function",
-                  id: count === 1 ? "article-call-1" : "article-call-2",
-                  function: {
-                    name: "repo_read_file",
-                    arguments: JSON.stringify({
-                      path: view,
-                      startLine: count === 1 ? 20 : 60,
-                      lineCount: 20,
-                    }),
-                  },
-                },
-              ],
-            },
-          };
     return {
       attemptId: request.attemptId,
       requestId: request.requestId,
-      body: { choices: [choice] },
+      body: checkpointSimulatorResponse(request.body, simulator),
     };
   },
 };

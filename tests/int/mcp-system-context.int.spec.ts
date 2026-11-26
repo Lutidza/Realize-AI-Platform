@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-system-context.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-24
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет S1 настоящими MCP SDK clients, отзыв grants и прямой fallback без listener.
  */
 // @vitest-environment node
@@ -22,7 +22,7 @@ import {
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
 import { createMcpHttpServer } from "../../services/internal-mcp/src/createMcpHttpServer.controller";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import {
   AI_INSTRUCTION_CORE,
   AI_INSTRUCTION_PROFILES,

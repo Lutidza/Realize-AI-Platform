@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/checkpoints/checkpointSchema.sql
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Создаёт закрытую схему одноразовой базы для неизменяемых ревизий и квитанций аудита.
- * @see documentation/specifications/task-management/execution/article-audit-storage-pilot.md
+ * @see documentation/specifications/task-management/execution/checkpoint-storage.md
  */
 CREATE SCHEMA IF NOT EXISTS audit_checkpoint;
 REVOKE ALL ON SCHEMA audit_checkpoint FROM PUBLIC;

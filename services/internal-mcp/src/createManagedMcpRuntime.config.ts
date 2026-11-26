@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/createManagedMcpRuntime.config.ts
- * @version 1.4.0
- * @date 2026-09-30
+ * @version 1.4.1
+ * @date 2026-11-26
  * @description Собирает managed listener из существующего Payload registry и operator binding.
  */
 import type { SearchObservationDatabase } from "../../../packages/payload-ai-plugin/src/search-observability/SearchObservationStore.types";
@@ -22,7 +22,7 @@ import {
   validateMcpConfiguration,
 } from "../../../packages/payload-ai-plugin/src/integrations/mcp/validateMcpConfiguration.validator";
 import { EndpointError } from "../../../packages/payload-ai-plugin/src/endpoints/http";
-import { createRepositoryReadPolicy } from "../../ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { McpError } from "./Mcp.error";
 import type { McpRuntimeOptions } from "./McpRuntime.types";
 import { McpChatGptRuntime } from "../../../packages/payload-ai-plugin/src/integrations/mcp/McpChatGptRuntime.service";

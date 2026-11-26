@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/reviewEvidenceSchema.sql
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Хранит неизменяемые квитанции выдачи строк ревьюеру по версии источника в досье.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 CREATE SCHEMA IF NOT EXISTS audit_review_evidence;
 REVOKE ALL ON SCHEMA audit_review_evidence FROM PUBLIC;

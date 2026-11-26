@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/review-queue/dispatchNextReviews.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Возобновляет повторные выдачи при остановке до подготовки работы и после commit очереди.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import type { ReviewIterationRepository } from "@realize/payload-task-manager/audit-review";
 import type { ReviewQueueTransport } from "./ReviewDispatch.types";

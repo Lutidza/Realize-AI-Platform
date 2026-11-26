@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/dossier-view/TaskAuditDossierView.types.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-26
  * @description Определяет поля трёх связанных материалов, доступных оркестратору в карточке задачи.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import type { AuditArtifactRef } from "../AuditPublication.types";
 import type { AuditDecision } from "../conclusions/ReviewAcceptance.types";

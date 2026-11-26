@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/decisionAccess.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.3
+ * @date 2026-11-26
  * @description Проверяет отзыв прав перед записью решения и видимость ожидающих и исторических заключений.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -59,9 +59,9 @@ export function registerDecisionAccessTests() {
     await withAuditTransaction(f.pool, async (client) => {
       const updated = await client.query(
         `UPDATE public.realize_tasks SET revision=revision+1,
-          record=record || jsonb_build_object('title','Проверить форму статьи','revision',revision+1)
+          record=record || jsonb_build_object('title',$3::text,'revision',revision+1)
           WHERE task_id=$1 AND revision=$2`,
-        [f.task.taskId, f.task.taskRevision],
+        [f.task.taskId, f.task.taskRevision, `${f.createdTask.title} (уточнено)`],
       );
       assert.equal(updated.rowCount, 1);
     });
@@ -76,7 +76,7 @@ export function registerDecisionAccessTests() {
       saved,
     );
     await f.acceptance.configure(
-      f.plan.auditorId,
+      f.ownerId,
       f.delivery,
       { ...f.config, policySha256: sha("Новая действующая политика") },
       f.basis.revision,
@@ -103,7 +103,7 @@ export function registerDecisionAccessTests() {
     await f.acceptance.dispatchPending();
     assert.deepEqual(await f.acceptance.inbox(f.orchestratorId), [c]);
     await f.acceptance.configure(
-      f.plan.auditorId,
+      f.ownerId,
       f.delivery,
       { ...f.config, criteriaSha256: sha("Изменившиеся критерии") },
       f.basis.revision,

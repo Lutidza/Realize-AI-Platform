@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/readAuditorCoverage.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Определяет пересечение предметной ссылки с закреплённой картой фактических чтений аудитора.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";

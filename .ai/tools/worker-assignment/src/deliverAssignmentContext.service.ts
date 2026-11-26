@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/worker-assignment/src/deliverAssignmentContext.service.ts
- * @version 2.0.0
- * @date 2026-11-25
+ * @version 2.0.1
+ * @date 2026-11-26
  * @description Передаёт проверенный ввод и связывает чтения и ответ с одним ходом транспорта.
  */
 import { randomUUID } from "node:crypto";
 import { RepositoryReadError } from "../../../../services/ai-control-plane/src/RepositoryRead.error";
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import type {
   AssignmentReadReceipt,
   AssignmentTransport,

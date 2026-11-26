@@ -1,10 +1,10 @@
 /**
  * @file .ai/tools/worker-assignment/src/prepareAssignment.service.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Собирает локальный пакет из проверенных текстов и объясняет готовность к выдаче.
  */
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { collectAssignmentPackage } from "./collectAssignmentPackage.service";
 import { assessAssignmentReadiness } from "./assessAssignmentReadiness.validator";
 

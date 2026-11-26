@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/auditReviewPlan.repository.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.2.1
+ * @date 2026-11-26
  * @description Сверяет попытку, действующее назначение и права на входные материалы по сохранённому плану.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual as equal } from "node:util";
@@ -52,14 +52,14 @@ function validatePlan(plan: AuditPlanInput) {
     review.iteration,
   ];
   const pins = Object.entries(sourcePins);
+  const reviewFiles = Object.entries(scopePins);
   if (
     ids.some((id) => typeof id !== "string" || !id || id !== id.trim()) ||
     versions.some((n) => !Number.isSafeInteger(n) || n < 1) ||
     task.executionId !== review.executionId ||
     task.stageId === review.stageId ||
     task.taskAssignmentId === review.assignmentId ||
-    pins.length !== 18 ||
-    Object.keys(scopePins).length !== 12 ||
+    reviewFiles.length === 0 ||
     pins.some(
       ([path, digest]) =>
         !path ||
@@ -67,9 +67,10 @@ function validatePlan(plan: AuditPlanInput) {
         path
           .split("/")
           .some((part) => !part || part === "." || part === "..") ||
+        typeof digest !== "string" ||
         !/^[0-9a-f]{64}$/.test(digest),
     ) ||
-    Object.entries(scopePins).some(
+    reviewFiles.some(
       ([path, digest]) =>
         !Object.hasOwn(sourcePins, path) || sourcePins[path] !== digest,
     )

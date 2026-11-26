@@ -300,7 +300,8 @@ move сохраняет непрозрачное содержимое целик
 Целевой проект дополнен
 [описаниями модулей, блоков, виджетов и компонентов](specifications/realize-ai-commerce/v1.0/01-architecture/07-declarative-first.md#74-элементы-проекта-и-их-связи)
 и [выбором сервиса, браузера или разработки недостающей возможности](specifications/realize-ai-commerce/v1.0/02-change-engine-and-pipelines/11-change-engine.md#116-выбор-способа-исполнения).
-Производный каталог и инструкции подключены для пилота Pages/Content/FormBlock.
+Каталог Pages берёт описания полей из зарегистрированной схемы коллекции,
+а инструкции для агента — из манифестов Pages, Content и FormBlock.
 Универсальный каталог всех элементов, делегированный browser-write и полный
 engineering workflow ещё не реализованы. Текущие
 runtime permissions этим проектом не изменены.

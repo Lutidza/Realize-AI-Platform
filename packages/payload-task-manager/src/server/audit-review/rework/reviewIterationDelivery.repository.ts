@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/reviewIterationDelivery.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Сверяет канонический конверт повторной выдачи и закреплённое основание с действующим источником.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
 import type { PoolClient } from "pg";

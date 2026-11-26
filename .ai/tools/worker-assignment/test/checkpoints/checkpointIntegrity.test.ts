@@ -1,61 +1,75 @@
 /**
  * @file .ai/tools/worker-assignment/test/checkpoints/checkpointIntegrity.test.ts
- * @version 1.0.0
- * @date 2026-11-25
- * @description Проверяет целостность чтений и конкуренцию владельцев попытки в отдельной PostgreSQL.
- * @see documentation/specifications/task-management/execution/article-audit-storage-pilot.md
+ * @version 1.0.5
+ * @date 2026-11-26
+ * @description Проверяет пути и хеши временного назначения, а в PostgreSQL — сохранение чтений и права владельца попытки.
+ * @see documentation/specifications/task-management/execution/checkpoints-and-reads.md
  */
 import assert from "node:assert/strict";
-import { appendFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { appendFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test } from "node:test";
-import { createRepositoryReadPolicy } from "../../../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import type { SingleReadTransport } from "../../src/exchange/SingleRead.types";
 import { advanceAuditCheckpoint } from "../../src/checkpoints/advanceAuditCheckpoint.service";
 import { confirmAuditResponse } from "../../src/checkpoints/confirmAuditResponse.service";
+import { createAuditCheckpointState } from "../../src/checkpoints/createAuditCheckpointState.service";
+import { prepareCheckpointRequest } from "../../src/checkpoints/prepareCheckpointRequest.service";
 import type { CheckpointSnapshot } from "../../src/checkpoints/Checkpoint.types";
-import { adjacent, view } from "../articleAudit.fixture";
+import { sampleCheckpointAudit } from "./sampleCheckpointAudit.fixture";
+import { checkpointSimulatorResponse } from "./checkpointSimulatorResponse.fixture";
 import {
   readCheckpointJournal,
   runCheckpointProcess,
-  setupCheckpointPilot,
-} from "./checkpointPilot.fixture";
+  setupCheckpointStorage,
+} from "./checkpointStorage.fixture";
 
-function call(id: string, path: string) {
-  return {
-    choices: [
-      {
-        finish_reason: "tool_calls",
-        message: {
-          role: "assistant",
-          tool_calls: [
-            {
-              id,
-              type: "function",
-              function: {
-                name: "repo_read_file",
-                arguments: JSON.stringify({ path, startLine: 1, lineCount: 1 }),
-              },
-            },
-          ],
-        },
-      },
-    ],
-  };
+const entryPath = "src/module/entry.ts";
+const sharedPath = "src/shared/entry.ts";
+const adjacent = "src/module/draft.ts";
+
+function checkpointAssignment(paths: string[]) {
+  return sampleCheckpointAudit(
+    Object.fromEntries(paths.map((path) => [path, `// ${path}\n`])),
+  );
 }
 
-function report() {
-  return {
-    choices: [
-      {
-        finish_reason: "stop",
-        message: { role: "assistant", content: "Сохранённый отчёт имитатора." },
-      },
-    ],
-  };
-}
+test("4. Целостность контрольной точки и файлов выбранного назначения", async (t) => {
+  for (const paths of [[entryPath], [entryPath, sharedPath]]) {
+    const audit = checkpointAssignment(paths);
+    const { policy, lock, lockPath, contextId, model, root } =
+      await audit.prepareContext(t);
+    const state = await createAuditCheckpointState(
+      policy,
+      { lockPath, contextId, model },
+      audit.task,
+    );
+    assert(state.status === "ready");
+    assert.deepEqual(
+      state.identity.scopePins,
+      Object.fromEntries(paths.map((path) => [path, lock.files[path]])),
+    );
+    const prepare = (checkpoint: typeof state) =>
+      prepareCheckpointRequest(policy, audit.attemptId, checkpoint);
+    const { request, intent } = await prepare(state);
+    assert.equal(intent.requestId, request.id);
+    assert.equal(
+      intent.bodySha256,
+      createHash("sha256").update(request.body).digest("hex"),
+    );
 
-test("4. Целостность: повтор подтверждения, подмена вызова, соседний путь, изменение файла и отзыв права", async (t) => {
+    const lastPath = paths[paths.length - 1];
+    const substituted = structuredClone(state);
+    substituted.identity.scopePins[lastPath] = lock.manifestSha256;
+    await assert.rejects(prepare(substituted), { message: "context_mismatch" });
+    delete substituted.identity.scopePins[lastPath];
+    substituted.identity.scopePins[adjacent] = lock.files[lastPath];
+    await assert.rejects(prepare(substituted), { message: "context_mismatch" });
+    await appendFile(join(root, lastPath), "// новое содержимое\n");
+    await assert.rejects(prepare(state), { message: "CONFLICT" });
+  }
+
   for (const scenario of [
     "replay",
     "foreign-call",
@@ -63,19 +77,27 @@ test("4. Целостность: повтор подтверждения, под
     "changed-file",
     "revoked",
   ] as const) {
-    await t.test(scenario, async (t) => {
-      const f = await setupCheckpointPilot(t);
+    await t.test("PostgreSQL — " + scenario, async (t) => {
+      const audit = checkpointAssignment([entryPath, sharedPath]);
+      const [firstRead, secondRead] = audit.simulator.reads;
+      const f = await setupCheckpointStorage(t, audit);
+      if (scenario === "adjacent")
+        await writeFile(join(f.root, adjacent), "// соседний файл\n");
       const lease = await f.store.claim(
         f.attemptId,
         f.initial.revision,
         "integrity",
         60_000,
       );
-      const responses = [
-        call("first", view),
-        call("second", scenario === "adjacent" ? adjacent : view),
-        report(),
-      ];
+      const simulator = {
+        ...audit.simulator,
+        reads: [
+          firstRead,
+          scenario === "adjacent"
+            ? { ...secondRead, path: adjacent }
+            : secondRead,
+        ],
+      };
       const exchanges: {
         sending: CheckpointSnapshot;
         request: Parameters<SingleReadTransport["send"]>[0];
@@ -87,7 +109,7 @@ test("4. Целостность: повтор подтверждения, под
           const reply = {
             attemptId: request.attemptId,
             requestId: request.requestId,
-            body: responses[exchanges.length],
+            body: checkpointSimulatorResponse(request.body, simulator),
           };
           exchanges.push({ sending, request, reply });
           return reply;
@@ -107,18 +129,21 @@ test("4. Целостность: повтор подтверждения, под
       assert(pending.state.status === "pending");
       const original = await f.store.receipts(f.attemptId);
       assert.equal(original.length, 1);
-      assert.equal(original[0].operation.receipt?.path, view);
-      assert.equal(original[0].operation.key.toolCallId, "first");
+      assert.equal(original[0].operation.receipt?.path, firstRead.path);
+      assert.equal(original[0].operation.key.toolCallId, firstRead.callId);
       assert.equal(exchanges.length, 2);
       if (scenario === "replay") {
-        const { sending, reply } = exchanges[1];
+        const { sending, reply, request } = exchanges[1];
         const replay = () =>
           confirmAuditResponse(f.store, sending, lease, reply);
         assert.deepEqual(await replay(), pending);
         await assert.rejects(
           confirmAuditResponse(f.store, sending, lease, {
             ...reply,
-            body: report(),
+            body: checkpointSimulatorResponse(request.body, {
+              ...simulator,
+              reads: [],
+            }),
           }),
           /checkpoint_conflict/,
         );
@@ -137,14 +162,14 @@ test("4. Целостность: повтор подтверждения, под
         const tool = JSON.parse(exchanges[2].request.body).messages.at(-1);
         assert.deepEqual(tool, {
           role: "tool",
-          tool_call_id: "second",
+          tool_call_id: secondRead.callId,
           content: JSON.stringify({ code: "FORBIDDEN" }),
         });
         return;
       } else {
         if (scenario === "changed-file")
           await appendFile(
-            join(f.root, view),
+            join(f.root, secondRead.path),
             "\n// Обновлено после первого чтения\n",
           );
         const policy =
@@ -179,8 +204,8 @@ test("4. Целостность: повтор подтверждения, под
   }
 });
 
-test("5. Два процесса претендуют на ревизию, а подтверждает только действующий владелец", async (t) => {
-  const f = await setupCheckpointPilot(t);
+test("PostgreSQL — 5. Два процесса претендуют на ревизию, а подтверждает только действующий владелец", async (t) => {
+  const f = await setupCheckpointStorage(t, checkpointAssignment([entryPath]));
   const results = await Promise.all(
     ["runner-A", "runner-B"].map((ownerId) =>
       runCheckpointProcess(f, "claim-step", {
@@ -222,7 +247,10 @@ test("5. Два процесса претендуют на ревизию, а п
       const reply = {
         attemptId: request.attemptId,
         requestId: request.requestId,
-        body: report(),
+        body: checkpointSimulatorResponse(request.body, {
+          ...f.simulator,
+          reads: [],
+        }),
       };
       witnessed.push({ sending, reply });
       await f.pool.query(

@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/reviewConclusion.test.ts
- * @version 1.1.0
+ * @version 1.1.4
  * @date 2026-11-26
  * @description Проверяет на временной PostgreSQL публикацию, доставку, единственность решения и получателей доработки.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -21,7 +21,7 @@ import {
 } from "@realize/payload-task-manager/audit-review";
 import { PostgresReviewQueue } from "../../src/review-queue/PostgresReview.repository";
 import { resolveClaimedReview } from "../../src/review-queue/resolveClaimedReview.adapter";
-import { openPilotPool } from "../checkpoints/checkpointPilot.fixture";
+import { openAssignmentTestPool } from "../checkpoints/checkpointStorage.fixture";
 import { reviewFixture, sha } from "./reviewConclusion.fixture";
 import { registerDecisionAccessTests } from "./decisionAccess.test";
 import { registerDossierViewTests } from "./taskAuditDossierView.test";
@@ -43,7 +43,7 @@ function runChild(file: string, ...args: string[]) {
 }
 before(async () => {
   await runChild("../publication/initializeReviewDatabase.fixture.mjs");
-  const pool = openPilotPool();
+  const pool = openAssignmentTestPool();
   try {
     await initializeAuditPlan(pool);
     await new AuditDossierRepository(pool).initialize();
@@ -138,7 +138,7 @@ test("После SIGKILL у издателя новый процесс дост�
   assert.equal(state.rows[0].status, "review");
 });
 
-test("Расхождение в описании проверки записи возвращается аудитору с проверяемым исправлением", async (t) => {
+test("Ревьюер выявляет ошибку в проверке версии файла, оркестратор возвращает пункт аудитору", async (t) => {
   const f = await reviewFixture(t, true);
   const c = await f.conclusions.publish(
     f.reviewerId,
@@ -197,7 +197,7 @@ test("Уточнение направляется независимому ре�
       {
         criterion: "findings-and-limits",
         correction: "Уточнить ограничение статической проверки.",
-        acceptanceTest: "Связать ограничение с условием запуска браузера.",
+        acceptanceTest: "Сверить указанные в заключении диапазоны с картой покрытия.",
       },
     ],
   });
@@ -227,7 +227,7 @@ test("Ревизия критериев и точная версия резул�
     }),
   );
   const revised = await f.acceptance.configure(
-    f.plan.auditorId,
+    f.ownerId,
     f.delivery,
     { ...f.config, criteriaSha256: sha("изменённые критерии") },
     f.basis.revision,
@@ -262,7 +262,7 @@ test("Ревизия критериев и точная версия резул�
     pending.body,
   );
   await pending.acceptance.configure(
-    pending.plan.auditorId,
+    pending.ownerId,
     pending.delivery,
     { ...pending.config, policySha256: sha("новая политика") },
     pending.basis.revision,

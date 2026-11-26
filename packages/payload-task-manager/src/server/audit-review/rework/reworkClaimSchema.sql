@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/reworkClaimSchema.sql
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Хранит квитанции получения поручений и передачи их результатов на повторное ревью.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 CREATE SCHEMA IF NOT EXISTS audit_rework;
 REVOKE ALL ON SCHEMA audit_rework FROM PUBLIC;

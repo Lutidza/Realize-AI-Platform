@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-git-head.int.spec.ts
- * @version 1.0.2
- * @date 2026-11-05
+ * @version 1.0.3
+ * @date 2026-11-26
  * @description Проверяет привязку Git HEAD к descriptor корня, согласованность пары и общий deadline.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -16,7 +16,7 @@ import { disposableGitFixture } from "./fixtures/disposableGit.fixture";
 import { readGitHead } from "../../.ai/tools/git-delivery/src/read/readGitHead.adapter";
 import type { GitReadContext } from "../../.ai/tools/git-delivery/src/read/GitRead.types";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import * as directoryReader from "../../services/ai-control-plane/src/openRepositoryDirectory.adapter";
 import * as fileReader from "../../services/ai-control-plane/src/readRepositoryFile.service";
 

@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/conclusionAccess.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.3
+ * @date 2026-11-26
  * @description Проверяет текущие права на заключение и его сохранность после отзыва доступа участника.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -37,7 +37,12 @@ export function registerConclusionAccessTests() {
       assert.deepEqual(await list(actorId), [saved]);
     }
     // Автор реализации состоит в проекте, посторонний участник зарегистрирован вне проекта.
-    const [outsider] = await createReviewParticipants(f.pool);
+    const [outsider] = await createReviewParticipants(f.pool, [
+      {
+        name: "Посторонний участник",
+        email: `outsider+${f.attemptId}@example.invalid`,
+      },
+    ]);
     await denied(f.plan.implementationAuthorId);
     await denied(outsider);
     await setReviewAccess(f.pool, f.task.executionId, f.reviewerId, false);

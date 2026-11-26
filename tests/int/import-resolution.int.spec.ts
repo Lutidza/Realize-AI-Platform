@@ -1,7 +1,7 @@
 /**
  * @file tests/int/import-resolution.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет настоящий защищённый MCP resolver, snapshot/cursor, Unicode, бюджеты и HTTP telemetry.
  */
 // @vitest-environment node
@@ -17,7 +17,7 @@ import {
 import { createMcpHttpServer } from "../../services/internal-mcp/src/createMcpHttpServer.controller";
 import { searchRepository } from "../../services/ai-control-plane/src/searchRepository.service";
 import { createImportReadAdapter } from "../../services/ai-control-plane/src/createImportReadAdapter.adapter";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import type { RepositoryQueryContext } from "../../services/ai-control-plane/src/RepositoryQueries.types";
 import { mcpToolInputs } from "../../packages/ai-contracts/src/mcpToolInputs.config";

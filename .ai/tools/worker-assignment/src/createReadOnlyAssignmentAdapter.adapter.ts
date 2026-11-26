@@ -1,12 +1,12 @@
 /**
  * @file .ai/tools/worker-assignment/src/createReadOnlyAssignmentAdapter.adapter.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Привязывает единственный обработчик чтения к точным путям и SHA-256 контекста.
  */
 import { mcpToolInputs } from "@realize/ai-contracts";
 import { RepositoryReadError } from "../../../../services/ai-control-plane/src/RepositoryRead.error";
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { RepositoryCursorService } from "../../../../services/ai-control-plane/src/RepositoryCursor.service";
 import { readRepositoryLines } from "../../../../services/ai-control-plane/src/readRepositoryLines.service";
 

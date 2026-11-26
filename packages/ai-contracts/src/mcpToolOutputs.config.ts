@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/mcpToolOutputs.config.ts
- * @version 2.1.0
- * @date 2026-10-22
+ * @version 2.1.1
+ * @date 2026-11-26
  * @description Задаёт закрытые wire schemas ответов MCP, включая существующие проекции Pages.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -138,7 +138,14 @@ const identity = z.union([
     reason: z.enum(["binary", "untracked", "unmerged"]),
   }),
 ]);
+const assignmentStatus = z.strictObject({
+  runId: z.uuidv4(),
+  status: z.enum(["queued", "running", "blocked", "completed"]),
+  report: z.string().nullable(),
+});
 export const mcpToolDataSchemas = {
+  task_submit: assignmentStatus,
+  task_get: assignmentStatus,
   ...mcpWorkshopOutputs,
   ai_context_resolve: aiContextOutputSchema,
   ai_capabilities_list: aiCapabilitiesOutputSchema,

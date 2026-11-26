@@ -1,7 +1,7 @@
 /**
  * @file tests/e2e/support/searchObservationRuntime.fixture.ts
- * @version 1.0.0
- * @date 2026-09-29
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Связывает настоящий CLI, HTTP MCP и сборщики с одноразовой PostgreSQL для browser приёмки.
  * @see documentation/architecture/repository-search.md
  */
@@ -22,7 +22,7 @@ import {
 import { openMcpPayload } from "../../../services/internal-mcp/src/openMcpPayload.adapter";
 import { createMcpHttpServer } from "../../../services/internal-mcp/src/createMcpHttpServer.controller";
 import { McpError } from "../../../services/internal-mcp/src/Mcp.error";
-import { createRepositoryReadPolicy } from "../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { LocalSearchObservationCollector } from "../../../services/ai-control-plane/src/LocalSearchObservationCollector.service";
 import { SearchObservationCollector } from "../../../packages/payload-ai-plugin/src/search-observability/SearchObservationCollector.service";
 import { SearchObservationStore } from "../../../packages/payload-ai-plugin/src/search-observability/SearchObservationStore.repository";

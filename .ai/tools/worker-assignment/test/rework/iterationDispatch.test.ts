@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/rework/iterationDispatch.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет восстановление выдачи повторного ревью, неизменность входа и повторную проверку полномочий.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -13,7 +13,7 @@ import {
 } from "@realize/payload-task-manager/audit-review";
 import { dispatchNextReviews } from "../../src/review-queue/dispatchNextReviews.service";
 import { reviewDispatchKey } from "../../src/review-queue/reviewDispatchKey.util";
-import { correctedAttempt, returnedAudit } from "./articleRework.fixture";
+import { correctedAttempt, returnedAudit } from "./auditRework.fixture";
 
 export function registerIterationDispatchTests() {
   test("Потеря ответа после приёма уточнения восстанавливается по тому же ключу, старая работа больше не выдаётся", async (t) => {

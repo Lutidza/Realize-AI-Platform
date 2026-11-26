@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/auditRevisionSchema.sql
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Закрепляет единственную исправленную публикацию поручения за его решением и родительским результатом.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 CREATE TABLE IF NOT EXISTS audit_dossier.revision_links (
   work_id uuid PRIMARY KEY REFERENCES audit_rework.claims(work_id),

@@ -1,7 +1,7 @@
 /**
  * @file src/plugins/taskManager.config.ts
- * @version 1.2.0
- * @date 2026-10-19
+ * @version 1.2.1
+ * @date 2026-11-26
  * @description Задаёт admission и безопасный каталог участников постоянных задач в Realize.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -15,7 +15,10 @@ import { accessManagementOptions } from "./accessManagement.config";
 import { observeTaskGitBinding } from "./observeTaskGitBinding.adapter";
 import { canUseTaskManager } from "./canUseTaskManager.service";
 
-/** Пилот допускает администраторов; доступ к конкретному проекту проверяет task domain. */
+/**
+ * Realize проверяет полномочие запроса и текущую роль администратора.
+ * Task Manager проверяет членство пользователя в запрошенном проекте.
+ */
 export const taskManagerOptions: TaskManagerOptions = {
   userCollection: "users",
   canUseTaskManager,

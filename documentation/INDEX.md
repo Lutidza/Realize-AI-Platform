@@ -98,7 +98,7 @@ skills, оценка, улучшение и сравнение результа�
   определяет переходы, права, связи, результаты и совместимость v1/v2.
   [Попытки и досье](specifications/task-management/execution/attempts-and-dossier.md) и
   [контрольные точки](specifications/task-management/execution/checkpoints-and-reads.md)
-  описывают согласованный контракт аудита формы «Создать статью».
+  описывают связь попытки с этапом и назначением, восстановление исполнения и публикацию результатов задачи.
 - [Менеджер расширений Payload](specifications/extension-management.md)
   — черновик ТЗ каталога, установки, обновления и удаления через Admin.
 - [Медиатека: обработка изображений, загрузка и MediaBlock](specifications/media-management.md)

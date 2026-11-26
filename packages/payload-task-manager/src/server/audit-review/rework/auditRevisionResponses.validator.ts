@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/auditRevisionResponses.validator.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет, что аудитор адресовал каждый возвращённый критерий и привёл точную цитату новой версии.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { z } from "zod";
 import { REVIEW_CRITERIA } from "../conclusions/reviewCriteria.constants";

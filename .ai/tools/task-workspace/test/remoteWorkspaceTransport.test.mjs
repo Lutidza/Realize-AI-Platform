@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/task-workspace/test/remoteWorkspaceTransport.test.mjs
- * @version 1.1.0
- * @date 2026-10-19
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Проверяет HTTP границу remote-first CLI на изолированном loopback сервере и ошибках TLS.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -43,14 +43,15 @@ const listPage = { ok: true, data: { items: [list], nextCursor: null } };
 const selection = { projectId, listId: null, baseUrl: null };
 const { clientTaskId: unused, ...editable } = payload;
 void unused;
+const taskRow = { id: 46, taskId: "44444444-4444-4444-8444-444444444444" };
 const taskResponse = {
   ok: true,
   data: {
     disposition: "created",
     task: {
       ...editable,
-      id: "44444444-4444-4444-8444-444444444444",
-      key: "TASK-1",
+      id: taskRow.taskId,
+      key: `TASK-${taskRow.id}`,
       revision: 1,
       createdBy: "actor",
       updatedBy: "actor",
@@ -106,10 +107,10 @@ test("real HTTP sends exact POST and bounded valid envelopes are accepted", asyn
     reason: null,
     target: { baseUrl: config.baseUrl, projectId, listId },
   });
-  assert.equal(
-    (await sendRemoteWorkspaceTask(config, payload)).kind,
-    "success",
-  );
+  assert.deepEqual(await sendRemoteWorkspaceTask(config, payload), {
+    kind: "success",
+    data: taskResponse.data,
+  });
   assert.deepEqual(JSON.parse(received), payload);
 });
 

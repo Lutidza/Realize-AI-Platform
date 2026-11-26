@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/dossierSchema.sql
- * @version 1.2.0
+ * @version 2.0.2
  * @date 2026-11-26
- * @description Создаёт закрытые таблицы досье и журнал публикации аудита в отдельной БД пилота.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @description Создаёт закрытые таблицы досье и журнал публикации аудита в выделенной тестовой БД.
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 CREATE SCHEMA IF NOT EXISTS audit_dossier;
 REVOKE ALL ON SCHEMA audit_dossier FROM PUBLIC;
@@ -13,11 +13,21 @@ CREATE TABLE IF NOT EXISTS audit_dossier.results (
   task_id text NOT NULL,
   origin text NOT NULL CHECK (origin = 'worker-assignment'),
   attempt_id text NOT NULL,
-  slot text NOT NULL CHECK (slot = 'article-audit'),
   manifest text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-  UNIQUE (origin, attempt_id, slot)
+  created_at timestamptz NOT NULL DEFAULT clock_timestamp()
 );
+CREATE UNIQUE INDEX IF NOT EXISTS results_origin_attempt_id_key ON audit_dossier.results(origin, attempt_id);
+-- Обновление прежней таблицы сохраняет result_id и все ссылки на опубликованные материалы.
+DO $upgrade$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_attribute WHERE attrelid='audit_dossier.results'::regclass
+      AND attname='slot' AND NOT attisdropped
+  ) THEN
+    ALTER TABLE audit_dossier.results DROP COLUMN slot;
+  END IF;
+END;
+$upgrade$;
 CREATE INDEX IF NOT EXISTS audit_dossier_results_by_task ON audit_dossier.results(task_id, created_at);
 
 CREATE TABLE IF NOT EXISTS audit_dossier.materials (

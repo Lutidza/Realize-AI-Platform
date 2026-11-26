@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/executeMcpTool.service.ts
- * @version 2.1.0
- * @date 2026-10-22
+ * @version 2.1.1
+ * @date 2026-11-26
  * @description Направляет разрешённые read tools владельцам контекста, репозитория, Git и Pages.
  */
 import {
@@ -84,6 +84,20 @@ export async function executeMcpTool(
         searchMetrics,
       }
     : null;
+  if (name === "task_get" || name === "task_submit") {
+    if (!options.assignments)
+      throw new McpError("FORBIDDEN", "Очередь IDE недоступна.");
+    if (name === "task_get") {
+      return options.assignments.get(
+        principal.principalID,
+        mcpToolInputs.task_get.parse(input).runId,
+      );
+    }
+    return options.assignments.submit(
+      principal.principalID,
+      mcpToolInputs.task_submit.parse(input),
+    );
+  }
   if (name === "realize_get_context") {
     const { repository, modules } = await readMcpRepositoryContext(
       principal.repositoryRead ? context : null,

@@ -1,15 +1,15 @@
 /**
  * @file .ai/tools/worker-assignment/test/rework/recoverDispatch.fixture.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Восстанавливает ожидающую повторную доставку в отдельном процессе по журналу PostgreSQL.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { ReviewIterationRepository } from "@realize/payload-task-manager/audit-review";
 import { PostgresReviewQueue } from "../../src/review-queue/PostgresReview.repository";
 import { dispatchNextReviews } from "../../src/review-queue/dispatchNextReviews.service";
-import { openPilotPool } from "../checkpoints/checkpointPilot.fixture";
-const pool = openPilotPool();
+import { openAssignmentTestPool } from "../checkpoints/checkpointStorage.fixture";
+const pool = openAssignmentTestPool();
 try {
   console.log(
     JSON.stringify(

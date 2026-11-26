@@ -1,7 +1,7 @@
 /**
  * @file packages/payload-task-manager/src/contracts/TaskManager.types.ts
- * @version 1.1.0
- * @date 2026-10-19
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Определяет публичные задачи, проекты, списки и историю первого постоянного среза.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -36,7 +36,7 @@ export type TaskListDto = {
   updatedAt: string;
 };
 
-/** Поля редактирования задачи; принадлежность проекту и списку в пилоте неизменна. */
+/** Проект и список задаются при создании задачи. При обновлении Task Manager сохраняет прежние projectId и listId. */
 export type TaskEditableFields = {
   title: string;
   description: string;

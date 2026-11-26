@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/rework/repeatEvidence.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет связь повторного ответа с исходными пунктами, свежие квитанции и единственность новой ревизии.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -12,7 +12,7 @@ import {
   correctedAttempt,
   nextReviewer,
   returnedAudit,
-} from "./articleRework.fixture";
+} from "./auditRework.fixture";
 
 export function registerRepeatEvidenceTests() {
   test("Повторное ревью принимает только ответы на возвращённые пункты и доказательства текущей попытки", async (t) => {

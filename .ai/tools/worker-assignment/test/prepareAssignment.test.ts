@@ -1,88 +1,23 @@
 /**
  * @file .ai/tools/worker-assignment/test/prepareAssignment.test.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.2
+ * @date 2026-11-26
  * @description Проверяет подготовку статического назначения на изолированных файлах без исполнителя.
  */
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { test, type TestContext } from "node:test";
-import { stringify } from "yaml";
-import { createRepositoryReadPolicy } from "../../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import { test } from "node:test";
 import { prepareAssignment } from "../src/prepareAssignment.service";
-
-const rule = ".ai/rules/development/example.md";
-const lockPath = ".ai/templates/assignment.lock.json";
-const manifestPath = ".ai/templates/assignment.md";
-const digest = (text: string) =>
-  createHash("sha256").update(text).digest("hex");
-
-/** Формирует отдельную привязку и рабочую копию на каждый сценарий. */
-async function fixture(t: TestContext, writePaths: string[] = []) {
-  const root = await mkdtemp(join(tmpdir(), "realize-assignment-"));
-  t.after(() => rm(root, { recursive: true, force: true }));
-  const scope = ["src/route.ts", "src/form/view.ts"];
-  const files = new Map([
-    ["AGENTS.md", "Общие инструкции\n"],
-    [rule, "Обязательное правило\n"],
-    [scope[0], "// route\n"],
-    [scope[1], "// view\n"],
-  ]);
-  const identity = {
-    id: "test-assignment",
-    revision: 1,
-    baseCommit: "a".repeat(40),
-  };
-  const yaml = stringify({
-    ...identity,
-    mission: "Проверить форму",
-    assignedBy: "orchestrator",
-    returnsTo: "orchestrator",
-    ownerLayer: "src/form/",
-    role: "AGENTS.md",
-    roleReason: "Проверка",
-    mode: "static-read-only",
-    requiredSources: ["AGENTS.md", rule],
-    reviewScope: {
-      route: scope[0],
-      directory: "src/form/",
-      files: ["view.ts"],
-    },
-    permissions: {
-      read: ["requiredSources", "reviewScope"],
-      writePaths,
-      tools: ["repo_read_file"],
-      output: "reply-to-orchestrator",
-    },
-    checks: ["Проверить обязанности"],
-    expectedOutput: ["Замечания"],
-    stopCondition: "Недоступный файл",
-  });
-  const lock = JSON.stringify({
-    ...identity,
-    manifestPath,
-    manifestSha256: digest(yaml),
-    files: Object.fromEntries([...files].map(([p, text]) => [p, digest(text)])),
-  });
-  files.set(manifestPath, `# Образец\n\n\`\`\`yaml\n${yaml}\`\`\`\n`);
-  files.set(lockPath, lock);
-  for (const [path, text] of files) {
-    await mkdir(dirname(join(root, path)), { recursive: true });
-    await writeFile(join(root, path), text);
-  }
-  const policy = await createRepositoryReadPolicy(root, true);
-  return {
-    root,
-    run: () => prepareAssignment(policy, lockPath),
-  };
-}
+import {
+  createTemporaryAssignment,
+  requiredSources,
+  rulePath,
+} from "./temporaryAssignment.fixture";
 
 test("полные тексты собираются без запуска; ready требует независимых подтверждений этой привязки", async (t) => {
-  const f = await fixture(t);
-  const preview = await f.run();
+  const { policy, lockPath } = await createTemporaryAssignment(t);
+  const preview = await prepareAssignment(policy, lockPath);
   assert.equal(preview.packageComplete, true);
   assert.equal(preview.status, "blocked");
   assert.deepEqual(
@@ -90,27 +25,75 @@ test("полные тексты собираются без запуска; read
     ["context_not_delivered", "adapter_unbound"],
   );
   assert.equal(
-    preview.sources?.find((x) => x.path === rule)?.text,
+    preview.sources?.find((source) => source.path === rulePath)?.text,
     "Обязательное правило\n",
   );
 });
 
 test("отсутствующее или изменённое правило не попадает в подготовленный пакет", async (t) => {
-  const f = await fixture(t);
-  const path = join(f.root, rule);
+  const { root, policy, lockPath } = await createTemporaryAssignment(t);
+  const path = join(root, rulePath);
   await rm(path);
-  const missing = await f.run();
+  const missing = await prepareAssignment(policy, lockPath);
   assert.equal(missing.packageComplete, false);
-  assert(missing.issues.some((x) => x.path === rule && x.code === "NOT_FOUND"));
+  assert(
+    missing.issues.some(
+      (issue) => issue.path === rulePath && issue.code === "NOT_FOUND",
+    ),
+  );
   await writeFile(path, "Другая версия\n");
-  const changed = await f.run();
+  const changed = await prepareAssignment(policy, lockPath);
   assert.equal(changed.status, "blocked");
-  assert(changed.issues.some((x) => x.path === rule && x.code === "CONFLICT"));
+  assert(
+    changed.issues.some(
+      (issue) => issue.path === rulePath && issue.code === "CONFLICT",
+    ),
+  );
   assert(changed.sources);
-  assert(!changed.sources.some((x) => x.path === rule));
+  assert(!changed.sources.some((source) => source.path === rulePath));
 });
 
 test("запись в назначении блокирует подготовку", async (t) => {
-  const requested = await fixture(t, ["src/form/view.ts"]);
-  assert.equal((await requested.run()).issues[0].code, "INVALID_INPUT");
+  const { policy, lockPath } = await createTemporaryAssignment(t, {
+    writePaths: ["src/route.ts"],
+  });
+  const preview = await prepareAssignment(policy, lockPath);
+  assert.equal(preview.packageComplete, false);
+  assert(
+    preview.issues.some(
+      (issue) =>
+        issue.code === "INVALID_INPUT" &&
+        issue.reason.includes("permissions.writePaths"),
+    ),
+    JSON.stringify(preview.issues),
+  );
 });
+
+for (const { name, paths } of [
+  {
+    name: "один файл без маршрута",
+    paths: [
+      ".ai/tools/worker-assignment/src/adapters/openAiAuditRequest.adapter.ts",
+    ],
+  },
+  {
+    name: "файлы из разных каталогов",
+    paths: ["src/admin/view.ts", "src/documents/view.ts"],
+  },
+]) {
+  test(`reviewScope.paths: ${name}`, async (t) => {
+    const { policy, lockPath } = await createTemporaryAssignment(t, {
+      reviewScope: { paths },
+    });
+    const preview = await prepareAssignment(policy, lockPath);
+    assert.equal(preview.packageComplete, true, JSON.stringify(preview.issues));
+    assert.deepEqual(
+      preview.reviewFiles?.map((file) => file.path).sort(),
+      paths.toSorted(),
+    );
+    assert.deepEqual(
+      preview.sources?.map((file) => file.path).sort(),
+      requiredSources.toSorted(),
+    );
+  });
+}

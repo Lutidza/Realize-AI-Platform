@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/AuditDossier.repository.ts
- * @version 1.2.0
- * @date 2026-11-25
+ * @version 1.2.1
+ * @date 2026-11-26
  * @description Публикует неизменяемый результат аудита вместе с материалами и подтверждает его доставку в очередь.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import { readFile } from "node:fs/promises";
 import { isDeepStrictEqual } from "node:util";

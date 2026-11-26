@@ -149,9 +149,12 @@ Payload endpoint → server-only control-plane client → Codex adapter.
 `aiInstruction*.config.ts`/`AiInstructions.types.ts`;
 registry, clients, Pages facade и receipts —
 `packages/payload-ai-plugin/src/integrations/mcp/`, Admin — соседний
-`admin/mcp-servers/`. Repository read policy принадлежит
-`services/ai-control-plane/src`, там же размещён S1 resolver/read инструкций;
-machine Git HEAD/status/diff — `.ai/tools/git-delivery/src/read/`.
+`admin/mcp-servers/`. Политика чтения репозитория принадлежит `services/ai-control-plane`.
+Тип `RepositoryReadPolicy` и фабрика `createRepositoryReadPolicy` доступны через
+`realize-ai-platform/repository-read-policy`. Диагностические скрипты отдельного пакета
+`agent-search` импортируют тот же [публичный файл сервиса](../../services/ai-control-plane/repositoryReadPolicy.index.ts).
+S1 resolver/read инструкций размещён в `services/ai-control-plane/src`,
+machine Git HEAD/status/diff — в `.ai/tools/git-delivery/src/read/`.
 Общий process/lock owner — `packages/git-runtime` (`@realize/git-runtime`):
 его напрямую используют IDE Git-обработчик, execution/preview/SourcePromotion,
 release candidate и проверка секретов,

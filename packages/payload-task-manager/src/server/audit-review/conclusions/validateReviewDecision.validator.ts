@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/validateReviewDecision.validator.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет адресат и критерии решения относительно зафиксированного заключения ревьюера.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import { REVIEW_CRITERIA } from "./reviewCriteria.constants";
 import { z } from "zod";

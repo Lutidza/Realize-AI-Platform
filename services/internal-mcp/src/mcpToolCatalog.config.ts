@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/mcpToolCatalog.config.ts
- * @version 1.5.0
- * @date 2026-10-22
+ * @version 1.5.1
+ * @date 2026-11-26
  * @description Задаёт единый каталог регистраций, read grants и зависимостей MCP.
  */
 import { MCP_WORKSHOP_POLICY } from "@realize/ai-contracts";
@@ -16,6 +16,21 @@ export const mcpToolCatalog: Record<
     "description" | "grant" | "dependency" | "fallback" | "effect"
   >
 > = {
+  task_submit: {
+    description:
+      "Передать исходный текст задачи (task) либо закреплённое read-only поручение в локальную очередь оркестратора IDE.",
+    grant: "assignment:read-only",
+    effect: "write",
+    dependency: "repository",
+    fallback: "none",
+  },
+  task_get: {
+    description: "Получить состояние и отчёт собственного поручения по runId.",
+    grant: "assignment:read-only",
+    effect: "read",
+    dependency: "repository",
+    fallback: "none",
+  },
   workshop_projects_list: {
     description: MCP_WORKSHOP_POLICY.workshop_projects_list.description,
     grant: "workshop:read",

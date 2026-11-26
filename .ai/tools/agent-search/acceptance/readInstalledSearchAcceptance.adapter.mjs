@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/agent-search/acceptance/readInstalledSearchAcceptance.adapter.mjs
- * @version 1.0.0
- * @date 2026-09-30
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет текущую сборку, реальные DB events и source hashes; отсутствие внешнего evidence оставляет приёмку incomplete.
  * @see documentation/architecture/repository-search.md
  */
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createRepositoryReadPolicy } from "../../../../services/ai-control-plane/src/repositoryReadPolicy.validator.ts";
+import { createRepositoryReadPolicy } from "../../../../services/ai-control-plane/repositoryReadPolicy.index.ts";
 import { readRepositoryFile } from "../../../../services/ai-control-plane/src/readRepositoryFile.service.ts";
 import { searchObservationSchema } from "../../../../packages/ai-contracts/src/searchObservation.schemas.ts";
 import { readSearchSourceVersion } from "../src/searchSourceBinding.adapter.mjs";

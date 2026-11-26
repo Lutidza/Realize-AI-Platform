@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/review-queue/reconcileReviewDelivery.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Восстанавливает приём первичной или повторной выдачи через канонический ключ runtime.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { isDeepStrictEqual } from "node:util";
 import type { ReviewDelivery } from "@realize/payload-task-manager/audit-review";

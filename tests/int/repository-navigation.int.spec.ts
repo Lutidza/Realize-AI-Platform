@@ -1,7 +1,7 @@
 /**
  * @file tests/int/repository-navigation.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-28
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет syntax MCP, защищённое чтение, DTO, cursor и настоящий HTTP вызов с telemetry.
  */
 // @vitest-environment node
@@ -15,7 +15,7 @@ import {
   StreamableHTTPClientTransport,
 } from "@modelcontextprotocol/client";
 import { createMcpHttpServer } from "../../services/internal-mcp/src/createMcpHttpServer.controller";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { searchRepository } from "../../services/ai-control-plane/src/searchRepository.service";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import type { RepositoryQueryContext } from "../../services/ai-control-plane/src/RepositoryQueries.types";

@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/reviewAcceptanceBasis.repository.ts
- * @version 1.2.0
+ * @version 1.2.1
  * @date 2026-11-26
  * @description Сверяет действующее основание приёмки и полномочия независимого оркестратора по данным проекта.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
 import type { PoolClient } from "pg";

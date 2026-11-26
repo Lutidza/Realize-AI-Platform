@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/aiInstructionOutputs.config.ts
- * @version 1.1.0
- * @date 2026-09-26
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Описывает явные wire DTO источников, покрытия и возможностей S1.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -80,6 +80,7 @@ export const aiCapabilitiesOutputSchema = z.strictObject({
         effect: z.enum(["read", "write", "execute"]),
         grant: z.enum([
           "context",
+          "assignment:read-only",
           "repository:read",
           "instructions:read",
           "pages:read",

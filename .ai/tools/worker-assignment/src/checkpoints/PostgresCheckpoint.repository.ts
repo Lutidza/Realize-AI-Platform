@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/worker-assignment/src/checkpoints/PostgresCheckpoint.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Атомарно сохраняет ревизии попытки и подтверждения чтений под действующим lease.
  * @see documentation/specifications/task-management/execution/checkpoints-and-reads.md
  */
+import { ASSIGNMENT_TEST_DATABASE } from "@realize/payload-task-manager/audit-review/test-database";
 import { hashAuditText } from "./hashAuditText.util";
 import { readFile } from "node:fs/promises";
 import type { Pool, PoolClient } from "pg";
@@ -51,7 +52,7 @@ async function writeSnapshot(
   );
 }
 
-/** Использует только отдельную БД пилота. Владельцем подключения и его завершения остаётся вызывающий код. */
+/** Использует только выделенную тестовую БД. Владельцем подключения и его завершения остаётся вызывающий код. */
 export class PostgresCheckpointStore {
   constructor(private readonly pool: Pool) {}
 
@@ -64,7 +65,7 @@ export class PostgresCheckpointStore {
       await client.query("BEGIN");
       await client.query("SET LOCAL search_path TO pg_catalog");
       const database = await client.query("SELECT current_database() AS name");
-      if (database.rows[0].name !== "realize_checkpoint_pilot")
+      if (database.rows[0]?.name !== ASSIGNMENT_TEST_DATABASE)
         throw new Error("checkpoint_database_mismatch");
       const result = await work(client);
       await client.query("COMMIT");

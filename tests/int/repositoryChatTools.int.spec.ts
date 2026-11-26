@@ -1,7 +1,7 @@
 /**
  * @file tests/int/repositoryChatTools.int.spec.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет actual-files Admin поиск и Git HEAD с общими бюджетами, отменой и отдельной search telemetry.
  * @see documentation/architecture/repository-search.md
  */
@@ -14,7 +14,7 @@ import {
   searchObservationSchema,
   type SearchObservation,
 } from "@realize/ai-contracts";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { createRepositoryChatTools } from "../../services/ai-control-plane/src/repositoryChatTools.adapter";
 import type { RepositoryChatToolsOptions } from "../../services/ai-control-plane/src/RepositoryChatTools.types";
 import { createRepositoryGitHeadFixture } from "./fixtures/repositoryGitHead.fixture";

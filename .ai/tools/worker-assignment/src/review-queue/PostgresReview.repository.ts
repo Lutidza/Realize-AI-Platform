@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/review-queue/PostgresReview.repository.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Сохраняет одну работу независимого ревью и атомарно выдаёт её разрешённому участнику.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";

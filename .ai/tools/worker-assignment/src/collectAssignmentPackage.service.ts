@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/worker-assignment/src/collectAssignmentPackage.service.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Собирает назначение, полные тексты и перечень проверенных файлов из закреплённой версии.
  */
 import { RepositoryReadError } from "../../../../services/ai-control-plane/src/RepositoryRead.error";
 import { readRepositoryFile } from "../../../../services/ai-control-plane/src/readRepositoryFile.service";
 import { validateAiInstructionPath } from "../../../../services/ai-control-plane/src/aiInstructionPolicy.validator";
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import type {
   AssignmentMaterial,
   PreparationIssue,

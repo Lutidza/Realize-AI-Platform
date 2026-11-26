@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/worker-assignment/src/preflightAssignment.service.ts
- * @version 1.2.0
- * @date 2026-11-25
+ * @version 1.2.1
+ * @date 2026-11-26
  * @description Проверяет каталог и реальный маршрут MCP-чтения на сохранённой привязке до модельного хода.
  */
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { createAccessEvidence } from "./admission/createAccessEvidence.mapper";
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { assessAdapterAdmission } from "./admission/assessAdapterAdmission.validator";
 import { AttemptObservations } from "./admission/AttemptObservations.repository";
 import { bindAssignment } from "./bindAssignment.service";

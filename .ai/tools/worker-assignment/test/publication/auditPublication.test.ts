@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/publication/auditPublication.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.17
+ * @date 2026-11-26
  * @description Проверяет публикацию, восстановление очереди и сохранность материалов после потери среды аудитора.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
@@ -23,8 +23,14 @@ import { PostgresReviewQueue } from "../../src/review-queue/PostgresReview.repos
 import { reviewDispatchKey } from "../../src/review-queue/reviewDispatchKey.util";
 import { publishReceivedAudit } from "../../src/checkpoints/publishReceivedAudit.service";
 import { prepareAuditHandoff } from "../../src/checkpoints/prepareAuditHandoff.service";
-import { openPilotPool } from "../checkpoints/checkpointPilot.fixture";
+import { openAssignmentTestPool } from "../checkpoints/checkpointStorage.fixture";
 import { auditReviewFixture } from "./auditReview.fixture";
+import { sampleCheckpointAudit } from "../checkpoints/sampleCheckpointAudit.fixture";
+import {
+  sampleAuditReviewParticipants,
+  sampleReviewProjectRoles,
+} from "./auditReviewParticipants.fixture";
+import { runCheckpointAudit } from "./runCheckpointAudit.fixture";
 import { registerReviewAccessTests } from "./reviewAccess.test";
 
 const execute = promisify(execFile);
@@ -51,7 +57,7 @@ before(async () => {
       new URL("./initializeReviewDatabase.fixture.mjs", import.meta.url),
     ),
   ]);
-  const pool = openPilotPool();
+  const pool = openAssignmentTestPool();
   try {
     await initializeAuditPlan(pool);
     await new AuditDossierRepository(pool).initialize();
@@ -62,10 +68,41 @@ before(async () => {
 });
 
 test("Сбой после публикации и потеря ответа очереди: прежняя работа доставлена независимому ревьюеру", async (t) => {
-  const f = await auditReviewFixture(t);
+  const readPath = "src/module/entry.ts";
+  const unreadPath = "src/shared/value.ts";
+  const f = await auditReviewFixture(t, {
+    audit: sampleCheckpointAudit(
+      { [readPath]: "// прочитано\n", [unreadPath]: "// вне плана чтений\n" },
+      [{ path: readPath, startLine: 1, lineCount: 1 }],
+    ),
+    participants: sampleAuditReviewParticipants(),
+    assignedReviewerRole: "independentReviewer",
+    review: {
+      stageId: "report-review",
+      assignmentId: randomUUID(),
+      assignmentRevision: 1,
+      iteration: 1,
+    },
+    foundation: {
+      createdAt: "2026-11-25T12:00:00.000Z",
+      listId: randomUUID(),
+      projectTitle: "Доставка отчётов",
+      projectDescription: "Передача отчётов независимым ревьюерам.",
+      listTitle: "Повторная доставка",
+      taskTitle: "Доставить отчёт после сбоя очереди",
+      taskDescription:
+        "Проверить повторную доставку после потери ответа очереди.",
+      status: "review",
+      priority: "normal",
+      gitBindings: [],
+    },
+    projectRoles: sampleReviewProjectRoles,
+    runAudit: runCheckpointAudit,
+  });
   const expected = prepareAuditHandoff(
     await f.store.get(f.attemptId),
     await f.store.receipts(f.attemptId),
+    f.result.context,
   );
   await assert.rejects(child("publish-crash", f.attemptId, f.root), killed);
   const entries = await f.dossier.listTaskResults(f.task.taskId, f.reviewerId);
@@ -101,9 +138,11 @@ test("Сбой после публикации и потеря ответа оч
   assert.equal(digest(report), published.report.sha256);
   assert.equal(digest(coverage), published.coverage.sha256);
   assert.deepEqual(JSON.parse(coverage.toString()), expected.coverage);
-  assert.equal(
-    expected.coverage.filter((row) => row.status === "unread").length,
-    11,
+  assert.deepEqual(
+    expected.coverage
+      .filter((row) => row.status === "unread")
+      .map((row) => row.path),
+    [unreadPath],
   );
   for (const [path, sha] of Object.entries(f.lock.files))
     assert.equal(
@@ -146,6 +185,7 @@ test("Сбой после публикации и потеря ответа оч
     `SELECT
     (SELECT count(*)::int FROM audit_review.assignments WHERE execution_id=$1) AS assignments,
     (SELECT count(*)::int FROM audit_dossier.artifacts WHERE result_id=$2) AS artifacts,
+    (SELECT count(*)::int FROM audit_dossier.sources WHERE result_id=$2) AS sources,
     (SELECT count(*)::int FROM audit_dossier.results WHERE task_id=$3) AS results,
     (SELECT count(*)::int FROM audit_dossier.published_events WHERE result_id=$2) AS events,
     (SELECT count(*)::int FROM audit_review_runtime.jobs WHERE dispatch_key=$4 AND review_attempt_id IS NOT NULL) AS claims`,
@@ -154,17 +194,39 @@ test("Сбой после публикации и потеря ответа оч
   assert.deepEqual(totals.rows[0], {
     assignments: 2,
     artifacts: 2,
+    sources: Object.keys(f.lock.files).length,
     results: 1,
     events: 1,
     claims: 1,
   });
-  t.diagnostic(
-    "2 исходных назначения, 1 TaskResult, 2 артефакта, 18 сохранённых источников, 1 событие, 1 job, 1 новая попытка ревью",
-  );
 });
 
 test("Откат публикации до commit, две параллельные публикации и конфликт нового содержимого", async (t) => {
-  const f = await auditReviewFixture(t);
+  const f = await auditReviewFixture(t, {
+    audit: sampleCheckpointAudit(),
+    participants: sampleAuditReviewParticipants(),
+    assignedReviewerRole: "independentReviewer",
+    review: {
+      stageId: "report-review",
+      assignmentId: randomUUID(),
+      assignmentRevision: 1,
+      iteration: 1,
+    },
+    foundation: {
+      createdAt: "2026-11-25T12:00:00.000Z",
+      listId: randomUUID(),
+      projectTitle: "Публикация отчётов",
+      projectDescription: "",
+      listTitle: "Параллельные публикации",
+      taskTitle: "Проверить повторную публикацию отчёта",
+      taskDescription: "",
+      status: "in_progress",
+      priority: "high",
+      gitBindings: [],
+    },
+    projectRoles: sampleReviewProjectRoles,
+    runAudit: runCheckpointAudit,
+  });
   // Ошибка на последней вставке должна откатить и материалы, и manifest.
   await withAuditTransaction(f.pool, (client) =>
     client.query(`CREATE FUNCTION audit_dossier.fail_fixture() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -189,6 +251,7 @@ test("Откат публикации до commit, две параллельны
   const handoff = prepareAuditHandoff(
     await f.store.get(f.attemptId),
     await f.store.receipts(f.attemptId),
+    f.result.context,
   );
   const { handoffSha256: originalHash, ...manifest } = handoff;
   const report = "Исправленная версия требует отдельной итерации";
@@ -222,7 +285,31 @@ test("Откат публикации до commit, две параллельны
 registerReviewAccessTests();
 
 test("Поздний отчёт исходной попытки сохраняется в досье и не назначается заменившему ревьюеру", async (t) => {
-  const f = await auditReviewFixture(t);
+  const f = await auditReviewFixture(t, {
+    audit: sampleCheckpointAudit(),
+    participants: sampleAuditReviewParticipants(),
+    assignedReviewerRole: "independentReviewer",
+    review: {
+      stageId: "report-review",
+      assignmentId: randomUUID(),
+      assignmentRevision: 1,
+      iteration: 1,
+    },
+    foundation: {
+      createdAt: "2026-11-25T12:00:00.000Z",
+      listId: randomUUID(),
+      projectTitle: "Назначение ревьюеров",
+      projectDescription: "",
+      listTitle: "Запоздавшие отчёты",
+      taskTitle: "Проверить доставку отчёта после смены ревьюера",
+      taskDescription: "",
+      status: "review",
+      priority: "normal",
+      gitBindings: [],
+    },
+    projectRoles: sampleReviewProjectRoles,
+    runAudit: runCheckpointAudit,
+  });
   const revised = {
     ...f.plan,
     task: { ...f.task, planRevision: f.task.planRevision + 1 },

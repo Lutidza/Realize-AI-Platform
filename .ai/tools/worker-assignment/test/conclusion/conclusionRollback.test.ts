@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/conclusionRollback.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Имитирует отказы второй записи транзакций публикации и адресной доработки в отдельной PostgreSQL.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import assert from "node:assert/strict";
 import { test } from "node:test";
@@ -19,14 +19,14 @@ async function failInsert(
 ) {
   await withAuditTransaction(pool, (client) =>
     client.query(
-      `CREATE TRIGGER pilot_fail_insert BEFORE INSERT ON ${relation} FOR EACH STATEMENT EXECUTE FUNCTION audit_dossier.reject_rewrite()`,
+      `CREATE TRIGGER test_fail_insert BEFORE INSERT ON ${relation} FOR EACH STATEMENT EXECUTE FUNCTION audit_dossier.reject_rewrite()`,
     ),
   );
   try {
     await assert.rejects(action(), /audit_dossier_immutable/);
   } finally {
     await withAuditTransaction(pool, (client) =>
-      client.query(`DROP TRIGGER pilot_fail_insert ON ${relation}`),
+      client.query(`DROP TRIGGER test_fail_insert ON ${relation}`),
     );
   }
 }

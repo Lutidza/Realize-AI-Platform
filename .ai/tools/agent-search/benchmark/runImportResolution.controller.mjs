@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/benchmark/runImportResolution.controller.mjs
- * @version 1.3.0
- * @date 2026-09-30
+ * @version 1.3.1
+ * @date 2026-11-26
  * @description Измеряет настоящие CLI/MCP import переходы и developer workflows без model calls и записи telemetry.
  * @see documentation/architecture/repository-search.md
  */
@@ -19,7 +19,7 @@ import { parseBenchmarkOptions } from "./parseBenchmarkOptions.validator.mjs";
 import { resolveSearchScope } from "../src/resolveSearchScope.adapter.mjs";
 import { runRipgrepSearch } from "../src/runRipgrepSearch.adapter.mjs";
 import { searchRepository } from "../../../../services/ai-control-plane/src/searchRepository.service.ts";
-import { createRepositoryReadPolicy } from "../../../../services/ai-control-plane/src/repositoryReadPolicy.validator.ts";
+import { createRepositoryReadPolicy } from "../../../../services/ai-control-plane/repositoryReadPolicy.index.ts";
 import { RepositoryCursorService } from "../../../../services/ai-control-plane/src/RepositoryCursor.service.ts";
 import { mcpToolInputs } from "../../../../packages/ai-contracts/src/mcpToolInputs.config.ts";
 import { mcpToolDataSchemas } from "../../../../packages/ai-contracts/src/mcpToolOutputs.config.ts";

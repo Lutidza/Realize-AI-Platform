@@ -1,10 +1,10 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/ReviewConclusion.repository.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.2
+ * @date 2026-11-26
  * @description Публикует неизменяемое заключение попытки ревью, сохраняет событие и проверяет доступ к досье.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { createHash, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";

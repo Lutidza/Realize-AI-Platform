@@ -1,7 +1,7 @@
 /**
  * @file tests/int/task-manager-durable-client.int.spec.ts
- * @version 1.2.0
- * @date 2026-10-12
+ * @version 1.2.1
+ * @date 2026-11-26
  * @description Проверяет повторную доставку, конфликт draft и подавление устаревших ответов Task Manager.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -25,12 +25,12 @@ import { useTaskMutation } from "../../src/components/admin/task-manager/useTask
 const actor: TaskParticipantDto = { id: "42", name: "Участник" };
 const projectId = "34bcdf12-fbab-4e65-8e98-bd761b61252e";
 const listId = "71cad5b8-05fa-49a5-b6fd-c78a47c5e8dc";
-const taskId = "87a861a7-2a21-476e-a208-e6e870d6015d";
+const taskRow = { id: 24, taskId: "87a861a7-2a21-476e-a208-e6e870d6015d" };
 const otherId = "c137a51a-a3ac-4fdf-b925-81b2d727ca11";
 const timestamp = "2026-10-11T12:00:00.000Z";
 const task: TaskDto = {
-  id: taskId,
-  key: "TASK-1",
+  id: taskRow.taskId,
+  key: `TASK-${taskRow.id}`,
   projectId,
   listId,
   title: "Исходное задание",
@@ -200,13 +200,14 @@ describe("Постоянный Task Manager: клиентские границы
   it("не показывает запоздавшую карточку после выбора другой задачи даже при ignored AbortSignal", async () => {
     const api = transport();
     const slow = deferred<TaskDto>();
+    const otherRow = { id: 39, taskId: otherId };
     api.task = vi.fn().mockImplementation((id: string) =>
-      id === taskId
+      id === task.id
         ? slow.promise
         : Promise.resolve({
             ...task,
-            id: otherId,
-            key: "TASK-2",
+            id: otherRow.taskId,
+            key: `TASK-${otherRow.id}`,
             title: "Другая задача",
           }),
     );
@@ -221,19 +222,19 @@ describe("Постоянный Task Manager: клиентские границы
       ),
     );
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
-    act(() => result.current.setSelectedId(taskId));
+    act(() => result.current.setSelectedId(task.id));
     await waitFor(() =>
-      expect(api.task).toHaveBeenCalledWith(taskId, expect.any(AbortSignal)),
+      expect(api.task).toHaveBeenCalledWith(task.id, expect.any(AbortSignal)),
     );
-    act(() => result.current.setSelectedId(otherId));
-    await waitFor(() => expect(result.current.task?.id).toBe(otherId));
+    act(() => result.current.setSelectedId(otherRow.taskId));
+    await waitFor(() => expect(result.current.task?.id).toBe(otherRow.taskId));
     await act(async () => {
       slow.resolve(task);
       await slow.promise;
     });
-    expect(result.current.task?.id).toBe(otherId);
-    act(() => result.current.setSelectedId(otherId));
-    expect(result.current.task?.id).toBe(otherId);
+    expect(result.current.task?.id).toBe(otherRow.taskId);
+    act(() => result.current.setSelectedId(otherRow.taskId));
+    expect(result.current.task?.id).toBe(otherRow.taskId);
     expect(result.current.detailLoading).toBe(false);
   });
 
@@ -265,14 +266,14 @@ describe("Постоянный Task Manager: клиентские границы
       ...fields
     } = task;
     await expect(
-      api.updateTask(taskId, { ...fields, expectedRevision: 1 }, otherId),
+      api.updateTask(task.id, { ...fields, expectedRevision: 1 }, otherId),
     ).rejects.toMatchObject({
       status: 409,
       code: "REVISION_CONFLICT",
       fieldErrors: { title: ["Проверьте название"] },
     });
     expect(requestFetch).toHaveBeenCalledWith(
-      `/api/task-manager/tasks/${taskId}`,
+      `/api/task-manager/tasks/${task.id}`,
       expect.objectContaining({
         credentials: "same-origin",
         cache: "no-store",
@@ -294,7 +295,7 @@ describe("Постоянный Task Manager: клиентские границы
       deferred<Awaited<ReturnType<TaskManagerTransport["events"]>>>();
     const event = {
       id: otherId,
-      taskId,
+      taskId: task.id,
       actorId: actor.id,
       kind: "updated" as const,
       revision: 2,
@@ -316,8 +317,8 @@ describe("Постоянный Task Manager: клиентские границы
       ),
     );
     await waitFor(() => expect(result.current.tasks).toHaveLength(1));
-    act(() => result.current.setSelectedId(taskId));
-    await waitFor(() => expect(result.current.task?.id).toBe(taskId));
+    act(() => result.current.setSelectedId(task.id));
+    await waitFor(() => expect(result.current.task?.id).toBe(task.id));
     act(() => result.current.setEditing(task));
     await act(async () => {
       await result.current.saveTask(
@@ -362,7 +363,7 @@ describe("Постоянный Task Manager: клиентские границы
       ),
     );
     await expect(
-      new TaskManagerApi(requestFetch).task(taskId),
+      new TaskManagerApi(requestFetch).task(task.id),
     ).rejects.toMatchObject({ code: "invalid_response" });
   });
 });

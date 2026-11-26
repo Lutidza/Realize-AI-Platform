@@ -1,10 +1,10 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/validateReviewConclusion.validator.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.2
+ * @date 2026-11-26
  * @description Сверяет четыре оценки ревьюера, цитаты отчёта и собственные квитанции с закреплёнными материалами.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";

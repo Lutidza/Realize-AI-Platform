@@ -1,13 +1,13 @@
 /**
  * @file .ai/tools/worker-assignment/test/apiAuditAdmission.test.ts
- * @version 1.0.0
- * @date 2026-11-25
- * @description Проверяет локальный запрос API, действующие обработчики и привязку без пересылки.
- * @see documentation/architecture/assignment-adapter/article-audit-evidence.md
+ * @version 1.0.2
+ * @date 2026-11-26
+ * @description Проверяет допуск локального запроса API по файлам и правам временного назначения.
+ * @see documentation/architecture/assignment-adapter/contract.md
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { appendFile } from "node:fs/promises";
+import { appendFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { test, type TestContext } from "node:test";
 import type {
@@ -15,15 +15,26 @@ import type {
   AuditApiAdapter,
   PreparedAuditApiRequest,
 } from "../src/admission/AssignmentAdmission.types";
-import { articleReaderTool } from "../src/admission/articleReaderTool.mapper";
+import { defineRepoReadFileTool } from "../src/admission/defineRepoReadFileTool.mapper";
 import { inspectApiAuditAdmission } from "../src/admission/inspectApiAuditAdmission.service";
-import { adjacent, articleAuditFixture, view } from "./articleAudit.fixture";
+import { bindAssignment } from "../src/bindAssignment.service";
+import {
+  createTemporaryAssignment,
+  requiredSources,
+  rulePath,
+} from "./temporaryAssignment.fixture";
 
-async function setup(t: TestContext) {
-  const f = await articleAuditFixture(t);
-  const bound = await f.bind(f.contextId);
-  assert(bound.context);
-  const paths = Object.keys(f.lock.files);
+const entryPath = "src/module/entry.ts";
+const adjacentPath = "src/module/draft.ts";
+const reviewScopes = [[entryPath], [entryPath, "src/shared/entry.ts"]];
+
+async function setup(t: TestContext, reviewPaths: string[]) {
+  const { root, policy, lockPath, lock } = await createTemporaryAssignment(t, {
+    reviewScope: { paths: reviewPaths },
+  });
+  await writeFile(join(root, adjacentPath), "// соседний файл\n");
+  const bound = await bindAssignment(policy, lockPath);
+  assert(bound.context, JSON.stringify(bound.report.issues));
   const attempt: AdmissionAttempt = {
     attemptId: randomUUID(),
     bindingKind: "request",
@@ -36,7 +47,7 @@ async function setup(t: TestContext) {
   const payload = {
     model: attempt.target.selection.id,
     messages: [{ role: "user", content: bound.context.initialInput }],
-    tools: [articleReaderTool(paths)],
+    tools: [defineRepoReadFileTool(Object.keys(lock.files))],
   };
   const request = {
     id: randomUUID(),
@@ -51,119 +62,137 @@ async function setup(t: TestContext) {
     toolPolicy: "explicit-functions-only",
     currentRequest: () => request,
   };
-  const inspect = (overrides: Partial<AuditApiAdapter> = {}, path = adjacent) =>
+  const inspect = (
+    overrides: Partial<AuditApiAdapter> = {},
+    path = adjacentPath,
+  ) =>
     inspectApiAuditAdmission(
       bound,
       attempt,
       { ...adapter, ...overrides },
       path,
     );
-  return { f, paths, attempt, payload, request, inspect };
+  return { root, lock, payload, request, inspect };
 }
 
-test("API: проверенный локальный запрос, 6 источников, 18 pins и обе запрещённые операции", async (t) => {
-  const { f, paths, request, inspect } = await setup(t);
-  for (const observedVersion of [null, "local-client/2"]) {
-    const result = await inspect({ observedVersion });
-    assert.equal(result.status, "ready", JSON.stringify(result.issues));
-    assert.deepEqual(result.evidence.binding, {
-      kind: "request",
-      id: request.id,
-    });
-    assert.equal(result.evidence.executor.observedVersion, observedVersion);
-    assert.deepEqual(
-      result.evidence.preparedSources,
-      f.result.report.delivered,
+test("API подтверждает привязку запроса, закреплённые чтения и обе запрещённые операции", async (t) => {
+  for (const reviewPaths of reviewScopes) {
+    const { root, lock, request, inspect } = await setup(t, reviewPaths);
+    const expectedSources = await Promise.all(
+      requiredSources.map(async (path) => ({
+        path,
+        sha256: lock.files[path],
+        bytes: (await stat(join(root, path))).size,
+      })),
     );
-    assert.equal(result.evidence.preparedSources.length, 6);
-    assert.equal(paths.length, 18);
-    assert.deepEqual(result.evidence.access, {
-      coverage: "complete",
-      routes: [{ tool: "repo_read_file", via: "direct" }],
-      readPaths: paths.toSorted(),
-      writePaths: [],
-      readsPinned: true,
-      outsideReadDenied: true,
-      writeDenied: true,
-    });
-    assert.equal(
-      new Set(result.evidence.observations.map((ref) => ref.kind)).size,
-      4,
-    );
+    for (const observedVersion of [null, "local-client/2"]) {
+      const result = await inspect({ observedVersion });
+      assert.equal(result.status, "ready", JSON.stringify(result.issues));
+      assert.deepEqual(result.evidence.binding, {
+        kind: "request",
+        id: request.id,
+      });
+      assert.equal(result.evidence.executor.observedVersion, observedVersion);
+      assert.deepEqual(result.evidence.preparedSources, expectedSources);
+      assert.deepEqual(result.evidence.access, {
+        coverage: "complete",
+        routes: [{ tool: "repo_read_file", via: "direct" }],
+        readPaths: [...requiredSources, ...reviewPaths].toSorted(),
+        writePaths: [],
+        readsPinned: true,
+        outsideReadDenied: true,
+        writeDenied: true,
+      });
+      assert.deepEqual(
+        result.evidence.observations.map((ref) => ref.kind).toSorted(),
+        ["denial-probe", "dispatch-policy", "read-probe", "tool-catalog"],
+      );
+    }
   }
 });
 
 test("API: лишние возможности, подмена пути, провайдера, модели, ввода или диспетчера дают blocked", async (t) => {
-  const { paths, payload, request, inspect } = await setup(t);
-  const cases: [Partial<PreparedAuditApiRequest>, string][] = [
-    ...[
-      { ...payload, tools: [...payload.tools, { type: "web_search" }] },
-      { ...payload, tools: [articleReaderTool([...paths.slice(1), adjacent])] },
-      { ...payload, tools: [articleReaderTool([...paths.slice(1), paths[1]])] },
-      { ...payload, tools: [] },
-      { ...payload, hosted_tools: ["search"] },
-    ].map((data): [Partial<PreparedAuditApiRequest>, string] => [
-      { body: JSON.stringify(data) },
-      "transport_access_mismatch",
-    ]),
-    [
-      { body: JSON.stringify({ ...payload, model: "other" }) },
-      "executor_mismatch",
-    ],
-    [{ providerId: "other" }, "executor_mismatch"],
-    [
-      {
-        body: JSON.stringify({
+  for (const reviewPaths of reviewScopes) {
+    const { payload, request, inspect } = await setup(t, reviewPaths);
+    const otherPaths = [...requiredSources, ...reviewPaths.slice(1)];
+    const cases: [Partial<PreparedAuditApiRequest>, string][] = [
+      ...[
+        { ...payload, tools: [...payload.tools, { type: "web_search" }] },
+        {
           ...payload,
-          messages: [{ role: "user", content: "other" }],
-        }),
-      },
-      "context_mismatch",
-    ],
-    [
-      { dispatch: async (...args) => request.dispatch(...args) },
-      "context_mismatch",
-    ],
-    [{ attemptId: randomUUID() }, "binding_unavailable"],
-  ];
-  for (const [change, code] of cases) {
-    const snapshot = { ...request, ...change };
-    const report = await inspect({ currentRequest: () => snapshot });
-    assert.equal(report.status, "blocked");
-    assert.equal(report.issues[0].code, code);
+          tools: [defineRepoReadFileTool([...otherPaths, adjacentPath])],
+        },
+        {
+          ...payload,
+          tools: [defineRepoReadFileTool([...otherPaths, rulePath])],
+        },
+        { ...payload, tools: [] },
+        { ...payload, hosted_tools: ["search"] },
+      ].map((data): [Partial<PreparedAuditApiRequest>, string] => [
+        { body: JSON.stringify(data) },
+        "transport_access_mismatch",
+      ]),
+      [
+        { body: JSON.stringify({ ...payload, model: "other" }) },
+        "executor_mismatch",
+      ],
+      [{ providerId: "other" }, "executor_mismatch"],
+      [
+        {
+          body: JSON.stringify({
+            ...payload,
+            messages: [{ role: "user", content: "other" }],
+          }),
+        },
+        "context_mismatch",
+      ],
+      [
+        { dispatch: async (...args) => request.dispatch(...args) },
+        "context_mismatch",
+      ],
+      [{ attemptId: randomUUID() }, "binding_unavailable"],
+    ];
+    for (const [change, code] of cases) {
+      const snapshot = { ...request, ...change };
+      const report = await inspect({ currentRequest: () => snapshot });
+      assert.equal(report.status, "blocked");
+      assert.equal(report.issues[0].code, code);
+    }
   }
 });
 
 test("API: неподтверждённый профиль, потеря получателя, отказ пробы и изменившиеся байты закрывают допуск", async (t) => {
-  const { f, request, inspect } = await setup(t);
-  let calls = 0;
-  for (const [adapter, code] of [
-    [{ toolPolicy: "unknown" }, "access_unverified"],
-    [{ currentRequest: () => null }, "binding_unavailable"],
-    [
-      {
-        currentRequest: () => {
-          throw Error("unavailable");
+  for (const reviewPaths of reviewScopes) {
+    const { root, request, inspect } = await setup(t, reviewPaths);
+    let calls = 0;
+    for (const [adapter, code] of [
+      [{ toolPolicy: "unknown" }, "access_unverified"],
+      [{ currentRequest: () => null }, "binding_unavailable"],
+      [
+        {
+          currentRequest: () => {
+            throw Error("unavailable");
+          },
         },
-      },
-      "binding_unavailable",
-    ],
-    [
-      { currentRequest: () => (++calls === 1 ? request : { ...request }) },
-      "binding_unavailable",
-    ],
-  ] as const) {
-    const result = await inspect(adapter);
+        "binding_unavailable",
+      ],
+      [
+        { currentRequest: () => (++calls === 1 ? request : { ...request }) },
+        "binding_unavailable",
+      ],
+    ] as const) {
+      const result = await inspect(adapter);
+      assert.equal(result.status, "blocked");
+      assert.equal(result.issues[0].code, code);
+    }
+    const changedPath = reviewPaths[reviewPaths.length - 1];
+    const allowedProbe = await inspect({}, changedPath);
+    assert.equal(allowedProbe.status, "blocked");
+    assert.equal(allowedProbe.issues[0].code, "transport_access_mismatch");
+    await appendFile(join(root, changedPath), "\n");
+    const result = await inspect();
     assert.equal(result.status, "blocked");
-    assert.equal(result.issues[0].code, code);
+    assert.equal(result.evidence.access.readsPinned, null);
+    assert.equal(result.issues[0].code, "transport_read_mismatch");
   }
-  assert.equal(
-    (await inspect({}, view)).issues[0].code,
-    "transport_access_mismatch",
-  );
-  await appendFile(join(f.root, view), "\n");
-  const result = await inspect();
-  assert.equal(result.status, "blocked");
-  assert.equal(result.evidence.access.readsPinned, null);
-  assert.equal(result.issues[0].code, "transport_read_mismatch");
 });

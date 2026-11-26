@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./chat-permissions": "./src/createCodexChatPermissions.config.ts",
     "./read-only-config": "./src/readOnlySession.config.ts",
     "./rpc": "./src/JsonLineRpcClient.adapter.ts",
     "./environment": "./src/environment.ts",

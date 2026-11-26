@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/src/admission/createAccessEvidence.mapper.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Копирует метаданные проверенного пакета и открывает подтверждение с неизвестными правами.
- * @see documentation/architecture/assignment-adapter/article-audit-evidence.md
+ * @see documentation/architecture/assignment-adapter/adapter-access-evidence-v1.md
  */
 import type { AdapterAccessEvidenceV1 } from "@realize/ai-contracts";
 import type { BoundAssignment } from "./AssignmentAdmission.types";

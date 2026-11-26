@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/worker-assignment/src/openAssignmentContext.service.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.2.1
+ * @date 2026-11-26
  * @description Допускает доступ к сохранённому вводу и обработчику чтения после проверки привязки.
  */
 import { createHash } from "node:crypto";
@@ -12,7 +12,7 @@ import {
   initialInputSchema,
   readOnlyAccessSchema,
 } from "./assignmentContext.schemas";
-import type { RepositoryReadPolicy } from "../../../../services/ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import type {
   AssignmentBindResult,
   AssignmentContextIdentity,
@@ -115,6 +115,11 @@ export async function openAssignmentContext(
     context: Object.freeze({
       contextId,
       initialInput: JSON.stringify(input.data),
+      scopePins: Object.freeze(
+        Object.fromEntries(
+          packet.reviewFiles.map(({ path, sha256 }) => [path, sha256]),
+        ),
+      ),
       readPins: Object.freeze({ ...pins }),
       callTool: adapter.callTool,
     }),

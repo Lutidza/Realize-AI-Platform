@@ -1,7 +1,7 @@
 /**
  * @file packages/ai-contracts/src/mcpToolInputs.config.ts
- * @version 1.5.0
- * @date 2026-10-22
+ * @version 1.5.1
+ * @date 2026-11-26
  * @description Определяет строгие входы инструментов MCP без управляющего контекста клиента.
  * @see documentation/specifications/internal-mcp.md
  */
@@ -16,6 +16,13 @@ const limit = z.number().int().min(1).max(100).default(50);
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 export const mcpToolInputs = {
   ...mcpWorkshopInputs,
+  task_submit: z.strictObject({
+    idempotencyKey: z.string().min(1).max(128),
+    task: z.string().trim().min(1).max(2048).optional(),
+    lockPath: path.min(1).optional(),
+    lockSha256: hash.optional(),
+  }),
+  task_get: z.strictObject({ runId: z.uuidv4() }),
   realize_get_context: z.strictObject({}),
   ai_context_resolve: aiContextInputSchema,
   ai_capabilities_list: z.strictObject({}),

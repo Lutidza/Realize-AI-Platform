@@ -1,18 +1,18 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/conclusionProcess.fixture.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Прерывает процесс после commit заключения либо восстанавливает доставку новым процессом.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import {
   ReviewConclusionRepository,
   ReviewAcceptanceRepository,
 } from "@realize/payload-task-manager/audit-review";
 import { resolveClaimedReview } from "../../src/review-queue/resolveClaimedReview.adapter";
-import { openPilotPool } from "../checkpoints/checkpointPilot.fixture";
+import { openAssignmentTestPool } from "../checkpoints/checkpointStorage.fixture";
 
-const pool = openPilotPool();
+const pool = openAssignmentTestPool();
 try {
   if (process.argv[2] === "publish-crash") {
     const { actor, attempt, basis, body } = JSON.parse(process.argv[3]);
@@ -29,7 +29,7 @@ try {
         await new ReviewAcceptanceRepository(pool).dispatchPending(),
       ),
     );
-  } else throw new Error("unknown_pilot_operation");
+  } else throw new Error("unknown_conclusion_operation");
 } finally {
   await pool.end();
 }

@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/rework/revisionIntegrity.test.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет целостность версий отчёта, ответов по замечаниям и атомарность повторной публикации.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -12,7 +12,7 @@ import {
   setReviewAccess,
   withAuditTransaction,
 } from "@realize/payload-task-manager/audit-review";
-import { correctedAttempt, returnedAudit } from "./articleRework.fixture";
+import { correctedAttempt, returnedAudit } from "./auditRework.fixture";
 import { dispatchNextReviews } from "../../src/review-queue/dispatchNextReviews.service";
 
 /** Первым сценарием одноразового кластера проверяет upgrade схемы с реально опубликованным отчётом V1. */

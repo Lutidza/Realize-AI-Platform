@@ -1,7 +1,7 @@
 /**
  * @file tests/int/task-git-syncs.int.spec.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет durable replay до сети, rollback sync/receipt, свежую ACL/CAS и descending history cursors.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -111,11 +111,12 @@ function fixture() {
     createdAt: now,
     updatedAt: now,
   };
+  const taskRow = { id: 58, taskId: randomUUID() };
   const task: TaskDto = {
-    id: randomUUID(),
+    id: taskRow.taskId,
     projectId: project.id,
     listId: randomUUID(),
-    key: "TASK-1",
+    key: `TASK-${taskRow.id}`,
     title: "Task",
     description: "",
     status: "review",
@@ -203,7 +204,7 @@ function fixture() {
       const current = storage(req);
       const rows =
         collection === TASKS_SLUG
-          ? [{ id: 1, taskId: state.task.id, record: state.task }]
+          ? [{ ...taskRow, record: state.task }]
           : collection === TASK_PROJECTS_SLUG
             ? [{ id: 1, projectId: state.project.id, record: state.project }]
             : collection === TASK_OPERATIONS_SLUG

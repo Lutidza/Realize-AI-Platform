@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/createBootstrapMcpRuntime.config.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет явный repository-only bootstrap без Payload, dotenv и offline grants.
  */
 import { createHash, timingSafeEqual } from "node:crypto";
@@ -10,7 +10,7 @@ import {
   MCP_DEFAULT_LIMITS,
   MCP_REALIZE_TOOLS,
 } from "../../../packages/ai-contracts/src/mcpServer.config";
-import { createRepositoryReadPolicy } from "../../ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { RepositoryCursorService } from "../../ai-control-plane/src/RepositoryCursor.service";
 import { readGitMetadata } from "../../../.ai/tools/git-delivery/src/read/readGitMetadata.adapter";
 import type { McpRuntimeOptions } from "./McpRuntime.types";
@@ -50,9 +50,17 @@ export async function createBootstrapMcpRuntime(
     cursors: new RepositoryCursorService(),
     signal: AbortSignal.timeout(10000),
   });
+  const assignments = env.REALIZE_IDE_ASSIGNMENT_QUEUE
+    ? new (await import("./IdeAssignmentQueue.repository")).IdeAssignmentQueue(
+        env.REALIZE_IDE_ASSIGNMENT_QUEUE,
+        policy.root,
+      )
+    : undefined;
   const verifier = createHash("sha256").update(credential).digest();
   return {
     port,
+    assignments,
+    close: async () => assignments?.close(),
     policy,
     authorize: async (token) => {
       if (
@@ -64,9 +72,10 @@ export async function createBootstrapMcpRuntime(
         installationID: "bootstrap",
         repositoryRead: true,
         pagesRead: false,
-        allowedTools: MCP_REALIZE_TOOLS.filter(
-          (name) => !name.startsWith("pages_"),
-        ),
+        allowedTools: [
+          ...MCP_REALIZE_TOOLS.filter((name) => !name.startsWith("pages_")),
+          ...(assignments ? (["task_submit", "task_get"] as const) : []),
+        ],
         limits: { ...MCP_DEFAULT_LIMITS },
       };
     },

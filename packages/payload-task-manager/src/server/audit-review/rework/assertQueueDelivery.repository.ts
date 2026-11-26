@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/assertQueueDelivery.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Сверяет поступающую в runtime выдачу с владельцами плана, материалов и основания повторной итерации.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import type { PoolClient } from "pg";
 import type { ReviewDelivery } from "../AuditPublication.types";

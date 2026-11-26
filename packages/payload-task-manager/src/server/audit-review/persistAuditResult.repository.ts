@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/persistAuditResult.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Фиксирует версию результата, артефакты и событие внутри авторизованной транзакции досье.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
@@ -37,14 +37,14 @@ export async function persistAuditResult(
     },
   };
   const inserted = await client.query(
-    `INSERT INTO audit_dossier.results(result_id,task_id,origin,attempt_id,slot,manifest)
-    VALUES ($1,$2,'worker-assignment',$3,'article-audit',$4)
-    ON CONFLICT (origin,attempt_id,slot) DO NOTHING`,
+    `INSERT INTO audit_dossier.results(result_id,task_id,origin,attempt_id,manifest)
+    VALUES ($1,$2,'worker-assignment',$3,$4)
+    ON CONFLICT (origin,attempt_id) DO NOTHING`,
     [audit.resultId, audit.task.taskId, audit.attemptId, JSON.stringify(audit)],
   );
   if (!inserted.rowCount) {
     const existing = await client.query<{ manifest: string }>(
-      "SELECT manifest FROM audit_dossier.results WHERE origin='worker-assignment' AND attempt_id=$1 AND slot='article-audit'",
+      "SELECT manifest FROM audit_dossier.results WHERE origin='worker-assignment' AND attempt_id=$1",
       [audit.attemptId],
     );
     const saved: PublishedAudit = JSON.parse(existing.rows[0].manifest);

@@ -1,10 +1,10 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/conclusionSchema.sql
- * @version 1.1.0
- * @date 2026-11-25
- * @description Хранит неизменяемые заключения ревью и события для оркестратора в закрытой схеме пилота.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @version 1.1.3
+ * @date 2026-11-26
+ * @description Хранит неизменяемые заключения ревью и события для оркестратора в закрытой схеме приёмки.
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 CREATE SCHEMA IF NOT EXISTS audit_conclusions;
 REVOKE ALL ON SCHEMA audit_conclusions FROM PUBLIC;

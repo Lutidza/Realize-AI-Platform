@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/task-workspace/test/remoteWorkspaceRouting.test.mjs
- * @version 1.2.1
- * @date 2026-10-19
+ * @version 1.2.2
+ * @date 2026-11-26
  * @description Проверяет владение задачей, crash recovery, неизменность retry и конкурентную передачу без настоящего сервера.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -52,29 +52,6 @@ const ready = async (config, selection) => ({
     listId: selection.listId ?? selectors.list,
   },
 });
-/** @param {import('@realize/payload-task-manager/contracts').TaskWorkspaceCreateInput} payload @param {string} [id] @param {number} [revision]
- * @returns {import('../src/remote/RemoteWorkspace.types').RemoteWorkspaceTransportResult}
- */
-function success(payload, id = randomUUID(), revision = 1) {
-  const { clientTaskId: unused, ...fields } = payload;
-  void unused;
-  return {
-    kind: "success",
-    data: {
-      disposition: "created",
-      task: {
-        ...fields,
-        id,
-        key: "TASK-1",
-        revision,
-        createdBy: "actor",
-        updatedBy: "actor",
-        createdAt: "2026-10-19T00:00:00.000Z",
-        updatedAt: "2026-10-19T00:00:00.000Z",
-      },
-    },
-  };
-}
 /** @param {import('node:test').TestContext} context */
 function fixture(context) {
   const root = fs.mkdtempSync(
@@ -94,7 +71,36 @@ function fixture(context) {
       {},
       { ...options, auth: options.auth ?? authFixture().deps },
     );
-  return { storage, root, run };
+  /** @type {Map<string, { id: number, taskId: string }>} */
+  const taskRows = new Map();
+  /** @param {import('@realize/payload-task-manager/contracts').TaskWorkspaceCreateInput} payload @param {number} [revision]
+   * @returns {import('../src/remote/RemoteWorkspace.types').RemoteWorkspaceTransportResult}
+   */
+  function success(payload, revision = 1) {
+    const { clientTaskId, ...fields } = payload;
+    let row = taskRows.get(clientTaskId);
+    if (!row) {
+      row = { id: taskRows.size + 1, taskId: randomUUID() };
+      taskRows.set(clientTaskId, row);
+    }
+    return {
+      kind: "success",
+      data: {
+        disposition: "created",
+        task: {
+          ...fields,
+          id: row.taskId,
+          key: `TASK-${row.id}`,
+          revision,
+          createdBy: "actor",
+          updatedBy: "actor",
+          createdAt: "2026-10-19T00:00:00.000Z",
+          updatedAt: "2026-10-19T00:00:00.000Z",
+        },
+      },
+    };
+  }
+  return { storage, root, run, success, taskRows };
 }
 /** @returns {import('../src/cli/WorkspaceCommand.types').WorkspaceCommandRequest} */
 const create = () => ({
@@ -199,7 +205,7 @@ test("remote success journals exact request before HTTP without any dossier and 
       assert.deepEqual(durable?.payload, payload);
       withWorkspaceFileLock(f.storage, key, () => assert.ok(true));
       assert.ok(!f.storage.exists(".ai-workspace"));
-      return success(payload);
+      return f.success(payload);
     },
   });
   assert.equal(count, 1);
@@ -306,7 +312,7 @@ test("unknown POST outcome freezes edits, rejects changed target and replays exa
     },
     transport: async (_config, payload) => {
       assert.deepEqual(payload, pending.payload);
-      return success(payload);
+      return f.success(payload);
     },
   });
   assert.equal(
@@ -367,7 +373,7 @@ test("queued auto handoff preserves snapshot and stops requested local mutation 
       {
         env,
         preflight: ready,
-        transport: async (_config, payload) => success(payload),
+        transport: async (_config, payload) => f.success(payload),
       },
     ),
     codeIs("remote_owned"),
@@ -419,7 +425,7 @@ test("crash before HTTP and lost acknowledgement recover through same durable cl
     /simulated process loss/,
   );
   const before = readRemoteWorkspaceRecord(f.storage, key);
-  const id = randomUUID();
+  assert.ok(before);
   const original = f.storage.writeJson.bind(f.storage);
   f.storage.writeJson = (file, value, exclusive) => {
     if (/** @type {{phase?:string}} */ (value)?.phase === "remote")
@@ -429,19 +435,27 @@ test("crash before HTTP and lost acknowledgement recover through same durable cl
   await assert.rejects(
     f.run(sync(), {
       env,
-      transport: async (_config, payload) => success(payload, id),
+      transport: async (_config, payload) => f.success(payload),
     }),
     /ACK persistence/,
   );
+  const row = f.taskRows.get(before.clientTaskId);
+  assert.ok(row);
   f.storage.writeJson = original;
   await f.run(create(), {
     env,
     transport: async (_config, payload) => {
-      assert.equal(payload.clientTaskId, before?.clientTaskId);
-      return success(payload, id, 2);
+      assert.equal(payload.clientTaskId, before.clientTaskId);
+      const replay = f.success(payload, 2);
+      assert.equal(replay.kind, "success");
+      assert.equal(replay.data.task.key, `TASK-${row.id}`);
+      return replay;
     },
   });
-  assert.equal(readRemoteWorkspaceRecord(f.storage, key)?.taskRef?.id, id);
+  assert.equal(
+    readRemoteWorkspaceRecord(f.storage, key)?.taskRef?.id,
+    row.taskId,
+  );
   assert.equal(readRemoteWorkspaceRecord(f.storage, key)?.taskRef?.revision, 2);
   assert.ok(!f.storage.exists(".ai-workspace"));
 });
@@ -531,7 +545,7 @@ test("active producer defers handoff so local settlement remains possible", asyn
   await f.run(sync(), {
     env,
     preflight: ready,
-    transport: async (_config, payload) => success(payload),
+    transport: async (_config, payload) => f.success(payload),
   });
   assert.equal(readRemoteWorkspaceRecord(f.storage, key)?.phase, "remote");
 });
@@ -558,7 +572,7 @@ test("invalid initial payload does not reserve key and can be corrected before s
   await f.run(request, {
     env,
     preflight: ready,
-    transport: async (_config, payload) => success(payload),
+    transport: async (_config, payload) => f.success(payload),
   });
   assert.equal(readRemoteWorkspaceRecord(f.storage, key)?.phase, "remote");
 });
@@ -582,7 +596,7 @@ test("portable fallback without private outbox keeps server source identity", as
     preflight: ready,
     transport: async (_config, payload) => {
       assert.equal(payload.clientTaskId, clientTaskId);
-      return success(payload);
+      return copy.success(payload);
     },
   });
   assert.equal(
@@ -637,6 +651,8 @@ test("one connection creates tasks in independent projects and fills the sole li
     { project: selectors.project, list: selectors.list },
     { project: randomUUID(), list: randomUUID() },
   ];
+  const taskKeys = new Set();
+  const taskIds = new Set();
   for (const [index, choice] of choices.entries()) {
     const taskKey = `project-${index}`;
     await f.run(
@@ -663,18 +679,22 @@ test("one connection creates tasks in independent projects and fills the sole li
             },
           };
         },
-        transport: async (_config, payload) => success(payload),
+        transport: async (_config, payload) => {
+          const response = f.success(payload);
+          assert.equal(response.kind, "success");
+          taskKeys.add(response.data.task.key);
+          return response;
+        },
       },
     );
-    assert.equal(
-      readRemoteWorkspaceRecord(f.storage, taskKey)?.taskRef?.listId,
-      choice.list,
-    );
-    assert.equal(
-      readRemoteWorkspaceRecord(f.storage, taskKey)?.taskRef?.projectId,
-      choice.project,
-    );
+    const ref = readRemoteWorkspaceRecord(f.storage, taskKey)?.taskRef;
+    assert.ok(ref);
+    assert.equal(ref.listId, choice.list);
+    assert.equal(ref.projectId, choice.project);
+    taskIds.add(ref.id);
   }
+  assert.equal(taskKeys.size, choices.length);
+  assert.equal(taskIds.size, choices.length);
   assert.equal(f.storage.exists(".ai-workspace"), false);
 });
 
@@ -707,7 +727,7 @@ test("unselected offline task stays editable and explicit sync selects its desti
   await f.run(sync(), {
     env,
     preflight: ready,
-    transport: async (_config, payload) => success(payload),
+    transport: async (_config, payload) => f.success(payload),
   });
   assert.equal(
     readRemoteWorkspaceRecord(f.storage, key)?.clientTaskId,
@@ -744,7 +764,7 @@ test("first refusal retains resolved selection for the next connection", async (
         assert.equal(selection.listId, selectors.list);
         return ready(config, selection);
       },
-      transport: async (_config, payload) => success(payload),
+      transport: async (_config, payload) => f.success(payload),
     },
   );
 });
@@ -759,7 +779,7 @@ test("legacy v1 queued/pending/remote records read without rewrite and retry kee
         preflight: ready,
         transport: async (_config, payload) =>
           phase === "remote"
-            ? success(payload)
+            ? f.success(payload)
             : { kind: "pending", reason: "remote_timeout" },
       });
       if (phase === "pending")
@@ -789,7 +809,7 @@ test("legacy v1 queued/pending/remote records read without rewrite and retry kee
         transport: async (_config, payload) => {
           calls++;
           if (phase === "pending") assert.deepEqual(payload, original.payload);
-          return success(payload);
+          return f.success(payload);
         },
       },
     );
@@ -813,7 +833,7 @@ test("different concurrent selectors and replay URL cannot redirect a task", asy
       await gate;
       return ready(config, selection);
     },
-    transport: async (_config, payload) => success(payload),
+    transport: async (_config, payload) => f.success(payload),
   });
   await assert.rejects(
     f.run(

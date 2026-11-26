@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/worker-assignment/src/WorkerAssignment.types.ts
- * @version 1.2.0
- * @date 2026-11-25
+ * @version 1.3.0
+ * @date 2026-11-26
  * @description Описывает проверенные материалы и причины результата локальной подготовки.
  */
 import type { readRepositoryLines } from "../../../../services/ai-control-plane/src/readRepositoryLines.service";
@@ -57,6 +57,8 @@ export type AssignmentBindResult =
       context: Readonly<{
         contextId: string;
         initialInput: string;
+        /** Только файлы ревью в порядке манифеста; readPins также включает обязательные инструкции. */
+        scopePins: Readonly<Record<string, string>>;
         readPins: Readonly<Record<string, string>>;
         callTool: (
           name: string,

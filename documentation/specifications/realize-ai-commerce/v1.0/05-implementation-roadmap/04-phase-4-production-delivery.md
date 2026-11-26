@@ -6,8 +6,16 @@
 
 Provider-neutral Release Candidate, JSON-port orchestrator, exact service
 commit, OCI digest/ref, SBOM/signature/migration hashes, TTL-bound release
-preview, release approval, GitHub/GHCR adapter и existing exact-digest
-deploy/rollback workflows.
+preview, release approval и GitHub/GHCR adapter.
+
+`release.yml` передаёт в staging образ GHCR по digest сборки. При ручном
+запуске с `deploy_production` тот же образ развёртывается в production после
+успешного staging. [Workflow выпуска](../../../../../.github/workflows/release.yml)
+
+Для ручного отката оператор выбирает окружение в `rollback.yml`. На сервере
+`remote-rollback.sh` берёт ссылку на предыдущий образ из `.release/previous.env`,
+запускает сервис `web` и проверяет его готовность через `/api/health/ready`.
+[Workflow отката](../../../../../.github/workflows/rollback.yml) · [Скрипт отката](../../../../../scripts/deploy/remote-rollback.sh)
 
 ## Не реализовано как единый продуктовый lane
 

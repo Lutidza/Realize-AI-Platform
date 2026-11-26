@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./ide-assignment-queue": "./services/internal-mcp/src/IdeAssignmentQueue.repository.ts",
+    "./repository-read-policy": "./services/ai-control-plane/repositoryReadPolicy.index.ts",
+    "./model-providers/openai-chat-completions-policy": "./services/ai-control-plane/src/model-providers/openaiChatCompletions.policy.ts"
+  },
   "engines": {
     "node": "24.18.0",
     "npm": "11.15.0"
@@ -34,12 +39,11 @@
     "mcp:serve": "cross-env NODE_OPTIONS=--no-deprecation node --import=tsx/esm services/internal-mcp/src/runMcp.controller.ts",
     "ai:control-plane": "cross-env NODE_OPTIONS=--no-deprecation node --import=tsx/esm services/ai-control-plane/src/server.ts",
     "ai:execution-worker": "cross-env NODE_OPTIONS=--no-deprecation node --import=tsx/esm services/ai-execution-worker/src/worker.ts",
+    "ai:assignment:serve": "node --import=tsx/esm .ai/tools/worker-assignment/src/serveIdeAssignments.controller.ts",
+    "ai:assignment:ide": "node --import=tsx/esm .ai/tools/worker-assignment/src/runIdeAssignment.controller.ts",
     "ai:assignment": "node --import=tsx/esm .ai/tools/worker-assignment/src/runAssignmentCommand.controller.ts",
-    "ai:assignment:checkpoint-pilot": "node .ai/tools/worker-assignment/test/checkpoints/runIsolatedPostgres.mjs",
-    "ai:assignment:audit-cycle": "npm run ai:assignment:checkpoint-pilot && npm run ai:assignment:publication-pilot && npm run ai:assignment:conclusion-pilot && npm run ai:assignment:rework-pilot",
-    "ai:assignment:rework-pilot": "node .ai/tools/worker-assignment/test/checkpoints/runIsolatedPostgres.mjs rework",
-    "ai:assignment:conclusion-pilot": "node .ai/tools/worker-assignment/test/checkpoints/runIsolatedPostgres.mjs conclusion",
-    "ai:assignment:publication-pilot": "node .ai/tools/worker-assignment/test/checkpoints/runIsolatedPostgres.mjs publication",
+    "check:assignment:postgres": "node .ai/tools/worker-assignment/test/checkpoints/runIsolatedPostgres.mjs",
+    "ai:assignment:audit-cycle": "npm run check:assignment:postgres -- checkpoint && npm run check:assignment:postgres -- publication && npm run check:assignment:postgres -- conclusion && npm run check:assignment:postgres -- rework",
     "build": "node scripts/runtime/buildProduction.controller.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit && tsc --project packages/engineering-runtime/tsconfig.json && npm run typecheck:worker-assignment",

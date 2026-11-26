@@ -1,7 +1,7 @@
 /**
  * @file tests/int/resolveAiContext.service.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-24
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет S1 на реальных Markdown-файлах, смене policy и недоверенных источниках.
  */
 // @vitest-environment node
@@ -18,7 +18,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createHash } from "node:crypto";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { RepositoryCursorService } from "../../services/ai-control-plane/src/RepositoryCursor.service";
 import { resolveAiContext } from "../../services/ai-control-plane/src/resolveAiContext.service";
 import { readAiInstructions } from "../../services/ai-control-plane/src/readAiInstructions.service";

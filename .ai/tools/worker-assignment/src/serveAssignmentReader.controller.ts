@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/worker-assignment/src/serveAssignmentReader.controller.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Открывает один сохранённый контекст и публикует его ограниченный reader по stdio MCP.
  */
 import { McpServer } from "@modelcontextprotocol/server";
@@ -9,7 +9,7 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { mcpToolInputs } from "@realize/ai-contracts";
 import { z } from "zod";
 import { RepositoryReadError } from "../../../../services/ai-control-plane/src/RepositoryRead.error";
-import { createRepositoryReadPolicy } from "../../../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { bindAssignment } from "./bindAssignment.service";
 
 const [root, lock, contextId, lockSha256] = process.argv.slice(2);

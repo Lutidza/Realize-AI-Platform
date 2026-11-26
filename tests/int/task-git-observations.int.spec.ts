@@ -1,7 +1,7 @@
 /**
  * @file tests/int/task-git-observations.int.spec.ts
- * @version 1.1.0
- * @date 2026-10-12
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Проверяет read-only Git observation, строгие DTO, admission и гонки task revision/membership.
  * @see documentation/specifications/task-management-execution.md
  */
@@ -85,9 +85,10 @@ function fixture(
     createdAt: now,
     updatedAt: now,
   };
+  const taskRow = { id: 37, taskId: randomUUID() };
   const task: TaskDto = {
-    id: randomUUID(),
-    key: "TASK-1",
+    id: taskRow.taskId,
+    key: `TASK-${taskRow.id}`,
     projectId: project.id,
     listId: randomUUID(),
     title: "Task",
@@ -106,7 +107,7 @@ function fixture(
   const find = vi.fn(async (args: { collection: string }) => ({
     docs:
       args.collection === TASKS_SLUG
-        ? [{ id: 1, record: state.task }]
+        ? [{ ...taskRow, record: state.task }]
         : args.collection === TASK_PROJECTS_SLUG
           ? [{ id: 1, record: state.project }]
           : [],

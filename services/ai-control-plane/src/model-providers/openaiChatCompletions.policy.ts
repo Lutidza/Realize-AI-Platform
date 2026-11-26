@@ -1,12 +1,12 @@
 /**
  * @file services/ai-control-plane/src/model-providers/openaiChatCompletions.policy.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Регистрирует проверенную область инструментов одного профиля OpenAI Chat Completions.
  * @see documentation/architecture/assignment-adapter/openai-chat-completions.md
  */
 export const openAiChatPolicy = Object.freeze({
-  id: "openai.chat-completions.article-audit",
+  id: "openai.chat-completions.explicit-functions-only",
   revision: 1,
   providerId: "openai",
   adapterId: "openai-chat-completions",

@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/prepareAuditMaterials.mapper.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Проверяет манифест передачи и готовит точные байты артефактов и исходников для досье.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
@@ -20,8 +20,8 @@ function checkCoverage(
   const calls = new Set<string>();
   const requests = new Set<string>();
   if (
-    coverage.length !== 12 ||
-    new Set(coverage.map((file) => file.path)).size !== 12
+    coverage.length === 0 ||
+    new Set(coverage.map((file) => file.path)).size !== coverage.length
   )
     throw new Error("audit_coverage_invalid");
   for (const file of coverage) {
@@ -79,7 +79,7 @@ export function prepareAuditMaterials(input: AuditPublication) {
     !Number.isSafeInteger(input.checkpointRevision) ||
     input.checkpointRevision < 1 ||
     !Array.isArray(input.sources) ||
-    input.sources.length !== 18 ||
+    input.sources.length === 0 ||
     !Array.isArray(input.coverage)
   )
     throw new Error("audit_publication_invalid");

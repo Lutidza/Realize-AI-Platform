@@ -1,7 +1,7 @@
 /**
  * @file tests/int/repositoryMcpBridge.int.spec.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет native MCP transport: каталог, Git HEAD, JSON, hashes, права и завершение run.
  */
 // @vitest-environment node
@@ -15,7 +15,7 @@ import {
 import { describe, expect, it } from "vitest";
 import { createRepositoryMcpBridge } from "../../services/ai-control-plane/src/createRepositoryMcpBridge.service";
 import { createRepositoryChatTools } from "../../services/ai-control-plane/src/repositoryChatTools.adapter";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { createRepositoryRunAccess } from "../../services/ai-control-plane/src/createRepositoryRunAccess.service";
 import { SearchObservationCollector } from "../../packages/payload-ai-plugin/src/search-observability/SearchObservationCollector.service";
 import type { SearchObservation } from "@realize/ai-contracts";

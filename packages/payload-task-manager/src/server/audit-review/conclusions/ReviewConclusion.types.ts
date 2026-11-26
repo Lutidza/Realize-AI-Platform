@@ -1,10 +1,10 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/ReviewConclusion.types.ts
- * @version 1.1.0
- * @date 2026-11-25
+ * @version 1.1.2
+ * @date 2026-11-26
  * @description Определяет происхождение заключения, основания приёмки и доказательства независимого ревью.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import type { REVIEW_CRITERIA } from "./reviewCriteria.constants";
 import type { PoolClient } from "pg";

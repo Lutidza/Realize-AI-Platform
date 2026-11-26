@@ -1,12 +1,11 @@
 /**
  * @file src/app/(system-admin)/system/task-manager/page.tsx
- * @version 1.3.0
+ * @version 1.3.1
  * @date 2026-11-26
  * @description Открывает постоянные задачи после проверки серверной сессии администратора.
  * @see documentation/specifications/task-management-execution.md
  */
 import type { Metadata } from "next";
-import { currentAuditDossierLink } from "@/components/admin/task-manager/dossier/taskAuditDossierPreview.config";
 import { requireSystemAdmin } from "@/components/admin/system-shell/requireSystemAdmin.service";
 import { SystemAdminTemplateProvider } from "@/components/admin/system-shell/SystemAdminTemplateProvider.component";
 import { SYSTEM_TASK_MANAGER_ROUTE } from "@/components/admin/system-shell/systemAdmin.routes";
@@ -25,10 +24,7 @@ export default async function SystemTaskManagerPage() {
       settings={context.appearance.settings}
       initialMode={context.initialTheme}
     >
-      <TaskManagerWorkbench
-        {...context}
-        auditDossier={currentAuditDossierLink()}
-      />
+      <TaskManagerWorkbench {...context} />
     </SystemAdminTemplateProvider>
   );
 }

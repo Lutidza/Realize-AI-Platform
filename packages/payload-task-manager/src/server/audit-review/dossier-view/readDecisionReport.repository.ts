@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/dossier-view/readDecisionReport.repository.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-26
  * @description Сверяет исходный результат, точную версию отчёта и происхождение повторного ревью в снимке досье.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual as equal } from "node:util";

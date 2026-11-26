@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/auditRevisionLinks.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Возвращает происхождение исправленной версии для доверенной транзакции выдачи следующего ревью.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import type { PoolClient } from "pg";
 import type { PublishedAudit } from "../AuditPublication.types";

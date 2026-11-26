@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/worker-assignment/test/checkpoints/runIsolatedPostgres.mjs
- * @version 1.3.0
- * @date 2026-11-25
+ * @version 1.3.3
+ * @date 2026-11-26
  * @description Запускает приёмку хранилища на отдельном временном кластере PostgreSQL.
- * @see documentation/specifications/task-management/execution/article-audit-storage-pilot.md
+ * @see documentation/specifications/task-management/execution/checkpoint-storage.md
  */
+import { ASSIGNMENT_TEST_DATABASE } from "@realize/payload-task-manager/audit-review/test-database";
 import { execFile, spawn } from "node:child_process";
 import {
   access,
@@ -20,8 +21,8 @@ import { promisify } from "node:util";
 
 const execute = promisify(execFile);
 const suites = new Map([
-  ["checkpoint", "./checkpointPilot.test.ts"],
-  ["rework", "../rework/articleRework.test.ts"],
+  ["checkpoint", "./checkpointStorage.test.ts"],
+  ["rework", "../rework/auditRework.test.ts"],
   ["conclusion", "../conclusion/reviewConclusion.test.ts"],
   ["publication", "../publication/auditPublication.test.ts"],
 ]);
@@ -41,7 +42,7 @@ const db = {
   PGHOST: socket,
   PGPORT: "5432",
   PGUSER: "realize_checkpoint_runner",
-  PGDATABASE: "realize_checkpoint_pilot",
+  PGDATABASE: ASSIGNMENT_TEST_DATABASE,
 };
 const runPg = (name, args) =>
   execute(join(postgresBin, name), args, { env: { ...environment, ...db } });

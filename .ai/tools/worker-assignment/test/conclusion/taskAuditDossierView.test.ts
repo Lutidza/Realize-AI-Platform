@@ -1,9 +1,9 @@
 /**
  * @file .ai/tools/worker-assignment/test/conclusion/taskAuditDossierView.test.ts
- * @version 1.0.0
+ * @version 1.0.3
  * @date 2026-11-26
  * @description Проверяет выдачу трёх согласованных материалов, связь с задачей, отзыв доступа и несовпадение хеша.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -48,8 +48,8 @@ export function registerDossierViewTests() {
     const view = await read(f.orchestratorId);
     assert(view);
     assert.equal(view.taskId, f.task.taskId);
-    assert.equal(view.taskKey, "TASK-1");
-    assert.equal(view.taskTitle, "Проверить форму создания статьи");
+    assert.equal(view.taskKey, f.createdTask.key);
+    assert.equal(view.taskTitle, f.createdTask.title);
     assert.equal(view.report.resultId, c.delivery.resultId);
     assert.equal(view.report.auditorId, f.plan.auditorId);
     assert.equal(view.report.revision, c.delivery.report.revision);

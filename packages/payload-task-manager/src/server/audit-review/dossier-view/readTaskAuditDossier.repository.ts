@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/dossier-view/readTaskAuditDossier.repository.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-26
  * @description Возвращает оркестратору три проверенных материала одного решения из неизменяемого досье задачи.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
 import type { Pool, PoolClient } from "pg";

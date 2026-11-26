@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/reviewAttemptBasis.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Закрепляет критерии и политику до первого чтения ревьюера и сверяет их при продолжении.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
 import type { PoolClient } from "pg";

@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/test/runVerifiedGitWorker.service.test.ts
- * @version 1.1.0
- * @date 2026-10-23
+ * @version 1.1.1
+ * @date 2026-11-26
  * @description Проверяет autoload receipts, границы разрешений и exact-OID proof без Git, Codex и внешних checks.
  */
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import {
   chmod,
   mkdir,
@@ -60,7 +61,7 @@ async function fixture(t: TestContext) {
     version: 1,
     requestId: "request-1",
     projectId: "project-1",
-    taskId: "task-1",
+    taskId: randomUUID(),
     repositoryRoot: root,
     authorization: {
       actions: ["commit"],
@@ -326,7 +327,7 @@ test("IDE назначает одинаковую private storage policy и owne
   for (const current of f.verificationOptions) assert.equal(current, options);
   assert.deepEqual(options.storage, {
     root: f.root,
-    directory: ".ai-workspace/tasks/task-1/logs/git-verification",
+    directory: `.ai-workspace/tasks/${f.context.taskId}/logs/git-verification`,
   });
   assert.equal(options.portability, "workspace");
   assert.ok(
@@ -508,9 +509,10 @@ test("небезопасный plan и повреждённый commit proof о�
         await f.run();
         const path = join(
           f.root,
-          ".ai-workspace/tasks/task-1/logs/git-verification/commit-" +
-            commit +
-            ".json",
+          ".ai-workspace/tasks",
+          f.context.taskId,
+          "logs/git-verification",
+          `commit-${commit}.json`,
         );
         const proof = JSON.parse(await readFile(path, "utf8"));
         await writeFile(

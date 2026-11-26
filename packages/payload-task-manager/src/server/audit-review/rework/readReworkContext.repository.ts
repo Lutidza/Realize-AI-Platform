@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/rework/readReworkContext.repository.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Сопоставляет поручение и решение с неизменяемой версией исходного заключения и предметом повторного ревью.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
+ * @see documentation/specifications/task-management/execution/review-rework.md
  */
 import { isDeepStrictEqual as equal } from "node:util";
 import type { PoolClient } from "pg";

@@ -1,10 +1,11 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/withAuditTransaction.repository.ts
- * @version 1.1.0
+ * @version 1.1.2
  * @date 2026-11-26
- * @description Фиксирует операции пилота атомарно и закрывает запись вне выделенной PostgreSQL.
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @description Фиксирует операции с досье атомарно и закрывает запись вне выделенной PostgreSQL.
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
+import { ASSIGNMENT_TEST_DATABASE } from "./assignmentTestDatabase.config";
 import type { Pool, PoolClient } from "pg";
 
 /** Инициализация и чтение подчиняются тому же ограничению БД, что и запись. */
@@ -25,7 +26,7 @@ export async function withAuditTransaction<T>(
     const result = await client.query<{ name: string }>(
       "SELECT current_database() AS name",
     );
-    if (result.rows[0]?.name !== "realize_checkpoint_pilot")
+    if (result.rows[0]?.name !== ASSIGNMENT_TEST_DATABASE)
       throw new Error("audit_database_mismatch");
     const value = await work(client);
     await client.query("COMMIT");

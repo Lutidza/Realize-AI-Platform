@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/agent-search/src/searchSourceBinding.adapter.mjs
- * @version 1.3.0
- * @date 2026-10-23
+ * @version 1.3.1
+ * @date 2026-11-26
  * @description Хеширует явный bounded набор runtime sources без Git, секретов и persistent index.
  * @see documentation/architecture/repository-search.md
  */
@@ -11,6 +11,7 @@ import { join, resolve } from "node:path";
 export async function readSearchSourceVersion(root) {
   const paths = [
     ".ai/tools/agent-search/bin/agent-search.mjs",
+    "package.json",
     "package-lock.json",
     "next.config.ts",
     "scripts/runtime/runProductionBuild.service.mjs",
@@ -26,6 +27,7 @@ export async function readSearchSourceVersion(root) {
     "services/ai-control-plane/src/readRepositoryFile.service.ts",
     "services/ai-control-plane/src/readRepositoryLines.service.ts",
     "services/ai-control-plane/src/listRepositoryFiles.service.ts",
+    "services/ai-control-plane/repositoryReadPolicy.index.ts",
     "services/ai-control-plane/src/repositoryReadPolicy.validator.ts",
     "services/ai-control-plane/src/paginateRepositoryResult.service.ts",
     "services/ai-control-plane/src/RepositoryCursor.service.ts",

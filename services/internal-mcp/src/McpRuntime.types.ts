@@ -1,7 +1,7 @@
 /**
  * @file services/internal-mcp/src/McpRuntime.types.ts
- * @version 1.3.0
- * @date 2026-09-30
+ * @version 1.3.2
+ * @date 2026-11-26
  * @description Описывает доверенные порты авторизации и предметного чтения MCP listener.
  */
 import type {
@@ -15,7 +15,8 @@ import type {
   McpToolInput,
   McpToolName,
 } from "../../../packages/ai-contracts/src/McpTool.types";
-import type { RepositoryReadPolicy } from "../../ai-control-plane/src/RepositoryRead.types";
+import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
+import type { IdeAssignmentQueue } from "./IdeAssignmentQueue.repository";
 export type McpPrincipal = {
   principalID: string;
   /** Назначение managed credential определяется сервером; оно не доказывает внешний UI-прогон. */
@@ -43,6 +44,8 @@ export type McpPagesPort = {
 };
 export type McpRuntimeOptions = {
   port: number;
+  /** Разрешается только явно сконфигурированному bootstrap владельца IDE. */
+  assignments?: IdeAssignmentQueue;
   /** Только server-owned facade изолированного run; регистрация ограничена его repo_* definitions. */
   repositoryTools?: AgentReadTools;
   sourceVersion?: string;

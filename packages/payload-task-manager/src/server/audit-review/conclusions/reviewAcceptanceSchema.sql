@@ -1,9 +1,9 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/conclusions/reviewAcceptanceSchema.sql
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Хранит действующее основание приёмки, доставки оркестратору, решения и адресованные доработки.
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
  */
 CREATE SCHEMA IF NOT EXISTS audit_acceptance;
 REVOKE ALL ON SCHEMA audit_acceptance FROM PUBLIC;

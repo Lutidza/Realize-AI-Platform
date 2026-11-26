@@ -206,7 +206,7 @@ Workspace identity и policy version входят в cursors, fingerprints, chan
 
 Названия ниже предлагаются для новой реализации. Значения секретов в документацию не помещаются. Это operator bootstrap, а не единственный интерфейс эксплуатационных настроек.
 
-`REALIZE_MCP_CONFIGURATION_MODE` явно выбирает `bootstrap` или `managed`, без неявного fallback. В managed требуется `REALIZE_MCP_SERVER_ID`: ID конкретного экземпляра из Admin registry, привязанного доверенным launcher к этой установке/host profile. Настройки и клиенты разрешаются по §19. Bootstrap исключительно repository-only и использует следующую env-схему; installation/Pages grants, actor mapping и смешение managed credentials с bootstrap token отвергаются. Pages первого выпуска настраиваются через G в managed mode.
+`REALIZE_MCP_CONFIGURATION_MODE` явно выбирает `bootstrap` или `managed`, без неявного fallback. В managed требуется `REALIZE_MCP_SERVER_ID`: ID конкретного экземпляра из Admin registry, привязанного доверенным launcher к этой установке/host profile. Настройки и клиенты разрешаются по §19. По умолчанию bootstrap предоставляет чтение репозитория; владелец IDE может отдельно включить локальную очередь поручений только на чтение. Он использует следующую env-схему; installation/Pages grants, actor mapping и смешение managed credentials с bootstrap token отвергаются. Pages первого выпуска настраиваются через G в managed mode.
 
 | Переменная                            | Контракт                                                                                                                |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -215,6 +215,14 @@ Workspace identity и policy version входят в cursors, fingerprints, chan
 | `REALIZE_MCP_REPOSITORY_ROOT`         | Обязательный абсолютный путь; canonical realpath, существующий корень Git checkout; нельзя передать из tool input       |
 | `REALIZE_MCP_PRINCIPAL_ID`            | Стабильный локальный идентификатор оператора; не секрет и не произвольный Payload user                                  |
 | `REALIZE_MCP_REPOSITORY_READ_ENABLED` | По умолчанию `false`; отдельное явное право этого credential на checkout                                                |
+| `REALIZE_IDE_ASSIGNMENT_QUEUE` | Опциональный абсолютный путь к личному каталогу 0700 вне checkout. Включает `task_submit` и `task_get` для bootstrap principal. |
+
+Для поручения из диалога `task_submit` принимает `task` и `idempotencyKey`. Оркестратор закрепляет явно названные файлы либо ищет источники через agent-search. Для широкой области он последовательно выдаёт несколько read-only Assignment с общим runId, проверяет версии файлов при чтении диапазонов и возвращает агрегированный отчёт через task_get. Лимит отдельного вызова поиска приводит к разбиению внутри профиля в том же запуске. В конце отчёта указываются число совпавших файлов, вызовы и разбиения по профилям и стадиям, завершённые Assignment и наличие пропусков. Для готового Assignment `task_submit` принимает относительный `lockPath`, SHA-256 закреплённой привязки и
+`idempotencyKey`, хранит заявку и возвращает `runId`. Обработка этой заявки
+принадлежит отдельному оркестратору. `task_get` читает состояние и финальный
+текст своего principal в том же checkout. Выдача и публикация отчёта доступны
+локальному оркестратору через [CLI Assignment](../../.ai/tools/worker-assignment/README.md#очередь-ide).
+Права на запись в репозиторий и managed/ChatGPT grants у этого режима отсутствуют.
 
 Bind фиксирован на `127.0.0.1` в A. Настройки `0.0.0.0`, внешнего host, произвольного proxy target и `trust proxy` не добавляются. Порт `4319` — предлагаемый default, не заявление о свободном порте текущей машины.
 

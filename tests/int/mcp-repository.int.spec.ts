@@ -1,7 +1,7 @@
 /**
  * @file tests/int/mcp-repository.int.spec.ts
- * @version 1.0.0
- * @date 2026-09-23
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет безопасное чтение, Unicode, snapshots и курсоры на временной файловой системе.
  */
 // @vitest-environment node
@@ -10,7 +10,7 @@ import { mkdtemp, mkdir, writeFile, symlink, link, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { createRepositoryReadPolicy } from "../../services/ai-control-plane/src/repositoryReadPolicy.validator";
+import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { readRepositoryFile } from "../../services/ai-control-plane/src/readRepositoryFile.service";
 import { readRepositoryLines } from "../../services/ai-control-plane/src/readRepositoryLines.service";
 import { listRepositoryFiles } from "../../services/ai-control-plane/src/listRepositoryFiles.service";

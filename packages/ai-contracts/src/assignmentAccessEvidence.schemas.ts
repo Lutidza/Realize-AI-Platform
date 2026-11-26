@@ -1,9 +1,9 @@
 /**
  * @file packages/ai-contracts/src/assignmentAccessEvidence.schemas.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Проверяет внешний формат подтверждения прав перед выдачей назначения.
- * @see documentation/architecture/assignment-adapter/article-audit-evidence.md
+ * @see documentation/architecture/assignment-adapter/adapter-access-evidence-v1.md
  */
 import { z } from "zod";
 

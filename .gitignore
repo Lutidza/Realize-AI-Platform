@@ -8,7 +8,6 @@
 # Локальные копии временных сборок с восстановленным абсолютным путём.
 /home/
 /.data/media
-/.data/audit-dossier-preview/
 /artifacts
 /coverage
 /playwright-report

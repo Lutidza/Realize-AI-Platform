@@ -1,11 +1,11 @@
 /**
  * @file packages/payload-task-manager/src/server/audit-review/auditReview.server.index.ts
- * @version 1.3.0
+ * @version 1.3.4
  * @date 2026-11-26
- * @description Открывает серверную границу пилота публикации и выдачи ревью по закреплённым версиям.
- * @see documentation/specifications/task-management/execution/article-audit-rework.md
- * @see documentation/specifications/task-management/execution/article-audit-conclusion.md
- * @see documentation/specifications/task-management/execution/article-audit-publication.md
+ * @description Открывает серверную границу публикации и выдачи ревью по закреплённым версиям.
+ * @see documentation/specifications/task-management/execution/review-rework.md
+ * @see documentation/specifications/task-management/execution/review-conclusion.md
+ * @see documentation/specifications/task-management/execution/audit-report-publication.md
  */
 export type {
   AuditTaskBinding,
