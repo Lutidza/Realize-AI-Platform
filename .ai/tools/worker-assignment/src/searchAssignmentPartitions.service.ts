@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/searchAssignmentPartitions.service.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-11-26
  * @description Продолжает ограниченную выдачу agent-search внутри исходного профиля.
  * @see documentation/architecture/repository-search.md
@@ -21,7 +21,7 @@ type SearchCoverage = {
 };
 
 /** Абсолютный относительно корня glob совпадает только с указанным путём. */
-function excludeFile(path: string) {
+export function excludeFile(path: string) {
   return "--glob=!/" + path.replace(/[\\*?\[\]{}]/gu, "\\$&");
 }
 
@@ -32,6 +32,8 @@ export async function searchAssignmentPartitions(
   query: string,
   signal: AbortSignal,
   record: (path: string, match: string) => void,
+  scopeFlags: string[] = [],
+  intent: "text" | "definitions" = "text",
 ) {
   const coverage: SearchCoverage = {
     calls: 0,
@@ -54,17 +56,27 @@ export async function searchAssignmentPartitions(
           ".ai/tools/agent-search/bin/agent-search.mjs",
           "--mode=" + mode,
           "--output=" + output,
-          "--regex",
+          ...(intent === "text" ? ["--regex"] : ["--intent=definitions"]),
           "--limit=" + (single ? 500 : 32),
           "--max-bytes=" + (single ? 65536 : 16384),
           "--timeout-ms=10000",
+          ...scopeFlags.filter(
+            (flag) =>
+              !flag.startsWith("--within=") ||
+              !flags.some((value) => value.startsWith("--within=")),
+          ),
           ...flags,
           "--",
           query,
         ],
         { cwd: root, signal, timeout: 15000, maxBuffer: 131072 },
       );
-      const lines = stdout.trimEnd().split("\n");
+      const lines = stdout
+        .trimEnd()
+        .split("\n")
+        .filter(
+          (l) => !(intent === "definitions" && l.startsWith("# syntax ")),
+        );
       const limited = lines.some((line) => line.startsWith(limitFooter));
       if (
         lines.some(

@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/test/createGitWorkerTransport.adapter.test.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-26
  * @description Проверяет явный профиль Git-воркера и окружение реального дочернего RPC-процесса.
  */
 import { PolicyError } from "@realize/git-runtime";
@@ -167,7 +167,8 @@ lines.on('line', line => {
       "features.shell_tool=false",
       "features.unified_exec=false",
       "features.apply_patch_freeform=false",
-      "features.multi_agent=false",
+      "agents.enabled=false",
+      "features.multi_agent_v2=false",
     ]) {
       const index = snapshot.args.indexOf(restriction);
       assert.ok(index >= 4, restriction);

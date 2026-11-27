@@ -1,6 +1,6 @@
 # @file .codex/config.toml
-# @version 1.0.2
-# @date 2026-10-23
+# @version 1.0.3
+# @date 2026-11-26
 # @description Настраивает клиентские development MCP проекта без хранения секретов.
 # Project-local Codex adapter config.
 #
@@ -32,6 +32,8 @@ http_headers_helper = "node scripts/runtime/readLocalMcpHeaders.controller.mjs"
 startup_timeout_sec = 20
 tool_timeout_sec = 30
 
+[agents]
+enabled = false
+
 [features]
-multi_agent = false
 multi_agent_v2 = false

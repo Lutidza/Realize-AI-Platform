@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/planTextAssignment.service.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-11-26
  * @description Собирает ограниченное поручение на чтение обозначенных в задаче файлов.
  * @see documentation/specifications/internal-mcp.md
@@ -32,6 +32,9 @@ export async function planTextAssignment(
   mission: string,
   targets: string[],
   coverage: string,
+  plannedPaths?: Iterable<string>,
+  purpose:
+    "review" | "screen" | "coverage" | "passage" | "inventory" = "review",
 ) {
   const sourceReview = targets.some((path) => /\.[cm]?[jt]sx?$/.test(path));
   const instructions = [...requiredSources];
@@ -42,6 +45,15 @@ export async function planTextAssignment(
       ".ai/checks/development/CHECK-CODE-STRUCTURE.md",
     );
   const scope = targets.filter((path) => !instructions.includes(path));
+  // Обязательная инструкция может сама быть целью аудита. Для контракта манифеста
+  // используем другой уже назначенный путь, а reader передаст только заказанный диапазон.
+  if (!scope.length && plannedPaths) {
+    for (const path of plannedPaths)
+      if (!instructions.includes(path)) {
+        scope.push(path);
+        break;
+      }
+  }
   if (!scope.length) throw new Error("assignment_scope_overlaps_instructions");
   const { head } = await readGitHead({ policy });
   if (!head) throw new Error("assignment_revision_missing");
@@ -65,13 +77,27 @@ export async function planTextAssignment(
     },
     checks: ["Сверить вывод с закреплёнными исходниками", coverage],
     expectedOutput: [
-      "Ответ на предметный вопрос по указанным источникам. Для поиска объявления достаточно показать точное значение и путь. Проверяй поведение реализации только по отдельному запросу.",
+      purpose === "inventory"
+        ? "Разобрать метаданные из штатного поиска и вернуть обоснованные пути для дальнейшей проверки содержания в отдельном Assignment."
+        : purpose === "passage"
+          ? "Проверить только переданные строки. Привести предметные наблюдения со строками, либо границы отрицательного результата. Отсутствующие смежные источники указать отдельно. Завершить локальное чтение, когда его диапазон рассмотрен."
+          : purpose === "screen"
+            ? "Вернуть decisions по каждому закреплённому окну с классификацией, точной строкой и основанием."
+            : purpose === "coverage"
+              ? "Принять переданные оркестратором отчёты отдельных Assignment, протокол поиска и закреплённые фрагменты. По этому набору свидетельств вернуть общий отчёт и assessment. Локальный reviewScope задаёт дополнительные исходники для чтения в этой приёмке."
+              : "Ответ на предметный вопрос по указанным источникам. Для поиска объявления достаточно показать точное значение и путь. Проверяй поведение реализации только по отдельному запросу.",
       "Это отчёт текущего запуска " +
         id +
         ". Подтверждение приёма, runId и доставка отчёта в диалог принадлежат оркестратору и клиенту. Исполнитель возвращает предметный результат.",
     ],
     stopCondition:
-      "Вернуть blocked при недостатке материалов или необходимости записи.",
+      purpose === "inventory"
+        ? "Завершить отбор, когда рассмотрен переданный список путей. Отсутствие оснований предложить файл отражается пустым списком и причиной."
+        : purpose === "passage"
+          ? "Вернуть blocked, если переданный диапазон невозможно прочитать. Отдельно сообщить открытые вопросы из других областей оркестратору."
+          : purpose === "coverage"
+            ? "Завершить приёмку при доказанном результате в пределах поручения. Открытый локальный вопрос снабдить точным адресом следующей проверки. Недоступные внешние факты обозначить отдельно."
+            : "Вернуть blocked при недостатке материалов или необходимости записи.",
   };
   let remaining = 384 * 1024;
   const files = [];

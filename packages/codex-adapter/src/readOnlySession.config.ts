@@ -1,7 +1,7 @@
 /**
  * @file packages/codex-adapter/src/readOnlySession.config.ts
- * @version 1.0.0
- * @date 2026-11-25
+ * @version 1.0.1
+ * @date 2026-11-26
  * @description Задаёт ограничения Codex для изолированных сессий с явным инструментом.
  */
 
@@ -29,7 +29,6 @@ export const READ_ONLY_SESSION_CONFIG = {
   "features.hooks": false,
   "features.codex_hooks": false,
   "features.plugin_hooks": false,
-  "features.multi_agent": false,
   "features.multi_agent_v2": false,
   "features.code_mode": false,
   "features.js_repl": false,

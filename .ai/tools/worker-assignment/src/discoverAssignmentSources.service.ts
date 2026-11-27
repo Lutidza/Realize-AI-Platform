@@ -1,11 +1,11 @@
 /**
  * @file .ai/tools/worker-assignment/src/discoverAssignmentSources.service.ts
- * @version 1.0.0
+ * @version 1.1.0
  * @date 2026-11-26
  * @description Подбирает источники тематического поручения штатным CLI agent-search.
  * @see documentation/architecture/repository-search.md
  */
-import { basename, extname } from "node:path";
+import { escapeSearchTerm } from "./auditSearchScope.service";
 import { searchAssignmentPartitions } from "./searchAssignmentPartitions.service";
 
 /** Выдача ограничена; признаки и области сохраняются в проверках назначения. */
@@ -13,6 +13,8 @@ export async function discoverAssignmentSources(
   root: string,
   mission: string,
   signal: AbortSignal,
+  allowEmpty = false,
+  profiles?: { mode: string; flags: string[] }[],
 ) {
   const subject = mission.split(
     /(?:^|\n)\s*(?:ожидаемый результат|результат|ограничения|expected (?:output|result)|constraints)\s*:/iu,
@@ -22,20 +24,24 @@ export async function discoverAssignmentSources(
   );
   const identifiers = subject.match(/[\p{L}\d]+(?:[-_][\p{L}\d]+)+/gu) ?? [];
   const terms = [...new Set([...quoted, ...identifiers])];
-  if (!terms.length) throw new Error("assignment_search_terms_required");
+  if (!terms.length && !allowEmpty)
+    throw new Error("assignment_search_terms_required");
   const modes = [];
   if (/весь проект|код|тест|документаци/iu.test(mission))
     modes.push("code-docs");
   if (mission.includes(".ai/")) modes.push("ai");
   if (mission.includes(".codex/")) modes.push("codex");
   if (!modes.length) modes.push("code-docs");
-  const queries = terms
-    .slice(0, 8)
-    .map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const queries = terms.map(escapeSearchTerm);
   const paths = new Set<string>();
   const coverage: string[] = [];
   const evidence: Record<string, string[]> = Object.create(null);
-  async function search(mode: string, expressions: string[], stage: string) {
+  async function search(
+    mode: string,
+    expressions: string[],
+    stage: string,
+    flags: string[],
+  ) {
     const result = await searchAssignmentPartitions(
       root,
       mode,
@@ -47,6 +53,7 @@ export async function discoverAssignmentSources(
         const entries = (evidence[path] ??= []);
         if (entries.length < 5 && !entries.includes(entry)) entries.push(entry);
       },
+      flags,
     );
     for (const path of result.files) paths.add(path);
     coverage.push(
@@ -66,36 +73,21 @@ export async function discoverAssignmentSources(
           : ""),
     );
   }
-  for (const mode of modes) await search(mode, queries, "признаки");
-  const broad =
-    /весь проект|всего проекта|полный аудит|whole repository|full audit/iu.test(
-      mission,
-    );
-  if (broad) {
-    const expressions = [
-      ...new Set(
-        [...paths].sort().map((path) => {
-          const escape = (value: string) =>
-            value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          if (!/\.[cm]?[jt]sx?$/.test(path)) return escape(path);
-          const name = basename(path, extname(path));
-          // Короткое имя модуля (например, index) имеет смысл только как часть ссылки.
-          return "(?:/|[\"'`])" + escape(name) + "(?:\\.[cm]?[jt]sx?)?[\"'`)]";
-        }),
-      ),
-    ];
-    if (expressions.length)
-      for (const mode of modes) await search(mode, expressions, "ссылки");
-  }
-  if (!paths.size) throw new Error("assignment_search_no_matches");
+  if (queries.length)
+    for (const profile of profiles ??
+      modes.map((mode) => ({ mode, flags: [] })))
+      await search(profile.mode, queries, "признаки", profile.flags);
+  if (!paths.size && !allowEmpty)
+    throw new Error("assignment_search_no_matches");
   return {
     paths: [...paths],
+    terms,
     evidence,
     coverage:
       "Поиск agent-search: " +
       coverage.join(", ") +
       ". Признаки: " +
-      terms.slice(0, 8).join(", ") +
+      terms.join(", ") +
       ". Указать пределы охвата; совпадение требует проверки.",
   };
 }
