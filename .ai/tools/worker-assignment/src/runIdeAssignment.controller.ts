@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/runIdeAssignment.controller.ts
- * @version 1.0.1
+ * @version 1.1.0
  * @date 2026-11-27
  * @description Выдаёт локальному оркестратору привязку и принимает отчёт по ключу попытки.
  * @see .ai/tools/worker-assignment/README.md
@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { IdeAssignmentQueue } from "realize-ai-platform/ide-assignment-queue";
+import { authorizeIdeWrite } from "./dispatchIdeWrite.service";
 import { authorizeIdeStage } from "./authorizeIdeStage.service";
 import { bindAssignment } from "./bindAssignment.service";
 
@@ -49,7 +50,9 @@ try {
         );
       }
     }
-  } else if (command === "finish" || command === "authorize-stage") {
+  } else if (
+    ["finish", "authorize-stage", "authorize-write"].includes(command)
+  ) {
     const chunks: Buffer[] = [];
     let bytes = 0;
     for await (const chunk of process.stdin) {
@@ -58,7 +61,17 @@ try {
       chunks.push(chunk);
     }
     const payload: unknown = JSON.parse(Buffer.concat(chunks).toString());
-    if (command === "authorize-stage") {
+    if (command === "authorize-write") {
+      console.log(
+        JSON.stringify(
+          await authorizeIdeWrite(
+            policy,
+            process.env.REALIZE_IDE_ASSIGNMENT_QUEUE!,
+            payload,
+          ),
+        ),
+      );
+    } else if (command === "authorize-stage") {
       console.log(
         JSON.stringify(
           await authorizeIdeStage(
@@ -81,7 +94,9 @@ try {
       console.log(JSON.stringify({ runId: input.runId, status: input.status }));
     }
   } else
-    throw new Error("Ожидается claim, wait-claim, authorize-stage или finish.");
+    throw new Error(
+      "Ожидается claim, wait-claim, authorize-stage, authorize-write или finish.",
+    );
 } finally {
   queue.close();
 }

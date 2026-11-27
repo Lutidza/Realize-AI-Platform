@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/assertWorktreePathSafety.validator.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-11-27
  * @description Проверяет, что изменённый путь принадлежит утверждённой области и не является ссылкой.
  */
 import { lstat } from "node:fs/promises";
@@ -14,12 +14,16 @@ export async function assertWorktreePathSafety(
   workspace: string,
   path: string,
   allowedPaths: string[],
+  verifiedTemplateFiles?: ReadonlySet<string>,
 ): Promise<void> {
   if (
     path.startsWith("/") ||
     path.includes("\0") ||
     path.split("/").includes("..") ||
-    !pathMatchesExecutionScope(path, allowedPaths)
+    !(
+      pathMatchesExecutionScope(path, allowedPaths) ||
+      (verifiedTemplateFiles?.has(path) && allowedPaths.includes(path))
+    )
   ) {
     throw new WorktreePolicyError(
       `Worktree contains a forbidden path: ${path}`,

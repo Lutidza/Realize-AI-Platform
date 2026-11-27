@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/system-ai/protectedRuntimePaths.policy.ts
- * @version 1.0.0
- * @date 2026-10-04
+ * @version 1.1.0
+ * @date 2026-11-27
  * @description Проверяет канонический путь и защищённые ресурсы независимо от prompt.
  */
 import { SYSTEM_AI_RELEASE } from "./systemAIRelease.registry";
@@ -23,7 +23,7 @@ export const isSafeRuntimePath = (path: string, scope = false): boolean => {
   );
 };
 
-export const isProtectedRuntimePath = (path: string): boolean => {
+function protectedPath(path: string, exceptPrefix?: "packages/"): boolean {
   const candidate = path.toLowerCase();
   const parts = candidate.split("/");
   if (
@@ -43,10 +43,28 @@ export const isProtectedRuntimePath = (path: string): boolean => {
     return true;
   return SYSTEM_AI_RELEASE.execution.protectedPrefixes.some(
     (prefix) =>
-      candidate === prefix.toLowerCase().replace(/\/$/, "") ||
-      candidate.startsWith(prefix.toLowerCase()),
+      prefix !== exceptPrefix &&
+      (candidate === prefix.toLowerCase().replace(/\/$/, "") ||
+        candidate.startsWith(prefix.toLowerCase())),
   );
-};
+}
+
+export const isProtectedRuntimePath = (path: string): boolean =>
+  protectedPath(path);
+
+/** Выделяет возможного владельца файла. Принадлежность шаблону подтверждает потребитель по Git revision. */
+export function templatePackageCandidate(path: string): string | undefined {
+  const [packages, owner, file] = path.split("/");
+  if (
+    packages === "packages" &&
+    owner &&
+    file &&
+    isSafeRuntimePath(path) &&
+    !/[\[\]{}]/u.test(path) &&
+    !protectedPath(path, "packages/")
+  )
+    return packages + "/" + owner;
+}
 
 /** Directory scope не может включать известный защищённый owner; отдельные имена проверяются и в diff. */
 export const overlapsProtectedRuntimeScope = (scope: string): boolean => {

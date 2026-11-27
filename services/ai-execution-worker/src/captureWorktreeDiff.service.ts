@@ -1,14 +1,14 @@
 /**
  * @file services/ai-execution-worker/src/captureWorktreeDiff.service.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-11-27
  * @description Снимает ограниченный diff утверждённого worktree под общим lease, включая изменение индекса add -N.
  */
 import { createHash } from "node:crypto";
 import { Git, withGitRepositoryLock, type GitLock } from "@realize/git-runtime";
 import { assertWorktreePathSafety } from "./assertWorktreePathSafety.validator";
 import { WorktreePolicyError } from "./WorktreePolicy.error";
-import type { ClaimedExecutionJob, WorktreeDiff } from "./types";
+import type { WorktreeChangeScope, WorktreeDiff } from "./types";
 
 const MAX_STORED_DIFF_BYTES = 256 * 1024;
 const zeroSeparated = (value: string): string[] =>
@@ -17,7 +17,7 @@ const zeroSeparated = (value: string): string[] =>
 /** После reacquire заново проверяет HEAD и область до изменения индекса или выдачи evidence. */
 export const captureWorktreeDiff = async (
   workspace: string,
-  job: ClaimedExecutionJob,
+  job: WorktreeChangeScope,
   existingLease?: GitLock,
 ): Promise<WorktreeDiff> =>
   withGitRepositoryLock(
@@ -58,7 +58,12 @@ export const captureWorktreeDiff = async (
             "Исполнитель завершил ответ без изменений файлов. Автоматические проверки не запускались. Изучите его пояснение и уточните план перед новым запуском.",
           );
         for (const path of paths)
-          await assertWorktreePathSafety(workspace, path, job.allowedPaths);
+          await assertWorktreePathSafety(
+            workspace,
+            path,
+            job.allowedPaths,
+            job.verifiedTemplateFiles,
+          );
         if (untrackedPaths.length)
           await git.run(["add", "-N", "--", ...untrackedPaths]);
         try {

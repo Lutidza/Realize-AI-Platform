@@ -56,6 +56,10 @@ checks:
 действительна. Иначе он указывает `blocked` и конкретную причину. После её
 устранения повторяет проверку. Факт передачи исполнителю фиксируется при запуске.
 
+Для локальной IDE-очереди профиль `scoped-write` получает отдельное разрешение
+владельца на точные файлы. Приёмка сверяет фактическую область и полный diff
+по [контракту Code Lane для IDE](../../tools/worker-assignment/README.md#назначение-правки).
+
 ### Привязка в CLI Assignment
 
 При выборе CLI Assignment оркестратор заполняет [манифест режима `static-read-only`](../../templates/worker-assignment/TEMPLATE-WORKER-ASSIGNMENT-MANIFEST.md)

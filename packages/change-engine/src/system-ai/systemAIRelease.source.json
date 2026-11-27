@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0",
-  "releaseID": "realize-system-1.1.15",
-  "version": "1.1.15",
+  "releaseID": "realize-system-1.1.16",
+  "version": "1.1.16",
   "projectProfile": "e-commerce",
   "instructions": [
     {
@@ -26,6 +26,10 @@
     "packages/change-engine/src/system-ai/protectedRuntimePaths.policy.ts",
     "packages/codex-adapter/src/JsonLineRpcClient.adapter.ts",
     "packages/codex-adapter/src/OpenAICodexAdapter.ts",
+    "packages/codex-adapter/src/runIsolatedJsonTurn.adapter.ts",
+    "packages/codex-adapter/src/createCodexChatPermissions.config.ts",
+    "packages/codex-adapter/src/readOnlySession.config.ts",
+    "packages/codex-adapter/src/environment.ts",
     "services/ai-execution-worker/src/buildExecutionInstructions.service.ts",
     "services/ai-execution-worker/src/executor.ts",
     "packages/ai-contracts/src/Agent.types.ts",
@@ -38,6 +42,11 @@
     "services/ai-control-plane/src/server.ts",
     "services/ai-control-plane/src/createCodexRuntime.config.ts",
     "services/ai-execution-worker/src/worker.ts",
+    "services/ai-execution-worker/src/serveManagedExecutionWorker.controller.ts",
+    "services/ai-execution-worker/src/runIdeWriteAssignment.controller.ts",
+    "services/ai-execution-worker/src/executeIdeWriteAssignment.service.ts",
+    "services/ai-execution-worker/src/resolveTemplateWriteScope.service.ts",
+    "services/ai-execution-worker/src/verifyWorktreeChange.service.ts",
     "services/ai-execution-worker/src/independentReviewer.ts",
     "services/ai-execution-worker/src/promotionExecutor.ts",
     "services/ai-execution-worker/src/promotionRepository.ts",

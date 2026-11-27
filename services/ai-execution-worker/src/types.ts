@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/types.ts
- * @version 1.0.0
- * @date 2026-10-04
+ * @version 1.1.0
+ * @date 2026-11-27
  * @description Задаёт durable job с проверяемым исходным контекстом и результатами проверок.
  */
 
@@ -51,4 +51,12 @@ export type WorktreeDiff = {
     path: string;
   }>;
   diffTruncated: boolean;
+};
+
+/** templateFiles строится worker по Git baseCommit и никогда не принимается от клиента. */
+export type WorktreeChangeScope = Pick<
+  ClaimedExecutionJob,
+  "allowedPaths" | "baseCommit" | "branch"
+> & {
+  verifiedTemplateFiles?: ReadonlySet<string>;
 };

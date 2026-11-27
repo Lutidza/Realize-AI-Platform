@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/removePromotionWorktree.service.ts
- * @version 1.0.0
- * @date 2026-10-22
+ * @version 1.1.0
+ * @date 2026-11-27
  * @description Удаляет только серверный preview worktree и его ветку под общим Git lease.
  */
 import { lstat } from "node:fs/promises";
@@ -14,10 +14,25 @@ import type { RemovePromotionWorktreeInput } from "./WorkerWorktree.types";
 export const removePromotionWorktree = async (
   input: RemovePromotionWorktreeInput,
 ): Promise<void> => {
-  if (!/^[a-z0-9-]{8,80}$/.test(input.workspaceID))
-    throw new WorktreePolicyError("Cleanup workspace ID is invalid.");
   if (input.branch && !/^ai\/preview-[a-z0-9-]{8,64}$/.test(input.branch))
     throw new WorktreePolicyError("Cleanup branch identity is invalid.");
+  return removeBoundWorktree(input);
+};
+
+/** IDE выделяет отдельную ветку с идентификатором приватного worktree каждой попытки. */
+export async function removeIdeWorktree(input: RemovePromotionWorktreeInput) {
+  if (input.branch !== "ai/change-" + input.workspaceID)
+    throw new WorktreePolicyError(
+      "Cleanup branch does not match the IDE workspace.",
+    );
+  return removeBoundWorktree(input);
+}
+
+const removeBoundWorktree = async (
+  input: RemovePromotionWorktreeInput,
+): Promise<void> => {
+  if (!/^[a-z0-9-]{8,80}$/.test(input.workspaceID))
+    throw new WorktreePolicyError("Cleanup workspace ID is invalid.");
   const root = resolve(input.workspaceRoot);
   const target = resolve(root, input.workspaceID);
   const path = relative(root, target);

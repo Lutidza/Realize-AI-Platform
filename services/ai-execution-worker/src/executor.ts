@@ -1,7 +1,7 @@
 /**
  * @file services/ai-execution-worker/src/executor.ts
- * @version 1.4.3
- * @date 2026-11-07
+ * @version 1.4.4
+ * @date 2026-11-27
  * @description Проверяет разрешённую реализацию и сохраняет безопасное пояснение исполнителя при любом исходе.
  */
 
@@ -31,7 +31,7 @@ import { sanitizeExecutionOutput } from "./sanitizeExecutionOutput.util";
 import type { ClaimedExecutionJob, WorkerCheckResult } from "./types";
 import { withWorkspaceDependencies } from "./workspaceDependencies";
 import { createExecutionWorktree } from "./worktree";
-import { captureWorktreeDiff } from "./captureWorktreeDiff.service";
+import { verifyWorktreeChange } from "./verifyWorktreeChange.service";
 import { WorktreePolicyError } from "./WorktreePolicy.error";
 
 class ValidationFailure extends Error {
@@ -225,47 +225,44 @@ export const executeClaimedJob = async (input: {
           : undefined;
       },
     });
-    const diff = await captureWorktreeDiff(workspace, input.job);
-
-    validationPhase = true;
-    await input.repository.markValidating(input.job);
     const checkResults: WorkerCheckResult[] = [];
-    await withWorkspaceDependencies(
-      input.config.repositoryRoot,
-      workspace,
-      async (dependencyLease) => {
-        for (const [index, command] of input.job.checks.entries()) {
-          const result = await input.usage.measureOperation(
-            {
-              source: "build",
-              operationKey: `execution-check:${index + 1}`,
-              taskId: `change:${input.job.changeRequestID}`,
-              changeRequestId: String(input.job.changeRequestID),
-            },
-            () =>
-              runExecutionCheck({
-                command,
-                repositoryRoot: input.config.repositoryRoot,
-                verification: {
-                  changeRequestID: input.job.changeRequestID,
-                  dependencyLease,
-                  reason: `Проверка включена в одобренный план change:${input.job.changeRequestID}, plan:${input.job.planHash}.`,
-                },
-                workspace,
-              }),
-            (result) => result.status === "passed",
-          );
-          checkResults.push(result);
-          await input.repository.addCheckResult(input.job, result, index + 1);
-          if (result.status === "failed") {
-            throw new ValidationFailure(`Required check failed: ${command}`);
+    const diff = await verifyWorktreeChange(workspace, input.job, async () => {
+      validationPhase = true;
+      await input.repository.markValidating(input.job);
+      await withWorkspaceDependencies(
+        input.config.repositoryRoot,
+        workspace,
+        async (dependencyLease) => {
+          for (const [index, command] of input.job.checks.entries()) {
+            const result = await input.usage.measureOperation(
+              {
+                source: "build",
+                operationKey: `execution-check:${index + 1}`,
+                taskId: `change:${input.job.changeRequestID}`,
+                changeRequestId: String(input.job.changeRequestID),
+              },
+              () =>
+                runExecutionCheck({
+                  command,
+                  repositoryRoot: input.config.repositoryRoot,
+                  verification: {
+                    changeRequestID: input.job.changeRequestID,
+                    dependencyLease,
+                    reason: `Проверка включена в одобренный план change:${input.job.changeRequestID}, plan:${input.job.planHash}.`,
+                  },
+                  workspace,
+                }),
+              (result) => result.status === "passed",
+            );
+            checkResults.push(result);
+            await input.repository.addCheckResult(input.job, result, index + 1);
+            if (result.status === "failed") {
+              throw new ValidationFailure(`Required check failed: ${command}`);
+            }
           }
-        }
-      },
-    );
-    const verifiedDiff = await captureWorktreeDiff(workspace, input.job);
-    if (verifiedDiff.diffHash !== diff.diffHash)
-      throw new WorktreePolicyError("Worktree diff changed during validation.");
+        },
+      );
+    });
     const evidenceHash = createHash("sha256")
       .update(
         JSON.stringify([

@@ -1,7 +1,7 @@
 /**
  * @file packages/change-engine/src/executionPolicy.ts
- * @version 1.3.1
- * @date 2026-10-12
+ * @version 1.4.0
+ * @date 2026-11-27
  * @description Ограничивает Code Lane разрешёнными путями и проверками, отделяя исполнение от предыдущего планирования.
  */
 
@@ -14,6 +14,8 @@ import {
   isProtectedRuntimePath,
   overlapsProtectedRuntimeScope,
 } from "./system-ai/protectedRuntimePaths.policy";
+
+export { templatePackageCandidate } from "./system-ai/protectedRuntimePaths.policy";
 
 /** Реестр команд принадлежит опубликованной системной policy. */
 export const EXECUTION_CHECK_COMMANDS = SYSTEM_AI_RELEASE.execution.checks;
