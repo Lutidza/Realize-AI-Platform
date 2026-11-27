@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/routeIdeTask.service.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-27
  * @description Выбирает профиль исполнения текстового поручения до поиска исходников.
  * @see documentation/specifications/internal-mcp.md
@@ -51,7 +51,7 @@ export async function routeIdeTask(
   if (result.status === "completed" && result.report === "read") return;
   const report =
     result.report === "git"
-      ? "assignment_git_authorization_required: требуется привязанный к запуску контекст штатного Git-воркера. Полный add входит в commit; отдельное изменение индекса без commit требует собственного действия."
+      ? "assignment_git_authorization_required: требуется привязанный к запуску контекст штатного Git-воркера. Для отдельного add вызывающая среда привязывает один файл действием authorize-stage."
       : "assignment_write_profile_required: для поручения требуется отдельный профиль исполнения.";
   return { status: "blocked" as const, report };
 }

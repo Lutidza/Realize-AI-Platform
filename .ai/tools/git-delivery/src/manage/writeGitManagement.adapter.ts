@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/writeGitManagement.adapter.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Вычисляет точные переходы локального Git и исполняет только разрешённую mutation.
  */
+import { writeStageFile } from "./stageGitFile.adapter.ts";
 import { join } from "node:path";
 import { Git } from "@realize/git-runtime";
 import { PolicyError } from "@realize/git-runtime";
@@ -18,7 +19,11 @@ export function expectedGitManageAfter(
 ): GitManageState {
   const operation = context.operation;
   const after: GitManageState = { ...before, target: [...before.target] };
-  if (operation.kind === "remote-set-url") {
+  if (operation.kind === "stage-file") {
+    if (before.target.length !== 3)
+      throw new PolicyError("invalid_journal", "Неполный снимок индекса.");
+    after.target[0] = before.target[2];
+  } else if (operation.kind === "remote-set-url") {
     let urls: unknown;
     let pushURLs: unknown;
     try {
@@ -101,9 +106,12 @@ export function expectedGitManageAfter(
 export async function writeGitManagement(
   git: Git,
   context: GitManageContext,
+  expectedAfter: GitManageState,
 ): Promise<void> {
   const operation = context.operation;
   switch (operation.kind) {
+    case "stage-file":
+      return writeStageFile(git, operation, expectedAfter.target);
     case "remote-set-url": {
       const exact =
         "^" +

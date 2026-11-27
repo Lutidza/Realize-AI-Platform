@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/runGitManage.service.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Координирует одну разрешённую локальную Git-операцию с блокировкой и безопасным replay.
  */
 import { createHash } from "node:crypto";
@@ -194,7 +194,7 @@ export async function runGitManage(input: unknown): Promise<GitManageResult> {
     lock.assertHeld();
     if (!equal(journal.before, journal.after)) {
       attempted = true;
-      await writeGitManagement(git, context);
+      await writeGitManagement(git, context, journal.after);
     }
     current = await readGitManageState(git, context, commonDir);
     if (!equal(current, journal.after))

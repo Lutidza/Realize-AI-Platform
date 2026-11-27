@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/validateGitManageContext.validator.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Проверяет единственное немодельное разрешение локального управления Git.
  */
 import { isAbsolute, resolve } from "node:path";
+import { assertAllowedGitChangedPaths } from "../commit/validateGitChanges.validator.ts";
 import { relativeFile } from "../contracts.ts";
 import { PolicyError } from "@realize/git-runtime";
 import type {
@@ -109,6 +110,8 @@ export function validateGitManageContext(input: unknown): GitManageContext {
   const selected = record(source.operation, [
     "kind",
     "remote",
+    "path",
+    "sha256",
     "expectedURL",
     "url",
     "paths",
@@ -124,6 +127,17 @@ export function validateGitManageContext(input: unknown): GitManageContext {
   let operation: GitManageOperation;
   let keys: string[];
   switch (selected.kind) {
+    case "stage-file": {
+      const path = relativeFile(selected.path);
+      assertAllowedGitChangedPaths([path]);
+      operation = {
+        kind: selected.kind,
+        path,
+        sha256: text(selected.sha256, /^[a-f0-9]{64}$/),
+      };
+      keys = ["kind", "path", "sha256"];
+      break;
+    }
     case "remote-inspect":
       operation = { kind: selected.kind, remote: remote() };
       keys = ["kind", "remote"];
@@ -227,6 +241,7 @@ export function validateGitManageContext(input: unknown): GitManageContext {
 
 export function isGitManageWrite(operation: GitManageOperation): boolean {
   return [
+    "stage-file",
     "remote-set-url",
     "worktree-repair",
     "branch-create",

@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/test/ideGitDelivery.test.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-27
  * @description Проверяет выдачу полномочий, привязку удалённого OID и повтор Git-доставки очереди.
  * @see documentation/specifications/internal-mcp.md
@@ -90,4 +90,82 @@ test("точное назначение передаёт commit и push, пов�
   assert.equal((await attempt())?.status, "completed");
   assert.equal((await attempt())?.status, "completed");
   assert.deepEqual(calls, ["commit", "push", "push"]);
+});
+
+test("standalone stage выдаёт только manage с закреплённым путём и принимает доказательство того же HEAD и blob", async (t) => {
+  const root = await mkdtemp(join(tmpdir(), "ide-stage-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const run = randomUUID(),
+    directory = join(root, "git-" + run);
+  await mkdir(directory, { mode: 0o700 });
+  const task = "Подготовить файл",
+    sha = "b".repeat(40),
+    sha256 = "c".repeat(64),
+    op = { kind: "stage-file", path: "code/file.ts", sha256 };
+  const input = {
+    version: 1,
+    taskSha256: createHash("sha256").update(task).digest("hex"),
+    stage: {
+      context: {
+        version: 1,
+        repositoryRoot: root,
+        requestId: "$runId-stage",
+        projectId: "project",
+        taskId: "test",
+        authorization: { actions: ["manage"], scope: { mode: "repository" } },
+        expected: { head: sha, branch: "work" },
+        operation: op,
+      },
+    },
+  };
+  const save = (g: unknown) =>
+    writeFile(join(directory, "route.json"), JSON.stringify(g), {
+      mode: 0o600,
+    });
+  await save(input);
+  let calls = 0,
+    committed = false;
+  const worker: NonNullable<
+    Parameters<typeof dispatchIdeGitDelivery>[6]
+  > = async (_root, action, file, plan, message) => {
+    calls++;
+    assert.equal(action, "manage");
+    assert.equal(plan, undefined);
+    assert.equal(message, undefined);
+    assert.deepEqual(JSON.parse(await readFile(file, "utf8")).operation, op);
+    return {
+      status: "succeeded",
+      errorCode: null,
+      result: {
+        status: "succeeded",
+        action,
+        requestId: run + "-stage",
+        commit: sha,
+        branch: "work",
+        commitCreated: committed,
+        pushStatus: "not_requested",
+        details: {
+          ...op,
+          blobOid: "a".repeat(40),
+          otherEntriesSha256: "d".repeat(64),
+        },
+      },
+    };
+  };
+  const go = () =>
+    dispatchIdeGitDelivery(
+      root,
+      root,
+      run,
+      task,
+      new AbortController().signal,
+      () => {},
+      worker,
+    );
+  assert.equal((await go())?.status, "completed");
+  committed = true;
+  assert.equal((await go())?.status, "blocked");
+  await save({ ...input, push: { fromCommit: false, context: {} } });
+  await assert.rejects(go());
+  assert.equal(calls, 2);
 });

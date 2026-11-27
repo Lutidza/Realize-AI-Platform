@@ -1,7 +1,7 @@
 /**
  * @file packages/git-runtime/src/Git.types.ts
- * @version 1.1.1
- * @date 2026-10-22
+ * @version 1.1.2
+ * @date 2026-11-27
  * @description Определяет настройки ограниченного Git executor и доверенную сетевую авторизацию.
  */
 
@@ -25,7 +25,7 @@ export type GitRunOptions = {
   /** Машинное чтение исключает пользовательские конфигурации, сеть и исполняемые фильтры. */
   machineRead?: boolean;
   acceptedExitCodes?: readonly number[];
-  input?: string;
+  input?: string | Buffer;
   env?: Record<string, string>;
   network?: GitNetworkEnvironment;
 };

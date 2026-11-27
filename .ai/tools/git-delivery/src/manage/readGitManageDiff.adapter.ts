@@ -1,13 +1,11 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/readGitManageDiff.adapter.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Строит безопасный diff из blob и буквальных рабочих bytes без clean filters и symlink-переходов.
  */
 import { createHash } from "node:crypto";
-import { constants } from "node:fs";
-import { open } from "node:fs/promises";
-import type { FileHandle } from "node:fs/promises";
+import { readGitWorkingContent } from "./readGitWorkingContent.adapter.ts";
 import { Git } from "@realize/git-runtime";
 import { PolicyError } from "@realize/git-runtime";
 import { relativeFile } from "../contracts.ts";
@@ -16,75 +14,9 @@ import { createGitReadPatch } from "../read/createGitReadPatch.adapter.ts";
 import type {
   GitManageDiffEntry,
   GitManageOperation,
-  GitManageWorkingContent,
 } from "./GitManage.types.ts";
 
 const MAX_CONTENT = 1024 * 1024;
-async function workingContent(
-  root: string,
-  path: string,
-): Promise<GitManageWorkingContent | null> {
-  let directory = await open(
-    root,
-    constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
-  );
-  let file: FileHandle | undefined;
-  try {
-    const parts = path.split("/");
-    for (const part of parts.slice(0, -1)) {
-      const next = await open(
-        `/proc/self/fd/${directory.fd}/${part}`,
-        constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW,
-      );
-      await directory.close();
-      directory = next;
-    }
-    file = await open(
-      `/proc/self/fd/${directory.fd}/${parts.at(-1)}`,
-      constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
-    );
-    const stat = await file.stat();
-    if (!stat.isFile() || stat.size > MAX_CONTENT)
-      throw new PolicyError(
-        "manage_diff_content_invalid",
-        "Diff поддерживает обычные файлы до 1 MiB.",
-      );
-    const bytes = Buffer.alloc(MAX_CONTENT + 1);
-    let size = 0;
-    while (size < bytes.length) {
-      const read = await file.read(bytes, size, bytes.length - size, null);
-      if (!read.bytesRead) break;
-      size += read.bytesRead;
-    }
-    const after = await file.stat();
-    if (
-      size > MAX_CONTENT ||
-      stat.size !== size ||
-      stat.mode !== after.mode ||
-      stat.mtimeMs !== after.mtimeMs ||
-      stat.ctimeMs !== after.ctimeMs
-    )
-      throw new PolicyError(
-        "manage_diff_content_invalid",
-        "Рабочий файл изменился или превысил лимит.",
-      );
-    return {
-      bytes: bytes.subarray(0, size),
-      mode: stat.mode & 0o111 ? "100755" : "100644",
-    };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    if (error instanceof PolicyError) throw error;
-    throw new PolicyError(
-      "manage_diff_content_invalid",
-      "Рабочий путь недоступен или содержит symlink.",
-    );
-  } finally {
-    await file?.close();
-    await directory.close();
-  }
-}
-
 /** Ограничивает входные blobs, общий объём и patch; повторное чтение обнаруживает смену снимка. */
 export async function readGitManageDiff(
   git: Git,
@@ -155,7 +87,7 @@ export async function readGitManageDiff(
     const before = await blob(beforeEntry);
     const workingFile =
       operation.scope === "working-tree"
-        ? await workingContent(git.root, path)
+        ? await readGitWorkingContent(git.root, path)
         : null;
     const after =
       operation.scope === "index"
@@ -224,7 +156,7 @@ export async function readGitManageDiff(
       "Git изменился во время чтения diff.",
     );
   for (const [path, digestBefore] of working) {
-    const content = await workingContent(git.root, path);
+    const content = await readGitWorkingContent(git.root, path);
     if (
       digestBefore !==
       `${digest(content?.bytes ?? null)}:${content?.mode ?? "absent"}`

@@ -1,6 +1,6 @@
 /**
  * @file services/internal-mcp/src/IdeAssignmentQueue.repository.ts
- * @version 1.3.0
+ * @version 1.3.1
  * @date 2026-11-27
  * @description Хранит заявки IDE и выдаёт read-only назначения локальному оркестратору.
  * @see documentation/specifications/internal-mcp.md
@@ -11,6 +11,16 @@ import { isAbsolute, join, relative } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { McpError } from "./Mcp.error";
 
+/** Разделяет полномочия по checkout, principal и ключу submit до назначения runId. */
+export function ideAssignmentGrantKey(
+  root: string,
+  principal: string,
+  key: string,
+) {
+  return createHash("sha256")
+    .update(JSON.stringify([root, principal, key]))
+    .digest("hex");
+}
 export type AssignmentSubmission = {
   task?: string;
   lockPath?: string;
@@ -309,15 +319,11 @@ export class IdeAssignmentQueue {
           task: typeof row.task === "string" ? row.task : undefined,
           ...(typeof row.task === "string"
             ? {
-                grantKey: createHash("sha256")
-                  .update(
-                    JSON.stringify([
-                      this.root,
-                      row.principal,
-                      row.idempotencyKey,
-                    ]),
-                  )
-                  .digest("hex"),
+                grantKey: ideAssignmentGrantKey(
+                  this.root,
+                  String(row.principal),
+                  String(row.idempotencyKey),
+                ),
               }
             : {}),
           token,

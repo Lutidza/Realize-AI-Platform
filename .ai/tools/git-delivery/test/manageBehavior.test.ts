@@ -1,9 +1,10 @@
 /**
  * @file .ai/tools/git-delivery/test/manageBehavior.test.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Проверяет реальные локальные Git-переходы manage и безопасный recovery во временных fixtures.
  */
+import { createHash } from "node:crypto";
 import { FixtureGit } from "./fixtures/FixtureGit.adapter.ts";
 import assert from "node:assert/strict";
 import {
@@ -651,5 +652,70 @@ test("manage object operations не вызывают promisor remote helper дл
       await assert.rejects(access(join(f.root, ".ai-workspace")));
       assert.equal((await f.git.run(["branch", "--list", "topic"])).trim(), "");
     });
+  }
+});
+
+test("stage одного буквального пути сохраняет чужой staged файл, ветку и commit; replay сверяет запись", async (t) => {
+  const f = await createDeliveryFixture(t);
+  await f.write("foreign.txt", "already staged");
+  await f.git.run(["add", "--", "foreign.txt"]);
+  await f.write("foreign.txt", "remaining work");
+  const before = await f.git.run(["ls-files", "--stage", "--", "foreign.txt"]);
+  const path = "new,[ab].bin",
+    bytes = Buffer.from([0xff, 0, 1, 2]);
+  await writeFile(join(f.root, path), bytes);
+  await f.write("new,a.bin", "другой путь");
+  const ctx = await managed(f, {
+    kind: "stage-file",
+    path,
+    sha256: createHash("sha256").update(bytes).digest("hex"),
+  });
+  const first = await runGitManage(ctx);
+  assert.equal(first.status, "succeeded", JSON.stringify(first));
+  assert.equal(first.pushStatus, "not_requested");
+  assert.equal(first.commitCreated, false);
+  assert.equal(await f.head(), ctx.expected!.head);
+  assert.equal(
+    await f.git.run(["ls-files", "--stage", "--", "foreign.txt"]),
+    before,
+  );
+  assert.deepEqual(
+    (await f.git.run(["diff", "--cached", "--name-only", "-z"]))
+      .split("\0")
+      .filter(Boolean)
+      .sort(),
+    ["foreign.txt", path],
+  );
+  assert.equal(first.details?.kind, "stage-file");
+  assert.equal((await runGitManage(ctx)).status, "noop");
+});
+
+test("stage отклоняет stale bytes, каталог, symlink и ignored файл до изменения индекса", async (t) => {
+  const f = await createDeliveryFixture(t);
+  const bytes = "проба",
+    sha256 = createHash("sha256").update(bytes).digest("hex");
+  await mkdir(join(f.root, "folder"));
+  await f.write("folder/safe", bytes);
+  await symlink("folder/safe", join(f.root, "link"));
+  await f.write(".gitignore", "/.ai-workspace/\nignored.txt\n");
+  await f.write("ignored.txt", bytes);
+  const before = await f.index();
+  for (const [i, path] of [
+    "owned.txt",
+    "folder",
+    "link",
+    "ignored.txt",
+    ".git/config",
+    "../outside",
+  ].entries()) {
+    const result = await runGitManage(
+      await managed(
+        f,
+        { kind: "stage-file", path, sha256 },
+        "stage-reject-" + i,
+      ),
+    );
+    assert.equal(result.status, "blocked", path + JSON.stringify(result));
+    assert.deepEqual(await f.index(), before);
   }
 });

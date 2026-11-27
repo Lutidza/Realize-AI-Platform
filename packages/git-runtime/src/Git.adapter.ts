@@ -1,7 +1,7 @@
 /**
  * @file packages/git-runtime/src/Git.adapter.ts
- * @version 1.3.1
- * @date 2026-10-22
+ * @version 1.3.2
+ * @date 2026-11-27
  * @description Ограниченный запуск Git без shell; унаследованные GIT_* не меняют выбранную рабочую копию.
  */
 
@@ -211,7 +211,7 @@ export class Git {
       );
     const input = options.input ?? "";
     if (
-      typeof input !== "string" ||
+      (typeof input !== "string" && !Buffer.isBuffer(input)) ||
       Buffer.byteLength(input, "utf8") > MAX_INPUT_BYTES
     ) {
       throw new GitFailure(

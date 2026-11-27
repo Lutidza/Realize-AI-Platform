@@ -1,12 +1,15 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/GitManage.types.ts
- * @version 1.0.0
- * @date 2026-10-12
+ * @version 1.0.1
+ * @date 2026-11-27
  * @description Определяет доверенный контекст и безопасный результат локального управления Git.
  */
 import type { Result } from "../GitDelivery.types.ts";
 
+export type StageFile = { kind: "stage-file"; path: string; sha256: string };
+
 export type GitManageOperation =
+  | StageFile
   | { kind: "remote-inspect"; remote: string }
   | { kind: "remote-set-url"; remote: string; expectedURL: string; url: string }
   | { kind: "worktree-list" }
@@ -41,6 +44,7 @@ export type GitManageContext = {
 
 /** Данные проходят ограничение размера и проверку явных секретов до выдачи. */
 export type GitManageDetails =
+  | (StageFile & { blobOid: string; otherEntriesSha256: string })
   | {
       kind: "remote-inspect" | "remote-set-url";
       remote: string;

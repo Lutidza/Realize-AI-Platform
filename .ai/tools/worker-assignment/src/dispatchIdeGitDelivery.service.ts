@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/dispatchIdeGitDelivery.service.ts
- * @version 1.0.0
+ * @version 1.0.1
  * @date 2026-11-27
  * @description Передаёт разрешённые этапы одному или нескольким штатным Git-воркерам и связывает push с подтверждённым коммитом.
  * @see .ai/tools/git-delivery/README.md
@@ -11,6 +11,7 @@ import { link, lstat, realpath, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { z } from "zod";
+import { validateGitManageContext } from "../../git-delivery/src/manage/validateGitManageContext.validator";
 import { loadGitContext } from "../../git-delivery/src/loadGitContext.adapter";
 
 const execute = promisify(execFile);
@@ -28,6 +29,11 @@ const grantSchema = z
     push: z.strictObject({ fromCommit: z.boolean(), context }).optional(),
   })
   .refine((g) => !!(g.commit || g.push) && (!g.push?.fromCommit || !!g.commit));
+const stageGrant = z.strictObject({
+  version: z.literal(1),
+  taskSha256: z.hash("sha256"),
+  stage: z.strictObject({ context }),
+});
 const oid = z.string().regex(/^[a-f0-9]{40}$/);
 const receipt = z.strictObject({
   action: z.enum(["commit", "push"]),
@@ -50,7 +56,7 @@ async function optionalFile(path: string) {
 }
 
 /** Запись без подмены предыдущего назначения. После обрыва повтор использует тот же requestId и те же байты. */
-async function persist(path: string, value: unknown) {
+export async function persistIdeGitContext(path: string, value: unknown) {
   const temporary = path + "." + randomUUID();
   await writeFile(temporary, JSON.stringify(value), {
     mode: 0o600,
@@ -113,9 +119,9 @@ export function bindIdePush(
 
 type WorkerCall = (
   root: string,
-  action: "commit" | "push",
+  action: "commit" | "push" | "manage",
   contextPath: string,
-  planPath: string,
+  planPath: string | undefined,
   message: string | undefined,
   signal: AbortSignal,
 ) => Promise<unknown>;
@@ -187,14 +193,14 @@ export async function dispatchIdeGitDelivery(
     info.mode & 0o077
   )
     throw new Error("assignment_git_directory_invalid");
-  const grant = grantSchema.parse(
-    await loadGitContext(join(directory, "route.json")),
-  );
+  const grant = z
+    .union([grantSchema, stageGrant])
+    .parse(await loadGitContext(join(directory, "route.json")));
   if (grant.taskSha256 !== hash(task))
     throw new Error("assignment_git_task_mismatch");
   const digest = hash(JSON.stringify(grant)),
     planPath = join(directory, "verification.json");
-  await persist(planPath, grant.verification);
+
   const records: Receipt[] = [];
   const abort = new AbortController();
   const active = AbortSignal.any([signal, abort.signal]);
@@ -206,6 +212,92 @@ export async function dispatchIdeGitDelivery(
     }
   }, 60_000);
   try {
+    if ("stage" in grant) {
+      const requestId = runId + "-stage";
+      const input = grant.stage.context;
+      if (
+        input.repositoryRoot !== root ||
+        ![requestId, "$runId-stage"].includes(input.requestId)
+      )
+        throw new Error("assignment_git_context_mismatch");
+      const assigned = validateGitManageContext({ ...input, requestId });
+      if (assigned.operation.kind !== "stage-file" || !assigned.expected)
+        throw new Error("assignment_git_stage_invalid");
+      const path = join(directory, "stage.json");
+      await persistIdeGitContext(path, assigned);
+      active.throwIfAborted();
+      renew();
+      const response = z
+        .object({
+          status: z.string(),
+          errorCode: z.string().nullable(),
+          result: z
+            .object({
+              action: z.string().nullable(),
+              requestId: z.string().nullable(),
+              status: z.string(),
+              commit: z.string().nullable(),
+              branch: z.string().nullable(),
+              commitCreated: z.boolean().nullable(),
+              pushStatus: z.string(),
+              details: z
+                .object({
+                  kind: z.literal("stage-file"),
+                  path: z.string(),
+                  sha256: z.hash("sha256"),
+                  blobOid: oid,
+                  otherEntriesSha256: z.hash("sha256"),
+                })
+                .optional(),
+            })
+            .nullable(),
+        })
+        .parse(
+          await worker(root, "manage", path, undefined, undefined, active),
+        );
+      active.throwIfAborted();
+      renew();
+      const result = response.result;
+      if (
+        response.status !== "succeeded" ||
+        !result ||
+        !["succeeded", "noop"].includes(result.status) ||
+        result.requestId !== requestId ||
+        result.action !== "manage" ||
+        result.commit !== assigned.expected.head ||
+        result.branch !== assigned.expected.branch ||
+        result.commitCreated !== false ||
+        result.pushStatus !== "not_requested" ||
+        result.details?.path !== assigned.operation.path ||
+        result.details.sha256 !== assigned.operation.sha256
+      )
+        return {
+          status: "blocked",
+          report:
+            "assignment_git_stage_unconfirmed: " +
+            (response.errorCode ?? "worker_receipt_mismatch"),
+        };
+      return {
+        status: "completed",
+        report: JSON.stringify({
+          workflow: "git-delivery",
+          completed: [
+            {
+              action: "stage",
+              workerAction: result.action,
+              requestId,
+              status: result.status,
+              head: result.commit,
+              branch: result.branch,
+              commitCreated: result.commitCreated,
+              pushStatus: result.pushStatus,
+              ...result.details,
+            },
+          ],
+        }),
+      };
+    }
+    await persistIdeGitContext(planPath, grant.verification);
     for (const action of ["commit", "push"] as const) {
       const step = grant[action];
       if (!step) continue;
@@ -224,7 +316,7 @@ export async function dispatchIdeGitDelivery(
         action === "push" && grant.push?.fromCommit
           ? bindIdePush(operationContext, records[0])
           : operationContext;
-      await persist(path, assigned);
+      await persistIdeGitContext(path, assigned);
       const receiptPath = join(directory, action + "-receipt.json");
       const existing = await optionalFile(receiptPath);
       if (existing !== undefined) {
@@ -303,7 +395,7 @@ export async function dispatchIdeGitDelivery(
         oid: action === "push" ? result.remoteCommit : result.commit,
         grantSha256: digest,
       });
-      await persist(receiptPath, saved);
+      await persistIdeGitContext(receiptPath, saved);
       records.push(saved);
     }
   } finally {

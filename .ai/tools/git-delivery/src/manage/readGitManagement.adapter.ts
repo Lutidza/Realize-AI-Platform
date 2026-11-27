@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/readGitManagement.adapter.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Возвращает ограниченное чтение локальных Git-метаданных без раскрытия явных секретов.
  */
 import { Git } from "@realize/git-runtime";
@@ -11,6 +11,7 @@ import type {
   GitManageDetails,
   GitManageOperation,
 } from "./GitManage.types.ts";
+import { readStageFileState } from "./stageGitFile.adapter.ts";
 import { readGitManageRemote } from "./readGitManageState.adapter.ts";
 import { readGitManageDiff } from "./readGitManageDiff.adapter.ts";
 
@@ -31,6 +32,23 @@ export async function readGitManagement(
 ): Promise<GitManageDetails> {
   let details: GitManageDetails;
   switch (operation.kind) {
+    case "stage-file": {
+      const [current, otherEntriesSha256, desired] = await readStageFileState(
+        git,
+        operation,
+      );
+      if (current !== desired)
+        throw new PolicyError(
+          "manage_result_unknown",
+          "Индекс изменился до выдачи квитанции.",
+        );
+      details = {
+        ...operation,
+        blobOid: current.split(" ")[1],
+        otherEntriesSha256,
+      };
+      break;
+    }
     case "remote-inspect":
     case "remote-set-url":
       details = {

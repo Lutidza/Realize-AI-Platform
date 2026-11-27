@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/worker-assignment/src/runIdeAssignment.controller.ts
- * @version 1.0.0
- * @date 2026-11-26
+ * @version 1.0.1
+ * @date 2026-11-27
  * @description Выдаёт локальному оркестратору привязку и принимает отчёт по ключу попытки.
  * @see .ai/tools/worker-assignment/README.md
  */
@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { IdeAssignmentQueue } from "realize-ai-platform/ide-assignment-queue";
+import { authorizeIdeStage } from "./authorizeIdeStage.service";
 import { bindAssignment } from "./bindAssignment.service";
 
 const root = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -48,7 +49,7 @@ try {
         );
       }
     }
-  } else if (command === "finish") {
+  } else if (command === "finish" || command === "authorize-stage") {
     const chunks: Buffer[] = [];
     let bytes = 0;
     for await (const chunk of process.stdin) {
@@ -56,17 +57,31 @@ try {
       if (bytes > 210000) throw new Error("Слишком большой отчёт.");
       chunks.push(chunk);
     }
-    const input = z
-      .strictObject({
-        runId: z.uuid(),
-        token: z.uuid(),
-        status: z.enum(["completed", "blocked"]),
-        report: z.string(),
-      })
-      .parse(JSON.parse(Buffer.concat(chunks).toString()));
-    queue.finish(input.runId, input.token, input.status, input.report);
-    console.log(JSON.stringify({ runId: input.runId, status: input.status }));
-  } else throw new Error("Ожидается claim, wait-claim или finish.");
+    const payload: unknown = JSON.parse(Buffer.concat(chunks).toString());
+    if (command === "authorize-stage") {
+      console.log(
+        JSON.stringify(
+          await authorizeIdeStage(
+            policy,
+            process.env.REALIZE_IDE_ASSIGNMENT_QUEUE!,
+            payload,
+          ),
+        ),
+      );
+    } else {
+      const input = z
+        .strictObject({
+          runId: z.uuid(),
+          token: z.uuid(),
+          status: z.enum(["completed", "blocked"]),
+          report: z.string(),
+        })
+        .parse(payload);
+      queue.finish(input.runId, input.token, input.status, input.report);
+      console.log(JSON.stringify({ runId: input.runId, status: input.status }));
+    }
+  } else
+    throw new Error("Ожидается claim, wait-claim, authorize-stage или finish.");
 } finally {
   queue.close();
 }

@@ -1,11 +1,12 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/readGitManageState.adapter.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Читает HEAD и точные локальные цели для проверки управления и восстановления журнала.
  */
 import { constants } from "node:fs";
 import { lstat, open, readdir, realpath } from "node:fs/promises";
+import { readStageFileState } from "./stageGitFile.adapter.ts";
 import { basename, join, resolve } from "node:path";
 import { Git } from "@realize/git-runtime";
 import { PolicyError } from "@realize/git-runtime";
@@ -211,7 +212,9 @@ export async function readGitManageState(
   const current = await readGitManageHead(git);
   let target: string[] = [];
   const operation = context.operation;
-  if (operation.kind === "remote-set-url") {
+  if (operation.kind === "stage-file")
+    target = await readStageFileState(git, operation);
+  else if (operation.kind === "remote-set-url") {
     const remote = await readGitManageRemote(git, operation.remote);
     target = [JSON.stringify(remote.urls), JSON.stringify(remote.pushURLs)];
   } else if (

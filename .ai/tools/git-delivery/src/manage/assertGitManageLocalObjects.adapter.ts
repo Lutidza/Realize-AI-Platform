@@ -1,7 +1,7 @@
 /**
  * @file .ai/tools/git-delivery/src/manage/assertGitManageLocalObjects.adapter.ts
- * @version 1.0.1
- * @date 2026-10-22
+ * @version 1.0.2
+ * @date 2026-11-27
  * @description Запрещает локальным object-операциям manage неявный lazy fetch из partial clone.
  */
 import type { Git } from "@realize/git-runtime";
@@ -14,7 +14,9 @@ export async function assertGitManageLocalObjects(
   operation: GitManageOperation,
 ): Promise<void> {
   if (
-    !["log", "diff", "branch-create", "branch-switch"].includes(operation.kind)
+    !["stage-file", "log", "diff", "branch-create", "branch-switch"].includes(
+      operation.kind,
+    )
   )
     return;
   const configured = await git.run(
