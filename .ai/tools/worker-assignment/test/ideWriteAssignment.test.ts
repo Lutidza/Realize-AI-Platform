@@ -1,10 +1,11 @@
 /**
  * @file .ai/tools/worker-assignment/test/ideWriteAssignment.test.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-11-27
  * @description Проверяет область локального Code Lane в настоящем временном Git worktree.
  * @see documentation/specifications/internal-mcp.md
  */
+import { IdeAssignmentQueue } from "realize-ai-platform/ide-assignment-queue";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
@@ -73,13 +74,21 @@ test("Code Lane проверяет весь набор правок до зап�
     permissions: { writePaths: [path], output: "verified-diff" },
     checks: ["scope", "git diff --check", "sha256"],
   };
-  const run = (edits: { path: string; content: string }[], paths = [path]) =>
+  const run = (
+    edits: { path: string; content: string | null }[],
+    paths = [path],
+    operations?: {
+      path: string;
+      action: "create" | "modify";
+      reason: string;
+    }[],
+  ) =>
     executeIdeWriteAssignment(
       repo,
       join(temp, "worktrees"),
       {
         ...grant,
-        permissions: { ...grant.permissions, writePaths: paths },
+        permissions: { ...grant.permissions, writePaths: paths, operations },
         id: randomUUID(),
         assignedBy: "orchestrator",
         returnsTo: "orchestrator",
@@ -105,6 +114,26 @@ test("Code Lane проверяет весь набор правок до зап�
     executor: receipt.executor,
   });
   assert.deepEqual(verifyIdeWriteReceipt(assignment, receipt), receipt);
+  const addition = { path: "src/new.txt", content: "new\n" };
+  const rights = [
+    { path, action: "modify" as const, reason: "update" },
+    { path: addition.path, action: "create" as const, reason: "add" },
+  ];
+  const proposedPaths = rights.map((op) => op.path);
+  const checked = await run([edit, addition], proposedPaths, rights);
+  assert.deepEqual(checked.changedPaths.sort(), proposedPaths.sort());
+  await assert.rejects(
+    run([{ ...edit, content: null }, addition], proposedPaths, rights),
+    /operation_forbidden/,
+  );
+  await assert.rejects(
+    run([edit], proposedPaths, rights),
+    /operations_incomplete/,
+  );
+  await assert.rejects(
+    run([edit], [path], [{ path, action: "create", reason: "add" }]),
+    /precondition_failed/,
+  );
   assert.throws(() =>
     verifyIdeWriteReceipt(assignment, { ...receipt, diff: receipt.diff + "x" }),
   );
@@ -240,4 +269,37 @@ test("Права на файлы шаблона определяются SDK-м�
     packageName: "@third-party/library",
   });
   await assert.rejects(scope([library + "/file.ts"]), /package_unverified/);
+});
+
+test("Очередь возобновляет только подтверждённый владельцем снимок после открытия заново", async (t) => {
+  const dir = await mkdtemp(join(tmpdir(), "write-review-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const first = new IdeAssignmentQueue(dir, process.cwd());
+  const request = { task: "change text", idempotencyKey: randomUUID() };
+  first.submit("owner", request);
+  const job = first.claim()!;
+  const proposal = { operations: [{ action: "create", path: "src/one.ts" }] };
+  first.awaitWriteApproval(job.runId, job.token, proposal);
+  assert.throws(() => first.finish(job.runId, job.token, "completed", "stale"));
+  first.close();
+  const queue = new IdeAssignmentQueue(dir, process.cwd());
+  t.after(() => queue.close());
+  assert.equal(queue.claim(), null);
+  const report = JSON.parse(String(queue.submit("owner", request).report));
+  assert.deepEqual(report.proposal, proposal);
+  assert.throws(() =>
+    queue.approveWrite("other", job.runId, report.proposalSha256),
+  );
+  assert.throws(() => queue.approveWrite("owner", job.runId, "0".repeat(64)));
+  queue.approveWrite("owner", job.runId, report.proposalSha256);
+  const approved = queue.claim()!;
+  assert.equal(approved.runId, job.runId);
+  assert.deepEqual(approved.approvedWrite, proposal);
+  queue.approveWrite("owner", job.runId, report.proposalSha256);
+  assert.equal(queue.claim(), null);
+  queue.finish(job.runId, approved.token, "completed", "verified");
+  assert.equal(
+    queue.approveWrite("owner", job.runId, report.proposalSha256).status,
+    "completed",
+  );
 });

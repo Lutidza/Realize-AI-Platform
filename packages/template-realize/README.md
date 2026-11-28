@@ -15,12 +15,7 @@ foundation/остальные controls. Общие цвета, typography и б�
 в UI-kit; navigation tokens и scrollbar styles принадлежат палитре пакета.
 Примитивы сохраняют native ref/events, disabled и прежнюю comfortable geometry.
 
-Настройки `density: comfortable|compact` и целая `panelWidth: 220..400`
-проверяются strict Zod source `src/settings/realizeSettings.schemas.ts`.
-Defaults comfortable/280 сохраняют reference. Settings schema version `1.0.0`
-отдельна от package version; команда `npm run generate:settings-schema` в этом
-пакете генерирует `settings.schema.json` штатным `z.toJSONSchema`.
-Settings обновляют style tokens, их хранение/revision принадлежат host.
+Настройки плотности и ширины панели описаны в [памятке](settings.md).
 
 Публичный вход `@realize/template-realize/ui` предоставляет элементы текущего
 шаблона и их props. Закреплённый Task Manager reference использует этот вход

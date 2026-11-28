@@ -1,6 +1,6 @@
 /**
  * @file services/internal-mcp/src/IdeAssignmentQueue.repository.ts
- * @version 1.3.1
+ * @version 1.5.0
  * @date 2026-11-27
  * @description Хранит заявки IDE и выдаёт read-only назначения локальному оркестратору.
  * @see documentation/specifications/internal-mcp.md
@@ -96,13 +96,24 @@ export class IdeAssignmentQueue {
         PRIMARY KEY (runId, attempt, assignmentId)
       );
       CREATE TABLE IF NOT EXISTS audit_search_steps (runId TEXT NOT NULL, attempt TEXT NOT NULL, step INTEGER NOT NULL, evidence TEXT NOT NULL, PRIMARY KEY(runId,attempt,step));`);
-    if (
-      !this.db
-        .prepare("PRAGMA table_info(runs)")
-        .all()
-        .some((column) => column.name === "task")
-    ) {
-      this.db.exec("ALTER TABLE runs ADD COLUMN task TEXT");
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const columns = this.db.prepare("PRAGMA table_info(runs)").all();
+      for (const name of [
+        "task",
+        "writeProposal",
+        "approvedProposal",
+        "applyHash",
+        "writeReceipt",
+        "applyStarted",
+      ]) {
+        if (!columns.some((column) => column.name === name))
+          this.db.exec("ALTER TABLE runs ADD COLUMN " + name + " TEXT");
+      }
+      this.db.exec("COMMIT");
+    } catch (error) {
+      this.db.exec("ROLLBACK");
+      throw error;
     }
   }
   close() {
@@ -308,7 +319,7 @@ export class IdeAssignmentQueue {
       .prepare(
         `UPDATE runs SET status='running',token=?,expires=? WHERE runId=(
       SELECT runId FROM runs WHERE root=? AND (?=1 OR task IS NULL) AND (status='queued' OR (status='running' AND expires < ?))
-      ORDER BY rowid LIMIT 1) RETURNING runId,lockPath,lockSha256,task,principal,idempotencyKey`,
+      ORDER BY rowid LIMIT 1) RETURNING runId,lockPath,lockSha256,task,principal,idempotencyKey,writeProposal,approvedProposal,applyHash,writeReceipt,applyStarted`,
       )
       .get(token, now + 30 * 60_000, this.root, Number(includeText), now);
     return row
@@ -326,9 +337,132 @@ export class IdeAssignmentQueue {
                 ),
               }
             : {}),
+          apply: row.applyHash
+            ? {
+                diffSha256: String(row.applyHash),
+                receipt: String(row.writeReceipt),
+                started: row.applyStarted === "yes",
+              }
+            : undefined,
+          approvedWrite:
+            row.approvedProposal && row.writeProposal
+              ? (JSON.parse(String(row.writeProposal)) as unknown)
+              : undefined,
           token,
         }
       : null;
+  }
+
+  /** Снимает аренду до решения человека. Пустой expires исключает повторный claim. */
+  awaitWriteApproval(runId: string, token: string, proposal: unknown) {
+    const json = JSON.stringify(proposal);
+    const proposalSha256 = createHash("sha256")
+      .update(JSON.stringify([runId, json]))
+      .digest("hex");
+    const report = JSON.stringify({
+      phase: "awaiting_write_approval",
+      proposalSha256,
+      proposal,
+    });
+    if (Buffer.byteLength(report) > 32768)
+      throw new Error("assignment_write_report_limit");
+    const result = this.db
+      .prepare(
+        `
+      UPDATE runs SET report=?, writeProposal=?, token=NULL, expires=NULL
+      WHERE root=? AND runId=? AND status='running' AND token=? AND expires>=?
+        AND writeProposal IS NULL`,
+      )
+      .run(report, json, this.root, runId, token, Date.now());
+    if (!result.changes)
+      throw new McpError("CONFLICT", "Попытка не владеет поручением.");
+  }
+
+  /** Только доверенный локальный клиент подтверждает показанную ревизию. Повтор подтверждения идемпотентен. */
+  approveWrite(principal: string, runId: string, digest: string) {
+    const updated = this.db
+      .prepare(
+        `
+      UPDATE runs SET approvedProposal=?,status='queued',report=NULL
+      WHERE root=? AND principal=? AND runId=? AND status='running' AND token IS NULL
+        AND approvedProposal IS NULL AND writeProposal IS NOT NULL
+        AND json_extract(report,'$.proposalSha256')=?`,
+      )
+      .run(digest, this.root, principal, runId, digest);
+    if (!updated.changes) {
+      const saved = this.db
+        .prepare(
+          "SELECT approvedProposal FROM runs WHERE root=? AND principal=? AND runId=?",
+        )
+        .get(this.root, principal, runId);
+      if (!saved || saved.approvedProposal !== digest)
+        throw new McpError(
+          "CONFLICT",
+          "Нет ожидающего предложения с таким хешем.",
+        );
+    }
+    return this.get(principal, runId);
+  }
+
+  /** Отдельное согласие на перенос результата в checkout, включая квитанции прежних версий очереди. */
+  approveApply(principal: string, runId: string, digest: string) {
+    const row = this.get(principal, runId);
+    const accepted = this.db
+      .prepare(
+        "SELECT applyHash FROM runs WHERE root=? AND principal=? AND runId=?",
+      )
+      .get(this.root, principal, runId);
+    if (accepted?.applyHash === digest) return this.get(principal, runId);
+    let receipt;
+    try {
+      receipt = JSON.parse(String(row.report));
+    } catch {
+      /* Для других профилей отчёт может быть обычным текстом. */
+    }
+    if (
+      row.status !== "completed" ||
+      receipt?.executor !== "ai-execution-worker" ||
+      receipt.runId !== runId ||
+      receipt.diffSha256 !== digest ||
+      typeof receipt.diff !== "string" ||
+      createHash("sha256").update(receipt.diff).digest("hex") !== digest
+    )
+      throw new McpError("CONFLICT", "Нет завершённой правки с таким хешем.");
+    const result = this.db
+      .prepare(
+        `UPDATE runs SET status='queued',writeReceipt=report,report=?,applyHash=?,token=NULL,expires=NULL
+      WHERE root=? AND principal=? AND runId=? AND status='completed' AND report=? AND applyHash IS NULL`,
+      )
+      .run(
+        JSON.stringify({ phase: "apply_queued", diffSha256: digest }),
+        digest,
+        this.root,
+        principal,
+        runId,
+        row.report,
+      );
+    if (
+      !result.changes &&
+      this.db
+        .prepare(
+          "SELECT applyHash FROM runs WHERE root=? AND principal=? AND runId=?",
+        )
+        .get(this.root, principal, runId)?.applyHash !== digest
+    )
+      throw new McpError("CONFLICT", "Квитанция изменилась.");
+    return this.get(principal, runId);
+  }
+
+  /** Фиксирует начало записи после проверки всех файлов, пока попытка удерживает Git lease. */
+  beginApply(runId: string, token: string, digest: string) {
+    const updated = this.db
+      .prepare(
+        `UPDATE runs SET applyStarted='yes'
+      WHERE root=? AND runId=? AND token=? AND status='running' AND expires>=? AND applyHash=?`,
+      )
+      .run(this.root, runId, token, Date.now(), digest);
+    if (!updated.changes)
+      throw new McpError("CONFLICT", "Аренда применения завершена.");
   }
 
   /** Продлевает только текущую живую попытку перед следующим Assignment. */

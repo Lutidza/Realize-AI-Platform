@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/dispatchIdeWrite.service.ts
- * @version 1.1.0
+ * @version 1.3.0
  * @date 2026-11-27
  * @description Связывает приватное разрешение IDE с текстом поручения до выдачи Code Lane Assignment.
  * @see documentation/specifications/internal-mcp.md
@@ -23,6 +23,7 @@ import {
   ideWriteAuthorizationInput,
   verifyIdeWriteReceipt,
   ideWriteGrant,
+  ideWriteProposal,
 } from "./ideWriteAssignment.contract";
 
 const hash = (text: string) => createHash("sha256").update(text).digest("hex");
@@ -71,6 +72,57 @@ export async function authorizeIdeWrite(
   return { baseCommit: grant.baseCommit, writePaths: data.writePaths };
 }
 
+/** Восстанавливает только привязанное к checkout, пользователю, ключу и исходному тексту назначение. */
+export async function readIdeWriteAssignment(
+  policy: RepositoryReadPolicy,
+  queue: string,
+  id: string,
+  mission: string,
+  key?: string,
+  approved?: unknown,
+) {
+  let raw: unknown;
+  if (approved !== undefined) {
+    const proposal = ideWriteProposal.parse(approved);
+    const { head } = await readGitHead({ policy });
+    if (head !== proposal.baseCommit)
+      throw new Error("assignment_write_base_changed");
+    raw = {
+      mode: "scoped-write",
+      baseCommit: head,
+      taskSha256: proposal.taskSha256,
+      role: proposal.role,
+      requiredSources: proposal.sources,
+      permissions: {
+        writePaths: proposal.operations.map((op) => op.path),
+        operations: proposal.operations,
+        output: "verified-diff",
+      },
+      checks: ["scope", "git diff --check", "sha256"],
+    };
+  } else {
+    if (!key) return;
+    try {
+      raw = await loadGitContext(grantPath(queue, key));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
+      throw error;
+    }
+  }
+  const grant = ideWriteGrant.parse(raw);
+  if (grant.taskSha256 !== hash(mission))
+    throw new Error("assignment_write_binding_changed");
+  return ideWriteAssignment.parse({
+    ...grant,
+    id,
+    revision: 1,
+    mission,
+    assignedBy: "orchestrator",
+    returnsTo: "orchestrator",
+    executor: "ai-execution-worker",
+  });
+}
+
 /** Передаёт только привязанное к checkout, пользователю, ключу и исходному тексту назначение. */
 export async function dispatchIdeWrite(
   policy: RepositoryReadPolicy,
@@ -80,27 +132,17 @@ export async function dispatchIdeWrite(
   signal: AbortSignal,
   renew: () => void,
   key?: string,
+  approved?: unknown,
 ) {
-  if (!key) return;
-  let raw: unknown;
-  try {
-    raw = await loadGitContext(grantPath(queue, key));
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return;
-    throw error;
-  }
-  const grant = ideWriteGrant.parse(raw);
-  if (grant.taskSha256 !== hash(mission))
-    throw new Error("assignment_write_binding_changed");
-  const assignment = ideWriteAssignment.parse({
-    ...grant,
+  const assignment = await readIdeWriteAssignment(
+    policy,
+    queue,
     id,
-    revision: 1,
     mission,
-    assignedBy: "orchestrator",
-    returnsTo: "orchestrator",
-    executor: "ai-execution-worker",
-  });
+    key,
+    approved,
+  );
+  if (!assignment) return;
   renew();
   const result = z.strictObject({
     status: z.enum(["blocked", "completed"]),

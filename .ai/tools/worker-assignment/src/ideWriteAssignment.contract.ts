@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/ideWriteAssignment.contract.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-11-27
  * @description Задаёт контракт локального разрешения IDE и ограниченного Assignment для Code Lane.
  * @see documentation/specifications/internal-mcp.md
@@ -53,6 +53,30 @@ export const ideWriteAuthorizationInput = z.strictObject({
   writePaths,
   sources: paths.default([]),
 });
+/** Предложение не даёт доступа к записи. Операции относятся к точным путям фиксированного коммита. */
+export const ideWriteOperations = z
+  .array(
+    z.strictObject({
+      path,
+      action: z.enum(["create", "modify"]),
+      reason: z.string().trim().min(1).max(500),
+    }),
+  )
+  .min(1)
+  .max(64)
+  .refine(
+    (items) => writePaths.safeParse(items.map((item) => item.path)).success,
+  );
+
+export const ideWriteProposal = z.strictObject({
+  baseCommit: z.string().regex(/^[a-f0-9]{40}$/),
+  taskSha256: z.hash("sha256"),
+  role,
+  sources: paths,
+  operations: ideWriteOperations,
+});
+export type IdeWriteProposal = z.infer<typeof ideWriteProposal>;
+
 export const ideWriteGrant = z.strictObject({
   mode: z.literal("scoped-write"),
   baseCommit: z.string().regex(/^[a-f0-9]{40}$/),
@@ -61,6 +85,7 @@ export const ideWriteGrant = z.strictObject({
   requiredSources: paths,
   permissions: z.strictObject({
     writePaths,
+    operations: ideWriteOperations.optional(),
     output: z.literal("verified-diff"),
   }),
   checks: z.tuple([
@@ -79,7 +104,13 @@ export const ideWriteAssignment = ideWriteGrant
     returnsTo: z.literal("orchestrator"),
     executor: z.literal("ai-execution-worker"),
   })
-  .refine((assignment) => assignment.requiredSources.includes(assignment.role));
+  .refine((assignment) => assignment.requiredSources.includes(assignment.role))
+  .refine(
+    ({ permissions }) =>
+      !permissions.operations ||
+      JSON.stringify(permissions.operations.map((op) => op.path)) ===
+        JSON.stringify(permissions.writePaths),
+  );
 export type IdeWriteAssignment = z.infer<typeof ideWriteAssignment>;
 
 /** Принимает только полную квитанцию данного Assignment, с тем же набором полномочий и байтами проверенного diff. */
@@ -103,6 +134,9 @@ export function verifyIdeWriteReceipt(
     JSON.stringify(receipt.allowedPaths) !==
       JSON.stringify(assignment.permissions.writePaths) ||
     !receipt.changedPaths.length ||
+    assignment.permissions.operations?.some(
+      (op) => !receipt.changedPaths.includes(op.path),
+    ) ||
     receipt.changedPaths.some((path) => !receipt.allowedPaths.includes(path)) ||
     createHash("sha256").update(receipt.diff).digest("hex") !==
       receipt.diffSha256

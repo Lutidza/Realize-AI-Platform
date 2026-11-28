@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/runIdeAssignment.controller.ts
- * @version 1.1.0
+ * @version 1.3.0
  * @date 2026-11-27
  * @description Выдаёт локальному оркестратору привязку и принимает отчёт по ключу попытки.
  * @see .ai/tools/worker-assignment/README.md
@@ -51,7 +51,13 @@ try {
       }
     }
   } else if (
-    ["finish", "authorize-stage", "authorize-write"].includes(command)
+    [
+      "finish",
+      "authorize-stage",
+      "authorize-write",
+      "approve-write",
+      "approve-apply",
+    ].includes(command)
   ) {
     const chunks: Buffer[] = [];
     let bytes = 0;
@@ -61,7 +67,29 @@ try {
       chunks.push(chunk);
     }
     const payload: unknown = JSON.parse(Buffer.concat(chunks).toString());
-    if (command === "authorize-write") {
+    if (command === "approve-apply") {
+      const { principalID, runId, diffSha256 } = z
+        .strictObject({
+          principalID: z.string().min(1).max(80),
+          runId: z.uuid(),
+          diffSha256: z.hash("sha256"),
+        })
+        .parse(payload);
+      console.log(
+        JSON.stringify(queue.approveApply(principalID, runId, diffSha256)),
+      );
+    } else if (command === "approve-write") {
+      const { principalID, runId, proposalSha256 } = z
+        .strictObject({
+          principalID: z.string().min(1).max(80),
+          runId: z.uuid(),
+          proposalSha256: z.hash("sha256"),
+        })
+        .parse(payload);
+      console.log(
+        JSON.stringify(queue.approveWrite(principalID, runId, proposalSha256)),
+      );
+    } else if (command === "authorize-write") {
       console.log(
         JSON.stringify(
           await authorizeIdeWrite(
@@ -95,7 +123,7 @@ try {
     }
   } else
     throw new Error(
-      "Ожидается claim, wait-claim, authorize-stage, authorize-write или finish.",
+      "Ожидается claim, wait-claim, authorize-stage, authorize-write, approve-write, approve-apply или finish.",
     );
 } finally {
   queue.close();

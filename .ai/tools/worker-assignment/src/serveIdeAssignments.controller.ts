@@ -1,11 +1,14 @@
 /**
  * @file .ai/tools/worker-assignment/src/serveIdeAssignments.controller.ts
- * @version 1.3.0
+ * @version 1.5.0
  * @date 2026-11-27
  * @description Ведёт циклы claim, привязки, отдельного исполнения и finish независимо от диалога.
  * @see documentation/specifications/internal-mcp.md
  */
 import { setTimeout as delay } from "node:timers/promises";
+import { join } from "node:path";
+import { readIdeWriteAssignment } from "./dispatchIdeWrite.service";
+import { applyIdeWriteReceipt } from "./applyIdeWriteReceipt.service";
 import { fileURLToPath } from "node:url";
 import { createRepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { IdeAssignmentQueue } from "realize-ai-platform/ide-assignment-queue";
@@ -34,7 +37,27 @@ try {
     }
     let result;
     try {
-      if (job.task) {
+      if (job.apply && job.task) {
+        const assignment = await readIdeWriteAssignment(
+          policy,
+          queueDirectory,
+          job.runId,
+          job.task,
+          job.grantKey,
+          job.approvedWrite,
+        );
+        if (!assignment)
+          throw new Error("assignment_apply_authorization_missing");
+        const digest = job.apply.diffSha256;
+        result = await applyIdeWriteReceipt(
+          policy,
+          join(queueDirectory, "worktrees"),
+          assignment,
+          job.apply,
+          () => queue.beginApply(job.runId, job.token, digest),
+          stopping.signal,
+        );
+      } else if (job.task) {
         const renew = () => queue.renew(job.runId, job.token);
         result =
           (await routeIdeTask(
@@ -45,6 +68,7 @@ try {
             stopping.signal,
             renew,
             job.grantKey,
+            job.approvedWrite,
           )) ??
           (await runTextAudit(
             policy,
@@ -79,13 +103,20 @@ try {
             }),
         );
       }
+      if (result.status === "awaiting_write_approval") {
+        queue.awaitWriteApproval(job.runId, job.token, result.proposal);
+        console.log(JSON.stringify({ runId: job.runId, phase: result.status }));
+        continue;
+      }
     } catch (error) {
       if (stopping.signal.aborted) break;
       const reason =
         error instanceof Error &&
         /^assignment_[a-z_]+(?::|$)/.test(error.message)
           ? error.message.slice(0, 4000)
-          : "assignment_executor_unavailable";
+          : job.apply
+            ? "assignment_apply_failed"
+            : "assignment_executor_unavailable";
       result = {
         status: "blocked" as const,
         report: "Исполнение остановлено: " + reason,

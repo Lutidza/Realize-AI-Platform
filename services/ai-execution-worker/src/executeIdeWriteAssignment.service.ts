@@ -1,6 +1,6 @@
 /**
  * @file services/ai-execution-worker/src/executeIdeWriteAssignment.service.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-11-27
  * @description Исполняет ограниченное IDE-поручение в worktree и возвращает проверенный полный текст diff.
  * @see documentation/specifications/internal-mcp.md
@@ -103,6 +103,11 @@ export async function executeIdeWriteAssignment(
       remaining -= file.bytes.length;
       sources.push({ path, sha256: file.sha256, text: file.text });
     }
+    const operations = assignment.permissions.operations;
+    for (const op of operations ?? []) {
+      if (existing.has(op.path) !== (op.action === "modify"))
+        throw new Error("assignment_write_precondition_failed: " + op.path);
+    }
     const prompt =
       "Твой этап в ai-execution-worker — подготовка текста правок по mission. Если можешь подготовить правки по sources, верни completed и полное новое UTF-8 содержимое каждого изменяемого файла в edits. null означает удаление. Допустимы только permissions.writePaths. После твоего ответа процесс worker сам запишет файлы, выполнит checks, вычислит SHA-256 и вернёт проверенный diff. Статус твоего этапа означает готовность предложенных текстов. Верни blocked только если невозможно составить их в заявленных границах. Команды и делегирование относятся к оркестратору.\n" +
       JSON.stringify({ assignment, sources });
@@ -121,6 +126,8 @@ export async function executeIdeWriteAssignment(
     for (const edit of response.edits) {
       if (!allowedPaths.includes(edit.path) || edited.has(edit.path))
         throw new Error("assignment_write_scope_violation");
+      if (operations && edit.content === null)
+        throw new Error("assignment_write_operation_forbidden");
       if (edit.content === null && !existing.has(edit.path))
         throw new Error("assignment_write_source_missing");
       if (edit.content !== null) {
@@ -130,6 +137,8 @@ export async function executeIdeWriteAssignment(
       }
       edited.add(edit.path);
     }
+    if (operations?.some((op) => !edited.has(op.path)))
+      throw new Error("assignment_write_operations_incomplete");
     signal.throwIfAborted();
     for (const edit of response.edits) {
       const file = join(workspace, edit.path);

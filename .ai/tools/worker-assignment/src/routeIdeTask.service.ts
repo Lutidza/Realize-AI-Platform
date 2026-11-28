@@ -1,6 +1,6 @@
 /**
  * @file .ai/tools/worker-assignment/src/routeIdeTask.service.ts
- * @version 1.1.0
+ * @version 1.2.0
  * @date 2026-11-27
  * @description Выбирает профиль исполнения текстового поручения до поиска исходников.
  * @see documentation/specifications/internal-mcp.md
@@ -8,6 +8,7 @@
 import type { RepositoryReadPolicy } from "realize-ai-platform/repository-read-policy";
 import { executeIsolatedIdeAudit } from "./adapters/executeIsolatedIdeAudit.adapter";
 import { planTextAssignment } from "./planTextAssignment.service";
+import { planIdeWriteProposal } from "./planIdeWriteProposal.service";
 import { dispatchIdeWrite } from "./dispatchIdeWrite.service";
 import { dispatchIdeGitDelivery } from "./dispatchIdeGitDelivery.service";
 
@@ -20,7 +21,19 @@ export async function routeIdeTask(
   signal: AbortSignal,
   renew: () => void,
   grantKey?: string,
+  approved?: unknown,
 ) {
+  if (approved !== undefined)
+    return dispatchIdeWrite(
+      policy,
+      queueDirectory,
+      runId,
+      task,
+      signal,
+      renew,
+      grantKey,
+      approved,
+    );
   const delivery = await dispatchIdeGitDelivery(
     queueDirectory,
     policy.root,
@@ -60,9 +73,14 @@ export async function routeIdeTask(
     "route",
   );
   if (result.status === "completed" && result.report === "read") return;
+  if (result.status === "completed" && result.report === "write") {
+    renew();
+    const proposal = await planIdeWriteProposal(policy, task, signal);
+    return { status: "awaiting_write_approval" as const, proposal };
+  }
   const report =
     result.report === "git"
-      ? "assignment_git_authorization_required: требуется привязанный к запуску контекст штатного Git-воркера. Для отдельного add вызывающая среда привязывает один файл действием authorize-stage."
-      : "assignment_write_authorization_required: вызывающая среда должна привязать разрешённые файлы через authorize-write.";
+      ? "assignment_git_authorization_required: требуется привязанный к запуску контекст штатного Git-воркера."
+      : "assignment_route_unavailable";
   return { status: "blocked" as const, report };
 }
